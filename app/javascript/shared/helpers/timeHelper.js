@@ -8,6 +8,9 @@ import {
   formatDistanceToNow,
   differenceInDays,
 } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
+
+const dateLocaleOptions = { locale: ptBR };
 
 /**
  * Formats a Unix timestamp into a human-readable time format.
@@ -17,7 +20,7 @@ import {
  */
 export const messageStamp = (time, dateFormat = 'h:mm a') => {
   const unixTime = fromUnixTime(time);
-  return format(unixTime, dateFormat);
+  return format(unixTime, dateFormat, dateLocaleOptions);
 };
 
 /**
@@ -29,9 +32,9 @@ export const messageStamp = (time, dateFormat = 'h:mm a') => {
 export const messageTimestamp = (time, dateFormat = 'MMM d, yyyy') => {
   const messageTime = fromUnixTime(time);
   const now = new Date();
-  const messageDate = format(messageTime, dateFormat);
+  const messageDate = format(messageTime, dateFormat, dateLocaleOptions);
   if (!isSameYear(messageTime, now)) {
-    return format(messageTime, 'LLL d y, h:mm a');
+    return messageDate;
   }
   return messageDate;
 };
@@ -46,10 +49,10 @@ export const messageTimestamp = (time, dateFormat = 'MMM d, yyyy') => {
  */
 export const relativeDayTimestamp = (time, yesterdayLabel) => {
   const date = fromUnixTime(time);
-  if (isToday(date)) return format(date, 'h:mm a');
+  if (isToday(date)) return format(date, 'h:mm a', dateLocaleOptions);
   if (isYesterday(date)) return yesterdayLabel;
-  if (isThisYear(date)) return format(date, 'MMM d');
-  return format(date, 'MMM d, yyyy');
+  if (isThisYear(date)) return format(date, 'MMM d', dateLocaleOptions);
+  return format(date, 'MMM d, yyyy', dateLocaleOptions);
 };
 
 /**
@@ -59,7 +62,10 @@ export const relativeDayTimestamp = (time, yesterdayLabel) => {
  */
 export const dynamicTime = time => {
   const unixTime = fromUnixTime(time);
-  return formatDistanceToNow(unixTime, { addSuffix: true });
+  return formatDistanceToNow(unixTime, {
+    addSuffix: true,
+    ...dateLocaleOptions,
+  });
 };
 
 /**
@@ -70,7 +76,7 @@ export const dynamicTime = time => {
  */
 export const dateFormat = (time, df = 'MMM d, yyyy') => {
   const unixTime = fromUnixTime(time);
-  return format(unixTime, df);
+  return format(unixTime, df, dateLocaleOptions);
 };
 
 /**
