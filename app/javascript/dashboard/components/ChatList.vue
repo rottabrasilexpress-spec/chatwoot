@@ -1,5 +1,13 @@
 <script setup>
-import { ref, unref, provide, computed, watch, onMounted } from 'vue';
+import {
+  ref,
+  unref,
+  provide,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+} from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -83,6 +91,11 @@ const foldersQuery = ref({});
 const showAddFoldersModal = ref(false);
 const showDeleteFoldersModal = ref(false);
 const appliedFilter = ref([]);
+const conversationListWidth = ref(340);
+const isResizingConversationList = ref(false);
+const resizeStartX = ref(0);
+const resizeStartWidth = ref(340);
+const resizeConversationsLabel = 'Redimensionar lista de conversas';
 const advancedFilterTypes = ref(
   advancedFilterOptions.map(filter => ({
     ...filter,
@@ -858,12 +871,59 @@ function toggleSelectAll(check) {
   selectAllConversations(check, conversationList);
 }
 
+const clampConversationListWidth = width =>
+  Math.min(640, Math.max(300, Math.round(width)));
+
+const loadConversationListWidth = () => {
+  const defaultWidth = window.innerWidth >= 1536 ? 412 : 340;
+  const storedWidth = Number(
+    window.localStorage.getItem('rotta-conversations-width')
+  );
+  conversationListWidth.value = clampConversationListWidth(
+    storedWidth || defaultWidth
+  );
+};
+
+const resizeConversationList = event => {
+  if (!isResizingConversationList.value) return;
+
+  conversationListWidth.value = clampConversationListWidth(
+    resizeStartWidth.value + event.clientX - resizeStartX.value
+  );
+};
+
+const stopResizingConversationList = () => {
+  if (!isResizingConversationList.value) return;
+
+  isResizingConversationList.value = false;
+  window.removeEventListener('pointermove', resizeConversationList);
+  window.removeEventListener('pointerup', stopResizingConversationList);
+  document.body.classList.remove('rotta-is-resizing-conversations');
+  window.localStorage.setItem(
+    'rotta-conversations-width',
+    String(conversationListWidth.value)
+  );
+};
+
+const startResizingConversationList = event => {
+  if (props.isOnExpandedLayout) return;
+
+  event.preventDefault();
+  isResizingConversationList.value = true;
+  resizeStartX.value = event.clientX;
+  resizeStartWidth.value = conversationListWidth.value;
+  window.addEventListener('pointermove', resizeConversationList);
+  window.addEventListener('pointerup', stopResizingConversationList);
+  document.body.classList.add('rotta-is-resizing-conversations');
+};
+
 useEmitter('fetch_conversation_stats', () => {
   if (hasAppliedFiltersOrActiveFolders.value) return;
   store.dispatch('conversationStats/get', conversationFilters.value);
 });
 
 onMounted(() => {
+  loadConversationListWidth();
   store.dispatch('setChatListFilters', conversationFilters.value);
   setFiltersFromUISettings();
   store.dispatch('setChatStatusFilter', activeStatus.value);
@@ -873,6 +933,8 @@ onMounted(() => {
     store.dispatch('campaigns/get');
   }
 });
+
+onBeforeUnmount(stopResizingConversationList);
 
 const deleteConversationDialogRef = ref(null);
 const selectedConversationId = ref(null);
@@ -944,12 +1006,27 @@ watch(conversationFilters, (newVal, oldVal) => {
 <template>
   <div
     class="flex flex-col flex-shrink-0 conversations-list-wrap bg-n-surface-1 relative"
+    :style="
+      !isOnExpandedLayout
+        ? { '--rotta-conversation-list-width': `${conversationListWidth}px` }
+        : undefined
+    "
     :class="[
       { hidden: !showConversationList },
-      isOnExpandedLayout ? 'basis-full' : 'w-[340px] 2xl:w-[412px]',
+      isOnExpandedLayout ? 'basis-full' : 'rotta-conversations-list',
     ]"
   >
     <slot />
+    <div
+      v-if="!isOnExpandedLayout"
+      class="rotta-chat-list-resizer"
+      role="separator"
+      aria-orientation="vertical"
+      :aria-label="resizeConversationsLabel"
+      @pointerdown="startResizingConversationList"
+    >
+      <span class="rotta-chat-list-resizer__grip" aria-hidden="true" />
+    </div>
     <ChatListHeader
       :page-title="pageTitle"
       :has-applied-filters="hasAppliedFilters"
@@ -1054,3 +1131,57 @@ watch(conversationFilters, (newVal, oldVal) => {
     />
   </div>
 </template>
+
+<style scoped>
+.rotta-conversations-list {
+  width: var(--rotta-conversation-list-width, 340px);
+  min-width: 300px;
+  max-width: 640px;
+}
+
+.rotta-chat-list-resizer {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: -7px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.rotta-chat-list-resizer__grip {
+  width: 2px;
+  height: 40px;
+  border-radius: 999px;
+  background: transparent;
+  transition:
+    background-color 120ms ease,
+    height 120ms ease;
+}
+
+.rotta-chat-list-resizer:hover .rotta-chat-list-resizer__grip,
+.rotta-chat-list-resizer:focus-visible .rotta-chat-list-resizer__grip {
+  height: 56px;
+  background: var(--color-n-brand, #2563eb);
+}
+
+:global(body.rotta-is-resizing-conversations) {
+  cursor: col-resize;
+  user-select: none;
+}
+
+@media (max-width: 767px) {
+  .rotta-conversations-list {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .rotta-chat-list-resizer {
+    display: none;
+  }
+}
+</style>

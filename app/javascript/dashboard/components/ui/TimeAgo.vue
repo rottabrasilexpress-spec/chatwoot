@@ -28,6 +28,10 @@ export default {
       type: [String, Number],
       default: '',
     },
+    onlyLastActivity: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -67,6 +71,8 @@ export default {
           )} ${dateFormat(this.lastActivityTimestamp)}`;
     },
     tooltipText() {
+      if (this.onlyLastActivity) return this.lastActivity;
+
       return `${this.createdAt}
               ${this.lastActivity}`;
     },
@@ -127,6 +133,7 @@ export default {
     }"
     class="ml-auto leading-4 text-xxs text-n-slate-10 hover:text-n-slate-11"
   >
-    <span>{{ `${createdAtTime} • ${lastActivityTime}` }}</span>
+    <span v-if="onlyLastActivity">{{ lastActivityTime }}</span>
+    <span v-else>{{ `${createdAtTime} • ${lastActivityTime}` }}</span>
   </div>
 </template>

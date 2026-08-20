@@ -51,6 +51,7 @@ export default {
   data() {
     return {
       showEditModal: false,
+      showAvatarModal: false,
       isEditingName: false,
       editName: '',
     };
@@ -95,6 +96,9 @@ export default {
         telegram,
       };
     },
+    avatarUrl() {
+      return this.contact.avatar_url || this.contact.thumbnail || '';
+    },
   },
   watch: {
     'contact.id': {
@@ -108,6 +112,12 @@ export default {
     dynamicTime,
     toggleEditModal() {
       this.showEditModal = !this.showEditModal;
+    },
+    openAvatar() {
+      if (this.avatarUrl) this.showAvatarModal = true;
+    },
+    closeAvatar() {
+      this.showAvatarModal = false;
     },
     findCountryFlag(countryCode, cityAndCountry) {
       try {
@@ -181,14 +191,26 @@ export default {
   <div class="relative items-center w-full p-4">
     <div class="flex flex-col w-full gap-2 text-left rtl:text-right">
       <div class="flex flex-row justify-between">
-        <Avatar
+        <button
           v-if="showAvatar"
-          :src="contact.thumbnail"
-          :name="contact.name"
-          :status="contact.availability_status"
-          :size="48"
-          hide-offline-status
-        />
+          type="button"
+          class="rotta-profile-avatar-button"
+          :class="{ 'rotta-profile-avatar-button--clickable': avatarUrl }"
+          :disabled="!avatarUrl"
+          :aria-label="
+            avatarUrl ? `Abrir foto de perfil de ${contact.name}` : undefined
+          "
+          :title="avatarUrl ? 'Abrir foto do perfil' : undefined"
+          @click="openAvatar"
+        >
+          <Avatar
+            :src="avatarUrl"
+            :name="contact.name"
+            :status="contact.availability_status"
+            :size="48"
+            hide-offline-status
+          />
+        </button>
       </div>
 
       <div class="flex flex-col items-start gap-1.5 min-w-0 w-full">
@@ -370,6 +392,55 @@ export default {
         :contact="contact"
         @cancel="toggleEditModal"
       />
+
+      <woot-modal
+        v-model:show="showAvatarModal"
+        :on-close="closeAvatar"
+        :show-close-button="false"
+      >
+        <div class="rotta-profile-avatar-modal">
+          <woot-modal-header :header-title="contact.name" />
+          <img
+            :src="avatarUrl"
+            :alt="`Foto de perfil de ${contact.name}`"
+            class="rotta-profile-avatar-image"
+          />
+        </div>
+      </woot-modal>
     </div>
   </div>
 </template>
+
+<style scoped>
+.rotta-profile-avatar-button {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0.75rem;
+}
+
+.rotta-profile-avatar-button--clickable {
+  cursor: zoom-in;
+}
+
+.rotta-profile-avatar-button--clickable:focus-visible {
+  outline: 2px solid var(--color-n-brand, #2563eb);
+  outline-offset: 3px;
+}
+
+.rotta-profile-avatar-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: min(90vw, 40rem);
+  padding: 0 1rem 1rem;
+}
+
+.rotta-profile-avatar-image {
+  display: block;
+  max-width: min(80vw, 32rem);
+  max-height: 70vh;
+  border-radius: 1rem;
+  object-fit: contain;
+}
+</style>
