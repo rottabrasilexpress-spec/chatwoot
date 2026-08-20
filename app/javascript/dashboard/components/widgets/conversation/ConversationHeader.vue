@@ -97,6 +97,10 @@ const hasSlaPolicyId = computed(
   () => props.chat?.applied_sla?.id && !currentContact.value?.blocked
 );
 
+const hasKelvinCaioLabel = computed(() =>
+  props.chat?.labels?.includes('kelvin-caio')
+);
+
 const copyConversationId = async () => {
   try {
     await copyTextToClipboard(String(props.chat.id));
@@ -111,6 +115,7 @@ const copyConversationId = async () => {
   <div
     ref="conversationHeader"
     class="flex flex-col gap-3 items-center justify-between flex-1 w-full min-w-0 xl:flex-row px-3 pt-3 pb-2 h-24 xl:h-12"
+    :class="{ 'rotta-kelvin-header': hasKelvinCaioLabel }"
   >
     <div
       class="flex items-center justify-start w-full xl:w-auto max-w-full min-w-0 xl:flex-1"
@@ -177,3 +182,9 @@ const copyConversationId = async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.rotta-kelvin-header {
+  box-shadow: inset 0 -2px 0 #c026d3;
+}
+</style>

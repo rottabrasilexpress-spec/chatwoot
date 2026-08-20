@@ -3,6 +3,7 @@ import { frontendURL } from '../../../../helper/URLHelper';
 
 import SettingsWrapper from '../SettingsWrapper.vue';
 import Index from './Index.vue';
+import FollowUp from './FollowUp.vue';
 
 export default {
   routes: [
@@ -28,6 +29,14 @@ export default {
             permissions: ['administrator'],
           },
           component: Index,
+        },
+        {
+          path: 'follow-up',
+          name: 'rotta_follow_up',
+          meta: {
+            permissions: ['administrator'],
+          },
+          component: FollowUp,
         },
       ],
     },

@@ -70,6 +70,10 @@ const showLabelsSection = computed(() => {
   return props.chat.labels?.length > 0 || hasSlaPolicyId.value;
 });
 
+const hasKelvinCaioLabel = computed(() =>
+  props.chat?.labels?.includes('kelvin-caio')
+);
+
 const messagePreviewClass = computed(() => {
   return [
     hasUnread.value ? 'font-medium text-n-slate-12' : 'text-n-slate-11',
@@ -114,6 +118,7 @@ watch(
       'active animate-card-select bg-n-background !border-n-surface-1':
         isActiveChat,
       'selected bg-n-slate-2 !border-n-surface-1': selected,
+      'rotta-kelvin-card': hasKelvinCaioLabel,
       'px-0': compact,
       'px-3': !compact,
     }"
@@ -244,3 +249,9 @@ watch(
     </div>
   </div>
 </template>
+
+<style scoped>
+.rotta-kelvin-card {
+  box-shadow: inset 3px 0 0 #c026d3;
+}
+</style>

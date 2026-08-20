@@ -856,6 +856,12 @@ const menuItems = computed(() => {
           to: accountScopedRoute('labels_list'),
         },
         {
+          name: 'Settings Follow-up',
+          label: 'Follow-up',
+          icon: 'i-lucide-clock-3',
+          to: accountScopedRoute('rotta_follow_up'),
+        },
+        {
           name: 'Settings Custom Attributes',
           label: t('SIDEBAR.CUSTOM_ATTRIBUTES'),
           icon: 'i-lucide-code',
