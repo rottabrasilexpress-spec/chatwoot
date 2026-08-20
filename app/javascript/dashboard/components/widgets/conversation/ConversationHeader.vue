@@ -72,6 +72,20 @@ const currentContact = computed(() =>
   store.getters['contacts/getContact'](props.chat.meta.sender.id)
 );
 
+const currentContactAvatarUrl = computed(
+  () =>
+    currentContact.value?.avatar_url || currentContact.value?.thumbnail || ''
+);
+const showAvatarModal = ref(false);
+
+const openContactAvatar = () => {
+  if (currentContactAvatarUrl.value) showAvatarModal.value = true;
+};
+
+const closeContactAvatar = () => {
+  showAvatarModal.value = false;
+};
+
 const isSnoozed = computed(
   () => currentChat.value.status === wootConstants.STATUS_TYPE.SNOOZED
 );
@@ -125,13 +139,30 @@ const copyConversationId = async () => {
         :back-url="backButtonUrl"
         class="me-2"
       />
-      <Avatar
-        :name="currentContact.name"
-        :src="currentContact.thumbnail"
-        :size="32"
-        :status="currentContact.availability_status"
-        hide-offline-status
-      />
+      <button
+        type="button"
+        class="rotta-header-avatar-button"
+        :class="{
+          'rotta-header-avatar-button--clickable': currentContactAvatarUrl,
+        }"
+        :disabled="!currentContactAvatarUrl"
+        :aria-label="
+          currentContactAvatarUrl
+            ? `Abrir foto de perfil de ${currentContact.name}`
+            : undefined
+        "
+        :title="currentContactAvatarUrl ? 'Abrir foto do perfil' : undefined"
+        @click="openContactAvatar"
+      >
+        <Avatar
+          :name="currentContact.name"
+          :src="currentContactAvatarUrl"
+          :size="44"
+          :status="currentContact.availability_status"
+          class="rounded-full"
+          hide-offline-status
+        />
+      </button>
       <div class="flex flex-col items-start min-w-0 ms-2 overflow-hidden">
         <div class="flex flex-row items-center max-w-full gap-1 p-0 m-0">
           <span
@@ -180,10 +211,58 @@ const copyConversationId = async () => {
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
       <MoreActions :conversation-id="currentChat.id" />
     </div>
+
+    <woot-modal
+      v-model:show="showAvatarModal"
+      :on-close="closeContactAvatar"
+      :show-close-button="false"
+    >
+      <div class="rotta-header-avatar-modal">
+        <woot-modal-header :header-title="currentContact.name" />
+        <img
+          :src="currentContactAvatarUrl"
+          :alt="`Foto de perfil de ${currentContact.name}`"
+          class="rotta-header-avatar-image"
+        />
+      </div>
+    </woot-modal>
   </div>
 </template>
 
 <style scoped>
+.rotta-header-avatar-button {
+  flex: 0 0 auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+}
+
+.rotta-header-avatar-button--clickable {
+  cursor: zoom-in;
+}
+
+.rotta-header-avatar-button--clickable:focus-visible {
+  outline: 2px solid var(--color-n-brand, #2563eb);
+  outline-offset: 3px;
+}
+
+.rotta-header-avatar-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: min(90vw, 40rem);
+  padding: 0 1rem 1rem;
+}
+
+.rotta-header-avatar-image {
+  display: block;
+  max-width: min(80vw, 32rem);
+  max-height: 70vh;
+  border-radius: 1rem;
+  object-fit: contain;
+}
+
 .rotta-kelvin-header {
   box-shadow: inset 0 -2px 0 #c026d3;
 }

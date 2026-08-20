@@ -749,6 +749,9 @@ async function togglePinned(conversationId) {
       conversationId,
       customAttributes: { rotta_pinned: !pinned },
     });
+    // The conversation list is re-sorted as soon as the store receives the
+    // update. Keep the message consistent with the state the user changed,
+    // instead of reading the already-reactive value after the dispatch.
     useAlert(pinned ? 'Conversa desafixada.' : 'Conversa fixada.');
   } catch (error) {
     useAlert(
@@ -906,8 +909,6 @@ const stopResizingConversationList = () => {
 };
 
 const startResizingConversationList = event => {
-  if (props.isOnExpandedLayout) return;
-
   event.preventDefault();
   isResizingConversationList.value = true;
   resizeStartX.value = event.clientX;
@@ -1005,20 +1006,12 @@ watch(conversationFilters, (newVal, oldVal) => {
 
 <template>
   <div
-    class="flex flex-col flex-shrink-0 conversations-list-wrap bg-n-surface-1 relative"
-    :style="
-      !isOnExpandedLayout
-        ? { '--rotta-conversation-list-width': `${conversationListWidth}px` }
-        : undefined
-    "
-    :class="[
-      { hidden: !showConversationList },
-      isOnExpandedLayout ? 'basis-full' : 'rotta-conversations-list',
-    ]"
+    class="flex flex-col flex-shrink-0 conversations-list-wrap bg-n-surface-1 relative rotta-conversations-list"
+    :style="{ '--rotta-conversation-list-width': `${conversationListWidth}px` }"
+    :class="[{ hidden: !showConversationList }]"
   >
     <slot />
     <div
-      v-if="!isOnExpandedLayout"
       class="rotta-chat-list-resizer"
       role="separator"
       aria-orientation="vertical"

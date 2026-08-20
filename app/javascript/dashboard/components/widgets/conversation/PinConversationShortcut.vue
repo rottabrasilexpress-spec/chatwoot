@@ -17,13 +17,14 @@ const isPinned = computed(() => {
 const togglePin = async () => {
   if (!conversationId.value || isSaving.value) return;
 
+  const wasPinned = isPinned.value;
   isSaving.value = true;
   try {
     await store.dispatch('updateCustomAttributes', {
       conversationId: conversationId.value,
-      customAttributes: { rotta_pinned: !isPinned.value },
+      customAttributes: { rotta_pinned: !wasPinned },
     });
-    useAlert(isPinned.value ? 'Conversa fixada.' : 'Conversa desafixada.');
+    useAlert(wasPinned ? 'Conversa desafixada.' : 'Conversa fixada.');
   } catch (error) {
     useAlert(
       'Não foi possível atualizar a fixação da conversa. Tente novamente.'

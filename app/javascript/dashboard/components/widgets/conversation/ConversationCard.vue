@@ -118,12 +118,13 @@ watch(
 
 <template>
   <div
-    class="relative flex items-start flex-grow-0 flex-shrink-0 w-auto max-w-full py-0 cursor-pointer conversation border-b border-n-slate-3 hover:border-n-surface-1 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3 group hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
+    class="relative flex items-start flex-grow-0 flex-shrink-0 w-auto max-w-full min-h-[5.25rem] py-0 cursor-pointer conversation border-b border-n-slate-3 hover:border-n-surface-1 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3 group hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
     :class="{
       'active animate-card-select bg-n-background !border-n-surface-1':
         isActiveChat,
       'selected bg-n-slate-2 !border-n-surface-1': selected,
       'rotta-kelvin-card': hasKelvinCaioLabel,
+      'rotta-pinned-card': isPinned,
       'px-0': compact,
       'px-3': !compact,
     }"
@@ -139,9 +140,10 @@ watch(
         v-if="!hideThumbnail"
         :name="currentContact.name"
         :src="currentContact.thumbnail"
-        :size="32"
+        :size="44"
         :status="currentContact.availability_status"
-        :class="!showInboxName ? 'mt-4' : 'mt-8'"
+        class="rounded-full"
+        :class="!showInboxName ? 'mt-3' : 'mt-7'"
         hide-offline-status
       >
         <template #overlay="{ size }">
@@ -156,7 +158,7 @@ watch(
         </template>
       </Avatar>
     </div>
-    <div class="px-0 py-3 flex-1 min-w-0 border-line">
+    <div class="px-0 py-2.5 flex-1 min-w-0 border-line">
       <div
         v-if="showMetaSection"
         class="flex items-center min-w-0 gap-1"
@@ -253,7 +255,7 @@ watch(
       <CardLabels
         v-if="showLabelsSection"
         :conversation-labels="chat.labels"
-        class="mt-0.5 mx-2 mb-0"
+        class="rotta-conversation-labels mt-1 mx-2 mb-0"
       >
         <template v-if="hasSlaPolicyId" #before>
           <SLACardLabel :chat="chat" class="ltr:mr-1 rtl:ml-1" />
@@ -269,5 +271,27 @@ watch(
     inset 0 0 0 1px rgb(192 38 211 / 38%),
     0 1px 3px rgb(192 38 211 / 10%);
   background: rgb(192 38 211 / 3%);
+}
+
+.rotta-pinned-card {
+  background: color-mix(in srgb, var(--color-n-brand, #2563eb) 4%, transparent);
+}
+
+.rotta-conversation-labels {
+  min-height: 1.25rem;
+  max-width: calc(100% - 5.5rem);
+  overflow: hidden;
+}
+
+.rotta-conversation-labels :deep(> div) {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rotta-conversation-labels :deep(.label) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

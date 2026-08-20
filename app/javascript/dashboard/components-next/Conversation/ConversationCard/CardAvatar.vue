@@ -8,6 +8,7 @@ const props = defineProps({
   selected: { type: Boolean, default: false },
   enableSelection: { type: Boolean, default: true },
   hideThumbnail: { type: Boolean, default: false },
+  size: { type: Number, default: 24 },
 });
 
 const emit = defineEmits(['selectConversation']);
@@ -40,8 +41,9 @@ const selectedModel = computed({
       v-if="!hideThumbnail"
       :name="contact.name"
       :src="contact.thumbnail"
-      :size="24"
+      :size="size"
       :status="contact.availability_status"
+      class="rounded-full"
       hide-offline-status
     >
       <template v-if="enableSelection" #overlay>
