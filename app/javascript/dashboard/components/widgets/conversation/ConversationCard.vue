@@ -264,6 +264,9 @@ watch(
 
 <style scoped>
 .rotta-kelvin-card {
-  box-shadow: inset 3px 0 0 #c026d3;
+  box-shadow:
+    inset 0 0 0 1px rgb(192 38 211 / 38%),
+    0 1px 3px rgb(192 38 211 / 10%);
+  background: rgb(192 38 211 / 3%);
 }
 </style>
