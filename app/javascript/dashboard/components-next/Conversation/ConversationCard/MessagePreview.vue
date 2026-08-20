@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import { MESSAGE_TYPE } from 'widget/helpers/constants';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import MessageStatus from 'dashboard/components-next/message/MessageStatus.vue';
+import { MESSAGE_STATUS } from 'dashboard/components-next/message/constants';
 
 const props = defineProps({
   message: {
@@ -71,6 +73,13 @@ const attachmentMessageContent = computed(() => {
 const isMessageSticker = computed(() => {
   return props.message && props.message.content_type === 'sticker';
 });
+
+const deliveryStatus = computed(() => {
+  if (!messageByAgent.value || isMessagePrivate.value) return '';
+
+  const status = String(props.message.status || '').toLowerCase();
+  return Object.values(MESSAGE_STATUS).includes(status) ? status : '';
+});
 </script>
 
 <template>
@@ -82,6 +91,11 @@ const isMessageSticker = computed(() => {
         : 'grid grid-cols-[auto_1fr] items-center gap-1'
     "
   >
+    <MessageStatus
+      v-if="deliveryStatus"
+      :status="deliveryStatus"
+      class="inline-flex align-middle ltr:mr-1 rtl:ml-1"
+    />
     <template v-if="showMessageType && !multiLine">
       <Icon
         v-if="isMessagePrivate"

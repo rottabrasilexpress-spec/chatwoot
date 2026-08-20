@@ -17,6 +17,7 @@ import ComposeConversation from 'dashboard/components-next/NewConversation/Compo
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import VoiceCallButton from 'dashboard/components-next/Contacts/VoiceCallButton.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
+import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 
 export default {
   components: {
@@ -97,7 +98,9 @@ export default {
       };
     },
     avatarUrl() {
-      return this.contact.avatar_url || this.contact.thumbnail || '';
+      return getOriginalAvatarUrl(
+        this.contact.avatar_url || this.contact.thumbnail
+      );
     },
   },
   watch: {
@@ -404,6 +407,9 @@ export default {
             :src="avatarUrl"
             :alt="`Foto de perfil de ${contact.name}`"
             class="rotta-profile-avatar-image"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
           />
         </div>
       </woot-modal>
@@ -432,14 +438,17 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: min(90vw, 40rem);
+  width: min(96vw, 64rem);
+  max-width: 96vw;
   padding: 0 1rem 1rem;
 }
 
 .rotta-profile-avatar-image {
   display: block;
-  max-width: min(80vw, 32rem);
-  max-height: 70vh;
+  width: auto;
+  min-width: min(20rem, 86vw);
+  max-width: min(92vw, 60rem);
+  max-height: 82vh;
   border-radius: 1rem;
   object-fit: contain;
 }

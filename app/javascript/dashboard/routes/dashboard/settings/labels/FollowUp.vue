@@ -54,6 +54,7 @@ const searchQuery = ref('');
 const selectedStage = ref('all');
 const timezone = ref(TIMEZONE);
 const now = ref(Date.now());
+const expandedJobs = ref(new Set());
 let refreshTimer;
 let clockTimer;
 
@@ -69,6 +70,60 @@ const labelInfo = slug => {
 };
 
 const currentStage = job => job.current_label || job.source_label || '';
+const isHistoricalJob = job =>
+  job?.status === 'sent_history' || job?.status === 'history_only';
+
+const contactTrail = [
+  'contato-instantaneo',
+  'primeiro-contato',
+  'segundo-contato',
+  'terceiro-contato',
+  'ultimo-contato',
+  'arquivado',
+];
+
+const budgetTrail = [
+  'orcamento-instantaneo',
+  'orcamento-feito',
+  'orcamento-tentativa-2',
+  'orcamento-tentativa-3',
+  'orcamento-tentativa-4',
+  'arquivado',
+];
+
+const isBudgetStage = stage =>
+  String(stage || '').startsWith('orcamento-') || stage === 'clientes-fechados';
+
+const trailFor = job =>
+  isBudgetStage(currentStage(job)) || isBudgetStage(job.next_label)
+    ? budgetTrail
+    : contactTrail;
+
+const normaliseHistory = job => {
+  const rawHistory =
+    job.history ||
+    job.sent_history ||
+    job.dispatched_labels ||
+    job.follow_up_history ||
+    [];
+
+  if (!Array.isArray(rawHistory)) return [];
+
+  return rawHistory
+    .map(item => (typeof item === 'string' ? item : item?.label || item?.slug))
+    .filter(Boolean);
+};
+
+const isStageDispatched = (job, stage) => normaliseHistory(job).includes(stage);
+
+const toggleJobHistory = job => {
+  const next = new Set(expandedJobs.value);
+  if (next.has(job.job_id)) next.delete(job.job_id);
+  else next.add(job.job_id);
+  expandedJobs.value = next;
+};
+
+const isHistoryExpanded = job => expandedJobs.value.has(job.job_id);
 
 const timezoneTitle = computed(() =>
   timezone.value === TIMEZONE ? 'Horário de Brasília' : timezone.value
@@ -80,6 +135,10 @@ const stageOptions = computed(() => {
     labelInfo(a).title.localeCompare(labelInfo(b).title, 'pt-BR')
   );
 });
+
+const activeJobs = computed(() =>
+  jobs.value.filter(job => !isHistoricalJob(job))
+);
 
 const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
@@ -104,7 +163,7 @@ const filteredJobs = computed(() => {
 
 const dueCount = computed(
   () =>
-    jobs.value.filter(job => {
+    activeJobs.value.filter(job => {
       const timestamp = new Date(job.scheduled_at).getTime();
       return Number.isFinite(timestamp) && timestamp <= now.value;
     }).length
@@ -153,6 +212,8 @@ const statusText = status => {
     processing: 'Processando',
     failed_send: 'Falha no envio',
     failed_labels: 'Falha nas etiquetas',
+    sent_history: 'Histórico',
+    history_only: 'Histórico',
   };
   return values[status] || status || 'Desconhecido';
 };
@@ -160,6 +221,9 @@ const statusText = status => {
 const statusClass = status => {
   if (status === 'processing') return 'rotta-status--processing';
   if (status?.startsWith('failed')) return 'rotta-status--error';
+  if (status === 'sent_history' || status === 'history_only') {
+    return 'rotta-status--history';
+  }
   return 'rotta-status--pending';
 };
 
@@ -182,6 +246,10 @@ const loadQueue = async () => {
   try {
     const body = await request({ action: 'list' });
     jobs.value = Array.isArray(body.jobs) ? body.jobs : [];
+    const availableJobIds = new Set(jobs.value.map(job => job.job_id));
+    expandedJobs.value = new Set(
+      [...expandedJobs.value].filter(jobId => availableJobIds.has(jobId))
+    );
     counts.value = body.counts || {};
     apiLabels.value = body.labels || {};
     timezone.value = body.timezone || TIMEZONE;
@@ -193,6 +261,7 @@ const loadQueue = async () => {
 };
 
 const runAction = async (job, action, hours = undefined) => {
+  if (isHistoricalJob(job)) return;
   busyJobId.value = job.job_id;
   try {
     const payload = { action, job_id: job.job_id };
@@ -267,8 +336,11 @@ onUnmounted(() => {
         <div class="rotta-summary-grid">
           <article class="rotta-summary-card">
             <span>Na fila</span>
-            <strong>{{ jobs.length }}</strong>
-            <small>jobs acompanhados</small>
+            <strong>{{ activeJobs.length }}</strong>
+            <small
+              >{{ jobs.length - activeJobs.length }} histórico(s) no
+              painel</small
+            >
           </article>
           <article class="rotta-summary-card rotta-summary-card--due">
             <span>Prontos agora</span>
@@ -345,6 +417,26 @@ onUnmounted(() => {
                         }}</strong>
                         <span>{{ job.phone || 'Telefone não informado' }}</span>
                       </button>
+                      <button
+                        type="button"
+                        class="rotta-history-toggle"
+                        :aria-expanded="isHistoryExpanded(job)"
+                        @click.stop="toggleJobHistory(job)"
+                      >
+                        <Icon
+                          :icon="
+                            isHistoryExpanded(job)
+                              ? 'i-lucide-chevron-up'
+                              : 'i-lucide-route'
+                          "
+                          class="size-3.5"
+                        />
+                        {{
+                          isHistoryExpanded(job)
+                            ? 'Ocultar trilha'
+                            : 'Ver trilha completa'
+                        }}
+                      </button>
                     </td>
                     <td>
                       <span
@@ -357,17 +449,32 @@ onUnmounted(() => {
                       </span>
                     </td>
                     <td class="text-n-slate-11">
-                      {{ labelInfo(job.next_label).title }}
+                      <span v-if="job.next_label">
+                        {{ labelInfo(job.next_label).title }}
+                      </span>
+                      <span v-else>Ciclo registrado</span>
                     </td>
                     <td>
                       <div class="rotta-schedule">
-                        <span :class="{ 'rotta-due': isDue(job.scheduled_at) }">
+                        <span
+                          :class="{
+                            'rotta-due':
+                              isDue(job.scheduled_at) && !isHistoricalJob(job),
+                          }"
+                        >
                           {{ formatDate(job.scheduled_at) }}
                         </span>
                         <small
-                          :class="{ 'rotta-due': isDue(job.scheduled_at) }"
+                          :class="{
+                            'rotta-due':
+                              isDue(job.scheduled_at) && !isHistoricalJob(job),
+                          }"
                         >
-                          {{ countdownText(job.scheduled_at) }}
+                          {{
+                            isHistoricalJob(job)
+                              ? 'Último disparo registrado'
+                              : countdownText(job.scheduled_at)
+                          }}
                         </small>
                       </div>
                     </td>
@@ -380,7 +487,7 @@ onUnmounted(() => {
                       </span>
                     </td>
                     <td>
-                      <div class="rotta-actions">
+                      <div v-if="!isHistoricalJob(job)" class="rotta-actions">
                         <Button
                           label="Agora"
                           size="sm"
@@ -416,6 +523,58 @@ onUnmounted(() => {
                           @click="runAction(job, 'cancel')"
                         />
                       </div>
+                      <span v-else class="text-n-slate-11">—</span>
+                    </td>
+                  </tr>
+                  <tr
+                    v-for="job in filteredJobs"
+                    v-show="isHistoryExpanded(job)"
+                    :key="`${job.job_id}-history`"
+                    class="rotta-history-row"
+                  >
+                    <td colspan="6">
+                      <div class="rotta-history">
+                        <div class="rotta-history__heading">
+                          <strong
+                            >Trilha de
+                            {{ job.customer_name || 'cliente' }}</strong
+                          >
+                          <span>
+                            {{
+                              normaliseHistory(job).length
+                                ? 'Etapas disparadas registradas pelo worker'
+                                : 'Aguardando o histórico de disparos do worker'
+                            }}
+                          </span>
+                        </div>
+                        <ol class="rotta-stage-track">
+                          <li
+                            v-for="stage in trailFor(job)"
+                            :key="`${job.job_id}-${stage}`"
+                            :class="{
+                              'rotta-stage--current':
+                                currentStage(job) === stage,
+                              'rotta-stage--next': job.next_label === stage,
+                              'rotta-stage--sent': isStageDispatched(
+                                job,
+                                stage
+                              ),
+                            }"
+                          >
+                            <span class="rotta-stage-dot" />
+                            <span>{{ labelInfo(stage).title }}</span>
+                            <small v-if="isStageDispatched(job, stage)"
+                              >disparada</small
+                            >
+                            <small v-else-if="currentStage(job) === stage"
+                              >atual</small
+                            >
+                            <small v-else-if="job.next_label === stage"
+                              >próxima</small
+                            >
+                          </li>
+                        </ol>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -442,6 +601,57 @@ onUnmounted(() => {
                   {{ statusText(job.status) }}
                 </span>
               </div>
+              <button
+                type="button"
+                class="rotta-history-toggle rotta-history-toggle--mobile"
+                :aria-expanded="isHistoryExpanded(job)"
+                @click.stop="toggleJobHistory(job)"
+              >
+                <Icon
+                  :icon="
+                    isHistoryExpanded(job)
+                      ? 'i-lucide-chevron-up'
+                      : 'i-lucide-route'
+                  "
+                  class="size-3.5"
+                />
+                {{
+                  isHistoryExpanded(job)
+                    ? 'Ocultar trilha'
+                    : 'Ver trilha completa'
+                }}
+              </button>
+              <div v-if="isHistoryExpanded(job)" class="rotta-history">
+                <div class="rotta-history__heading">
+                  <strong>Trilha do cliente</strong>
+                  <span>
+                    {{
+                      normaliseHistory(job).length
+                        ? 'Etapas disparadas registradas pelo worker'
+                        : 'Aguardando o histórico de disparos do worker'
+                    }}
+                  </span>
+                </div>
+                <ol class="rotta-stage-track">
+                  <li
+                    v-for="stage in trailFor(job)"
+                    :key="`${job.job_id}-mobile-${stage}`"
+                    :class="{
+                      'rotta-stage--current': currentStage(job) === stage,
+                      'rotta-stage--next': job.next_label === stage,
+                      'rotta-stage--sent': isStageDispatched(job, stage),
+                    }"
+                  >
+                    <span class="rotta-stage-dot" />
+                    <span>{{ labelInfo(stage).title }}</span>
+                    <small v-if="isStageDispatched(job, stage)"
+                      >disparada</small
+                    >
+                    <small v-else-if="currentStage(job) === stage">atual</small>
+                    <small v-else-if="job.next_label === stage">próxima</small>
+                  </li>
+                </ol>
+              </div>
               <div class="rotta-job-card__details">
                 <span
                   class="rotta-label-pill"
@@ -452,18 +662,40 @@ onUnmounted(() => {
                   {{ labelInfo(currentStage(job)).title }}
                 </span>
                 <span class="text-n-slate-11">
-                  → {{ labelInfo(job.next_label).title }}
+                  →
+                  {{
+                    job.next_label
+                      ? labelInfo(job.next_label).title
+                      : 'Ciclo registrado'
+                  }}
                 </span>
                 <span class="rotta-schedule">
-                  <span :class="{ 'rotta-due': isDue(job.scheduled_at) }">
+                  <span
+                    :class="{
+                      'rotta-due':
+                        isDue(job.scheduled_at) && !isHistoricalJob(job),
+                    }"
+                  >
                     {{ formatDate(job.scheduled_at) }}
                   </span>
-                  <small :class="{ 'rotta-due': isDue(job.scheduled_at) }">
-                    {{ countdownText(job.scheduled_at) }}
+                  <small
+                    :class="{
+                      'rotta-due':
+                        isDue(job.scheduled_at) && !isHistoricalJob(job),
+                    }"
+                  >
+                    {{
+                      isHistoricalJob(job)
+                        ? 'Último disparo registrado'
+                        : countdownText(job.scheduled_at)
+                    }}
                   </small>
                 </span>
               </div>
-              <div class="rotta-actions rotta-actions--mobile">
+              <div
+                v-if="!isHistoricalJob(job)"
+                class="rotta-actions rotta-actions--mobile"
+              >
                 <Button
                   label="Disparar agora"
                   size="sm"
@@ -668,6 +900,106 @@ onUnmounted(() => {
   @apply text-n-blue-11;
 }
 
+.rotta-history-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: fit-content;
+  margin-top: 0.35rem;
+  padding: 0;
+  @apply text-n-blue-11;
+  font-size: 0.7rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.rotta-history-toggle:hover {
+  @apply text-n-blue-12;
+}
+
+.rotta-history-row td {
+  padding-top: 0;
+  @apply bg-n-alpha-1;
+}
+
+.rotta-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 0.9rem 1rem;
+}
+
+.rotta-history__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.rotta-history__heading strong {
+  @apply text-n-slate-12;
+  font-size: 0.8rem;
+}
+
+.rotta-history__heading span {
+  @apply text-n-slate-11;
+  font-size: 0.7rem;
+}
+
+.rotta-stage-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rotta-stage-track li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  @apply text-n-slate-10;
+  font-size: 0.7rem;
+}
+
+.rotta-stage-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  background: currentColor;
+  border-radius: 999px;
+}
+
+.rotta-stage-track li small {
+  padding: 0.1rem 0.3rem;
+  font-size: 0.62rem;
+  @apply text-n-slate-11 bg-n-solid-3;
+  border-radius: 999px;
+}
+
+.rotta-stage--current {
+  @apply text-n-blue-11;
+  font-weight: 600;
+}
+
+.rotta-stage--next {
+  @apply text-n-amber-11;
+}
+
+.rotta-stage--sent {
+  @apply text-n-teal-11;
+}
+
+.rotta-stage--sent .rotta-stage-dot {
+  @apply bg-n-teal-9;
+}
+
+.rotta-history-toggle--mobile {
+  margin-top: 0;
+}
+
 .rotta-client strong {
   overflow: hidden;
   font-size: 0.85rem;
@@ -728,6 +1060,10 @@ onUnmounted(() => {
 
 .rotta-status--error {
   @apply text-n-ruby-11 bg-n-ruby-2;
+}
+
+.rotta-status--history {
+  @apply text-n-slate-11 bg-n-slate-2;
 }
 
 .rotta-actions {

@@ -2,9 +2,14 @@
 import { MESSAGE_TYPE } from 'widget/helpers/constants';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import { ATTACHMENT_ICONS } from 'shared/constants/messages';
+import MessageStatus from 'dashboard/components-next/message/MessageStatus.vue';
+import { MESSAGE_STATUS } from 'dashboard/components-next/message/constants';
 
 export default {
   name: 'MessagePreview',
+  components: {
+    MessageStatus,
+  },
   props: {
     message: {
       type: Object,
@@ -56,12 +61,24 @@ export default {
     isMessageSticker() {
       return this.message && this.message.content_type === 'sticker';
     },
+    deliveryStatus() {
+      if (!this.messageByAgent || this.isMessagePrivate) return '';
+
+      const status = String(this.message.status || '').toLowerCase();
+      if (Object.values(MESSAGE_STATUS).includes(status)) return status;
+      return '';
+    },
   },
 };
 </script>
 
 <template>
   <div class="overflow-hidden text-ellipsis whitespace-nowrap">
+    <MessageStatus
+      v-if="deliveryStatus"
+      :status="deliveryStatus"
+      class="inline-flex align-middle ltr:mr-1 rtl:ml-1"
+    />
     <template v-if="showMessageType">
       <fluent-icon
         v-if="isMessagePrivate"

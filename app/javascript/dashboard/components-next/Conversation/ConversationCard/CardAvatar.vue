@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import Avatar from 'next/avatar/Avatar.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 
 const props = defineProps({
   contact: { type: Object, required: true },
@@ -29,6 +30,10 @@ const selectedModel = computed({
     emit('selectConversation', value);
   },
 });
+
+const avatarUrl = computed(() =>
+  getOriginalAvatarUrl(props.contact.avatar_url || props.contact.thumbnail)
+);
 </script>
 
 <template>
@@ -40,7 +45,7 @@ const selectedModel = computed({
     <Avatar
       v-if="!hideThumbnail"
       :name="contact.name"
-      :src="contact.thumbnail"
+      :src="avatarUrl"
       :size="size"
       :status="contact.availability_status"
       class="rounded-full"

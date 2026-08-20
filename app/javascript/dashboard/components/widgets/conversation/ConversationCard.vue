@@ -12,6 +12,7 @@ import UnreadBadge from 'dashboard/components-next/Conversation/ConversationCard
 import SLACardLabel from './components/SLACardLabel.vue';
 import VoiceCallStatus from './VoiceCallStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -72,6 +73,12 @@ const showLabelsSection = computed(() => {
 
 const hasKelvinCaioLabel = computed(() =>
   props.chat?.labels?.includes('kelvin-caio')
+);
+
+const currentContactAvatarUrl = computed(() =>
+  getOriginalAvatarUrl(
+    props.currentContact?.avatar_url || props.currentContact?.thumbnail
+  )
 );
 
 const isPinned = computed(() => {
@@ -139,7 +146,7 @@ watch(
       <Avatar
         v-if="!hideThumbnail"
         :name="currentContact.name"
-        :src="currentContact.thumbnail"
+        :src="currentContactAvatarUrl"
         :size="44"
         :status="currentContact.availability_status"
         class="rounded-full"
@@ -158,98 +165,105 @@ watch(
         </template>
       </Avatar>
     </div>
-    <div class="px-0 py-2.5 flex-1 min-w-0 border-line">
-      <div
-        v-if="showMetaSection"
-        class="flex items-center min-w-0 gap-1"
-        :class="{
-          'ltr:ml-2 rtl:mr-2': !compact,
-          'mx-2': compact,
-        }"
-      >
-        <InboxName v-if="showInboxName" :inbox="inbox" class="flex-1 min-w-0" />
-        <div
-          class="flex items-baseline gap-2 flex-shrink-0"
-          :class="{
-            'flex-1 justify-between': !showInboxName,
-          }"
-        >
-          <span
-            v-if="showAssignee && assignee.name"
-            class="text-n-slate-11 text-xs font-medium leading-3 py-0.5 px-0 inline-flex items-center gap-px truncate"
+    <div
+      class="rotta-conversation-content px-0 py-2.5 flex-1 min-w-0 border-line"
+    >
+      <div class="rotta-card-heading">
+        <div class="rotta-card-heading-main min-w-0 flex-1">
+          <div
+            v-if="showMetaSection"
+            class="flex items-center min-w-0 gap-1"
+            :class="{
+              'ltr:ml-2 rtl:mr-2': !compact,
+              'mx-2': compact,
+            }"
           >
-            <Icon
-              :icon="
-                isAgentBotAssignee ? 'i-lucide-bot' : 'i-lucide-user-round'
-              "
-              class="size-3 text-n-slate-11 flex-shrink-0"
+            <InboxName
+              v-if="showInboxName"
+              :inbox="inbox"
+              class="flex-1 min-w-0"
             />
-            <span class="truncate">{{ assignee.name }}</span>
-          </span>
-          <CardPriorityIcon
-            :priority="chat.priority"
-            class="flex-shrink-0 !size-3.5"
-          />
+            <div
+              class="flex items-baseline gap-2 flex-shrink-0"
+              :class="{
+                'flex-1 justify-between': !showInboxName,
+              }"
+            >
+              <span
+                v-if="showAssignee && assignee.name"
+                class="text-n-slate-11 text-xs font-medium leading-3 py-0.5 px-0 inline-flex items-center gap-px truncate"
+              >
+                <Icon
+                  :icon="
+                    isAgentBotAssignee ? 'i-lucide-bot' : 'i-lucide-user-round'
+                  "
+                  class="size-3 text-n-slate-11 flex-shrink-0"
+                />
+                <span class="truncate">{{ assignee.name }}</span>
+              </span>
+              <CardPriorityIcon
+                :priority="chat.priority"
+                class="flex-shrink-0 !size-3.5"
+              />
+            </div>
+          </div>
+          <h4
+            class="conversation--user text-sm my-0 mx-2 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap min-w-0 text-n-slate-12"
+            :class="hasUnread ? 'font-semibold' : 'font-medium'"
+          >
+            {{ currentContact.name }}
+          </h4>
         </div>
-      </div>
-      <h4
-        class="conversation--user text-sm my-0 mx-2 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap flex-1 min-w-0 ltr:pr-16 rtl:pl-16 text-n-slate-12"
-        :class="hasUnread ? 'font-semibold' : 'font-medium'"
-      >
-        {{ currentContact.name }}
-      </h4>
-      <VoiceCallStatus
-        v-if="voiceCallData.status"
-        key="voice-status-row"
-        :status="voiceCallData.status"
-        :direction="voiceCallData.direction"
-        :message-preview-class="messagePreviewClass"
-      />
-      <MessagePreview
-        v-else-if="lastMessageInChat"
-        key="message-preview"
-        :message="lastMessageInChat"
-        class="my-0 mx-2 leading-6 h-6 flex-1 min-w-0 text-sm"
-        :class="messagePreviewClass"
-      />
-      <p
-        v-else
-        key="no-messages"
-        class="text-n-slate-11 text-sm my-0 mx-2 leading-6 h-6 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
-        :class="messagePreviewClass"
-      >
-        <fluent-icon
-          size="16"
-          class="-mt-0.5 align-middle inline-block text-n-slate-10"
-          icon="info"
-        />
-        <span class="mx-0.5">
-          {{ $t(`CHAT_LIST.NO_MESSAGES`) }}
-        </span>
-      </p>
-      <div
-        class="absolute flex flex-col ltr:right-3 rtl:left-3"
-        :class="showMetaSection ? 'top-8' : 'top-4'"
-      >
-        <Icon
-          v-if="isPinned"
-          v-tooltip="'Conversa fixada'"
-          icon="i-lucide-pin"
-          class="ml-auto mb-1 size-3.5 text-n-brand"
-          :aria-label="$t('CONVERSATION.HEADER.PINNED')"
-        />
-        <span class="ml-auto font-normal leading-4 text-xxs">
+        <div class="rotta-card-meta">
+          <Icon
+            v-if="isPinned"
+            v-tooltip="'Conversa fixada'"
+            icon="i-lucide-pin"
+            class="size-3.5 text-n-brand"
+            :aria-label="$t('CONVERSATION.HEADER.PINNED')"
+          />
           <TimeAgo
             :last-activity-timestamp="chat.timestamp"
             :created-at-timestamp="chat.created_at"
             :conversation-id="chat.id"
             only-last-activity
           />
-        </span>
+        </div>
+      </div>
+      <div class="rotta-card-preview-row">
+        <VoiceCallStatus
+          v-if="voiceCallData.status"
+          key="voice-status-row"
+          :status="voiceCallData.status"
+          :direction="voiceCallData.direction"
+          :message-preview-class="messagePreviewClass"
+        />
+        <MessagePreview
+          v-else-if="lastMessageInChat"
+          key="message-preview"
+          :message="lastMessageInChat"
+          class="my-0 mx-2 leading-6 h-6 flex-1 min-w-0 text-sm"
+          :class="messagePreviewClass"
+        />
+        <p
+          v-else
+          key="no-messages"
+          class="text-n-slate-11 text-sm my-0 mx-2 leading-6 h-6 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+          :class="messagePreviewClass"
+        >
+          <fluent-icon
+            size="16"
+            class="-mt-0.5 align-middle inline-block text-n-slate-10"
+            icon="info"
+          />
+          <span class="mx-0.5">
+            {{ $t(`CHAT_LIST.NO_MESSAGES`) }}
+          </span>
+        </p>
         <UnreadBadge
           v-if="hasUnread"
           :count="unreadCount"
-          class="ltr:ml-auto rtl:mr-auto mt-1"
+          class="shrink-0 ltr:mr-3 rtl:ml-3"
         />
       </div>
       <CardLabels
@@ -277,9 +291,41 @@ watch(
   background: color-mix(in srgb, var(--color-n-brand, #2563eb) 4%, transparent);
 }
 
+.rotta-conversation-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.rotta-card-heading {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.rotta-card-meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: max-content;
+  gap: 0.125rem;
+  padding-top: 0.125rem;
+}
+
+.rotta-card-preview-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 1.5rem;
+  gap: 0.25rem;
+}
+
 .rotta-conversation-labels {
   min-height: 1.25rem;
-  max-width: calc(100% - 5.5rem);
+  max-width: 100%;
   overflow: hidden;
 }
 

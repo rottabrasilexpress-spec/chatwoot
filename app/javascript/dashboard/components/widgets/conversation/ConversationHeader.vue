@@ -16,6 +16,7 @@ import { useInbox } from 'dashboard/composables/useInbox';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
+import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 
 const props = defineProps({
   chat: {
@@ -72,9 +73,10 @@ const currentContact = computed(() =>
   store.getters['contacts/getContact'](props.chat.meta.sender.id)
 );
 
-const currentContactAvatarUrl = computed(
-  () =>
-    currentContact.value?.avatar_url || currentContact.value?.thumbnail || ''
+const currentContactAvatarUrl = computed(() =>
+  getOriginalAvatarUrl(
+    currentContact.value?.avatar_url || currentContact.value?.thumbnail
+  )
 );
 const showAvatarModal = ref(false);
 
@@ -223,6 +225,9 @@ const copyConversationId = async () => {
           :src="currentContactAvatarUrl"
           :alt="`Foto de perfil de ${currentContact.name}`"
           class="rotta-header-avatar-image"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
         />
       </div>
     </woot-modal>
@@ -251,14 +256,17 @@ const copyConversationId = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: min(90vw, 40rem);
+  width: min(96vw, 64rem);
+  max-width: 96vw;
   padding: 0 1rem 1rem;
 }
 
 .rotta-header-avatar-image {
   display: block;
-  max-width: min(80vw, 32rem);
-  max-height: 70vh;
+  width: auto;
+  min-width: min(20rem, 86vw);
+  max-width: min(92vw, 60rem);
+  max-height: 82vh;
   border-radius: 1rem;
   object-fit: contain;
 }
