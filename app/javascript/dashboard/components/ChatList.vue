@@ -322,19 +322,35 @@ function isPinnedConversation(conversation) {
   return value === true || value === 1 || value === 'true' || value === '1';
 }
 
+function toActivityTime(value) {
+  if (value === null || value === undefined || value === '') return 0;
+
+  const rawValue = String(value).trim();
+  if (/^\d+(\.\d+)?$/.test(rawValue)) {
+    const numericValue = Number(rawValue);
+    return numericValue < 1e12 ? numericValue * 1000 : numericValue;
+  }
+
+  const parsedValue = Date.parse(rawValue);
+  return Number.isNaN(parsedValue) ? 0 : parsedValue;
+}
+
 function sortByRottaOrder(conversations) {
   return [...conversations].sort((a, b) => {
     const pinnedDifference =
       Number(isPinnedConversation(b)) - Number(isPinnedConversation(a));
     if (pinnedDifference !== 0) return pinnedDifference;
 
-    const activityOf = conversation =>
-      new Date(
-        conversation.last_activity_at ||
-          conversation.timestamp ||
-          conversation.created_at ||
-          0
-      ).getTime() || 0;
+    const activityOf = conversation => {
+      const activityValues = [
+        conversation.last_activity_at,
+        conversation.timestamp,
+        conversation.created_at,
+        conversation.updated_at,
+      ];
+      return activityValues.map(toActivityTime).find(Boolean) || 0;
+    };
+
     return activityOf(b) - activityOf(a);
   });
 }
