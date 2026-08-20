@@ -1,5 +1,8 @@
 FROM chatwoot/chatwoot:v4.17.0
 
-# The Rails application and dependencies come from the official image. Only the
-# Vite bundle is replaced with the locally validated Rotta customization.
+# The Rails application and dependencies come from the official image. The
+# validated Rotta bundle and the small read-only label-count API extension are
+# overlaid on top of it.
 COPY public/vite /app/public/vite
+COPY app/models/label.rb /app/app/models/label.rb
+COPY app/views/api/v1/accounts/labels/index.json.jbuilder /app/app/views/api/v1/accounts/labels/index.json.jbuilder
