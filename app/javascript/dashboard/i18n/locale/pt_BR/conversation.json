@@ -123,6 +123,7 @@
       "OPEN": "Mais",
       "CLOSE": "Fechar",
       "DETAILS": "detalhes",
+      "PINNED": "Conversa fixada",
       "COPY_ID_SUCCESS": "ID da conversa copiado para área de transferência",
       "SNOOZED_UNTIL": "Adiar até",
       "SNOOZED_UNTIL_TOMORROW": "Adiado até amanhã",

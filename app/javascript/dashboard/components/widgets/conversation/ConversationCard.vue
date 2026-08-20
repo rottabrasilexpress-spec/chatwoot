@@ -74,6 +74,11 @@ const hasKelvinCaioLabel = computed(() =>
   props.chat?.labels?.includes('kelvin-caio')
 );
 
+const isPinned = computed(() => {
+  const value = props.chat?.custom_attributes?.rotta_pinned;
+  return value === true || value === 1 || value === 'true' || value === '1';
+});
+
 const messagePreviewClass = computed(() => {
   return [
     hasUnread.value ? 'font-medium text-n-slate-12' : 'text-n-slate-11',
@@ -224,6 +229,13 @@ watch(
         class="absolute flex flex-col ltr:right-3 rtl:left-3"
         :class="showMetaSection ? 'top-8' : 'top-4'"
       >
+        <Icon
+          v-if="isPinned"
+          v-tooltip="'Conversa fixada'"
+          icon="i-lucide-pin"
+          class="ml-auto mb-1 size-3.5 text-n-brand"
+          :aria-label="$t('CONVERSATION.HEADER.PINNED')"
+        />
         <span class="ml-auto font-normal leading-4 text-xxs">
           <TimeAgo
             :last-activity-timestamp="chat.timestamp"

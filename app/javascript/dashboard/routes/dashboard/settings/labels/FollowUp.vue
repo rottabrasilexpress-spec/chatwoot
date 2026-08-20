@@ -1,6 +1,6 @@
 <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -53,6 +53,9 @@ const busyJobId = ref('');
 const searchQuery = ref('');
 const selectedStage = ref('all');
 const timezone = ref(TIMEZONE);
+const now = ref(Date.now());
+let refreshTimer;
+let clockTimer;
 
 const labelInfo = slug => {
   const fallback = String(slug || 'outros')
@@ -65,10 +68,14 @@ const labelInfo = slug => {
   };
 };
 
+const currentStage = job => job.current_label || job.source_label || '';
+
+const timezoneTitle = computed(() =>
+  timezone.value === TIMEZONE ? 'Horário de Brasília' : timezone.value
+);
+
 const stageOptions = computed(() => {
-  const values = new Set(
-    jobs.value.map(job => job.source_label).filter(Boolean)
-  );
+  const values = new Set(jobs.value.map(currentStage).filter(Boolean));
   return [...values].sort((a, b) =>
     labelInfo(a).title.localeCompare(labelInfo(b).title, 'pt-BR')
   );
@@ -78,13 +85,14 @@ const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
   return jobs.value.filter(job => {
     const matchesStage =
-      selectedStage.value === 'all' || job.source_label === selectedStage.value;
+      selectedStage.value === 'all' ||
+      currentStage(job) === selectedStage.value;
     const content = [
       job.customer_name,
       job.phone,
-      job.source_label,
+      currentStage(job),
       job.next_label,
-      labelInfo(job.source_label).title,
+      labelInfo(currentStage(job)).title,
       labelInfo(job.next_label).title,
     ]
       .filter(Boolean)
@@ -98,7 +106,7 @@ const dueCount = computed(
   () =>
     jobs.value.filter(job => {
       const timestamp = new Date(job.scheduled_at).getTime();
-      return Number.isFinite(timestamp) && timestamp <= Date.now();
+      return Number.isFinite(timestamp) && timestamp <= now.value;
     }).length
 );
 
@@ -110,12 +118,33 @@ const formatDate = value => {
     timeZone: timezone.value || TIMEZONE,
     dateStyle: 'short',
     timeStyle: 'short',
+    hour12: false,
   }).format(date);
 };
 
 const isDue = value => {
   const date = new Date(value);
-  return Number.isFinite(date.getTime()) && date.getTime() <= Date.now();
+  return Number.isFinite(date.getTime()) && date.getTime() <= now.value;
+};
+
+const countdownText = value => {
+  const target = new Date(value).getTime();
+  if (!Number.isFinite(target)) return 'Sem horário definido';
+
+  const difference = target - now.value;
+  if (difference <= 0) return 'Pronto para disparar';
+
+  const totalMinutes = Math.ceil(difference / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+  if (days) parts.push(`${days} ${days === 1 ? 'dia' : 'dias'}`);
+  if (hours) parts.push(`${hours} ${hours === 1 ? 'hora' : 'horas'}`);
+  if (!days && minutes) {
+    parts.push(`${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`);
+  }
+  return `Faltam ${parts.join(' e ')}`;
 };
 
 const statusText = status => {
@@ -148,6 +177,7 @@ const request = async payload => {
 };
 
 const loadQueue = async () => {
+  if (isLoading.value) return;
   isLoading.value = true;
   try {
     const body = await request({ action: 'list' });
@@ -196,7 +226,18 @@ const openConversation = job => {
   window.location.href = `/app/accounts/${accountId}/conversations/${conversationId}`;
 };
 
-onMounted(loadQueue);
+onMounted(async () => {
+  await loadQueue();
+  clockTimer = window.setInterval(() => {
+    now.value = Date.now();
+  }, 1000);
+  refreshTimer = window.setInterval(loadQueue, 30000);
+});
+
+onUnmounted(() => {
+  window.clearInterval(clockTimer);
+  window.clearInterval(refreshTimer);
+});
 </script>
 
 <template>
@@ -247,7 +288,9 @@ onMounted(loadQueue);
               <Icon icon="i-lucide-clock-3" class="size-5 text-n-brand" />
               <h2>Próximos disparos</h2>
             </div>
-            <p>Fuso horário: {{ timezone }}</p>
+            <p>
+              {{ timezoneTitle }} · atualização automática a cada 30 segundos
+            </p>
           </div>
           <label class="rotta-select-wrap">
             <span>Filtrar etapa</span>
@@ -307,19 +350,26 @@ onMounted(loadQueue);
                       <span
                         class="rotta-label-pill"
                         :style="{
-                          '--label-color': labelInfo(job.source_label).color,
+                          '--label-color': labelInfo(currentStage(job)).color,
                         }"
                       >
-                        {{ labelInfo(job.source_label).title }}
+                        {{ labelInfo(currentStage(job)).title }}
                       </span>
                     </td>
                     <td class="text-n-slate-11">
                       {{ labelInfo(job.next_label).title }}
                     </td>
                     <td>
-                      <span :class="{ 'rotta-due': isDue(job.scheduled_at) }">
-                        {{ formatDate(job.scheduled_at) }}
-                      </span>
+                      <div class="rotta-schedule">
+                        <span :class="{ 'rotta-due': isDue(job.scheduled_at) }">
+                          {{ formatDate(job.scheduled_at) }}
+                        </span>
+                        <small
+                          :class="{ 'rotta-due': isDue(job.scheduled_at) }"
+                        >
+                          {{ countdownText(job.scheduled_at) }}
+                        </small>
+                      </div>
                     </td>
                     <td>
                       <span
@@ -396,16 +446,21 @@ onMounted(loadQueue);
                 <span
                   class="rotta-label-pill"
                   :style="{
-                    '--label-color': labelInfo(job.source_label).color,
+                    '--label-color': labelInfo(currentStage(job)).color,
                   }"
                 >
-                  {{ labelInfo(job.source_label).title }}
+                  {{ labelInfo(currentStage(job)).title }}
                 </span>
                 <span class="text-n-slate-11">
                   → {{ labelInfo(job.next_label).title }}
                 </span>
-                <span :class="{ 'rotta-due': isDue(job.scheduled_at) }">
-                  {{ formatDate(job.scheduled_at) }}
+                <span class="rotta-schedule">
+                  <span :class="{ 'rotta-due': isDue(job.scheduled_at) }">
+                    {{ formatDate(job.scheduled_at) }}
+                  </span>
+                  <small :class="{ 'rotta-due': isDue(job.scheduled_at) }">
+                    {{ countdownText(job.scheduled_at) }}
+                  </small>
                 </span>
               </div>
               <div class="rotta-actions rotta-actions--mobile">
@@ -642,6 +697,18 @@ onMounted(loadQueue);
   border-radius: 999px;
 }
 
+.rotta-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  white-space: nowrap;
+}
+
+.rotta-schedule small {
+  @apply text-n-slate-11;
+  font-size: 0.7rem;
+}
+
 .rotta-status {
   display: inline-flex;
   padding: 0.25rem 0.5rem;
@@ -763,6 +830,10 @@ onMounted(loadQueue);
 
   .rotta-actions--mobile :deep(button) {
     flex: 1 1 auto;
+  }
+
+  .rotta-schedule {
+    white-space: normal;
   }
 }
 </style>

@@ -66,6 +66,7 @@ const close = () => {
         :account-labels="accountLabels"
         :selected-labels="savedLabels"
         :allow-creation="isAdmin"
+        class="rotta-labels-list"
         @add="addLabelToConversation"
         @remove="removeLabelFromConversation"
       />
@@ -82,6 +83,18 @@ const close = () => {
 
 .rotta-labels-shortcut--priority:hover {
   background: rgb(192 38 211 / 12%);
+}
+
+.rotta-labels-list :deep([class*='max-h-']) {
+  max-height: none;
+}
+
+.rotta-labels-list :deep(.overflow-auto) {
+  overflow: visible;
+}
+
+.rotta-labels-list :deep(.woot-dropdown-menu) {
+  max-height: none;
 }
 
 @media (max-width: 640px) {

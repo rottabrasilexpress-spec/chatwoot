@@ -27,6 +27,7 @@ const MENU = {
   DELETE: 'delete',
   OPEN_NEW_TAB: 'open-new-tab',
   COPY_LINK: 'copy-link',
+  PIN: 'pin',
 };
 
 export default {
@@ -66,6 +67,10 @@ export default {
       type: String,
       default: '',
     },
+    pinned: {
+      type: Boolean,
+      default: false,
+    },
     allowedOptions: {
       type: Array,
       default: () => [],
@@ -81,6 +86,7 @@ export default {
     'assignLabel',
     'removeLabel',
     'deleteConversation',
+    'togglePinned',
     'close',
   ],
   setup() {
@@ -229,6 +235,13 @@ export default {
       // Assigned labels first, keeping each group's existing order.
       const isAssigned = label => this.conversationLabels.includes(label.title);
       return [...labels].sort((a, b) => isAssigned(b) - isAssigned(a));
+    },
+    pinOption() {
+      return {
+        key: MENU.PIN,
+        icon: this.pinned ? 'pin-off' : 'pin',
+        label: this.pinned ? 'Desafixar conversa' : 'Fixar conversa',
+      };
     },
   },
   mounted() {
@@ -437,6 +450,13 @@ export default {
         @click.stop="copyConversationLink"
       />
     </template>
+    <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
+    <MenuItem
+      v-if="isAllowed([MENU.PIN])"
+      :option="pinOption"
+      variant="icon"
+      @click.stop="$emit('togglePinned')"
+    />
     <template v-if="isAdmin && isAllowed([MENU.DELETE])">
       <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
       <MenuItem

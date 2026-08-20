@@ -317,6 +317,28 @@ function sortByUnreadStatus(conversations) {
   });
 }
 
+function isPinnedConversation(conversation) {
+  const value = conversation?.custom_attributes?.rotta_pinned;
+  return value === true || value === 1 || value === 'true' || value === '1';
+}
+
+function sortByRottaOrder(conversations) {
+  return [...conversations].sort((a, b) => {
+    const pinnedDifference =
+      Number(isPinnedConversation(b)) - Number(isPinnedConversation(a));
+    if (pinnedDifference !== 0) return pinnedDifference;
+
+    const activityOf = conversation =>
+      new Date(
+        conversation.last_activity_at ||
+          conversation.timestamp ||
+          conversation.created_at ||
+          0
+      ).getTime() || 0;
+    return activityOf(b) - activityOf(a);
+  });
+}
+
 const conversationList = computed(() => {
   let localConversationList = [];
 
@@ -353,7 +375,7 @@ const conversationList = computed(() => {
     localConversationList = sortByUnreadStatus(localConversationList);
   }
 
-  return localConversationList;
+  return sortByRottaOrder(localConversationList);
 });
 
 const showEndOfListMessage = computed(() => {
@@ -690,6 +712,22 @@ async function assignPriority(priority, conversationId = null) {
   });
 }
 
+async function togglePinned(conversationId) {
+  const conversation = getConversationById.value(conversationId);
+  const pinned = isPinnedConversation(conversation);
+  try {
+    await store.dispatch('updateCustomAttributes', {
+      conversationId,
+      customAttributes: { rotta_pinned: !pinned },
+    });
+    useAlert(pinned ? 'Conversa desafixada.' : 'Conversa fixada.');
+  } catch (error) {
+    useAlert(
+      'Não foi possível atualizar a fixação da conversa. Tente novamente.'
+    );
+  }
+}
+
 async function markAsUnread(conversationId) {
   try {
     await store.dispatch('markMessagesUnread', {
@@ -850,6 +888,7 @@ provide('updateConversationStatus', handleResolveConversation);
 provide('markAsUnread', markAsUnread);
 provide('markAsRead', markAsRead);
 provide('assignPriority', assignPriority);
+provide('togglePinned', togglePinned);
 provide('isConversationSelected', isConversationSelected);
 provide('deleteConversation', handleDelete);
 

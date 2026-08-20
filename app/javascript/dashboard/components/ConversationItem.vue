@@ -34,6 +34,7 @@ const markAsRead = inject('markAsRead');
 const assignPriority = inject('assignPriority');
 const isConversationSelected = inject('isConversationSelected');
 const deleteConversation = inject('deleteConversation');
+const togglePinned = inject('togglePinned');
 
 // --- Context menu state (shared by both layouts) ---
 const showContextMenu = ref(false);
@@ -176,6 +177,16 @@ const onDeleteConversation = () => {
   deleteConversation(props.source.id);
   closeContextMenu();
 };
+
+const onTogglePinned = () => {
+  togglePinned(props.source.id);
+  closeContextMenu();
+};
+
+const isPinned = computed(() => {
+  const value = props.source.custom_attributes?.rotta_pinned;
+  return value === true || value === 1 || value === 'true' || value === '1';
+});
 </script>
 
 <template>
@@ -228,6 +239,7 @@ const onDeleteConversation = () => {
       :chat-id="source.id"
       :has-unread-messages="source.unread_count > 0"
       :conversation-labels="source.labels"
+      :pinned="isPinned"
       :conversation-url="conversationPath"
       @update-conversation="onUpdateConversation"
       @assign-agent="onAssignAgent"
@@ -238,6 +250,7 @@ const onDeleteConversation = () => {
       @mark-as-read="onMarkAsRead"
       @assign-priority="onAssignPriority"
       @delete-conversation="onDeleteConversation"
+      @toggle-pinned="onTogglePinned"
       @close="closeContextMenu"
     />
   </ContextMenu>
