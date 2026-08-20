@@ -2,7 +2,7 @@ services:
   rails:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.overlay
     image: rotta-chatwoot:v4.17.0-custom-v1
     env_file:
       - .env
@@ -21,7 +21,7 @@ services:
   sidekiq:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.overlay
     image: rotta-chatwoot:v4.17.0-custom-v1
     env_file:
       - .env

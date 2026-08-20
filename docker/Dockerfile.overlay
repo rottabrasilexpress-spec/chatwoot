@@ -1,0 +1,5 @@
+FROM chatwoot/chatwoot:v4.17.0
+
+# The Rails application and dependencies come from the official image. Only the
+# Vite bundle is replaced with the locally validated Rotta customization.
+COPY public/vite /app/public/vite
