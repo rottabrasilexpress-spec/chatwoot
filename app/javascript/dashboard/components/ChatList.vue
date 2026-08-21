@@ -273,6 +273,9 @@ const pageTitle = computed(() => {
   if (activeTeam.value.name) {
     return activeTeam.value.name;
   }
+  if (props.conversationType === wootConstants.CONVERSATION_TYPE.ARCHIVED) {
+    return 'Arquivados';
+  }
   if (props.label) {
     return `#${props.label}`;
   }
