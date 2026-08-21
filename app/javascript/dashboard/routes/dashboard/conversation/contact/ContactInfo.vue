@@ -440,15 +440,15 @@ export default {
   align-items: center;
   width: min(96vw, 64rem);
   max-width: 96vw;
+  overflow: hidden;
   padding: 0 1rem 1rem;
 }
 
 .rotta-profile-avatar-image {
   display: block;
-  width: auto;
-  min-width: min(20rem, 86vw);
-  max-width: min(92vw, 60rem);
-  max-height: 82vh;
+  width: min(92vw, 60rem);
+  height: min(82vh, 60rem);
+  max-width: 100%;
   border-radius: 1rem;
   object-fit: contain;
 }
