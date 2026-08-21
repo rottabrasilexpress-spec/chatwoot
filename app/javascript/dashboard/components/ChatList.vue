@@ -91,6 +91,8 @@ const isResizingConversationList = ref(false);
 const resizeStartX = ref(0);
 const resizeStartWidth = ref(340);
 const resizeConversationsLabel = 'Redimensionar lista de conversas';
+const conversationSearchQuery = ref('');
+const isMarkingAllAsRead = ref(false);
 const advancedFilterTypes = ref(
   advancedFilterOptions.map(filter => ({
     ...filter,
@@ -405,11 +407,53 @@ const conversationList = computed(() => {
   return sortByRottaOrder(localConversationList);
 });
 
+const searchableConversationText = conversation => {
+  const labelsText = (conversation.labels || [])
+    .map(label => (typeof label === 'string' ? label : label?.title))
+    .filter(Boolean);
+
+  return [
+    conversation.id,
+    conversation.display_id,
+    conversation.meta?.sender?.name,
+    conversation.meta?.sender?.phone_number,
+    conversation.meta?.sender?.email,
+    conversation.contact?.name,
+    conversation.contact?.phone_number,
+    conversation.last_non_activity_message?.content,
+    ...labelsText,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLocaleLowerCase('pt-BR');
+};
+
+const filteredConversationList = computed(() => {
+  const query = conversationSearchQuery.value.trim().toLocaleLowerCase('pt-BR');
+  if (!query) return conversationList.value;
+
+  return conversationList.value.filter(conversation =>
+    searchableConversationText(conversation).includes(query)
+  );
+});
+
+const showRottaConversationShortcuts = computed(() => {
+  return (
+    !hasAppliedFiltersOrActiveFolders.value &&
+    !props.conversationInbox &&
+    !props.teamId &&
+    !props.label &&
+    !props.foldersId &&
+    !props.conversationType
+  );
+});
+
 const showEndOfListMessage = computed(() => {
   return !!(
     conversationList.value.length &&
     hasCurrentPageEndReached.value &&
-    !chatListLoading.value
+    !chatListLoading.value &&
+    !conversationSearchQuery.value.trim()
   );
 });
 
@@ -784,6 +828,27 @@ async function markAsRead(conversationId) {
   }
 }
 
+async function markAllVisibleAsRead() {
+  const unreadConversationIds = conversationList.value
+    .filter(conversation => Number(conversation.unread_count) > 0)
+    .map(conversation => conversation.id);
+
+  if (!unreadConversationIds.length) {
+    useAlert('Não há conversas não lidas nesta lista.');
+    return;
+  }
+
+  isMarkingAllAsRead.value = true;
+  try {
+    await Promise.all(unreadConversationIds.map(id => markAsRead(id)));
+    useAlert(
+      `${unreadConversationIds.length} conversa(s) marcada(s) como lida(s).`
+    );
+  } finally {
+    isMarkingAllAsRead.value = false;
+  }
+}
+
 async function onAssignTeam(team, conversationId = null) {
   try {
     await store.dispatch('assignTeam', {
@@ -1040,11 +1105,16 @@ watch(conversationFilters, (newVal, oldVal) => {
       :is-on-expanded-layout="isOnExpandedLayout"
       :conversation-stats="conversationStats"
       :is-list-loading="chatListLoading && !conversationList.length"
+      :search-query="conversationSearchQuery"
+      :show-rotta-shortcuts="showRottaConversationShortcuts"
+      :is-marking-all-as-read="isMarkingAllAsRead"
       @add-folders="onClickOpenAddFoldersModal"
       @delete-folders="onClickOpenDeleteFoldersModal"
       @filters-modal="onToggleAdvanceFiltersModal"
       @reset-filters="resetAndFetchData"
       @basic-filter-change="onBasicFilterChange"
+      @update-search-query="conversationSearchQuery = $event"
+      @mark-all-as-read="markAllVisibleAsRead"
     />
 
     <TeleportWithDirection
@@ -1085,7 +1155,7 @@ watch(conversationFilters, (newVal, oldVal) => {
       @select-all-conversations="toggleSelectAll"
     />
     <ConversationList
-      :conversation-list="conversationList"
+      :conversation-list="filteredConversationList"
       :is-loading="chatListLoading"
       :show-end-of-list-message="showEndOfListMessage"
       :label="label"

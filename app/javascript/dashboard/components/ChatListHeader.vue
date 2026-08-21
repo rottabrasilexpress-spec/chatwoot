@@ -4,6 +4,8 @@ import { formatNumber } from '@chatwoot/utils';
 
 import ConversationBasicFilter from './widgets/conversation/ConversationBasicFilter.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
+import { useAccount } from 'dashboard/composables/useAccount';
 
 const props = defineProps({
   pageTitle: { type: String, required: true },
@@ -13,6 +15,9 @@ const props = defineProps({
   isOnExpandedLayout: { type: Boolean, required: true },
   conversationStats: { type: Object, required: true },
   isListLoading: { type: Boolean, required: true },
+  searchQuery: { type: String, default: '' },
+  showRottaShortcuts: { type: Boolean, default: false },
+  isMarkingAllAsRead: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -21,7 +26,21 @@ const emit = defineEmits([
   'resetFilters',
   'basicFilterChange',
   'filtersModal',
+  'updateSearchQuery',
+  'markAllAsRead',
 ]);
+
+const { accountScopedRoute } = useAccount();
+const rottaCopy = {
+  accompanyTitle: 'Abrir ACOMPANHE',
+  accompanyLabel: 'ACOMPANHE',
+  archivedTitle: 'Abrir arquivados',
+  archivedLabel: 'Arquivados',
+  markAllRead: 'Marcar tudo como lido',
+  searchPlaceholder: 'Pesquisar conversas...',
+  searchLabel: 'Pesquisar conversas',
+  newConversation: 'Iniciar nova conversa',
+};
 
 const onBasicFilterChange = (value, type) => {
   emit('basicFilterChange', value, type);
@@ -37,66 +56,124 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
 
 <template>
   <div
-    class="flex items-center justify-between gap-2 px-3 h-[3.25rem]"
+    class="flex flex-col gap-2 px-3 py-2"
     :class="{
       'border-b border-n-strong': hasAppliedFiltersOrActiveFolders,
     }"
   >
-    <div class="flex items-center justify-center min-w-0">
-      <h1
-        class="text-base font-medium truncate text-n-slate-12"
-        :title="pageTitle"
-      >
-        {{ pageTitle }}
-      </h1>
-      <span
-        v-if="
-          allCount > 0 && hasAppliedFiltersOrActiveFolders && !isListLoading
-        "
-        class="px-2 py-1 my-0.5 mx-1 rounded-md capitalize bg-n-slate-3 text-xxs text-n-slate-12 shrink-0"
-        :title="allCount"
-      >
-        {{ formattedAllCount }}
-      </span>
-      <span
-        v-if="!hasAppliedFiltersOrActiveFolders"
-        class="px-2 py-1 my-0.5 mx-1 rounded-md capitalize bg-n-slate-3 text-xxs text-n-slate-12 shrink-0"
-      >
-        {{ $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`) }}
-      </span>
-    </div>
-    <div class="flex items-center gap-1">
-      <template v-if="hasAppliedFilters && !hasActiveFolders">
-        <div class="relative">
+    <div class="flex items-center justify-between gap-2 min-w-0">
+      <div class="flex items-center min-w-0">
+        <h1
+          class="text-base font-medium truncate text-n-slate-12"
+          :title="pageTitle"
+        >
+          {{ pageTitle }}
+        </h1>
+        <span
+          v-if="
+            allCount > 0 && hasAppliedFiltersOrActiveFolders && !isListLoading
+          "
+          class="px-2 py-1 my-0.5 mx-1 rounded-md capitalize bg-n-slate-3 text-xxs text-n-slate-12 shrink-0"
+          :title="allCount"
+        >
+          {{ formattedAllCount }}
+        </span>
+        <span
+          v-if="!hasAppliedFiltersOrActiveFolders"
+          class="px-2 py-1 my-0.5 mx-1 rounded-md capitalize bg-n-slate-3 text-xxs text-n-slate-12 shrink-0"
+        >
+          {{ $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`) }}
+        </span>
+        <div
+          v-if="showRottaShortcuts"
+          class="flex items-center gap-1 ml-1 shrink-0"
+        >
+          <RouterLink
+            :to="accountScopedRoute('conversation_priority')"
+            class="inline-flex items-center gap-1 px-2 h-7 rounded-lg text-xxs font-medium text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
+            :title="rottaCopy.accompanyTitle"
+          >
+            <span class="i-lucide-star size-3.5 text-n-amber-10" />
+            <span class="hidden md:inline">{{ rottaCopy.accompanyLabel }}</span>
+          </RouterLink>
+          <RouterLink
+            :to="accountScopedRoute('archived_conversations')"
+            class="inline-flex items-center gap-1 px-2 h-7 rounded-lg text-xxs font-medium text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
+            :title="rottaCopy.archivedTitle"
+          >
+            <span class="i-lucide-archive size-3.5 text-n-ruby-10" />
+            <span class="hidden md:inline">{{ rottaCopy.archivedLabel }}</span>
+          </RouterLink>
           <NextButton
-            v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.ADD.SAVE_BUTTON')"
-            icon="i-lucide-save"
+            v-tooltip.top="rottaCopy.markAllRead"
+            icon="i-lucide-mail-check"
+            label="Ler tudo"
             slate
             xs
             faded
-            @click="emit('addFolders')"
-          />
-          <div
-            id="saveFilterTeleportTarget"
-            class="absolute z-50 mt-2"
-            :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
+            :is-loading="isMarkingAllAsRead"
+            @click="emit('markAllAsRead')"
           />
         </div>
-        <NextButton
-          v-tooltip.top-end="$t('FILTER.CLEAR_BUTTON_LABEL')"
-          icon="i-lucide-circle-x"
-          ruby
-          faded
-          xs
-          @click="emit('resetFilters')"
-        />
-      </template>
-      <template v-if="hasActiveFolders">
-        <div class="relative">
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <template v-if="hasAppliedFilters && !hasActiveFolders">
+          <div class="relative">
+            <NextButton
+              v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.ADD.SAVE_BUTTON')"
+              icon="i-lucide-save"
+              slate
+              xs
+              faded
+              @click="emit('addFolders')"
+            />
+            <div
+              id="saveFilterTeleportTarget"
+              class="absolute z-50 mt-2"
+              :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
+            />
+          </div>
+          <NextButton
+            v-tooltip.top-end="$t('FILTER.CLEAR_BUTTON_LABEL')"
+            icon="i-lucide-circle-x"
+            ruby
+            faded
+            xs
+            @click="emit('resetFilters')"
+          />
+        </template>
+        <template v-if="hasActiveFolders">
+          <div class="relative">
+            <NextButton
+              id="toggleConversationFilterButton"
+              v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.EDIT.EDIT_BUTTON')"
+              icon="i-lucide-pen-line"
+              slate
+              xs
+              faded
+              @click="emit('filtersModal')"
+            />
+            <div
+              id="conversationFilterTeleportTarget"
+              class="absolute z-50 mt-2"
+              :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
+            />
+          </div>
           <NextButton
             id="toggleConversationFilterButton"
-            v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.EDIT.EDIT_BUTTON')"
-            icon="i-lucide-pen-line"
+            v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.DELETE.DELETE_BUTTON')"
+            icon="i-lucide-trash-2"
+            ruby
+            xs
+            faded
+            @click="emit('deleteFolders')"
+          />
+        </template>
+        <div v-else class="relative">
+          <NextButton
+            id="toggleConversationFilterButton"
+            v-tooltip.right="$t('FILTER.TOOLTIP_LABEL')"
+            icon="i-lucide-list-filter"
             slate
             xs
             faded
@@ -108,37 +185,41 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
             :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
           />
         </div>
-        <NextButton
-          id="toggleConversationFilterButton"
-          v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.DELETE.DELETE_BUTTON')"
-          icon="i-lucide-trash-2"
-          ruby
-          xs
-          faded
-          @click="emit('deleteFolders')"
-        />
-      </template>
-      <div v-else class="relative">
-        <NextButton
-          id="toggleConversationFilterButton"
-          v-tooltip.right="$t('FILTER.TOOLTIP_LABEL')"
-          icon="i-lucide-list-filter"
-          slate
-          xs
-          faded
-          @click="emit('filtersModal')"
-        />
-        <div
-          id="conversationFilterTeleportTarget"
-          class="absolute z-50 mt-2"
-          :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
+        <ConversationBasicFilter
+          v-if="!hasAppliedFiltersOrActiveFolders"
+          :is-on-expanded-layout="isOnExpandedLayout"
+          @change-filter="onBasicFilterChange"
         />
       </div>
-      <ConversationBasicFilter
-        v-if="!hasAppliedFiltersOrActiveFolders"
-        :is-on-expanded-layout="isOnExpandedLayout"
-        @change-filter="onBasicFilterChange"
-      />
+    </div>
+    <div class="flex items-center gap-2">
+      <label class="relative flex-1 min-w-0">
+        <span
+          class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none i-lucide-search size-4 text-n-slate-10"
+        />
+        <input
+          :value="searchQuery"
+          type="search"
+          autocomplete="off"
+          :placeholder="rottaCopy.searchPlaceholder"
+          :aria-label="rottaCopy.searchLabel"
+          class="w-full h-8 pl-8 pr-3 rounded-lg outline outline-1 outline-n-weak bg-n-surface-2 text-sm text-n-slate-12 placeholder:text-n-slate-10 focus:outline-n-brand"
+          @input="emit('updateSearchQuery', $event.target.value)"
+        />
+      </label>
+      <ComposeConversation align="start">
+        <template #trigger="{ isOpen }">
+          <NextButton
+            v-tooltip.top="rottaCopy.newConversation"
+            icon="i-lucide-plus"
+            slate
+            xs
+            faded
+            :class="{ '!bg-n-alpha-2 dark:!bg-n-slate-9/30': isOpen }"
+            :aria-label="rottaCopy.newConversation"
+          />
+        </template>
+      </ComposeConversation>
     </div>
   </div>
 </template>

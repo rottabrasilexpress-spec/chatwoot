@@ -80,31 +80,67 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def extract_status(payload)
-    data = payload['data'].is_a?(Hash) ? payload['data'] : payload
-    data['status'] || data['ack'] || data['messageStatus'] || data['message_status'] ||
-      data.dig('message', 'status') || data.dig('message', 'ack')
+    value_for_keys(
+      payload,
+      %w[status ack messageStatus message_status message_state state]
+    )
   end
 
   def extract_provider_ids(payload)
-    data = payload['data'].is_a?(Hash) ? payload['data'] : payload
-    message = data['message'].is_a?(Hash) ? data['message'] : data
-    values = [
-      data['id'], data['messageid'], data['messageId'], data['source_id'], data['sourceId'],
-      message['id'], message['messageid'], message['messageId'],
-      message.dig('key', 'id'), message.dig('key', 'messageId')
-    ]
-    values.compact_blank.map(&:to_s).uniq
+    explicit_values = values_for_keys(
+      payload,
+      %w[messageid messageId message_id source_id sourceId sourceID]
+    )
+
+    contextual_ids = payload_hashes(payload).filter_map do |node|
+      keys = node.keys.map(&:to_s).map(&:downcase)
+      next unless keys.intersect?(%w[status ack fromme wassentbyapi messageid chatid])
+
+      node['id'] || node['ID'] || node['Id']
+    end
+
+    (explicit_values + contextual_ids).compact_blank.map(&:to_s).uniq
   end
 
   def extract_phone(payload)
-    data = payload['data'].is_a?(Hash) ? payload['data'] : payload
-    message = data['message'].is_a?(Hash) ? data['message'] : data
-    values = [
-      data['chatid'], data['chatId'], data['sender'], data['from'], data['to'],
-      message['chatid'], message['chatId'], message['sender'], message['from'],
-      message.dig('key', 'remoteJid'), message.dig('key', 'participant')
-    ]
+    values = values_for_keys(
+      payload,
+      %w[chatid chatId chat_id sender from to phone number remoteJid remote_jid participant]
+    )
+
     values.filter_map { |value| normalize_phone(value) }.find { |value| value.length >= 10 }
+  end
+
+  def payload_hashes(payload)
+    queue = payload.is_a?(Hash) ? [payload] : Array(payload).select { |value| value.is_a?(Hash) }
+    nodes = []
+
+    until queue.empty? || nodes.length >= 100
+      node = queue.shift
+      nodes << node
+      node.each_value do |value|
+        if value.is_a?(Hash)
+          queue << value
+        elsif value.is_a?(Array)
+          queue.concat(value.select { |item| item.is_a?(Hash) })
+        end
+      end
+    end
+
+    nodes
+  end
+
+  def values_for_keys(payload, keys)
+    normalized_keys = keys.map(&:downcase)
+
+    payload_hashes(payload).flat_map do |node|
+      node.filter_map do |key, value|
+        next unless normalized_keys.include?(key.to_s.downcase)
+        next if value.is_a?(Hash) || value.is_a?(Array)
+
+        value
+      end
+    end
   end
 
   def normalize_phone(value)
