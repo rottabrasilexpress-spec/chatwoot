@@ -1,18 +1,26 @@
 FROM chatwoot/chatwoot:v4.17.0
 
 # The Rails application and dependencies come from the official image. The
-# validated Rotta bundle and the small read-only label-count API extension are
-# overlaid on top of it.
+# validated Rotta bundle and the backend rules that power its filters, audit
+# trail, and retention policy are overlaid on top of it as well. Keeping these
+# files explicit is important: the production image is built from the
+# official Chatwoot image and otherwise silently ignores the source-tree
+# customizations.
 COPY public/vite /app/public/vite
 COPY public/brand-assets/rottabrasil-logo.png /app/public/brand-assets/rottabrasil-logo.png
 COPY public/brand-assets/rottabrasil-logo-dark.png /app/public/brand-assets/rottabrasil-logo-dark.png
 COPY public/brand-assets/rottabrasil-mark.png /app/public/brand-assets/rottabrasil-mark.png
 COPY public/manifest.json /app/public/manifest.json
 COPY config/installation_config.yml /app/config/installation_config.yml
+COPY config/schedule.yml /app/config/schedule.yml
 COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migrate/20260820000000_set_rotta_brasil_express_branding.rb
+COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
+COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
+COPY app/models/conversation.rb /app/app/models/conversation.rb
+COPY app/models/label.rb /app/app/models/label.rb
 COPY app/views/layouts/vueapp.html.erb /app/app/views/layouts/vueapp.html.erb
 COPY app/views/installation/onboarding/index.html.erb /app/app/views/installation/onboarding/index.html.erb
 COPY app/views/super_admin/application/_navigation.html.erb /app/app/views/super_admin/application/_navigation.html.erb
 COPY app/views/super_admin/devise/sessions/new.html.erb /app/app/views/super_admin/devise/sessions/new.html.erb
-COPY app/models/label.rb /app/app/models/label.rb
 COPY app/views/api/v1/accounts/labels/index.json.jbuilder /app/app/views/api/v1/accounts/labels/index.json.jbuilder
+COPY enterprise/app/models/enterprise/audit/conversation.rb /app/enterprise/app/models/enterprise/audit/conversation.rb
