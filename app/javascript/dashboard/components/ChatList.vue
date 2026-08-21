@@ -20,7 +20,6 @@ import ConversationList from './ConversationList.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import ConversationFilter from 'next/filter/ConversationFilter.vue';
 import SaveCustomView from 'next/filter/SaveCustomView.vue';
-import ChatTypeTabs from './widgets/ChatTypeTabs.vue';
 import DeleteCustomViews from 'dashboard/routes/dashboard/customviews/DeleteCustomViews.vue';
 import ConversationBulkActions from './widgets/conversation/conversationBulkActions/Index.vue';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
@@ -39,8 +38,6 @@ import {
 import { useEmitter } from 'dashboard/composables/emitter';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
 
-import { emitter } from 'shared/helpers/mitt';
-
 import wootConstants from 'dashboard/constants/globals';
 import advancedFilterOptions from './widgets/conversation/advancedFilterItems';
 import filterQueryGenerator from '../helper/filterQueryGenerator.js';
@@ -53,19 +50,15 @@ import {
   isOnParticipatingView,
   isOnUnattendedView,
 } from '../store/modules/conversations/helpers/actionHelpers';
-import {
-  getUserPermissions,
-  filterItemsByPermission,
-} from 'dashboard/helper/permissionsHelper.js';
 import { matchesFilters } from '../store/modules/conversations/helpers/filterHelpers';
 import { CONVERSATION_EVENTS } from '../helper/AnalyticsHelper/events';
-import { ASSIGNEE_TYPE_TAB_PERMISSIONS } from 'dashboard/constants/permissions.js';
 
 const props = defineProps({
   conversationInbox: { type: [String, Number], default: 0 },
   teamId: { type: [String, Number], default: 0 },
   label: { type: String, default: '' },
   conversationType: { type: String, default: '' },
+  conversationStatus: { type: String, default: '' },
   foldersId: { type: [String, Number], default: 0 },
   showConversationList: { default: true, type: Boolean },
   isOnExpandedLayout: { default: false, type: Boolean },
@@ -80,8 +73,10 @@ const store = useStore();
 
 const resolveAttributesModalRef = ref(null);
 
-const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ME);
-const activeStatus = ref(wootConstants.STATUS_TYPE.OPEN);
+const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ALL);
+const activeStatus = ref(
+  props.conversationStatus || wootConstants.STATUS_TYPE.OPEN
+);
 const activeSortBy = ref(wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC);
 const showAdvancedFilters = ref(false);
 // chatsOnView is to store the chats that are currently visible on the screen,
@@ -119,7 +114,6 @@ const teamsList = useMapGetter('teams/getTeams');
 const inboxesList = useMapGetter('inboxes/getInboxes');
 const campaigns = useMapGetter('campaigns/getAllCampaigns');
 const labels = useMapGetter('labels/getLabels');
-const currentAccountId = useMapGetter('getCurrentAccountId');
 // We can't useFunctionGetter here since it needs to be called on setup?
 const getTeamFn = useMapGetter('teams/getTeam');
 const getConversationById = useMapGetter('getConversationById');
@@ -184,22 +178,6 @@ const currentUserDetails = computed(() => {
   return { id, name };
 });
 
-const userPermissions = computed(() => {
-  return getUserPermissions(currentUser.value, currentAccountId.value);
-});
-
-const assigneeTabItems = computed(() => {
-  return filterItemsByPermission(
-    ASSIGNEE_TYPE_TAB_PERMISSIONS,
-    userPermissions.value,
-    item => item.permissions
-  ).map(({ key, count: countKey }) => ({
-    key,
-    name: t(`CHAT_LIST.ASSIGNEE_TYPE_TABS.${key}`),
-    count: conversationStats.value[countKey] || 0,
-  }));
-});
-
 const showAssigneeInConversationCard = computed(() => {
   return (
     hasAppliedFiltersOrActiveFolders.value ||
@@ -233,10 +211,7 @@ const conversationCustomAttributes = useFunctionGetter(
 );
 
 const activeAssigneeTabCount = computed(() => {
-  const count = assigneeTabItems.value.find(
-    item => item.key === activeAssigneeTab.value
-  ).count;
-  return count;
+  return conversationStats.value.all_count || 0;
 });
 
 const conversationListPagination = computed(() => {
@@ -259,10 +234,19 @@ const conversationListPagination = computed(() => {
   return currentPage.value + 1;
 });
 
+const isSpecialConversationView = computed(() =>
+  [
+    wootConstants.CONVERSATION_TYPE.AWAITING_REPLY,
+    wootConstants.CONVERSATION_TYPE.PRIORITY,
+  ].includes(props.conversationType)
+);
+
 const conversationFilters = computed(() => {
   return {
     inboxId: props.conversationInbox ? props.conversationInbox : undefined,
-    assigneeType: activeAssigneeTab.value,
+    assigneeType: isSpecialConversationView.value
+      ? wootConstants.ASSIGNEE_TYPE.ALL
+      : activeAssigneeTab.value,
     status: activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
@@ -302,6 +286,14 @@ const pageTitle = computed(() => {
   }
   if (props.conversationType === wootConstants.CONVERSATION_TYPE.UNATTENDED) {
     return t('CHAT_LIST.UNATTENDED_HEADING');
+  }
+  if (
+    props.conversationType === wootConstants.CONVERSATION_TYPE.AWAITING_REPLY
+  ) {
+    return 'Não lidas';
+  }
+  if (props.conversationType === wootConstants.CONVERSATION_TYPE.PRIORITY) {
+    return 'ACOMPANHE';
   }
   if (hasActiveFolders.value) {
     return activeFolder.value.name;
@@ -373,7 +365,9 @@ const conversationList = computed(() => {
 
   if (!hasAppliedFiltersOrActiveFolders.value) {
     const filters = conversationFilters.value;
-    if (
+    if (isSpecialConversationView.value) {
+      localConversationList = [...allChatList.value(filters)];
+    } else if (
       props.conversationType === wootConstants.CONVERSATION_TYPE.PARTICIPATING
     ) {
       localConversationList = filterByAssigneeTab(
@@ -432,7 +426,8 @@ const uniqueInboxes = computed(() => {
 function setFiltersFromUISettings() {
   const { conversations_filter_by: filterBy = {} } = uiSettings.value;
   const { status, order_by: orderBy } = filterBy;
-  activeStatus.value = status || wootConstants.STATUS_TYPE.OPEN;
+  activeStatus.value =
+    props.conversationStatus || status || wootConstants.STATUS_TYPE.OPEN;
   activeSortBy.value = Object.values(wootConstants.SORT_BY_TYPE).includes(
     orderBy
   )
@@ -658,19 +653,9 @@ function loadMoreConversations() {
   }
 }
 
-function updateAssigneeTab(selectedTab) {
-  if (activeAssigneeTab.value !== selectedTab) {
-    resetBulkActions();
-    emitter.emit('clearSearchInput');
-    activeAssigneeTab.value = selectedTab;
-    if (!currentPage.value) {
-      fetchConversations();
-    }
-  }
-}
-
 function onBasicFilterChange(value, type) {
   if (type === 'status') {
+    if (props.conversationStatus) return;
     activeStatus.value = value;
   } else {
     activeSortBy.value = value;
@@ -709,6 +694,21 @@ function redirectToConversationList() {
     conversationType = wootConstants.CONVERSATION_TYPE.PARTICIPATING;
   } else if (isOnUnattendedView({ route: { name } })) {
     conversationType = wootConstants.CONVERSATION_TYPE.UNATTENDED;
+  } else if (
+    name === 'conversation_awaiting_reply' ||
+    name === 'conversation_through_awaiting_reply'
+  ) {
+    conversationType = wootConstants.CONVERSATION_TYPE.AWAITING_REPLY;
+  } else if (
+    name === 'conversation_priority' ||
+    name === 'conversation_through_priority'
+  ) {
+    conversationType = wootConstants.CONVERSATION_TYPE.PRIORITY;
+  } else if (
+    name === 'archived_conversations' ||
+    name === 'archived_conversation'
+  ) {
+    conversationType = wootConstants.CONVERSATION_TYPE.ARCHIVED;
   }
   router.push(
     conversationListPageURL({
@@ -986,6 +986,14 @@ watch(
   () => resetAndFetchData()
 );
 
+watch(
+  computed(() => props.conversationStatus),
+  value => {
+    activeStatus.value = value || wootConstants.STATUS_TYPE.OPEN;
+    resetAndFetchData();
+  }
+);
+
 watch(activeFolder, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     store.dispatch('customViews/setActiveConversationFolder', newVal || null);
@@ -1054,14 +1062,6 @@ watch(conversationFilters, (newVal, oldVal) => {
       :custom-views-id="foldersId"
       :open-last-item-after-delete="openLastItemAfterDeleteInFolder"
       @close="onCloseDeleteFoldersModal"
-    />
-
-    <ChatTypeTabs
-      v-if="!hasAppliedFiltersOrActiveFolders"
-      :items="assigneeTabItems"
-      :active-tab="activeAssigneeTab"
-      is-compact
-      @chat-tab-change="updateAssigneeTab"
     />
 
     <p

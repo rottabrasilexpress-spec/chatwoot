@@ -17,8 +17,6 @@ import SidebarGroup from './SidebarGroup.vue';
 import SidebarProfileMenu from './SidebarProfileMenu.vue';
 import SidebarChangelogCard from './SidebarChangelogCard.vue';
 import SidebarChangelogButton from './SidebarChangelogButton.vue';
-import ChannelLeaf from './ChannelLeaf.vue';
-import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
@@ -80,16 +78,6 @@ const hasConversationUnreadCounts = computed(() => {
   return isFeatureEnabledonAccount.value(
     accountId.value,
     FEATURE_FLAGS.CONVERSATION_UNREAD_COUNTS
-  );
-});
-
-const hasFilteredUnreadCounts = computed(() => {
-  return (
-    hasConversationUnreadCounts.value &&
-    isFeatureEnabledonAccount.value(
-      accountId.value,
-      FEATURE_FLAGS.UNREAD_COUNT_FOR_FILTERS
-    )
   );
 });
 
@@ -210,48 +198,22 @@ useEventListener(document, 'mouseup', onResizeEnd);
 useEventListener(document, 'touchmove', onResizeMove, { passive: false });
 useEventListener(document, 'touchend', onResizeEnd);
 
-const inboxes = useMapGetter('inboxes/getInboxes');
 const labels = useMapGetter('labels/getLabelsOnSidebar');
 const allUnreadCount = useMapGetter(
   'conversationUnreadCounts/getAllUnreadCount'
 );
-const getInboxUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getInboxUnreadCount'
-);
 const getLabelUnreadCount = useMapGetter(
   'conversationUnreadCounts/getLabelUnreadCount'
 );
-const getTeamUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getTeamUnreadCount'
-);
-const mentionsUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getMentionsUnreadCount'
-);
-const participatingUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getParticipatingUnreadCount'
-);
-const unattendedUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getUnattendedUnreadCount'
-);
-const getFolderUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getFolderUnreadCount'
-);
-const teams = useMapGetter('teams/getMyTeams');
 const contactCustomViews = useMapGetter('customViews/getContactCustomViews');
-const conversationCustomViews = useMapGetter(
-  'customViews/getConversationCustomViews'
-);
 const getSidebarSectionSort = useMapGetter(
   'sidebarSortPreferences/getSectionSort'
 );
 
 onMounted(() => {
   store.dispatch('labels/get');
-  store.dispatch('inboxes/get');
   store.dispatch('notifications/unReadCount');
-  store.dispatch('teams/get');
   store.dispatch('attributes/get');
-  store.dispatch('customViews/get', 'conversation');
   store.dispatch('customViews/get', 'contact');
 });
 
@@ -263,13 +225,7 @@ watch([accountId, currentUserId], fetchSidebarSortPreferences, {
   immediate: true,
 });
 
-const hasUnreadCountsForSection = section => {
-  if (section === SIDEBAR_SORT_SECTIONS.FOLDERS) {
-    return hasFilteredUnreadCounts.value;
-  }
-
-  return hasConversationUnreadCounts.value;
-};
+const hasUnreadCountsForSection = () => hasConversationUnreadCounts.value;
 
 const getSortOptionsForSection = section =>
   getSidebarSortOptions(section, {
@@ -294,36 +250,27 @@ const buildSortConfig = section => ({
   onSortChange: sortBy => updateSortPreference(section, sortBy),
 });
 
-const sortedFolders = computed(() =>
-  sortSidebarItems(conversationCustomViews.value, {
-    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.FOLDERS),
-    labelKey: view => view.name,
-    unreadCountKey: view => getFolderUnreadCount.value(view.id),
-  })
-);
-
-const sortedTeams = computed(() =>
-  sortSidebarItems(teams.value, {
-    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.TEAMS),
-    labelKey: team => team.name,
-    unreadCountKey: team => getTeamUnreadCount.value(team.id),
-  })
-);
-
-const sortedInboxes = computed(() =>
-  sortSidebarItems(inboxes.value, {
-    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.CHANNELS),
-    labelKey: inbox => inbox.name,
-    unreadCountKey: inbox => getInboxUnreadCount.value(inbox.id),
-  })
-);
-
 const sortedLabels = computed(() =>
   sortSidebarItems(labels.value, {
     sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.LABELS),
     labelKey: label => label.title,
     unreadCountKey: label => getLabelUnreadCount.value(label.id),
   })
+);
+
+const normalizeSidebarLabel = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+const budgetLabel = computed(
+  () =>
+    labels.value.find(label => {
+      const normalized = normalizeSidebarLabel(label.title);
+      return normalized.includes('kelvin') && normalized.includes('caio');
+    }) || { title: 'kelvin/caio', color: '#f59e0b' }
 );
 
 const closeMobileSidebar = () => {
@@ -349,12 +296,6 @@ const newReportRoutes = () => [
     to: accountScopedRoute('inbox_reports_index'),
     activeOn: ['inbox_reports_show'],
   },
-  {
-    name: 'Reports Team',
-    label: t('SIDEBAR.REPORTS_TEAM'),
-    to: accountScopedRoute('team_reports_index'),
-    activeOn: ['team_reports_show'],
-  },
 ];
 
 const reportRoutes = computed(() => newReportRoutes());
@@ -362,116 +303,48 @@ const reportRoutes = computed(() => newReportRoutes());
 const menuItems = computed(() => {
   return [
     {
-      name: 'Inbox',
-      label: t('SIDEBAR.INBOX'),
-      icon: 'i-lucide-inbox',
-      to: accountScopedRoute('inbox_view'),
-      activeOn: ['inbox_view', 'inbox_view_conversation'],
-      getterKeys: {
-        count: 'notifications/getUnreadCount',
-      },
+      name: 'Budgets',
+      label: 'ORÇAMENTOS',
+      icon: 'i-lucide-clipboard-list',
+      to: accountScopedRoute('label_conversations', {
+        label: budgetLabel.value.title,
+      }),
+      activeOn: ['label_conversations', 'conversations_through_label'],
+      badgeCount: getLabelUnreadCount.value(budgetLabel.value.id),
     },
     {
       name: 'Conversation',
-      label: t('SIDEBAR.CONVERSATIONS'),
+      label: 'Conversas',
       icon: 'i-lucide-message-circle',
       children: [
         {
           name: 'All',
-          label: t('SIDEBAR.ALL_CONVERSATIONS'),
+          label: 'Todos',
           icon: 'i-lucide-inbox',
           badgeCount: allUnreadCount.value,
           activeOn: ['inbox_conversation'],
           to: accountScopedRoute('home'),
         },
         {
-          name: 'Mentions',
-          label: t('SIDEBAR.MENTIONED_CONVERSATIONS'),
-          icon: 'i-lucide-at-sign',
-          badgeCount: hasFilteredUnreadCounts.value
-            ? mentionsUnreadCount.value
-            : 0,
-          activeOn: ['conversation_through_mentions'],
-          to: accountScopedRoute('conversation_mentions'),
+          name: 'Unread',
+          label: 'Não lidas',
+          icon: 'i-lucide-mail-open',
+          activeOn: [
+            'conversation_awaiting_reply',
+            'conversation_through_awaiting_reply',
+          ],
+          to: accountScopedRoute('conversation_awaiting_reply'),
         },
         {
-          name: 'Participating',
-          label: t('SIDEBAR.PARTICIPATING_CONVERSATIONS'),
-          icon: 'i-lucide-user-round-check',
-          badgeCount: hasFilteredUnreadCounts.value
-            ? participatingUnreadCount.value
-            : 0,
-          activeOn: ['conversation_through_participating'],
-          to: accountScopedRoute('conversation_participating'),
-        },
-        {
-          name: 'Unattended',
-          activeOn: ['conversation_through_unattended'],
-          label: t('SIDEBAR.UNATTENDED_CONVERSATIONS'),
-          icon: 'i-lucide-clock-alert',
-          badgeCount: hasFilteredUnreadCounts.value
-            ? unattendedUnreadCount.value
-            : 0,
-          to: accountScopedRoute('conversation_unattended'),
-        },
-        {
-          name: 'Folders',
-          label: t('SIDEBAR.CUSTOM_VIEWS_FOLDER'),
-          icon: 'i-lucide-folder',
-          activeOn: ['conversations_through_folders'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.FOLDERS),
-          collapsible: true,
-          showTreeLine: true,
-          children: sortedFolders.value.map(view => ({
-            name: `${view.name}-${view.id}`,
-            label: view.name,
-            badgeCount: hasFilteredUnreadCounts.value
-              ? getFolderUnreadCount.value(view.id)
-              : 0,
-            to: accountScopedRoute('folder_conversations', { id: view.id }),
-          })),
-        },
-        {
-          name: 'Teams',
-          label: t('SIDEBAR.TEAMS'),
-          icon: 'i-lucide-users',
-          activeOn: ['conversations_through_team'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.TEAMS),
-          collapsible: true,
-          showTreeLine: true,
-          children: sortedTeams.value.map(team => ({
-            name: `${team.name}-${team.id}`,
-            label: team.name,
-            badgeCount: getTeamUnreadCount.value(team.id),
-            to: accountScopedRoute('team_conversations', { teamId: team.id }),
-          })),
-        },
-        {
-          name: 'Channels',
-          label: t('SIDEBAR.CHANNELS'),
-          icon: 'i-lucide-mailbox',
-          activeOn: ['conversation_through_inbox'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.CHANNELS),
-          collapsible: true,
-          showTreeLine: true,
-          children: sortedInboxes.value.map(inbox => ({
-            name: `${inbox.name}-${inbox.id}`,
-            label: inbox.name,
-            badgeCount: getInboxUnreadCount.value(inbox.id),
-            icon: h(ChannelIcon, { inbox, class: 'size-[16px]' }),
-            to: accountScopedRoute('inbox_dashboard', { inbox_id: inbox.id }),
-            component: leafProps =>
-              h(ChannelLeaf, {
-                label: leafProps.label,
-                active: leafProps.active,
-                inbox,
-                badgeCount: leafProps.badgeCount,
-              }),
-          })),
+          name: 'Priority',
+          label: 'ACOMPANHE',
+          icon: 'i-lucide-flag',
+          activeOn: ['conversation_priority', 'conversation_through_priority'],
+          to: accountScopedRoute('conversation_priority'),
         },
         {
           name: 'Labels',
-          label: t('SIDEBAR.LABELS'),
+          label: 'Etiquetas',
           icon: 'i-lucide-tag',
           activeOn: ['conversations_through_label'],
           ...buildSortConfig(SIDEBAR_SORT_SECTIONS.LABELS),
@@ -490,89 +363,21 @@ const menuItems = computed(() => {
             }),
           })),
         },
+        {
+          name: 'Archived',
+          label: 'Arquivados',
+          icon: 'i-lucide-archive',
+          activeOn: ['archived_conversations', 'archived_conversation'],
+          to: accountScopedRoute('archived_conversations'),
+        },
       ],
     },
     {
-      name: 'Captain',
-      icon: 'i-woot-captain',
-      label: t('SIDEBAR.CAPTAIN'),
-      activeOn: ['captain_assistants_create_index'],
-      children: [
-        {
-          name: 'Overview',
-          label: t('SIDEBAR.CAPTAIN_OVERVIEW'),
-          activeOn: ['captain_assistants_overview_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_overview_index',
-          }),
-        },
-        {
-          name: 'FAQs',
-          label: t('SIDEBAR.CAPTAIN_RESPONSES'),
-          activeOn: [
-            'captain_assistants_responses_index',
-            'captain_assistants_faq_suggestions',
-          ],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_responses_index',
-          }),
-        },
-        {
-          name: 'Documents',
-          label: t('SIDEBAR.CAPTAIN_DOCUMENTS'),
-          activeOn: ['captain_assistants_documents_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_documents_index',
-          }),
-        },
-        {
-          name: 'Scenarios',
-          label: t('SIDEBAR.CAPTAIN_SCENARIOS'),
-          activeOn: ['captain_assistants_scenarios_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_scenarios_index',
-          }),
-        },
-        {
-          name: 'Playground',
-          label: t('SIDEBAR.CAPTAIN_PLAYGROUND'),
-          activeOn: ['captain_assistants_playground_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_playground_index',
-          }),
-        },
-        {
-          name: 'Inboxes',
-          label: t('SIDEBAR.CAPTAIN_INBOXES'),
-          activeOn: ['captain_assistants_inboxes_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_inboxes_index',
-          }),
-        },
-        {
-          name: 'Tools',
-          label: t('SIDEBAR.CAPTAIN_TOOLS'),
-          activeOn: ['captain_tools_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_tools_index',
-          }),
-        },
-        {
-          name: 'Settings',
-          label: t('SIDEBAR.CAPTAIN_SETTINGS'),
-          activeOn: [
-            'captain_assistants_settings_index',
-            'captain_assistants_settings_system_index',
-            'captain_assistants_settings_audience_index',
-            'captain_assistants_settings_schedule_index',
-            'captain_assistants_guidelines_index',
-            'captain_assistants_guardrails_index',
-          ],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_settings_index',
-          }),
-        },
-      ],
+      name: 'Follow-up',
+      label: 'Follow-up',
+      icon: 'i-lucide-clock-3',
+      to: accountScopedRoute('rotta_follow_up'),
+      activeOn: ['rotta_follow_up'],
     },
     ...(isCallsAvailable.value
       ? [
@@ -685,90 +490,6 @@ const menuItems = computed(() => {
           to: accountScopedRoute('conversation_reports'),
         },
         ...reportRoutes.value,
-        {
-          name: 'Reports CSAT',
-          label: t('SIDEBAR.CSAT'),
-          to: accountScopedRoute('csat_reports'),
-        },
-        {
-          name: 'Reports SLA',
-          label: t('SIDEBAR.REPORTS_SLA'),
-          to: accountScopedRoute('sla_reports'),
-        },
-        {
-          name: 'Reports Bot',
-          label: t('SIDEBAR.REPORTS_BOT'),
-          to: accountScopedRoute('bot_reports'),
-        },
-      ],
-    },
-    {
-      name: 'Campaigns',
-      label: t('SIDEBAR.CAMPAIGNS'),
-      icon: 'i-lucide-megaphone',
-      children: [
-        {
-          name: 'Live chat',
-          label: t('SIDEBAR.LIVE_CHAT'),
-          to: accountScopedRoute('campaigns_livechat_index'),
-        },
-        {
-          name: 'SMS',
-          label: t('SIDEBAR.SMS'),
-          to: accountScopedRoute('campaigns_sms_index'),
-        },
-        {
-          name: 'WhatsApp',
-          label: t('SIDEBAR.WHATSAPP'),
-          to: accountScopedRoute('campaigns_whatsapp_index'),
-        },
-      ],
-    },
-    {
-      name: 'Portals',
-      label: t('SIDEBAR.HELP_CENTER.TITLE'),
-      icon: 'i-lucide-library-big',
-      children: [
-        {
-          name: 'Articles',
-          label: t('SIDEBAR.HELP_CENTER.ARTICLES'),
-          activeOn: [
-            'portals_articles_index',
-            'portals_articles_new',
-            'portals_articles_edit',
-          ],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_articles_index',
-          }),
-        },
-        {
-          name: 'Categories',
-          label: t('SIDEBAR.HELP_CENTER.CATEGORIES'),
-          activeOn: [
-            'portals_categories_index',
-            'portals_categories_articles_index',
-            'portals_categories_articles_edit',
-          ],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_categories_index',
-          }),
-        },
-        {
-          name: 'Locales',
-          label: t('SIDEBAR.HELP_CENTER.LOCALES'),
-          activeOn: ['portals_locales_index'],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_locales_index',
-          }),
-        },
-        {
-          name: 'Settings',
-          label: t('SIDEBAR.HELP_CENTER.SETTINGS'),
-          activeOn: ['portals_settings_index'],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_settings_index',
-          }),
-        },
       ],
     },
     {
@@ -793,22 +514,6 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.AGENTS'),
           icon: 'i-lucide-square-user',
           to: accountScopedRoute('agent_list'),
-        },
-        {
-          name: 'Settings Teams',
-          label: t('SIDEBAR.TEAMS'),
-          icon: 'i-lucide-users',
-          activeOn: [
-            'settings_teams_list',
-            'settings_teams_new',
-            'settings_teams_finish',
-            'settings_teams_add_agents',
-            'settings_teams_show',
-            'settings_teams_edit',
-            'settings_teams_edit_members',
-            'settings_teams_edit_finish',
-          ],
-          to: accountScopedRoute('settings_teams_list'),
         },
         ...(hasAdvancedAssignment.value
           ? [
@@ -844,52 +549,16 @@ const menuItems = computed(() => {
           to: accountScopedRoute('settings_inbox_list'),
         },
         {
-          name: 'Settings Templates',
-          label: t('SIDEBAR.WHATSAPP_TEMPLATES'),
-          icon: 'i-lucide-layout-template',
-          to: accountScopedRoute('settings_templates'),
-        },
-        {
           name: 'Settings Labels',
           label: t('SIDEBAR.LABELS'),
           icon: 'i-lucide-tags',
           to: accountScopedRoute('labels_list'),
         },
         {
-          name: 'Settings Follow-up',
-          label: 'Follow-up',
-          icon: 'i-lucide-clock-3',
-          to: accountScopedRoute('rotta_follow_up'),
-        },
-        {
-          name: 'Settings Custom Attributes',
-          label: t('SIDEBAR.CUSTOM_ATTRIBUTES'),
-          icon: 'i-lucide-code',
-          to: accountScopedRoute('attributes_list'),
-        },
-        {
           name: 'Settings Automation',
           label: t('SIDEBAR.AUTOMATION'),
           icon: 'i-lucide-repeat',
           to: accountScopedRoute('automation_list'),
-        },
-        {
-          name: 'Settings Agent Bots',
-          label: t('SIDEBAR.AGENT_BOTS'),
-          icon: 'i-lucide-bot',
-          to: accountScopedRoute('agent_bots'),
-        },
-        {
-          name: 'Settings Macros',
-          label: t('SIDEBAR.MACROS'),
-          icon: 'i-lucide-toy-brick',
-          to: accountScopedRoute('macros_wrapper'),
-        },
-        {
-          name: 'Settings Canned Responses',
-          label: t('SIDEBAR.CANNED_RESPONSES'),
-          icon: 'i-lucide-message-square-quote',
-          to: accountScopedRoute('canned_list'),
         },
         {
           name: 'Settings Integrations',
@@ -918,24 +587,6 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.CUSTOM_ROLES'),
           icon: 'i-lucide-shield-plus',
           to: accountScopedRoute('custom_roles_list'),
-        },
-        {
-          name: 'Settings Sla',
-          label: t('SIDEBAR.SLA'),
-          icon: 'i-lucide-clock-alert',
-          to: accountScopedRoute('sla_list'),
-        },
-        {
-          name: 'Conversation Workflow',
-          label: t('SIDEBAR.CONVERSATION_WORKFLOW'),
-          icon: 'i-lucide-workflow',
-          to: accountScopedRoute('conversation_workflow_index'),
-        },
-        {
-          name: 'Settings Security',
-          label: t('SIDEBAR.SECURITY'),
-          icon: 'i-lucide-shield',
-          to: accountScopedRoute('security_settings_index'),
         },
         {
           name: 'Settings Billing',

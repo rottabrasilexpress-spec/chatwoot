@@ -27,6 +27,12 @@ export const conversationUrl = ({
     url = `accounts/${accountId}/participating/conversations/${id}`;
   } else if (conversationType === 'unattended') {
     url = `accounts/${accountId}/unattended/conversations/${id}`;
+  } else if (conversationType === 'awaiting_reply') {
+    url = `accounts/${accountId}/awaiting/conversations/${id}`;
+  } else if (conversationType === 'priority') {
+    url = `accounts/${accountId}/priority/conversations/${id}`;
+  } else if (conversationType === 'archived') {
+    url = `accounts/${accountId}/archived/conversations/${id}`;
   }
   return url;
 };
@@ -53,6 +59,9 @@ export const conversationListPageURL = ({
       mention: 'mentions/conversations',
       participating: 'participating/conversations',
       unattended: 'unattended/conversations',
+      awaiting_reply: 'awaiting/conversations',
+      priority: 'priority/conversations',
+      archived: 'archived/conversations',
     };
     url = `accounts/${accountId}/${urlMap[conversationType]}`;
   }

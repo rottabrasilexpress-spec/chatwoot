@@ -146,6 +146,10 @@ class ConversationFinder
       @conversations = @conversations.where(id: participant_conversation_ids)
     when 'unattended'
       @conversations = @conversations.unattended
+    when 'awaiting_reply'
+      @conversations = @conversations.awaiting_reply
+    when 'priority'
+      @conversations = @conversations.prioritized
     end
     @conversations
   end

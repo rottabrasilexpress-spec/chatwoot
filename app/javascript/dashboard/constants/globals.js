@@ -16,6 +16,9 @@ export default {
     MENTION: 'mention',
     PARTICIPATING: 'participating',
     UNATTENDED: 'unattended',
+    AWAITING_REPLY: 'awaiting_reply',
+    PRIORITY: 'priority',
+    ARCHIVED: 'archived',
   },
   SORT_BY_TYPE: {
     LAST_ACTIVITY_AT_ASC: 'last_activity_at_asc',

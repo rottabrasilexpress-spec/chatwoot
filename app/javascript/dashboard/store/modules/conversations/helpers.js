@@ -35,6 +35,23 @@ export const filterByUnattended = (
     : shouldFilter;
 };
 
+export const filterByConversationType = (
+  shouldFilter,
+  conversationType,
+  priority,
+  lastNonActivityMessage
+) => {
+  if (conversationType === 'priority') {
+    return Boolean(priority) && shouldFilter;
+  }
+
+  if (conversationType === 'awaiting_reply') {
+    return lastNonActivityMessage?.message_type === 0 && shouldFilter;
+  }
+
+  return shouldFilter;
+};
+
 export const applyPageFilters = (conversation, filters) => {
   const { inboxId, status, labels = [], teamId, conversationType } = filters;
   const {
@@ -44,6 +61,8 @@ export const applyPageFilters = (conversation, filters) => {
     meta = {},
     first_reply_created_at: firstReplyOn,
     waiting_since: waitingSince,
+    priority,
+    last_non_activity_message: lastNonActivityMessage,
   } = conversation;
   const team = meta.team || {};
   const { id: chatTeamId } = team;
@@ -57,6 +76,12 @@ export const applyPageFilters = (conversation, filters) => {
     conversationType,
     firstReplyOn,
     waitingSince
+  );
+  shouldFilter = filterByConversationType(
+    shouldFilter,
+    conversationType,
+    priority,
+    lastNonActivityMessage
   );
 
   return shouldFilter;

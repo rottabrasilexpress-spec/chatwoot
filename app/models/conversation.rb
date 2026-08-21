@@ -92,6 +92,21 @@ class Conversation < ApplicationRecord
     order(unread_messages_count_arel.desc).sort_on_last_activity_at('desc')
   }
   scope :unattended, -> { where(first_reply_created_at: nil).or(where.not(waiting_since: nil)) }
+  scope :prioritized, -> { where.not(priority: nil) }
+  scope :awaiting_reply, lambda {
+    joins(<<~SQL.squish)
+      INNER JOIN LATERAL (
+        SELECT messages.message_type
+        FROM messages
+        WHERE messages.conversation_id = conversations.id
+          AND messages.account_id = conversations.account_id
+          AND messages.message_type IN (0, 1)
+        ORDER BY messages.created_at DESC, messages.id DESC
+        LIMIT 1
+      ) latest_non_activity_message ON TRUE
+    SQL
+      .where('latest_non_activity_message.message_type = ?', Message.message_types[:incoming])
+  }
   scope :resolvable_not_waiting, lambda { |auto_resolve_after|
     return none if auto_resolve_after.to_i.zero?
 

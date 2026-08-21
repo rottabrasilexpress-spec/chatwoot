@@ -233,5 +233,80 @@ export default {
         conversationType: 'participating',
       }),
     },
+    {
+      path: frontendURL('accounts/:accountId/awaiting/conversations'),
+      name: 'conversation_awaiting_reply',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: () => ({ conversationType: 'awaiting_reply' }),
+    },
+    {
+      path: frontendURL(
+        'accounts/:accountId/awaiting/conversations/:conversationId'
+      ),
+      name: 'conversation_through_awaiting_reply',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: route => ({
+        conversationId: route.params.conversationId,
+        conversationType: 'awaiting_reply',
+      }),
+    },
+    {
+      path: frontendURL('accounts/:accountId/priority/conversations'),
+      name: 'conversation_priority',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: () => ({ conversationType: 'priority' }),
+    },
+    {
+      path: frontendURL(
+        'accounts/:accountId/priority/conversations/:conversationId'
+      ),
+      name: 'conversation_through_priority',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: route => ({
+        conversationId: route.params.conversationId,
+        conversationType: 'priority',
+      }),
+    },
+    {
+      path: frontendURL('accounts/:accountId/archived/conversations'),
+      name: 'archived_conversations',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: () => ({
+        label: 'arquivado',
+        conversationType: 'archived',
+        conversationStatus: 'all',
+      }),
+    },
+    {
+      path: frontendURL(
+        'accounts/:accountId/archived/conversations/:conversationId'
+      ),
+      name: 'archived_conversation',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: route => ({
+        conversationId: route.params.conversationId,
+        label: 'arquivado',
+        conversationType: 'archived',
+        conversationStatus: 'all',
+      }),
+    },
   ],
 };
