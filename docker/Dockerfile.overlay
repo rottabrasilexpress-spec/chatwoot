@@ -18,6 +18,7 @@ COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migr
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/controllers/api/v1/accounts/rotta_follow_up_controller.rb /app/app/controllers/api/v1/accounts/rotta_follow_up_controller.rb
+COPY app/controllers/webhooks/uazapi_controller.rb /app/app/controllers/webhooks/uazapi_controller.rb
 COPY app/models/conversation.rb /app/app/models/conversation.rb
 COPY app/models/label.rb /app/app/models/label.rb
 COPY app/models/concerns/label_activity_message_handler.rb /app/app/models/concerns/label_activity_message_handler.rb

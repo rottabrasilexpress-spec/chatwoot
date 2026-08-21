@@ -104,7 +104,10 @@ const isSent = computed(() => {
   // All messages will be mark as sent for the Line channel, as there is no source ID.
   if (isALineChannel.value) return true;
 
-  return false;
+  // Uazapi is connected through a custom/API inbox in this installation.
+  // Keep the first tick visible even when the channel does not identify
+  // itself as one of Chatwoot's built-in WhatsApp channel types.
+  return effectiveStatus.value === MESSAGE_STATUS.SENT;
 });
 
 const isDelivered = computed(() => {
@@ -131,7 +134,7 @@ const isDelivered = computed(() => {
     return effectiveStatus.value === MESSAGE_STATUS.DELIVERED;
   }
 
-  return false;
+  return effectiveStatus.value === MESSAGE_STATUS.DELIVERED;
 });
 
 const isRead = computed(() => {
@@ -151,7 +154,7 @@ const isRead = computed(() => {
     return effectiveStatus.value === MESSAGE_STATUS.READ;
   }
 
-  return false;
+  return effectiveStatus.value === MESSAGE_STATUS.READ;
 });
 
 const statusToShow = computed(() => {
