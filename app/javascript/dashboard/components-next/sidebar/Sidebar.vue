@@ -250,20 +250,45 @@ const buildSortConfig = section => ({
   onSortChange: sortBy => updateSortPreference(section, sortBy),
 });
 
-const sortedLabels = computed(() =>
-  sortSidebarItems(labels.value, {
-    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.LABELS),
-    labelKey: label => label.title,
-    unreadCountKey: label => getLabelUnreadCount.value(label.id),
-  })
-);
-
 const normalizeSidebarLabel = value =>
   String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
+
+const ROTTA_LABEL_ORDER = [
+  'kelvincaio',
+  'contatoinstantaneo',
+  'primeirocontato',
+  'segundocontato',
+  'terceirocontato',
+  'ultimocontato',
+  'orcamentoinstantaneo',
+  'orcamentofeito',
+  'orcamentotentativa2',
+  'orcamentotentativa3',
+  'orcamentotentativa4',
+  'orcamento5dias',
+  'orcamento10dias',
+  'orcamento15dias',
+  'clientesfechados',
+  'arquivado',
+];
+
+const rottaLabelOrder = label => {
+  const index = ROTTA_LABEL_ORDER.indexOf(normalizeSidebarLabel(label.title));
+  return index === -1 ? ROTTA_LABEL_ORDER.length : index;
+};
+
+const sortedLabels = computed(() =>
+  sortSidebarItems(labels.value, {
+    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.LABELS),
+    labelKey: label => label.title,
+    unreadCountKey: label => getLabelUnreadCount.value(label.id),
+    orderKey: rottaLabelOrder,
+  })
+);
 
 const budgetLabel = computed(
   () =>

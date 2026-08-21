@@ -25,9 +25,12 @@ class RottaArchivedConversationRetentionJob < ApplicationJob
     archived = archived_label_scope
                .where("additional_attributes->>'rotta_archived_at' <= ?", cutoff.iso8601)
 
-    stale_resolved = Conversation.resolved.where('last_activity_at < ?', cutoff)
+    # Existing conversations without the Rotta timestamp (created before this
+    # rule) are covered by their last interaction. The business rule is based
+    # on inactivity, regardless of whether the old conversation is still open.
+    stale_conversations = Conversation.where('last_activity_at < ?', cutoff)
 
-    archived.or(stale_resolved).distinct
+    archived.or(stale_conversations).distinct
   end
 
   def archived_label_scope

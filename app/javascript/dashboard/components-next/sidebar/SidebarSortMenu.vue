@@ -27,6 +27,10 @@ const emit = defineEmits(['sort', 'toggle']);
 
 const SORT_OPTION_GROUPS = [
   {
+    key: 'rotta_trail',
+    options: [SIDEBAR_SORT_KEYS.ROTTA_TRAIL],
+  },
+  {
     key: 'created',
     options: [SIDEBAR_SORT_KEYS.CREATED_DESC, SIDEBAR_SORT_KEYS.CREATED_ASC],
   },
@@ -60,6 +64,10 @@ const { fixedPosition, updatePosition } = useDropdownPosition(
 );
 
 const getSortOptionLabel = option => {
+  if (option === SIDEBAR_SORT_KEYS.ROTTA_TRAIL) {
+    return t('SIDEBAR.SORT_OPTIONS.ROTTA_TRAIL');
+  }
+
   if (option === SIDEBAR_SORT_KEYS.CREATED_DESC) {
     return t('SIDEBAR.SORT_OPTIONS.CREATED_DESC');
   }
@@ -88,6 +96,10 @@ const getSortOptionLabel = option => {
 };
 
 const getSortGroupLabel = groupKey => {
+  if (groupKey === 'rotta_trail') {
+    return t('SIDEBAR.SORT_GROUPS.ROTTA_TRAIL');
+  }
+
   if (groupKey === 'created') {
     return t('SIDEBAR.SORT_GROUPS.CREATED');
   }

@@ -5,6 +5,7 @@ export const SIDEBAR_SORT_KEYS = Object.freeze({
   ALPHABETICAL_DESC: 'alphabetical_desc',
   UNREAD_COUNT_DESC: 'unread_count_desc',
   UNREAD_COUNT_ASC: 'unread_count_asc',
+  ROTTA_TRAIL: 'rotta_trail',
 });
 
 export const SIDEBAR_SORT_SECTIONS = Object.freeze({
@@ -40,6 +41,7 @@ export const SIDEBAR_SORT_OPTIONS_BY_SECTION = Object.freeze({
     SIDEBAR_SORT_KEYS.UNREAD_COUNT_ASC,
   ],
   [SIDEBAR_SORT_SECTIONS.LABELS]: [
+    SIDEBAR_SORT_KEYS.ROTTA_TRAIL,
     SIDEBAR_SORT_KEYS.CREATED_DESC,
     SIDEBAR_SORT_KEYS.CREATED_ASC,
     SIDEBAR_SORT_KEYS.ALPHABETICAL_ASC,
@@ -58,7 +60,7 @@ export const DEFAULT_SIDEBAR_SORT_PREFERENCES = Object.freeze({
   [SIDEBAR_SORT_SECTIONS.FOLDERS]: SIDEBAR_SORT_KEYS.CREATED_DESC,
   [SIDEBAR_SORT_SECTIONS.TEAMS]: SIDEBAR_SORT_KEYS.UNREAD_COUNT_DESC,
   [SIDEBAR_SORT_SECTIONS.CHANNELS]: SIDEBAR_SORT_KEYS.UNREAD_COUNT_DESC,
-  [SIDEBAR_SORT_SECTIONS.LABELS]: SIDEBAR_SORT_KEYS.UNREAD_COUNT_DESC,
+  [SIDEBAR_SORT_SECTIONS.LABELS]: SIDEBAR_SORT_KEYS.ROTTA_TRAIL,
 });
 
 export const isValidSidebarSort = (section, sortBy) => {
@@ -143,9 +145,15 @@ const compareAlphabetically = (a, b, labelKey) => {
 
 export const sortSidebarItems = (
   items,
-  { sortBy, labelKey, unreadCountKey = () => 0 }
+  { sortBy, labelKey, unreadCountKey = () => 0, orderKey = () => 0 }
 ) => {
   return (items || []).slice().sort((a, b) => {
+    if (sortBy === SIDEBAR_SORT_KEYS.ROTTA_TRAIL) {
+      const orderDiff = Number(orderKey(a)) - Number(orderKey(b));
+      if (orderDiff !== 0) return orderDiff;
+      return compareAlphabetically(a, b, labelKey);
+    }
+
     if (sortBy === SIDEBAR_SORT_KEYS.CREATED_DESC) {
       const createdDiff = getCreatedValue(b) - getCreatedValue(a);
       if (createdDiff !== 0) return createdDiff;

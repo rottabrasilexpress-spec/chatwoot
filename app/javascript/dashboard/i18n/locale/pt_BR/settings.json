@@ -399,11 +399,13 @@
     "SORT_TOOLTIP": "Ordenar",
     "SORT_BY": "Ordenar por",
     "SORT_GROUPS": {
+      "ROTTA_TRAIL": "Trilha Rotta",
       "CREATED": "Ordenar por data de criação",
       "ALPHABETICAL": "Ordenar em ordem alfabética",
       "UNREAD_COUNT": "Ordenar por quantidade de não lidas"
     },
     "SORT_OPTIONS": {
+      "ROTTA_TRAIL": "Ordem da trilha de atendimento",
       "CREATED_DESC": "Mais recentes primeiro",
       "CREATED_ASC": "Mais antigos primeiro",
       "ALPHABETICAL_ASC": "Crescente (A–Z)",

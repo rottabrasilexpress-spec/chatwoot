@@ -7,6 +7,37 @@
     "LEARN_MORE": "Saiba mais sobre os logs de auditoria",
     "SEARCH_404": "Não existem itens correspondentes a esta consulta",
     "SIDEBAR_TXT": "<p><b>Logs de Auditoria</b> </p><p> Os Logs de Auditoria são rastros para eventos e ações em um Sistema Chatwoot. </p>",
+    "COUNT": "{n} evento | {n} eventos",
+    "FILTERS": {
+      "SEARCH_PLACEHOLDER": "Pesquisar por nome ou e-mail",
+      "ALL_EVENTS": "Todos os eventos",
+      "DATE_RANGE": "Período",
+      "CLEAR_ALL": "Limpar filtros",
+      "EVENT_TYPE_GROUPS": {
+        "ACCESS": "Acesso",
+        "AGENTS_TEAMS": "Agentes e equipes",
+        "CONFIGURATION": "Configuração",
+        "CONVERSATIONS": "Conversas"
+      },
+      "EVENT_TYPES": {
+        "SIGN_IN_OUT": "Entrada / saída",
+        "AGENTS": "Agentes",
+        "TEAMS": "Equipes",
+        "TEAM_MEMBERS": "Membros de equipes",
+        "INBOX_MEMBERS": "Colaboradores das caixas de entrada",
+        "ACCOUNT": "Configurações da conta",
+        "INBOXES": "Caixas de entrada",
+        "WEBHOOKS": "Webhooks",
+        "AUTOMATION_RULES": "Regras de automação",
+        "MACROS": "Macros",
+        "CONVERSATION_ACTIVITY": "Atividade das conversas",
+        "CONVERSATION_DELETIONS": "Exclusões de conversas"
+      },
+      "SORT": {
+        "NEWEST": "Mais recentes primeiro",
+        "OLDEST": "Mais antigas primeiro"
+      }
+    },
     "LIST": {
       "404": "Não há Logs de Auditoria disponíveis nesta conta.",
       "TITLE": "Gerenciar Logs de Auditoria",
