@@ -256,17 +256,19 @@ const copyConversationId = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(96vw, 64rem);
-  max-width: 96vw;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
   padding: 0 1rem 1rem;
 }
 
 .rotta-header-avatar-image {
   display: block;
-  width: min(92vw, 60rem);
+  width: 100%;
   height: min(82vh, 60rem);
   max-width: 100%;
+  box-sizing: border-box;
   border-radius: 1rem;
   object-fit: contain;
 }
