@@ -64,6 +64,8 @@ class Conversation < ApplicationRecord
   include PushDataHelper
   include ConversationMuteHelpers
 
+  ROTTA_ARCHIVED_LABEL_KEYS = %w[arquivado arquivados].freeze
+
   CONVERSATION_UPDATED_ADDITIONAL_ATTRIBUTE_KEYS = %w[conversation_language].freeze
   FILTERED_UNREAD_COUNT_ADDITIONAL_ATTRIBUTE_KEYS = %w[browser_language conversation_language mail_subject referer].freeze
   FILTERED_UNREAD_COUNT_UPDATE_KEYS = %w[
@@ -146,10 +148,12 @@ class Conversation < ApplicationRecord
   before_save :ensure_snooze_until_reset
   before_save :set_status_changed_at
   before_save :track_rotta_archived_at
+  before_save :archive_conversation_when_label_added
   before_create :determine_conversation_status
   before_create :ensure_waiting_since
 
   after_update_commit :execute_after_update_commit_callbacks
+  after_update_commit :archive_related_conversations, if: :rotta_archived_label_added?
   after_create_commit :notify_conversation_creation
   after_create_commit :load_attributes_created_by_db_triggers
   before_destroy :set_unread_count_deletion_data
@@ -304,15 +308,50 @@ class Conversation < ApplicationRecord
       changes_to_save['label_list'] || changes_to_save[:label_list]
     previous_labels = Array(previous_labels)
     current_labels = Array(current_labels)
-    return if previous_labels.include?('arquivado') == current_labels.include?('arquivado')
+    previous_archived = rotta_archived_label_present?(previous_labels)
+    current_archived = rotta_archived_label_present?(current_labels)
+    return if previous_archived == current_archived
 
     attributes = (additional_attributes || {}).deep_dup
-    if current_labels.include?('arquivado')
+    if current_archived
       attributes['rotta_archived_at'] = Time.current.iso8601
     else
       attributes.delete('rotta_archived_at')
     end
     self.additional_attributes = attributes
+  end
+
+  def archive_conversation_when_label_added
+    return unless will_save_change_to_label_list?
+
+    _previous_labels, current_labels =
+      changes_to_save['label_list'] || changes_to_save[:label_list]
+    return unless rotta_archived_label_present?(current_labels)
+
+    self.status = :resolved unless resolved?
+  end
+
+  def rotta_archived_label_added?
+    return false unless saved_change_to_label_list?
+
+    previous_labels, current_labels = saved_change_to_label_list
+    !rotta_archived_label_present?(previous_labels) &&
+      rotta_archived_label_present?(current_labels)
+  end
+
+  def archive_related_conversations
+    return if contact_id.blank?
+
+    Conversation.where(account_id: account_id, contact_id: contact_id)
+                .where.not(id: id)
+                .where.not(status: Conversation.statuses[:resolved])
+                .find_each(&:resolve!)
+  end
+
+  def rotta_archived_label_present?(labels)
+    Array(labels).any? do |label|
+      ROTTA_ARCHIVED_LABEL_KEYS.include?(label.to_s.parameterize)
+    end
   end
 
   def set_status_changed_at

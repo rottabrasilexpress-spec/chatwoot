@@ -7,6 +7,7 @@ import {
   dynamicTime,
   dateFormat,
   shortTimestamp,
+  whatsappMessageTimestamp,
 } from 'shared/helpers/timeHelper';
 
 export default {
@@ -42,7 +43,9 @@ export default {
   },
   computed: {
     lastActivityTime() {
-      return shortTimestamp(this.lastActivityAtTimeAgo);
+      return this.onlyLastActivity
+        ? whatsappMessageTimestamp(this.lastActivityTimestamp)
+        : shortTimestamp(this.lastActivityAtTimeAgo);
     },
     createdAtTime() {
       return shortTimestamp(this.createdAtTimeAgo);

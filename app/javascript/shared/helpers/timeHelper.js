@@ -39,6 +39,70 @@ export const messageTimestamp = (time, dateFormat = 'MMM d, yyyy') => {
   return messageDate;
 };
 
+const BRAZIL_TIME_ZONE = 'America/Sao_Paulo';
+
+const normalizeUnixDate = time => {
+  const numericTime = Number(time);
+  if (!Number.isFinite(numericTime)) return null;
+
+  const date = new Date(
+    numericTime > 1_000_000_000_000 ? numericTime : numericTime * 1000
+  );
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const brazilDateParts = value =>
+  Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: BRAZIL_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+      .formatToParts(value)
+      .filter(part => part.type !== 'literal')
+      .map(part => [part.type, part.value])
+  );
+
+const brazilDateKey = value => {
+  const parts = brazilDateParts(value);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
+
+const brazilDateKeyAsUtc = key => {
+  const [year, month, day] = key.split('-').map(Number);
+  return Date.UTC(year, month - 1, day);
+};
+
+/**
+ * Returns the WhatsApp-style day heading for a message.
+ * Today and yesterday use short labels; older messages include the weekday
+ * and Brazilian date so long histories remain easy to scan.
+ */
+export const whatsappMessageDayLabel = time => {
+  const date = normalizeUnixDate(time);
+  if (!date) return '';
+
+  const messageKey = brazilDateKey(date);
+  const todayKey = brazilDateKey(new Date());
+  const dayDifference = Math.round(
+    (brazilDateKeyAsUtc(todayKey) - brazilDateKeyAsUtc(messageKey)) /
+      (24 * 60 * 60 * 1000)
+  );
+
+  if (dayDifference === 0) return 'Hoje';
+  if (dayDifference === 1) return 'Ontem';
+
+  const weekday = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: BRAZIL_TIME_ZONE,
+    weekday: 'long',
+  }).format(date);
+  const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  const parts = brazilDateParts(date);
+
+  return `${capitalizedWeekday}, ${parts.day}/${parts.month}/${parts.year}`;
+};
+
 /**
  * Formats message metadata like WhatsApp: today's messages show only HH:mm;
  * older messages show the local date and time. Chatwoot stores message times
@@ -47,32 +111,13 @@ export const messageTimestamp = (time, dateFormat = 'MMM d, yyyy') => {
  * @returns {string} Localized message time.
  */
 export const whatsappMessageTimestamp = time => {
-  const numericTime = Number(time);
-  if (!Number.isFinite(numericTime)) return '';
+  const date = normalizeUnixDate(time);
+  if (!date) return '';
 
-  const date = new Date(
-    numericTime > 1_000_000_000_000 ? numericTime : numericTime * 1000
-  );
-  if (Number.isNaN(date.getTime())) return '';
-
-  const timeZone = 'America/Sao_Paulo';
-  const dateParts = value =>
-    Object.fromEntries(
-      new Intl.DateTimeFormat('en-CA', {
-        timeZone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-        .formatToParts(value)
-        .filter(part => part.type !== 'literal')
-        .map(part => [part.type, part.value])
-    );
-
-  const messageParts = dateParts(date);
-  const todayParts = dateParts(new Date());
+  const messageParts = brazilDateParts(date);
+  const todayParts = brazilDateParts(new Date());
   const timeText = new Intl.DateTimeFormat('pt-BR', {
-    timeZone,
+    timeZone: BRAZIL_TIME_ZONE,
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,

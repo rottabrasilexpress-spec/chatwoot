@@ -7,6 +7,8 @@ import {
   messageTimestamp,
   relativeDayTimestamp,
   shortTimestamp,
+  whatsappMessageDayLabel,
+  whatsappMessageTimestamp,
 } from 'shared/helpers/timeHelper';
 
 beforeEach(() => {
@@ -35,6 +37,44 @@ describe('#messageTimestamp', () => {
   });
   it('should return the message date and time in a different format if the message was sent in a different year', () => {
     expect(messageTimestamp(1612971343)).toEqual('Feb 10 2021, 3:35 PM');
+  });
+});
+
+describe('#whatsappMessageTimestamp', () => {
+  it('formats the message clock in Brasília time', () => {
+    vi.setSystemTime(new Date(Date.UTC(2023, 4, 5, 15, 35, 0)));
+    const todayAtBrasiliaNoon = Math.floor(
+      Date.UTC(2023, 4, 5, 15, 35, 0) / 1000
+    );
+
+    expect(whatsappMessageTimestamp(todayAtBrasiliaNoon)).toEqual('12:35');
+  });
+
+  it('includes the Brazilian date for older messages', () => {
+    vi.setSystemTime(new Date(Date.UTC(2023, 4, 5, 15, 35, 0)));
+    const olderMessage = Math.floor(Date.UTC(2023, 4, 4, 15, 35, 0) / 1000);
+
+    expect(whatsappMessageTimestamp(olderMessage)).toEqual('04/05/2023, 12:35');
+  });
+});
+
+describe('#whatsappMessageDayLabel', () => {
+  it('uses Hoje and Ontem for the two most recent days', () => {
+    vi.setSystemTime(new Date(Date.UTC(2023, 4, 5, 15, 35, 0)));
+    const today = Math.floor(Date.UTC(2023, 4, 5, 15, 35, 0) / 1000);
+    const yesterday = Math.floor(Date.UTC(2023, 4, 4, 15, 35, 0) / 1000);
+
+    expect(whatsappMessageDayLabel(today)).toEqual('Hoje');
+    expect(whatsappMessageDayLabel(yesterday)).toEqual('Ontem');
+  });
+
+  it('includes weekday and date for older days', () => {
+    vi.setSystemTime(new Date(Date.UTC(2023, 4, 5, 15, 35, 0)));
+    const olderMessage = Math.floor(Date.UTC(2023, 4, 2, 15, 35, 0) / 1000);
+
+    expect(whatsappMessageDayLabel(olderMessage)).toEqual(
+      'Terça-feira, 02/05/2023'
+    );
   });
 });
 

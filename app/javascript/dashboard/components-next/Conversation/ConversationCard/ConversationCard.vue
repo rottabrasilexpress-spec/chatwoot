@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { useRouter, useRoute } from 'vue-router';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper.js';
-import { dynamicTime, shortTimestamp } from 'shared/helpers/timeHelper';
+import { whatsappMessageTimestamp } from 'shared/helpers/timeHelper';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
@@ -57,7 +57,7 @@ const lastActivityAt = computed(() => {
     props.conversation?.lastNonActivityMessage?.createdAt ||
     props.conversation?.last_non_activity_message?.created_at ||
     props.conversation?.timestamp;
-  return timestamp ? shortTimestamp(dynamicTime(timestamp)) : '';
+  return timestamp ? whatsappMessageTimestamp(timestamp) : '';
 });
 
 const hasVisibleLabels = computed(() => {

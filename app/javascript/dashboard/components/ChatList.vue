@@ -221,6 +221,24 @@ const activeAssigneeTabCount = computed(() => {
   return conversationStats.value.all_count || 0;
 });
 
+const labelRouteKey = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR')
+    .replace(/[^a-z0-9]+/g, '-');
+
+const activeLabelTitle = computed(() => {
+  if (!props.label) return '';
+
+  const requestedKey = labelRouteKey(props.label);
+  const matchingLabel = labels.value.find(
+    label => labelRouteKey(label.title) === requestedKey
+  );
+
+  return matchingLabel?.title || props.label;
+});
+
 const conversationListPagination = computed(() => {
   const conversationsPerPage = 25;
   const hasChatsOnView =
@@ -254,10 +272,12 @@ const conversationFilters = computed(() => {
     assigneeType: isSpecialConversationView.value
       ? wootConstants.ASSIGNEE_TYPE.ALL
       : activeAssigneeTab.value,
-    status: activeStatus.value,
+    // A label view must include resolved conversations as well. This is what
+    // makes the native "arquivado" label find conversations in Arquivados.
+    status: props.label ? wootConstants.STATUS_TYPE.ALL : activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
-    labels: props.label ? [props.label] : undefined,
+    labels: activeLabelTitle.value ? [activeLabelTitle.value] : undefined,
     teamId: props.teamId || undefined,
     conversationType: props.conversationType || undefined,
   };

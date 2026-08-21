@@ -328,6 +328,7 @@ class Message < ApplicationRecord
     mark_pending_conversation_as_open_for_human_response
     set_conversation_activity
     dispatch_create_events
+    mark_conversation_read_after_outgoing_response
     send_reply
     execute_message_template_hooks
     update_contact_activity
@@ -335,6 +336,23 @@ class Message < ApplicationRecord
 
   def update_contact_activity
     sender.update(last_activity_at: DateTime.now) if sender.is_a?(Contact)
+  end
+
+  def mark_conversation_read_after_outgoing_response
+    return unless outgoing? && !private?
+
+    last_seen_at = [conversation.agent_last_seen_at, created_at].compact.max
+    assignee_last_seen_at = [conversation.assignee_last_seen_at, created_at].compact.max
+    updates = { agent_last_seen_at: last_seen_at }
+    updates[:assignee_last_seen_at] = assignee_last_seen_at if conversation.assignee_id.present?
+
+    # Bot and external-echo responses are real answers too. Updating the
+    # timestamps here removes the pending unread state for every agent without
+    # requiring a browser tab to be open.
+    conversation.update_columns(updates)
+    conversation.notifications.where(read_at: nil).update_all(read_at: Time.current)
+    ::Conversations::UnreadCounts::Notifier.new(conversation).perform
+    ::Conversations::UnreadCounts::FilteredCountInvalidator.new(conversation.account).conversation_changed!
   end
 
   def update_waiting_since

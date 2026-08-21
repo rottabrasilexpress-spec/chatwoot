@@ -5,6 +5,7 @@ import { MESSAGE_TYPES } from './constants.js';
 import { useCamelCase } from 'dashboard/composables/useTransformKeys';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import MessageApi from 'dashboard/api/inbox/message.js';
+import { whatsappMessageDayLabel } from 'shared/helpers/timeHelper';
 
 /**
  * Props definition for the component
@@ -58,6 +59,15 @@ const allMessages = computed(() => {
     ],
   });
 });
+
+const startsNewDay = (index, messages) => {
+  if (index === 0) return true;
+
+  return (
+    whatsappMessageDayLabel(messages[index - 1].createdAt) !==
+    whatsappMessageDayLabel(messages[index].createdAt)
+  );
+};
 
 const currentChat = useMapGetter('getSelectedChat');
 
@@ -181,6 +191,17 @@ const getInReplyToMessage = parentMessage => {
         v-if="firstUnreadId && message.id === firstUnreadId"
         name="unreadBadge"
       />
+      <li
+        v-if="startsNewDay(index, allMessages)"
+        class="flex list-none justify-center py-3"
+        data-testid="message-day-separator"
+      >
+        <span
+          class="rounded-md bg-n-surface-3 px-3 py-1 text-xs font-medium text-n-slate-11 shadow-sm"
+        >
+          {{ whatsappMessageDayLabel(message.createdAt) }}
+        </span>
+      </li>
       <Message
         v-bind="message"
         :is-email-inbox="isAnEmailChannel"
