@@ -223,7 +223,9 @@ watch(
             :aria-label="$t('CONVERSATION.HEADER.PINNED')"
           />
           <TimeAgo
-            :last-activity-timestamp="chat.timestamp"
+            :last-activity-timestamp="
+              chat.last_non_activity_message?.created_at || chat.timestamp
+            "
             :created-at-timestamp="chat.created_at"
             :conversation-id="chat.id"
             only-last-activity

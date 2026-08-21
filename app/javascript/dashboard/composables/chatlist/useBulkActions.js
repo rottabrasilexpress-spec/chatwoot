@@ -92,6 +92,9 @@ export function useBulkActions() {
           add: newLabels,
         },
       });
+      // Requery the active server-side view so label-based views update
+      // immediately after a label moves a conversation between trails.
+      await store.dispatch('fetchAllConversations', { force: true });
       store.dispatch('bulkActions/clearSelectedConversationIds');
       if (conversationId) {
         useAlert(
@@ -118,6 +121,7 @@ export function useBulkActions() {
           remove: labelsToRemove,
         },
       });
+      await store.dispatch('fetchAllConversations', { force: true });
 
       // Context-menu remove should not disturb an existing bulk selection.
       if (conversationId) {

@@ -351,6 +351,7 @@ function sortByRottaOrder(conversations) {
 
     const activityOf = conversation => {
       const activityValues = [
+        conversation.last_non_activity_message?.created_at,
         conversation.timestamp,
         conversation.last_activity_at,
         conversation.created_at,

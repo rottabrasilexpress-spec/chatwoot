@@ -26,6 +26,7 @@ import {
   resolveSidebarSort,
   sortSidebarItems,
 } from 'dashboard/helper/sidebarSort';
+import wootConstants from 'dashboard/constants/globals';
 
 const props = defineProps({
   isMobileSidebarOpen: {
@@ -298,6 +299,52 @@ const budgetLabel = computed(
     }) || { title: 'kelvin/caio', color: '#f59e0b' }
 );
 
+const prefetchSignature = ref('');
+
+const prefetchConversationViews = () => {
+  if (!accountId.value || !labels.value.length) return;
+
+  const common = {
+    assigneeType: wootConstants.ASSIGNEE_TYPE.ALL,
+    status: wootConstants.STATUS_TYPE.OPEN,
+    sortBy: wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC,
+    page: 1,
+  };
+
+  const views = [
+    common,
+    {
+      ...common,
+      conversationType: wootConstants.CONVERSATION_TYPE.AWAITING_REPLY,
+    },
+    { ...common, conversationType: wootConstants.CONVERSATION_TYPE.PRIORITY },
+    {
+      ...common,
+      status: wootConstants.STATUS_TYPE.ALL,
+      conversationType: wootConstants.CONVERSATION_TYPE.ARCHIVED,
+      labels: ['arquivado'],
+    },
+    ...labels.value.map(label => ({ ...common, labels: [label.title] })),
+  ];
+
+  store.dispatch('prefetchConversationViews', views);
+};
+
+watch(
+  [accountId, labels],
+  ([currentAccountId, currentLabels]) => {
+    if (!currentAccountId || !currentLabels.length) return;
+    const signature = `${currentAccountId}:${currentLabels
+      .map(label => label.title)
+      .sort()
+      .join('|')}`;
+    if (signature === prefetchSignature.value) return;
+    prefetchSignature.value = signature;
+    prefetchConversationViews();
+  },
+  { immediate: true }
+);
+
 const closeMobileSidebar = () => {
   if (!props.isMobileSidebarOpen) return;
   emit('closeMobileSidebar');
@@ -392,6 +439,7 @@ const menuItems = computed(() => {
           name: 'Archived',
           label: 'Arquivados',
           icon: 'i-lucide-archive',
+          color: '#dc2626',
           activeOn: ['archived_conversations', 'archived_conversation'],
           to: accountScopedRoute('archived_conversations'),
         },

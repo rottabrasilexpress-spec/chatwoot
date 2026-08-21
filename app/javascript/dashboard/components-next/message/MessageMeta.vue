@@ -30,14 +30,36 @@ const {
   sourceId,
   messageType,
   contentAttributes,
+  additionalAttributes,
 } = useMessageContext();
 
 const readableTime = computed(() => messageTimestamp(createdAt.value, 'Pp'));
 
+const providerStatus = computed(() => {
+  const raw =
+    additionalAttributes.value?.uazapi_status ||
+    contentAttributes.value?.uazapi_status ||
+    contentAttributes.value?.uazapiStatus;
+  return String(raw || '').toLowerCase();
+});
+
+const effectiveStatus = computed(() => {
+  if (
+    providerStatus.value.includes('read') ||
+    providerStatus.value.includes('seen')
+  ) {
+    return MESSAGE_STATUS.READ;
+  }
+  if (providerStatus.value.includes('deliver')) {
+    return MESSAGE_STATUS.DELIVERED;
+  }
+  return status.value;
+});
+
 const showStatusIndicator = computed(() => {
   if (isPrivate.value) return false;
   // Don't show status for failed messages, we already show error message
-  if (status.value === MESSAGE_STATUS.FAILED) return false;
+  if (effectiveStatus.value === MESSAGE_STATUS.FAILED) return false;
   // Don't show status for deleted messages
   if (contentAttributes.value?.deleted) return false;
 
@@ -62,11 +84,11 @@ const isSent = computed(() => {
     isAnInstagramChannel.value ||
     isATiktokChannel.value
   ) {
-    return sourceId.value && status.value === MESSAGE_STATUS.SENT;
+    return sourceId.value && effectiveStatus.value === MESSAGE_STATUS.SENT;
   }
 
   // API inbox messages use real sent/delivered/read status values from the external system.
-  if (isAPIInbox.value) return status.value === MESSAGE_STATUS.SENT;
+  if (isAPIInbox.value) return effectiveStatus.value === MESSAGE_STATUS.SENT;
 
   // All messages will be mark as sent for the Line channel, as there is no source ID.
   if (isALineChannel.value) return true;
@@ -85,16 +107,17 @@ const isDelivered = computed(() => {
     isAnInstagramChannel.value ||
     isATiktokChannel.value
   ) {
-    return sourceId.value && status.value === MESSAGE_STATUS.DELIVERED;
+    return sourceId.value && effectiveStatus.value === MESSAGE_STATUS.DELIVERED;
   }
   // API inbox messages use real delivered status from the external system.
-  if (isAPIInbox.value) return status.value === MESSAGE_STATUS.DELIVERED;
+  if (isAPIInbox.value)
+    return effectiveStatus.value === MESSAGE_STATUS.DELIVERED;
   // All messages marked as delivered for the web widget inbox once they are sent.
   if (isAWebWidgetInbox.value) {
-    return status.value === MESSAGE_STATUS.SENT;
+    return effectiveStatus.value === MESSAGE_STATUS.SENT;
   }
   if (isALineChannel.value) {
-    return status.value === MESSAGE_STATUS.DELIVERED;
+    return effectiveStatus.value === MESSAGE_STATUS.DELIVERED;
   }
 
   return false;
@@ -110,11 +133,11 @@ const isRead = computed(() => {
     isAnInstagramChannel.value ||
     isATiktokChannel.value
   ) {
-    return sourceId.value && status.value === MESSAGE_STATUS.READ;
+    return sourceId.value && effectiveStatus.value === MESSAGE_STATUS.READ;
   }
 
   if (isAWebWidgetInbox.value || isAPIInbox.value) {
-    return status.value === MESSAGE_STATUS.READ;
+    return effectiveStatus.value === MESSAGE_STATUS.READ;
   }
 
   return false;

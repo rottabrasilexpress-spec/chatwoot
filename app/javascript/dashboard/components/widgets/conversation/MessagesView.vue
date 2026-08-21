@@ -388,10 +388,21 @@ export default {
           const messageCountBefore = this.currentChat.messages.length;
           // The next page depends on the first id returned by the previous page.
           // eslint-disable-next-line no-await-in-loop
-          await this.$store.dispatch('fetchPreviousMessages', {
-            conversationId,
-            before: firstMessageId,
-          });
+          const loadedMoreMessages = await this.$store.dispatch(
+            'fetchPreviousMessages',
+            {
+              conversationId,
+              before: firstMessageId,
+            }
+          );
+
+          if (loadedMoreMessages === false) {
+            this.$store.commit('SET_ALL_MESSAGES_LOADED', conversationId);
+          }
+
+          if (loadedMoreMessages === null) {
+            break;
+          }
 
           if (
             this.currentChat.messages.length === messageCountBefore ||

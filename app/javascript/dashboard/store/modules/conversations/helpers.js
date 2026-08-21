@@ -42,7 +42,10 @@ export const filterByConversationType = (
   lastNonActivityMessage
 ) => {
   if (conversationType === 'priority') {
-    return Boolean(priority) && shouldFilter;
+    // `low` is a valid priority and is serialized as 0.
+    const hasPriority =
+      priority !== null && priority !== undefined && priority !== '';
+    return hasPriority && shouldFilter;
   }
 
   if (conversationType === 'awaiting_reply') {

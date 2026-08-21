@@ -53,7 +53,10 @@ const inboxIcon = computed(() => {
 });
 
 const lastActivityAt = computed(() => {
-  const timestamp = props.conversation?.timestamp;
+  const timestamp =
+    props.conversation?.lastNonActivityMessage?.createdAt ||
+    props.conversation?.last_non_activity_message?.created_at ||
+    props.conversation?.timestamp;
   return timestamp ? shortTimestamp(dynamicTime(timestamp)) : '';
 });
 

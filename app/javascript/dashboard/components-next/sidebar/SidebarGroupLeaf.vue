@@ -12,6 +12,7 @@ const props = defineProps({
   active: { type: Boolean, default: false },
   component: { type: Function, default: null },
   badgeCount: { type: [Number, String], default: 0 },
+  color: { type: String, default: '' },
   hideTreeLine: { type: Boolean, default: false },
   thinTreeLine: { type: Boolean, default: false },
 });
@@ -44,6 +45,7 @@ const TREE_CONNECTOR =
       :is="to ? 'router-link' : 'div'"
       :to="to"
       :title="label"
+      :style="{ color: color || undefined }"
       class="flex h-8 items-center gap-2 px-2 py-1 rounded-lg ltr:hover:bg-gradient-to-r rtl:hover:bg-gradient-to-l from-transparent via-n-slate-3/70 to-n-slate-3/70 group min-w-0"
       :class="{
         'text-n-slate-12 bg-n-alpha-2 active': active,

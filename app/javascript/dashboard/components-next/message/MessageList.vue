@@ -41,8 +41,16 @@ const props = defineProps({
 
 const emit = defineEmits(['retry']);
 
+const isLabelActivity = message => {
+  const activity =
+    message?.content_attributes?.activity ||
+    message?.contentAttributes?.activity;
+  return activity?.type === 'label_changed';
+};
+
 const allMessages = computed(() => {
-  return useCamelCase(props.messages, {
+  const messages = props.messages.filter(message => !isLabelActivity(message));
+  return useCamelCase(messages, {
     deep: true,
     stopPaths: [
       'content_attributes.translations',

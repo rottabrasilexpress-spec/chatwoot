@@ -19,6 +19,34 @@ import {
   syncConversationCallVisibility,
 } from 'dashboard/helper/voice';
 
+const conversationPrefetchCache = new Map();
+const conversationPrefetchInFlight = new Map();
+
+const conversationPrefetchKey = params =>
+  JSON.stringify(params, Object.keys(params).sort());
+
+const prefetchConversationList = params => {
+  const key = conversationPrefetchKey(params);
+  if (conversationPrefetchCache.has(key)) return Promise.resolve();
+
+  const runningRequest = conversationPrefetchInFlight.get(key);
+  if (runningRequest) return runningRequest;
+
+  const request = ConversationApi.get(params)
+    .then(response => {
+      conversationPrefetchCache.set(key, response.data.data);
+    })
+    .catch(() => {
+      // A background request must never interrupt the active conversation view.
+    })
+    .finally(() => {
+      conversationPrefetchInFlight.delete(key);
+    });
+
+  conversationPrefetchInFlight.set(key, request);
+  return request;
+};
+
 export const hasMessageFailedWithExternalError = pendingMessage => {
   // This helper is used to check if the message has failed with an external error.
   // We have two cases
@@ -43,13 +71,29 @@ const actions = {
     }
   },
 
-  fetchAllConversations: async ({ commit, state, dispatch }) => {
+  fetchAllConversations: async (
+    { commit, state, dispatch },
+    { force = false } = {}
+  ) => {
     commit(types.SET_LIST_LOADING_STATUS);
     try {
       const params = state.conversationFilters;
-      const {
-        data: { data },
-      } = await ConversationApi.get(params);
+      const key = conversationPrefetchKey(params);
+      let data;
+
+      if (!force) {
+        const runningRequest = conversationPrefetchInFlight.get(key);
+        if (runningRequest) await runningRequest;
+        data = conversationPrefetchCache.get(key);
+        conversationPrefetchCache.delete(key);
+      }
+
+      if (!data) {
+        conversationPrefetchCache.delete(key);
+        const response = await ConversationApi.get(params);
+        data = response.data.data;
+      }
+
       buildConversationList(
         { commit, dispatch },
         params,
@@ -59,6 +103,28 @@ const actions = {
     } catch (error) {
       // Handle error
     }
+  },
+
+  prefetchConversationViews: async (_context, views = []) => {
+    const uniqueViews = views.filter(
+      (params, index, collection) =>
+        collection.findIndex(
+          item =>
+            conversationPrefetchKey(item) === conversationPrefetchKey(params)
+        ) === index
+    );
+
+    // Keep the requests off the critical path and avoid opening a burst of
+    // connections against the production Chatwoot instance.
+    for (let index = 0; index < uniqueViews.length; index += 3) {
+      const batch = uniqueViews.slice(index, index + 3);
+      // eslint-disable-next-line no-await-in-loop
+      await Promise.all(batch.map(prefetchConversationList));
+    }
+  },
+
+  invalidateConversationPrefetch() {
+    conversationPrefetchCache.clear();
   },
 
   fetchFilteredConversations: async ({ commit, dispatch }, params) => {
@@ -101,8 +167,10 @@ const actions = {
       if (!payload.length) {
         commit(types.SET_ALL_MESSAGES_LOADED, data.conversationId);
       }
+      return payload.length > 0;
     } catch (error) {
       // Handle error
+      return null;
     }
   },
 
@@ -329,7 +397,7 @@ const actions = {
     }
   },
 
-  addMessage({ commit, rootGetters }, message) {
+  addMessage({ commit, dispatch, rootGetters }, message) {
     commit(types.ADD_MESSAGE, message);
     if (message.message_type === MESSAGE_TYPE.INCOMING) {
       commit(types.SET_CONVERSATION_CAN_REPLY, {
@@ -337,6 +405,16 @@ const actions = {
         canReply: true,
       });
       commit(types.ADD_CONVERSATION_ATTACHMENTS, message);
+    }
+    // Clear Chatwoot's unread marker when an AI/agent response arrives. This
+    // does not invent WhatsApp ticks; provider delivery/read states still
+    // come from the real Uazapi status data.
+    if (
+      message.message_type === MESSAGE_TYPE.OUTGOING &&
+      !message.private &&
+      message.conversation_id
+    ) {
+      dispatch('markMessagesRead', { id: message.conversation_id });
     }
     handleVoiceCallCreated(
       message,
