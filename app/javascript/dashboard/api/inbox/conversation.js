@@ -16,20 +16,23 @@ class ConversationApi extends ApiClient {
     conversationType,
     sortBy,
     updatedWithin,
+    q,
   }) {
-    return axios.get(this.url, {
-      params: {
-        inbox_id: inboxId,
-        team_id: teamId,
-        status,
-        assignee_type: assigneeType,
-        page,
-        labels,
-        conversation_type: conversationType,
-        sort_by: sortBy,
-        updated_within: updatedWithin,
-      },
-    });
+    const params = {
+      inbox_id: inboxId,
+      team_id: teamId,
+      status,
+      assignee_type: assigneeType,
+      page,
+      labels,
+      conversation_type: conversationType,
+      sort_by: sortBy,
+      updated_within: updatedWithin,
+    };
+
+    if (q) params.q = q;
+
+    return axios.get(this.url, { params });
   }
 
   filter(payload) {

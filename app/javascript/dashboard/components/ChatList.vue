@@ -45,6 +45,7 @@ import languages from 'dashboard/components/widgets/conversation/advancedFilterI
 import countries from 'shared/constants/countries';
 import { generateValuesForEditCustomViews } from 'dashboard/helper/customViewsHelper';
 import { conversationListPageURL } from '../helper/URLHelper';
+import ConversationApi from 'dashboard/api/inbox/conversation';
 import {
   isOnMentionsView,
   isOnParticipatingView,
@@ -91,8 +92,12 @@ const isResizingConversationList = ref(false);
 const resizeStartX = ref(0);
 const resizeStartWidth = ref(340);
 const resizeConversationsLabel = 'Redimensionar lista de conversas';
+const noSearchResultsLabel = 'Nenhuma conversa encontrada.';
 const conversationSearchQuery = ref('');
 const isMarkingAllAsRead = ref(false);
+const remoteSearchResults = ref(null);
+const isSearchingConversations = ref(false);
+let conversationSearchTimer = null;
 const advancedFilterTypes = ref(
   advancedFilterOptions.map(filter => ({
     ...filter,
@@ -432,7 +437,9 @@ const filteredConversationList = computed(() => {
   const query = conversationSearchQuery.value.trim().toLocaleLowerCase('pt-BR');
   if (!query) return conversationList.value;
 
-  return conversationList.value.filter(conversation =>
+  const sourceList = remoteSearchResults.value || conversationList.value;
+
+  return sourceList.filter(conversation =>
     searchableConversationText(conversation).includes(query)
   );
 });
@@ -849,6 +856,38 @@ async function markAllVisibleAsRead() {
   }
 }
 
+async function searchConversationsRemotely(query) {
+  const normalizedQuery = query.trim();
+  if (normalizedQuery.length < 2) {
+    remoteSearchResults.value = null;
+    isSearchingConversations.value = false;
+    return;
+  }
+
+  isSearchingConversations.value = true;
+  try {
+    const { data } = await ConversationApi.get({
+      ...conversationFilters.value,
+      page: 1,
+      q: normalizedQuery,
+    });
+    remoteSearchResults.value = data.data?.payload || [];
+  } catch (error) {
+    remoteSearchResults.value = [];
+    useAlert('Não foi possível pesquisar as conversas. Tente novamente.');
+  } finally {
+    isSearchingConversations.value = false;
+  }
+}
+
+function scheduleConversationSearch(query) {
+  clearTimeout(conversationSearchTimer);
+  conversationSearchTimer = setTimeout(
+    () => searchConversationsRemotely(query),
+    300
+  );
+}
+
 async function onAssignTeam(team, conversationId = null) {
   try {
     await store.dispatch('assignTeam', {
@@ -1004,7 +1043,10 @@ onMounted(() => {
   }
 });
 
-onBeforeUnmount(stopResizingConversationList);
+onBeforeUnmount(() => {
+  stopResizingConversationList();
+  clearTimeout(conversationSearchTimer);
+});
 
 const deleteConversationDialogRef = ref(null);
 const selectedConversationId = ref(null);
@@ -1079,6 +1121,10 @@ watch(conversationFilters, (newVal, oldVal) => {
     store.dispatch('updateChatListFilters', newVal);
   }
 });
+
+watch(conversationSearchQuery, searchQuery => {
+  scheduleConversationSearch(searchQuery);
+});
 </script>
 
 <template>
@@ -1144,6 +1190,16 @@ watch(conversationFilters, (newVal, oldVal) => {
     >
       {{ $t('CHAT_LIST.LIST.404') }}
     </p>
+    <p
+      v-if="
+        conversationSearchQuery.trim() &&
+        !isSearchingConversations &&
+        !filteredConversationList.length
+      "
+      class="flex overflow-auto justify-center items-center p-4 text-sm text-n-slate-10"
+    >
+      {{ noSearchResultsLabel }}
+    </p>
     <ConversationBulkActions
       :conversations="selectedConversations"
       :all-conversations-selected="allConversationsSelected"
@@ -1156,7 +1212,7 @@ watch(conversationFilters, (newVal, oldVal) => {
     />
     <ConversationList
       :conversation-list="filteredConversationList"
-      :is-loading="chatListLoading"
+      :is-loading="chatListLoading || isSearchingConversations"
       :show-end-of-list-message="showEndOfListMessage"
       :label="label"
       :team-id="teamId"

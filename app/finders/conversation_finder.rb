@@ -81,7 +81,7 @@ class ConversationFinder
     set_assignee_type
 
     find_all_conversations
-    filter_by_status unless params[:q]
+    filter_by_status if !params[:q] || params[:status].present?
     filter_by_team
     filter_by_labels
     filter_by_query
@@ -158,10 +158,13 @@ class ConversationFinder
     return unless params[:q]
 
     allowed_message_types = [Message.message_types[:incoming], Message.message_types[:outgoing]]
-    @conversations = conversations.joins(:messages).where('messages.content ILIKE :search', search: "%#{params[:q]}%")
-                                  .where(messages: { message_type: allowed_message_types }).includes(:messages)
-                                  .where('messages.content ILIKE :search', search: "%#{params[:q]}%")
+    @conversations = conversations.joins(:messages).left_joins(:contact)
+                                  .where(
+                                    'messages.content ILIKE :search OR contacts.name ILIKE :search OR contacts.phone_number ILIKE :search',
+                                    search: "%#{params[:q]}%"
+                                  )
                                   .where(messages: { message_type: allowed_message_types })
+                                  .distinct
   end
 
   def filter_by_status
