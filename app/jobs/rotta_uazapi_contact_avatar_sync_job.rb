@@ -135,7 +135,7 @@ class RottaUazapiContactAvatarSyncJob < ApplicationJob
 
   def dispatch_contact_update(contact)
     Rails.configuration.dispatcher.dispatch(
-      CONTACT_UPDATED,
+      ::CONTACT_UPDATED,
       Time.zone.now,
       contact: contact,
       changed_attributes: { 'avatar' => [nil, contact.avatar_url] }

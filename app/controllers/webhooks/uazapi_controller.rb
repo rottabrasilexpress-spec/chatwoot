@@ -86,6 +86,10 @@ class Webhooks::UazapiController < ActionController::API
     )
   end
 
+  def value_for_keys(payload, keys)
+    values_for_keys(payload, keys).first
+  end
+
   def extract_provider_ids(payload)
     explicit_values = values_for_keys(
       payload,
