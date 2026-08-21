@@ -132,6 +132,16 @@ const normaliseHistory = job => {
 
 const isStageDispatched = (job, stage) => normaliseHistory(job).includes(stage);
 
+const deliveryEvidence = job => job?.delivery_evidence;
+
+const evidenceStatusText = job => {
+  const status = String(deliveryEvidence(job)?.status || '').toLowerCase();
+  if (status === 'read') return 'Lido no WhatsApp';
+  if (status === 'delivered') return 'Entregue no WhatsApp';
+  if (status === 'sent') return 'Enviado no Chatwoot';
+  return 'Mensagem criada no Chatwoot';
+};
+
 const toggleJobHistory = job => {
   const next = new Set(expandedJobs.value);
   if (next.has(job.job_id)) next.delete(job.job_id);
@@ -222,7 +232,8 @@ const countdownText = value => {
   return `Faltam ${parts.join(' e ')}`;
 };
 
-const statusText = status => {
+const statusText = (status, job = null) => {
+  if (deliveryEvidence(job)?.message_id) return evidenceStatusText(job);
   const values = {
     pending: 'Na fila',
     processing: 'Processando',
@@ -234,7 +245,16 @@ const statusText = status => {
   return values[status] || status || 'Desconhecido';
 };
 
-const statusClass = status => {
+const statusClass = (status, job = null) => {
+  if (deliveryEvidence(job)?.message_id) {
+    const evidenceStatus = String(
+      deliveryEvidence(job).status || ''
+    ).toLowerCase();
+    if (evidenceStatus === 'read' || evidenceStatus === 'delivered') {
+      return 'rotta-status--history';
+    }
+    return 'rotta-status--processing';
+  }
   if (status === 'processing') return 'rotta-status--processing';
   if (status?.startsWith('failed')) return 'rotta-status--error';
   if (status === 'sent_history' || status === 'history_only') {
@@ -493,10 +513,17 @@ onUnmounted(() => {
                     <td>
                       <span
                         class="rotta-status"
-                        :class="statusClass(job.status)"
+                        :class="statusClass(job.status, job)"
                       >
-                        {{ statusText(job.status) }}
+                        {{ statusText(job.status, job) }}
                       </span>
+                      <small
+                        v-if="deliveryEvidence(job)?.message_id"
+                        class="rotta-delivery-evidence"
+                      >
+                        Registrado em
+                        {{ formatDate(deliveryEvidence(job).created_at) }}
+                      </small>
                     </td>
                     <td>
                       <div v-if="!isHistoricalJob(job)" class="rotta-actions">
@@ -553,9 +580,11 @@ onUnmounted(() => {
                           >
                           <span>
                             {{
-                              normaliseHistory(job).length
-                                ? 'Etapas disparadas registradas pelo worker'
-                                : 'Aguardando o histórico de disparos do worker'
+                              deliveryEvidence(job)?.message_id
+                                ? `${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)}; aguardando confirmação da Uazapi`
+                                : normaliseHistory(job).length
+                                  ? 'Etapas disparadas registradas pelo worker'
+                                  : 'Aguardando o histórico de disparos do worker'
                             }}
                           </span>
                         </div>
@@ -609,9 +638,19 @@ onUnmounted(() => {
                   <strong>{{ job.customer_name || 'Cliente sem nome' }}</strong>
                   <span>{{ job.phone || 'Telefone não informado' }}</span>
                 </button>
-                <span class="rotta-status" :class="statusClass(job.status)">
-                  {{ statusText(job.status) }}
+                <span
+                  class="rotta-status"
+                  :class="statusClass(job.status, job)"
+                >
+                  {{ statusText(job.status, job) }}
                 </span>
+                <small
+                  v-if="deliveryEvidence(job)?.message_id"
+                  class="rotta-delivery-evidence"
+                >
+                  Registrado em
+                  {{ formatDate(deliveryEvidence(job).created_at) }}
+                </small>
               </div>
               <button
                 type="button"
@@ -638,9 +677,11 @@ onUnmounted(() => {
                   <strong>Trilha do cliente</strong>
                   <span>
                     {{
-                      normaliseHistory(job).length
-                        ? 'Etapas disparadas registradas pelo worker'
-                        : 'Aguardando o histórico de disparos do worker'
+                      deliveryEvidence(job)?.message_id
+                        ? `${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)}; aguardando confirmação da Uazapi`
+                        : normaliseHistory(job).length
+                          ? 'Etapas disparadas registradas pelo worker'
+                          : 'Aguardando o histórico de disparos do worker'
                     }}
                   </span>
                 </div>
@@ -1078,6 +1119,14 @@ onUnmounted(() => {
 
 .rotta-status--history {
   @apply text-n-slate-11 bg-n-slate-2;
+}
+
+.rotta-delivery-evidence {
+  @apply text-n-slate-11;
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  line-height: 1.25;
 }
 
 .rotta-actions {

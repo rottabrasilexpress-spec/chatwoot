@@ -36,10 +36,19 @@ const {
 const readableTime = computed(() => messageTimestamp(createdAt.value, 'Pp'));
 
 const providerStatus = computed(() => {
+  const attributes = additionalAttributes.value || {};
+  const messageAttributes = contentAttributes.value || {};
   const raw =
-    additionalAttributes.value?.uazapi_status ||
-    contentAttributes.value?.uazapi_status ||
-    contentAttributes.value?.uazapiStatus;
+    attributes.uazapi_status ||
+    attributes.uazapiStatus ||
+    attributes.ack ||
+    attributes.ack_status ||
+    attributes.message_status ||
+    messageAttributes.uazapi_status ||
+    messageAttributes.uazapiStatus ||
+    messageAttributes.ack ||
+    messageAttributes.ack_status ||
+    messageAttributes.message_status;
   return String(raw || '').toLowerCase();
 });
 
@@ -84,7 +93,9 @@ const isSent = computed(() => {
     isAnInstagramChannel.value ||
     isATiktokChannel.value
   ) {
-    return sourceId.value && effectiveStatus.value === MESSAGE_STATUS.SENT;
+    // Uazapi-created messages may not have source_id yet. The Chatwoot
+    // message status is still authoritative for the first (sent) tick.
+    return effectiveStatus.value === MESSAGE_STATUS.SENT;
   }
 
   // API inbox messages use real sent/delivered/read status values from the external system.
@@ -107,7 +118,7 @@ const isDelivered = computed(() => {
     isAnInstagramChannel.value ||
     isATiktokChannel.value
   ) {
-    return sourceId.value && effectiveStatus.value === MESSAGE_STATUS.DELIVERED;
+    return effectiveStatus.value === MESSAGE_STATUS.DELIVERED;
   }
   // API inbox messages use real delivered status from the external system.
   if (isAPIInbox.value)
@@ -133,7 +144,7 @@ const isRead = computed(() => {
     isAnInstagramChannel.value ||
     isATiktokChannel.value
   ) {
-    return sourceId.value && effectiveStatus.value === MESSAGE_STATUS.READ;
+    return effectiveStatus.value === MESSAGE_STATUS.READ;
   }
 
   if (isAWebWidgetInbox.value || isAPIInbox.value) {
