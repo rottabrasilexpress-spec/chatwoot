@@ -49,7 +49,7 @@ class Webhooks::UazapiController < ActionController::API
     return unless phone.present?
 
     contact = Contact.where(account_id: ACCOUNT_ID).where.not(phone_number: nil).find do |candidate|
-      normalize_phone(candidate.phone_number) == phone
+      extract_phones(payload).include?(normalize_phone(candidate.phone_number))
     end
     return unless contact
 
@@ -94,7 +94,7 @@ class Webhooks::UazapiController < ActionController::API
 
     contextual_ids = payload_hashes(payload).filter_map do |node|
       keys = node.keys.map(&:to_s).map(&:downcase)
-      next unless keys.intersect?(%w[status ack fromme wassentbyapi messageid chatid])
+      next unless keys.intersect?(%w[status ack fromme wassentbyapi messageid chatid remotejid participant])
 
       node['id'] || node['ID'] || node['Id']
     end
@@ -103,12 +103,16 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def extract_phone(payload)
+    extract_phones(payload).first
+  end
+
+  def extract_phones(payload)
     values = values_for_keys(
       payload,
       %w[chatid chatId chat_id sender from to phone number remoteJid remote_jid participant]
     )
 
-    values.filter_map { |value| normalize_phone(value) }.find { |value| value.length >= 10 }
+    values.filter_map { |value| normalize_phone(value) }.select { |value| value.length >= 10 }.uniq
   end
 
   def payload_hashes(payload)
