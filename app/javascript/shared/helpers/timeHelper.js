@@ -40,6 +40,56 @@ export const messageTimestamp = (time, dateFormat = 'MMM d, yyyy') => {
 };
 
 /**
+ * Formats message metadata like WhatsApp: today's messages show only HH:mm;
+ * older messages show the local date and time. Chatwoot stores message times
+ * as Unix seconds, while the business operates in Brasília time.
+ * @param {number|string} time - Unix timestamp in seconds.
+ * @returns {string} Localized message time.
+ */
+export const whatsappMessageTimestamp = time => {
+  const numericTime = Number(time);
+  if (!Number.isFinite(numericTime)) return '';
+
+  const date = new Date(
+    numericTime > 1_000_000_000_000 ? numericTime : numericTime * 1000
+  );
+  if (Number.isNaN(date.getTime())) return '';
+
+  const timeZone = 'America/Sao_Paulo';
+  const dateParts = value =>
+    Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+        .formatToParts(value)
+        .filter(part => part.type !== 'literal')
+        .map(part => [part.type, part.value])
+    );
+
+  const messageParts = dateParts(date);
+  const todayParts = dateParts(new Date());
+  const timeText = new Intl.DateTimeFormat('pt-BR', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+
+  if (
+    messageParts.year === todayParts.year &&
+    messageParts.month === todayParts.month &&
+    messageParts.day === todayParts.day
+  ) {
+    return timeText;
+  }
+
+  return `${messageParts.day}/${messageParts.month}/${messageParts.year}, ${timeText}`;
+};
+
+/**
  * Formats a Unix timestamp relative to today: the time for today, a caller-
  * supplied label for yesterday, and a date otherwise. The yesterday label is
  * passed in so the caller keeps ownership of translation.

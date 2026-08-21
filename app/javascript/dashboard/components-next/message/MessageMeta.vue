@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { messageTimestamp } from 'shared/helpers/timeHelper';
+import { whatsappMessageTimestamp } from 'shared/helpers/timeHelper';
 
 import MessageStatus from './MessageStatus.vue';
 import Icon from 'next/icon/Icon.vue';
@@ -33,7 +33,7 @@ const {
   additionalAttributes,
 } = useMessageContext();
 
-const readableTime = computed(() => messageTimestamp(createdAt.value, 'Pp'));
+const readableTime = computed(() => whatsappMessageTimestamp(createdAt.value));
 
 const providerStatus = computed(() => {
   const attributes = additionalAttributes.value || {};

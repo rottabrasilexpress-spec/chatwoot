@@ -115,7 +115,9 @@ const nextStageFor = job => {
   return job.next_label || '';
 };
 
-const normaliseHistory = job => {
+const deliveryEvidence = job => job?.delivery_evidence;
+
+const historyEntries = job => {
   const rawHistory =
     job.history ||
     job.sent_history ||
@@ -123,16 +125,54 @@ const normaliseHistory = job => {
     job.follow_up_history ||
     [];
 
-  if (!Array.isArray(rawHistory)) return [];
+  const entries = Array.isArray(rawHistory)
+    ? rawHistory
+        .map(item => {
+          if (typeof item === 'string') return { label: item };
+          return {
+            label: item?.label || item?.slug || item?.name,
+            at:
+              item?.dispatched_at ||
+              item?.sent_at ||
+              item?.created_at ||
+              item?.at,
+          };
+        })
+        .filter(item => item.label)
+    : [];
 
-  return rawHistory
-    .map(item => (typeof item === 'string' ? item : item?.label || item?.slug))
-    .filter(Boolean);
+  // The worker history can be delayed or empty even after Chatwoot has
+  // created the outgoing message. Keep that local evidence in the same
+  // chronological trail, without changing the worker's source of truth.
+  if (deliveryEvidence(job)?.message_id && currentStage(job)) {
+    entries.push({
+      label: currentStage(job),
+      at: deliveryEvidence(job).created_at,
+      source: 'chatwoot',
+    });
+  }
+
+  const latestByLabel = new Map();
+  entries.forEach(entry => {
+    const previous = latestByLabel.get(entry.label);
+    if (
+      !previous ||
+      (entry.at &&
+        (!previous.at ||
+          new Date(entry.at).getTime() >= new Date(previous.at).getTime()))
+    ) {
+      latestByLabel.set(entry.label, entry);
+    }
+  });
+  return [...latestByLabel.values()];
 };
 
-const isStageDispatched = (job, stage) => normaliseHistory(job).includes(stage);
+const normaliseHistory = job => historyEntries(job).map(entry => entry.label);
 
-const deliveryEvidence = job => job?.delivery_evidence;
+const dispatchEntryFor = (job, stage) =>
+  historyEntries(job).find(entry => entry.label === stage);
+
+const isStageDispatched = (job, stage) => Boolean(dispatchEntryFor(job, stage));
 
 const evidenceStatusText = job => {
   const status = String(deliveryEvidence(job)?.status || '').toLowerCase();
@@ -140,6 +180,14 @@ const evidenceStatusText = job => {
   if (status === 'delivered') return 'Entregue no WhatsApp';
   if (status === 'sent') return 'Enviado no Chatwoot';
   return 'Mensagem criada no Chatwoot';
+};
+
+const evidenceConfirmationText = job => {
+  const status = String(deliveryEvidence(job)?.status || '').toLowerCase();
+  if (status === 'read') return 'Confirmação de leitura recebida';
+  if (status === 'delivered') return 'Confirmação de entrega recebida';
+  if (status === 'sent') return 'Aguardando confirmação da Uazapi';
+  return 'Evento de envio registrado';
 };
 
 const toggleJobHistory = job => {
@@ -205,6 +253,15 @@ const formatDate = value => {
     timeStyle: 'short',
     hour12: false,
   }).format(date);
+};
+
+const stageTrailText = (job, stage) => {
+  const entry = dispatchEntryFor(job, stage);
+  if (entry?.at) return `disparada em ${formatDate(entry.at)}`;
+  if (entry) return 'disparada';
+  if (currentStage(job) === stage) return 'atual';
+  if (nextStageFor(job) === stage) return 'próxima';
+  return '';
 };
 
 const isDue = value => {
@@ -487,7 +544,17 @@ onUnmounted(() => {
                       <span v-else>Ciclo registrado</span>
                     </td>
                     <td>
-                      <div class="rotta-schedule">
+                      <div
+                        v-if="deliveryEvidence(job)?.message_id"
+                        class="rotta-schedule rotta-schedule--completed"
+                      >
+                        <strong>Disparo concluído</strong>
+                        <small
+                          >Etiqueta:
+                          {{ labelInfo(currentStage(job)).title }}</small
+                        >
+                      </div>
+                      <div v-else class="rotta-schedule">
                         <span
                           :class="{
                             'rotta-due':
@@ -521,8 +588,8 @@ onUnmounted(() => {
                         v-if="deliveryEvidence(job)?.message_id"
                         class="rotta-delivery-evidence"
                       >
-                        Registrado em
-                        {{ formatDate(deliveryEvidence(job).created_at) }}
+                        {{ labelInfo(currentStage(job)).title }} ·
+                        {{ evidenceConfirmationText(job) }}
                       </small>
                     </td>
                     <td>
@@ -581,7 +648,7 @@ onUnmounted(() => {
                           <span>
                             {{
                               deliveryEvidence(job)?.message_id
-                                ? `${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)}; aguardando confirmação da Uazapi`
+                                ? `${labelInfo(currentStage(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
                                 : normaliseHistory(job).length
                                   ? 'Etapas disparadas registradas pelo worker'
                                   : 'Aguardando o histórico de disparos do worker'
@@ -604,15 +671,9 @@ onUnmounted(() => {
                           >
                             <span class="rotta-stage-dot" />
                             <span>{{ labelInfo(stage).title }}</span>
-                            <small v-if="isStageDispatched(job, stage)"
-                              >disparada</small
-                            >
-                            <small v-else-if="currentStage(job) === stage"
-                              >atual</small
-                            >
-                            <small v-else-if="nextStageFor(job) === stage"
-                              >próxima</small
-                            >
+                            <small v-if="stageTrailText(job, stage)">
+                              {{ stageTrailText(job, stage) }}
+                            </small>
                           </li>
                         </ol>
                       </div>
@@ -648,8 +709,8 @@ onUnmounted(() => {
                   v-if="deliveryEvidence(job)?.message_id"
                   class="rotta-delivery-evidence"
                 >
-                  Registrado em
-                  {{ formatDate(deliveryEvidence(job).created_at) }}
+                  {{ labelInfo(currentStage(job)).title }} ·
+                  {{ evidenceConfirmationText(job) }}
                 </small>
               </div>
               <button
@@ -678,7 +739,7 @@ onUnmounted(() => {
                   <span>
                     {{
                       deliveryEvidence(job)?.message_id
-                        ? `${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)}; aguardando confirmação da Uazapi`
+                        ? `${labelInfo(currentStage(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
                         : normaliseHistory(job).length
                           ? 'Etapas disparadas registradas pelo worker'
                           : 'Aguardando o histórico de disparos do worker'
@@ -697,13 +758,9 @@ onUnmounted(() => {
                   >
                     <span class="rotta-stage-dot" />
                     <span>{{ labelInfo(stage).title }}</span>
-                    <small v-if="isStageDispatched(job, stage)"
-                      >disparada</small
-                    >
-                    <small v-else-if="currentStage(job) === stage">atual</small>
-                    <small v-else-if="nextStageFor(job) === stage"
-                      >próxima</small
-                    >
+                    <small v-if="stageTrailText(job, stage)">
+                      {{ stageTrailText(job, stage) }}
+                    </small>
                   </li>
                 </ol>
               </div>
@@ -724,7 +781,16 @@ onUnmounted(() => {
                       : 'Ciclo registrado'
                   }}
                 </span>
-                <span class="rotta-schedule">
+                <span
+                  v-if="deliveryEvidence(job)?.message_id"
+                  class="rotta-schedule rotta-schedule--completed"
+                >
+                  <strong>Disparo concluído</strong>
+                  <small
+                    >Etiqueta: {{ labelInfo(currentStage(job)).title }}</small
+                  >
+                </span>
+                <span v-else class="rotta-schedule">
                   <span
                     :class="{
                       'rotta-due':
@@ -1094,6 +1160,18 @@ onUnmounted(() => {
 .rotta-schedule small {
   @apply text-n-slate-11;
   font-size: 0.7rem;
+}
+
+.rotta-schedule--completed strong {
+  @apply text-n-teal-11;
+  font-size: 0.75rem;
+}
+
+.rotta-schedule--completed small {
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rotta-status {
