@@ -124,6 +124,7 @@ Rails.application.routes.draw do
           end
           resources :assignable_agents, only: [:index]
           resource :audit_logs, only: [:show]
+          post 'rotta_follow_up', to: 'rotta_follow_up#proxy'
           resources :callbacks, only: [] do
             collection do
               post :register_facebook_page

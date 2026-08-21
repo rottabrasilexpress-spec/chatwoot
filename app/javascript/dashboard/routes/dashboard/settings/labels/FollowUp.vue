@@ -2,13 +2,12 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useAlert } from 'dashboard/composables';
+import rottaFollowUpAPI from 'dashboard/api/rottaFollowUp';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 
-const ADMIN_URL =
-  'https://saas.via-cargo.com/webhook/rotta-chatwoot-followup-admin-v1';
 const TIMEZONE = 'America/Sao_Paulo';
 
 const labelMeta = {
@@ -245,14 +244,10 @@ const statusClass = status => {
 };
 
 const request = async payload => {
-  const response = await fetch(ADMIN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok || body.ok === false) {
-    throw new Error(body.error || `Falha no painel (${response.status})`);
+  const response = await rottaFollowUpAPI.create(payload);
+  const body = response.data || {};
+  if (body.ok === false) {
+    throw new Error(body.error || 'Falha no painel de follow-up.');
   }
   return body;
 };
