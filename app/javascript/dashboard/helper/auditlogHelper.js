@@ -1,12 +1,12 @@
 const roleMapping = {
-  0: 'agent',
-  1: 'administrator',
+  0: 'agente',
+  1: 'administrador',
 };
 
 const availabilityMapping = {
   0: 'online',
   1: 'offline',
-  2: 'busy',
+  2: 'ocupado',
 };
 
 const translationKeys = {
@@ -70,7 +70,7 @@ export function extractChangedAccountUserValues(auditedChanges) {
 
 function getAgentName(userId, agentList) {
   if (userId === null) {
-    return 'System';
+    return 'Sistema';
   }
 
   const agentName = agentList.find(agent => agent.id === userId)?.name;
