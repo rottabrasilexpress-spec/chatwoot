@@ -99,6 +99,23 @@ const trailFor = job =>
     ? budgetTrail
     : contactTrail;
 
+const nextStageFor = job => {
+  const stage = currentStage(job);
+  const trail = trailFor(job);
+  const index = trail.indexOf(stage);
+
+  if (
+    stage === 'orcamento-5-dias' ||
+    stage === 'orcamento-10-dias' ||
+    stage === 'orcamento-15-dias'
+  ) {
+    return 'orcamento-feito';
+  }
+
+  if (index >= 0 && index < trail.length - 1) return trail[index + 1];
+  return job.next_label || '';
+};
+
 const normaliseHistory = job => {
   const rawHistory =
     job.history ||
@@ -150,9 +167,9 @@ const filteredJobs = computed(() => {
       job.customer_name,
       job.phone,
       currentStage(job),
-      job.next_label,
+      nextStageFor(job),
       labelInfo(currentStage(job)).title,
-      labelInfo(job.next_label).title,
+      labelInfo(nextStageFor(job)).title,
     ]
       .filter(Boolean)
       .join(' ')
@@ -449,8 +466,8 @@ onUnmounted(() => {
                       </span>
                     </td>
                     <td class="text-n-slate-11">
-                      <span v-if="job.next_label">
-                        {{ labelInfo(job.next_label).title }}
+                      <span v-if="nextStageFor(job)">
+                        {{ labelInfo(nextStageFor(job)).title }}
                       </span>
                       <span v-else>Ciclo registrado</span>
                     </td>
@@ -554,7 +571,7 @@ onUnmounted(() => {
                             :class="{
                               'rotta-stage--current':
                                 currentStage(job) === stage,
-                              'rotta-stage--next': job.next_label === stage,
+                              'rotta-stage--next': nextStageFor(job) === stage,
                               'rotta-stage--sent': isStageDispatched(
                                 job,
                                 stage
@@ -569,7 +586,7 @@ onUnmounted(() => {
                             <small v-else-if="currentStage(job) === stage"
                               >atual</small
                             >
-                            <small v-else-if="job.next_label === stage"
+                            <small v-else-if="nextStageFor(job) === stage"
                               >próxima</small
                             >
                           </li>
@@ -638,7 +655,7 @@ onUnmounted(() => {
                     :key="`${job.job_id}-mobile-${stage}`"
                     :class="{
                       'rotta-stage--current': currentStage(job) === stage,
-                      'rotta-stage--next': job.next_label === stage,
+                      'rotta-stage--next': nextStageFor(job) === stage,
                       'rotta-stage--sent': isStageDispatched(job, stage),
                     }"
                   >
@@ -648,7 +665,9 @@ onUnmounted(() => {
                       >disparada</small
                     >
                     <small v-else-if="currentStage(job) === stage">atual</small>
-                    <small v-else-if="job.next_label === stage">próxima</small>
+                    <small v-else-if="nextStageFor(job) === stage"
+                      >próxima</small
+                    >
                   </li>
                 </ol>
               </div>
@@ -664,8 +683,8 @@ onUnmounted(() => {
                 <span class="text-n-slate-11">
                   →
                   {{
-                    job.next_label
-                      ? labelInfo(job.next_label).title
+                    nextStageFor(job)
+                      ? labelInfo(nextStageFor(job)).title
                       : 'Ciclo registrado'
                   }}
                 </span>

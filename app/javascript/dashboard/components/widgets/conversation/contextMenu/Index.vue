@@ -28,6 +28,7 @@ const MENU = {
   OPEN_NEW_TAB: 'open-new-tab',
   COPY_LINK: 'copy-link',
   PIN: 'pin',
+  ARCHIVE: 'archive',
 };
 
 export default {
@@ -87,6 +88,7 @@ export default {
     'removeLabel',
     'deleteConversation',
     'togglePinned',
+    'archiveConversation',
     'close',
   ],
   setup() {
@@ -186,6 +188,11 @@ export default {
         key: MENU.COPY_LINK,
         icon: 'copy',
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.COPY_LINK'),
+      },
+      archiveOption: {
+        key: MENU.ARCHIVE,
+        icon: 'archive',
+        label: 'Arquivar conversa',
       },
     };
   },
@@ -343,6 +350,16 @@ export default {
       />
       <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
     </template>
+    <MenuItem
+      v-if="isAllowed([MENU.ARCHIVE])"
+      :option="archiveOption"
+      variant="icon"
+      @click.stop="$emit('archiveConversation')"
+    />
+    <hr
+      v-if="isAllowed([MENU.ARCHIVE])"
+      class="m-1 rounded border-b border-n-weak dark:border-n-weak"
+    />
     <template
       v-if="isAllowed([MENU.PRIORITY, MENU.LABEL, MENU.AGENT, MENU.TEAM])"
     >

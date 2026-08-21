@@ -183,6 +183,12 @@ const onTogglePinned = () => {
   closeContextMenu();
 };
 
+const onArchiveConversation = () => {
+  assignLabels(['arquivado'], [props.source.id]);
+  updateConversationStatus(props.source.id, 'resolved', null);
+  closeContextMenu();
+};
+
 const isPinned = computed(() => {
   const value = props.source.custom_attributes?.rotta_pinned;
   return value === true || value === 1 || value === 'true' || value === '1';
@@ -251,6 +257,7 @@ const isPinned = computed(() => {
       @assign-priority="onAssignPriority"
       @delete-conversation="onDeleteConversation"
       @toggle-pinned="onTogglePinned"
+      @archive-conversation="onArchiveConversation"
       @close="closeContextMenu"
     />
   </ContextMenu>
