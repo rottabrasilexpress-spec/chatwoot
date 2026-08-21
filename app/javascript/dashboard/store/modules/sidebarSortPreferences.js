@@ -1,11 +1,14 @@
 import { LocalStorage } from 'shared/helpers/localStorage';
 import {
   DEFAULT_SIDEBAR_SORT_PREFERENCES,
+  SIDEBAR_SORT_KEYS,
   isValidSidebarSort,
   normalizeSidebarSortPreferences,
 } from 'dashboard/helper/sidebarSort';
 
 const STORAGE_NAME = 'chatwoot_sidebar_sort_preferences';
+const ROTTA_LABEL_ORDER_MIGRATION_STORAGE =
+  'chatwoot_rotta_label_order_migration';
 export const SET_SIDEBAR_SORT_PREFERENCES = 'SET_SIDEBAR_SORT_PREFERENCES';
 
 const getPreferenceScope = rootGetters => {
@@ -37,8 +40,25 @@ export const actions = {
       ? LocalStorage.getFromJsonStore(STORAGE_NAME, storageKey)
       : {};
 
+    const preferences = normalizeSidebarSortPreferences(storedPreferences);
+    const hasRottaLabelOrderMigration = storageKey
+      ? LocalStorage.getFromJsonStore(
+          ROTTA_LABEL_ORDER_MIGRATION_STORAGE,
+          storageKey
+        )
+      : true;
+
+    if (!hasRottaLabelOrderMigration) {
+      preferences.labels = SIDEBAR_SORT_KEYS.ROTTA_TRAIL;
+      LocalStorage.updateJsonStore(
+        ROTTA_LABEL_ORDER_MIGRATION_STORAGE,
+        storageKey,
+        true
+      );
+    }
+
     commit(SET_SIDEBAR_SORT_PREFERENCES, {
-      preferences: normalizeSidebarSortPreferences(storedPreferences),
+      preferences,
       storageKey,
     });
   },
