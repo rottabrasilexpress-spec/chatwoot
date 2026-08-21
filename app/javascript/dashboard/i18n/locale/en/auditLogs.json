@@ -101,6 +101,7 @@
       "EDIT": "{agentName} updated the account configuration (#{id})"
     },
     "CONVERSATION": {
+      "LABEL_UPDATE": "{agentName} changed the labels of conversation #{id}",
       "DELETE": "{agentName} deleted conversation #{id}"
     }
   }

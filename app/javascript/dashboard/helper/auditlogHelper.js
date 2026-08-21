@@ -36,6 +36,7 @@ const translationKeys = {
   'teammember:create': `AUDIT_LOGS.TEAM_MEMBER.ADD`,
   'teammember:destroy': `AUDIT_LOGS.TEAM_MEMBER.REMOVE`,
   'account:update': `AUDIT_LOGS.ACCOUNT.EDIT`,
+  'conversation:update': `AUDIT_LOGS.CONVERSATION.LABEL_UPDATE`,
   'conversation:destroy': `AUDIT_LOGS.CONVERSATION.DELETE`,
 };
 
@@ -169,7 +170,7 @@ export function generateTranslationPayload(auditLogItem, agentList) {
   const auditableType = auditLogItem.auditable_type.toLowerCase();
   const action = auditLogItem.action.toLowerCase();
 
-  if (auditableType === 'conversation' && action === 'destroy') {
+  if (auditableType === 'conversation') {
     translationPayload.id =
       auditLogItem.audited_changes?.display_id || auditLogItem.auditable_id;
   }
@@ -241,7 +242,7 @@ export const EVENT_TYPE_GROUPS = [
   },
   {
     key: 'CONVERSATIONS',
-    types: [{ value: 'Conversation', key: 'CONVERSATION_DELETIONS' }],
+    types: [{ value: 'Conversation', key: 'CONVERSATION_ACTIVITY' }],
   },
 ];
 

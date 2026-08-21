@@ -71,6 +71,7 @@
       "EDIT": "O {agentName} atualizou a configuração da conta (#{id})"
     },
     "CONVERSATION": {
+      "LABEL_UPDATE": "{agentName} alterou as etiquetas da conversa #{id}",
       "DELETE": "{agentName} excluiu a conversa #{id}"
     }
   }

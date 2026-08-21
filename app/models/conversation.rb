@@ -145,6 +145,7 @@ class Conversation < ApplicationRecord
 
   before_save :ensure_snooze_until_reset
   before_save :set_status_changed_at
+  before_save :track_rotta_archived_at
   before_create :determine_conversation_status
   before_create :ensure_waiting_since
 
@@ -294,6 +295,24 @@ class Conversation < ApplicationRecord
 
   def ensure_snooze_until_reset
     self.snoozed_until = nil unless snoozed?
+  end
+
+  def track_rotta_archived_at
+    return unless will_save_change_to_label_list?
+
+    previous_labels, current_labels =
+      changes_to_save['label_list'] || changes_to_save[:label_list]
+    previous_labels = Array(previous_labels)
+    current_labels = Array(current_labels)
+    return if previous_labels.include?('arquivado') == current_labels.include?('arquivado')
+
+    attributes = (additional_attributes || {}).deep_dup
+    if current_labels.include?('arquivado')
+      attributes['rotta_archived_at'] = Time.current.iso8601
+    else
+      attributes.delete('rotta_archived_at')
+    end
+    self.additional_attributes = attributes
   end
 
   def set_status_changed_at

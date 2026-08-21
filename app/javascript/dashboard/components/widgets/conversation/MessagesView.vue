@@ -266,8 +266,12 @@ export default {
       }
       this.fetchAllAttachmentsFromCurrentChat();
       this.fetchSuggestions();
+      this.loadAllPreviousMessages();
       this.messageSentSinceOpened = false;
       this.resetReplyEditorHeight();
+    },
+    'currentChat.dataFetched'(isFetched) {
+      if (isFetched) this.loadAllPreviousMessages();
     },
   },
 
@@ -284,6 +288,7 @@ export default {
     this.addScrollListener();
     this.fetchAllAttachmentsFromCurrentChat();
     this.fetchSuggestions();
+    this.loadAllPreviousMessages();
   },
 
   unmounted() {
@@ -358,6 +363,51 @@ export default {
       this.conversationPanel.addEventListener('scroll', this.handleScroll);
       this.$nextTick(() => this.scrollToBottom());
       this.isLoadingPrevious = false;
+    },
+    async loadAllPreviousMessages() {
+      const conversationId = this.currentChat?.id;
+      if (!conversationId || this.currentChat.dataFetched !== true) return;
+
+      this.isLoadingPrevious = true;
+      let previousFirstMessageId = null;
+      let pageCount = 0;
+
+      try {
+        while (
+          this.currentChat?.id === conversationId &&
+          !this.listLoadingStatus &&
+          this.currentChat.messages?.length &&
+          pageCount < 500
+        ) {
+          const firstMessageId = this.currentChat.messages[0]?.id;
+          if (!firstMessageId || firstMessageId === previousFirstMessageId) {
+            break;
+          }
+
+          previousFirstMessageId = firstMessageId;
+          const messageCountBefore = this.currentChat.messages.length;
+          // The next page depends on the first id returned by the previous page.
+          // eslint-disable-next-line no-await-in-loop
+          await this.$store.dispatch('fetchPreviousMessages', {
+            conversationId,
+            before: firstMessageId,
+          });
+
+          if (
+            this.currentChat.messages.length === messageCountBefore ||
+            this.currentChat.messages[0]?.id === firstMessageId
+          ) {
+            break;
+          }
+
+          pageCount += 1;
+        }
+      } finally {
+        this.isLoadingPrevious = false;
+        if (this.currentChat?.id === conversationId) {
+          this.$nextTick(() => this.scrollToBottom());
+        }
+      }
     },
     removeScrollListener() {
       this.conversationPanel.removeEventListener('scroll', this.handleScroll);
