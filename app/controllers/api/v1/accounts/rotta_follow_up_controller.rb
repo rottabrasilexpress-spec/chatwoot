@@ -3,7 +3,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   ALLOWED_ACTIONS = %w[list dispatch_now advance delay cancel].freeze
 
   def proxy
-    payload = params.permit(:action, :job_id, :hours).to_h.stringify_keys
+    payload = JSON.parse(request.raw_post.presence || '{}').slice('action', 'job_id', 'hours')
     action = payload['action'].to_s
 
     unless ALLOWED_ACTIONS.include?(action)
