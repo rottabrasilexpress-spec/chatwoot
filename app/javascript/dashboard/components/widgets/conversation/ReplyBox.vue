@@ -1337,7 +1337,7 @@ export default {
 </script>
 
 <template>
-  <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
+  <ReplyBoxBanner />
   <div ref="replyEditor" class="reply-box" :class="replyBoxClass">
     <ReplyTopPanel
       :mode="replyType"

@@ -15,7 +15,6 @@ import {
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
-import BulkAgentActions from './BulkAgentActions.vue';
 import BulkUpdateActions from './BulkUpdateActions.vue';
 import BulkLabelActions from './BulkLabelActions.vue';
 import BulkTeamActions from './BulkTeamActions.vue';
@@ -29,10 +28,6 @@ const props = defineProps({
   allConversationsSelected: {
     type: Boolean,
     default: false,
-  },
-  selectedInboxes: {
-    type: Array,
-    default: () => [],
   },
   showOpenAction: {
     type: Boolean,
@@ -59,7 +54,6 @@ const { t } = useI18n();
 
 const {
   selectedConversations,
-  onAssignAgent,
   onAssignLabels,
   onRemoveLabels,
   onAssignTeamsForBulk: onAssignTeam,
@@ -190,11 +184,6 @@ onUnmounted(() => {
             :show-reopen="!showOpenAction"
             :show-snooze="!showSnoozedAction"
             @update="onUpdateConversations"
-          />
-          <BulkAgentActions
-            :selected-inboxes="selectedInboxes"
-            :conversation-count="conversations.length"
-            @select="onAssignAgent"
           />
           <BulkTeamActions
             :conversation-count="conversations.length"

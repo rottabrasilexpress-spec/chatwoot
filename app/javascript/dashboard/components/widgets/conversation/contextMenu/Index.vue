@@ -3,15 +3,10 @@ import { mapGetters } from 'vuex';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useAlert } from 'dashboard/composables';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
-import {
-  getSortedAgentsByAvailability,
-  getAgentsByUpdatedPresence,
-} from 'dashboard/helper/agentHelper.js';
 import { picoSearch } from '@chatwoot/pico-search';
 import MenuItem from './menuItem.vue';
 import MenuItemWithSubmenu from './menuItemWithSubmenu.vue';
 import wootConstants from 'dashboard/constants/globals';
-import AgentLoadingPlaceholder from './agentLoadingPlaceholder.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 
@@ -21,7 +16,6 @@ const MENU = {
   PRIORITY: 'priority',
   STATUS: 'status',
   SNOOZE: 'snooze',
-  AGENT: 'agent',
   TEAM: 'team',
   LABEL: 'label',
   DELETE: 'delete',
@@ -35,7 +29,6 @@ export default {
   components: {
     MenuItem,
     MenuItemWithSubmenu,
-    AgentLoadingPlaceholder,
     NextInput,
     Icon,
   },
@@ -51,10 +44,6 @@ export default {
     hasUnreadMessages: {
       type: Boolean,
       default: false,
-    },
-    inboxId: {
-      type: Number,
-      default: null,
     },
     priority: {
       type: String,
@@ -82,7 +71,6 @@ export default {
     'assignPriority',
     'markAsUnread',
     'markAsRead',
-    'assignAgent',
     'assignTeam',
     'assignLabel',
     'removeLabel',
@@ -164,11 +152,6 @@ export default {
         icon: 'tag',
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.ASSIGN_LABEL'),
       },
-      agentMenuConfig: {
-        key: MENU.AGENT,
-        icon: 'person-add',
-        label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.ASSIGN_AGENT'),
-      },
       teamMenuConfig: {
         key: MENU.TEAM,
         icon: 'people-team-add',
@@ -200,37 +183,7 @@ export default {
     ...mapGetters({
       labels: 'labels/getLabels',
       teams: 'teams/getTeams',
-      assignableAgentsUiFlags: 'inboxAssignableAgents/getUIFlags',
-      currentUser: 'getCurrentUser',
-      currentAccountId: 'getCurrentAccountId',
     }),
-    filteredAgentOnAvailability() {
-      const agents = this.$store.getters[
-        'inboxAssignableAgents/getAssignableAgents'
-      ](this.inboxId);
-      const agentsByUpdatedPresence = getAgentsByUpdatedPresence(
-        agents,
-        this.currentUser,
-        this.currentAccountId
-      );
-      const filteredAgents = getSortedAgentsByAvailability(
-        agentsByUpdatedPresence
-      );
-      return filteredAgents;
-    },
-    assignableAgents() {
-      return [
-        {
-          confirmed: true,
-          name: 'None',
-          id: null,
-          role: 'agent',
-          account_id: 0,
-          email: 'None',
-        },
-        ...this.filteredAgentOnAvailability,
-      ];
-    },
     showSnooze() {
       // Don't show snooze if the conversation is already snoozed/resolved/pending
       return this.status === wootConstants.STATUS_TYPE.OPEN;
@@ -250,9 +203,6 @@ export default {
         label: this.pinned ? 'Desafixar conversa' : 'Fixar conversa',
       };
     },
-  },
-  mounted() {
-    this.$store.dispatch('inboxAssignableAgents/fetch', [this.inboxId]);
   },
   methods: {
     isAllowed(keys) {
@@ -301,11 +251,8 @@ export default {
         key: option.id,
         ...(type === 'icon' && { icon: option.icon }),
         ...(type === 'label' && { color: option.color }),
-        ...(type === 'agent' && { thumbnail: option.thumbnail }),
-        ...(type === 'agent' && { status: option.availability_status }),
         ...(type === 'text' && { label: option.label }),
         ...(type === 'label' && { label: option.title }),
-        ...(type === 'agent' && { label: option.name }),
         ...(type === 'team' && { label: option.name }),
       };
     },
@@ -360,9 +307,7 @@ export default {
       v-if="isAllowed([MENU.ARCHIVE])"
       class="m-1 rounded border-b border-n-weak dark:border-n-weak"
     />
-    <template
-      v-if="isAllowed([MENU.PRIORITY, MENU.LABEL, MENU.AGENT, MENU.TEAM])"
-    >
+    <template v-if="isAllowed([MENU.PRIORITY, MENU.LABEL, MENU.TEAM])">
       <MenuItemWithSubmenu
         v-if="isAllowed([MENU.PRIORITY])"
         :option="priorityConfig"
@@ -422,22 +367,6 @@ export default {
             {{ $t('CONVERSATION.CARD_CONTEXT_MENU.NO_LABELS_FOUND') }}
           </p>
         </div>
-      </MenuItemWithSubmenu>
-      <MenuItemWithSubmenu
-        v-if="isAllowed([MENU.AGENT])"
-        :option="agentMenuConfig"
-        :sub-menu-available="!!assignableAgents.length"
-      >
-        <AgentLoadingPlaceholder v-if="assignableAgentsUiFlags.isFetching" />
-        <template v-else>
-          <MenuItem
-            v-for="agent in assignableAgents"
-            :key="agent.id"
-            :option="generateMenuLabelConfig(agent, 'agent')"
-            variant="agent"
-            @click.stop="$emit('assignAgent', agent)"
-          />
-        </template>
       </MenuItemWithSubmenu>
       <MenuItemWithSubmenu
         v-if="isAllowed([MENU.TEAM])"

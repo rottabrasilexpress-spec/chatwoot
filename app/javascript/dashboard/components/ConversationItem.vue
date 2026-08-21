@@ -23,7 +23,6 @@ const store = useStore();
 
 const selectConversation = inject('selectConversation');
 const deSelectConversation = inject('deSelectConversation');
-const assignAgent = inject('assignAgent');
 const assignTeam = inject('assignTeam');
 const assignLabels = inject('assignLabels');
 const removeLabels = inject('removeLabels');
@@ -140,11 +139,6 @@ const onUpdateConversation = (status, snoozedUntil) => {
   updateConversationStatus(props.source.id, status, snoozedUntil);
 };
 
-const onAssignAgent = agent => {
-  assignAgent(agent, [props.source.id]);
-  closeContextMenu();
-};
-
 const onAssignLabel = label => {
   assignLabels([label.title], [props.source.id]);
 };
@@ -240,7 +234,6 @@ const isPinned = computed(() => {
   >
     <ConversationContextMenu
       :status="source.status"
-      :inbox-id="inbox.id"
       :priority="source.priority"
       :chat-id="source.id"
       :has-unread-messages="source.unread_count > 0"
@@ -248,7 +241,6 @@ const isPinned = computed(() => {
       :pinned="isPinned"
       :conversation-url="conversationPath"
       @update-conversation="onUpdateConversation"
-      @assign-agent="onAssignAgent"
       @assign-label="onAssignLabel"
       @remove-label="onRemoveLabel"
       @assign-team="onAssignTeam"

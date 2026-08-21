@@ -127,13 +127,11 @@ const getConversationById = useMapGetter('getConversationById');
 
 const {
   selectedConversations,
-  selectedInboxes,
   selectConversation,
   deSelectConversation,
   selectAllConversations,
   resetBulkActions,
   isConversationSelected,
-  onAssignAgent,
   onAssignLabels,
   onRemoveLabels,
 } = useBulkActions();
@@ -491,10 +489,6 @@ const allConversationsSelected = computed(() => {
       selectedConversations.value.includes(el.id)
     )
   );
-});
-
-const uniqueInboxes = computed(() => {
-  return [...new Set(selectedInboxes.value)];
 });
 
 // ---------------------- Methods -----------------------
@@ -1090,7 +1084,6 @@ const handleDelete = conversationId => {
 
 provide('selectConversation', selectConversation);
 provide('deSelectConversation', deSelectConversation);
-provide('assignAgent', onAssignAgent);
 provide('assignTeam', onAssignTeam);
 provide('assignLabels', onAssignLabels);
 provide('removeLabels', onRemoveLabels);
@@ -1223,7 +1216,6 @@ watch(conversationSearchQuery, searchQuery => {
     <ConversationBulkActions
       :conversations="selectedConversations"
       :all-conversations-selected="allConversationsSelected"
-      :selected-inboxes="uniqueInboxes"
       :show-open-action="allSelectedConversationsStatus('open')"
       :show-resolved-action="allSelectedConversationsStatus('resolved')"
       :show-snoozed-action="allSelectedConversationsStatus('snoozed')"
