@@ -4,5 +4,15 @@ FROM chatwoot/chatwoot:v4.17.0
 # validated Rotta bundle and the small read-only label-count API extension are
 # overlaid on top of it.
 COPY public/vite /app/public/vite
+COPY public/brand-assets/rottabrasil-logo.png /app/public/brand-assets/rottabrasil-logo.png
+COPY public/brand-assets/rottabrasil-logo-dark.png /app/public/brand-assets/rottabrasil-logo-dark.png
+COPY public/brand-assets/rottabrasil-mark.png /app/public/brand-assets/rottabrasil-mark.png
+COPY public/manifest.json /app/public/manifest.json
+COPY config/installation_config.yml /app/config/installation_config.yml
+COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migrate/20260820000000_set_rotta_brasil_express_branding.rb
+COPY app/views/layouts/vueapp.html.erb /app/app/views/layouts/vueapp.html.erb
+COPY app/views/installation/onboarding/index.html.erb /app/app/views/installation/onboarding/index.html.erb
+COPY app/views/super_admin/application/_navigation.html.erb /app/app/views/super_admin/application/_navigation.html.erb
+COPY app/views/super_admin/devise/sessions/new.html.erb /app/app/views/super_admin/devise/sessions/new.html.erb
 COPY app/models/label.rb /app/app/models/label.rb
 COPY app/views/api/v1/accounts/labels/index.json.jbuilder /app/app/views/api/v1/accounts/labels/index.json.jbuilder
