@@ -150,6 +150,8 @@ class ConversationFinder
       @conversations = @conversations.awaiting_reply
     when 'priority'
       @conversations = @conversations.prioritized
+    when 'archived'
+      @conversations = @conversations.resolved
     end
     @conversations
   end
@@ -168,7 +170,15 @@ class ConversationFinder
   end
 
   def filter_by_status
-    return if params[:status] == 'all'
+    if params[:status] == 'all'
+      # The main "Todos" view is the active workspace. Resolved conversations
+      # belong exclusively to Arquivados, while a label view must still be
+      # able to find a resolved conversation carrying that label.
+      return if params[:labels].present? || params[:conversation_type] == 'archived'
+
+      @conversations = @conversations.where.not(status: Conversation.statuses[:resolved])
+      return
+    end
 
     @conversations = @conversations.where(status: params[:status] || DEFAULT_STATUS)
   end
