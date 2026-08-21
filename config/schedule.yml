@@ -81,3 +81,10 @@ rotta_archived_conversation_retention_job:
   cron: '0 23 * * *'
   class: 'RottaArchivedConversationRetentionJob'
   queue: housekeeping
+
+# executed every 10 minutes; downloads missing/stale WhatsApp profile photos
+# into Chatwoot Active Storage so cards and conversation headers stay complete
+rotta_uazapi_contact_avatar_sync_job:
+  cron: '*/10 * * * *'
+  class: 'RottaUazapiContactAvatarSyncJob'
+  queue: housekeeping
