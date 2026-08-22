@@ -32,9 +32,18 @@ export function useConversationLabels() {
    * @type {import('vue').ComputedRef<Array>}
    */
   const savedLabels = computed(() => {
-    return store.getters['conversationLabels/getConversationLabels'](
-      conversationId.value
-    );
+    const hasStoredLabels = store.getters[
+      'conversationLabels/hasConversationLabels'
+    ](conversationId.value);
+
+    if (hasStoredLabels) {
+      return store.getters['conversationLabels/getConversationLabels'](
+        conversationId.value
+      );
+    }
+
+    const conversationLabels = currentChat.value?.labels;
+    return Array.isArray(conversationLabels) ? conversationLabels : [];
   });
 
   /**

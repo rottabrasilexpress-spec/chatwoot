@@ -11,6 +11,7 @@ describe('useConversationLabels', () => {
     store = {
       getters: {
         'conversationLabels/getConversationLabels': vi.fn(),
+        'conversationLabels/hasConversationLabels': vi.fn(() => true),
       },
       dispatch: vi.fn(),
     };
@@ -54,6 +55,20 @@ describe('useConversationLabels', () => {
       conversationId: 1,
       labels: ['Label 1', 'Label 3'],
     });
+  });
+
+  it('uses labels from the selected conversation until the cache is hydrated', () => {
+    store.getters['conversationLabels/hasConversationLabels'].mockReturnValue(
+      false
+    );
+    getters.getSelectedChat.value = {
+      id: 42,
+      labels: ['kelvin-caio'],
+    };
+
+    const { savedLabels } = useConversationLabels();
+
+    expect(savedLabels.value).toEqual(['kelvin-caio']);
   });
 
   it('should add a label to the conversation', () => {

@@ -17,6 +17,8 @@ export const getters = {
   getConversationLabels: $state => id => {
     return $state.records[Number(id)] || [];
   },
+  hasConversationLabels: $state => id =>
+    Object.prototype.hasOwnProperty.call($state.records, Number(id)),
 };
 
 export const actions = {
