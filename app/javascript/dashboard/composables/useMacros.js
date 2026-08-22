@@ -2,10 +2,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreGetters } from 'dashboard/composables/store';
 import { PRIORITY_CONDITION_VALUES } from 'dashboard/constants/automation';
-import {
-  generateLabelOptions,
-  generateTeamOptions,
-} from 'dashboard/helper/automationHelper';
+import { generateLabelOptions } from 'dashboard/helper/automationHelper';
 import {
   resolveActionName,
   getFileName,
@@ -20,7 +17,6 @@ export const useMacros = () => {
   const getters = useStoreGetters();
 
   const labels = computed(() => getters['labels/getLabels'].value);
-  const teams = computed(() => getters['teams/getTeams'].value);
   const agents = computed(() => getters['agents/getVerifiedAgents'].value);
 
   const withNoneOption = options => [
@@ -35,8 +31,6 @@ export const useMacros = () => {
    */
   const getMacroDropdownValues = type => {
     switch (type) {
-      case 'assign_team':
-        return withNoneOption(generateTeamOptions(teams.value));
       case 'assign_agent':
         return [
           ...withNoneOption(),

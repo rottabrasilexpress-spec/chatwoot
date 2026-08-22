@@ -13,7 +13,6 @@ import wootConstants from 'dashboard/constants/globals';
 import {
   ICON_ADD_LABEL,
   ICON_ASSIGN_PRIORITY,
-  ICON_ASSIGN_TEAM,
   ICON_REMOVE_LABEL,
   ICON_PRIORITY_URGENT,
   ICON_PRIORITY_HIGH,
@@ -149,7 +148,6 @@ export function useConversationHotKeys() {
   const currentChat = useMapGetter('getSelectedChat');
   const replyMode = useMapGetter('draftMessages/getReplyEditorMode');
   const contextMenuChatId = useMapGetter('getContextMenuChatId');
-  const teams = useMapGetter('teams/getTeams');
   const getDraftMessage = useMapGetter('draftMessages/get');
 
   const conversationId = computed(() => currentChat.value?.id);
@@ -159,26 +157,10 @@ export function useConversationHotKeys() {
 
   const draftMessage = computed(() => getDraftMessage.value(draftKey.value));
 
-  const hasAnAssignedTeam = computed(() => !!currentChat.value?.meta?.team);
-
-  const teamsList = computed(() => {
-    if (hasAnAssignedTeam.value) {
-      return [{ id: 0, name: t('TEAMS_SETTINGS.LIST.NONE') }, ...teams.value];
-    }
-    return teams.value;
-  });
-
   const onChangePriority = action => {
     store.dispatch('assignPriority', {
       conversationId: currentChat.value.id,
       priority: action.priority.key,
-    });
-  };
-
-  const onChangeTeam = action => {
-    store.dispatch('assignTeam', {
-      conversationId: currentChat.value.id,
-      teamId: action.teamInfo.id,
     });
   };
 
@@ -221,28 +203,6 @@ export function useConversationHotKeys() {
         children: options.map(option => option.id),
       },
       ...options,
-    ];
-  });
-
-  const assignTeamActions = computed(() => {
-    const teamOptions = teamsList.value.map(team => ({
-      id: `team-${team.id}`,
-      title: team.name,
-      parent: 'assign_a_team',
-      section: t('COMMAND_BAR.SECTIONS.CHANGE_TEAM'),
-      teamInfo: team,
-      icon: ICON_ASSIGN_TEAM,
-      handler: onChangeTeam,
-    }));
-    return [
-      {
-        id: 'assign_a_team',
-        title: t('COMMAND_BAR.COMMANDS.ASSIGN_A_TEAM'),
-        section: t('COMMAND_BAR.SECTIONS.CONVERSATION'),
-        icon: ICON_ASSIGN_TEAM,
-        children: teamOptions.map(option => option.id),
-      },
-      ...teamOptions,
     ];
   });
 
@@ -344,7 +304,6 @@ export function useConversationHotKeys() {
     const defaultConversationHotKeys = [
       ...statusActions.value,
       ...conversationAdditionalActions.value,
-      ...assignTeamActions.value,
       ...labelActions.value,
       ...assignPriorityActions.value,
     ];

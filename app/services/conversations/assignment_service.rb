@@ -6,6 +6,8 @@ class Conversations::AssignmentService
   end
 
   def perform
+    return clear_team_assignment if team_assignment?
+
     agent_bot_assignment? ? assign_agent_bot : assign_agent
   end
 
@@ -38,6 +40,15 @@ class Conversations::AssignmentService
     nil
   end
 
+  def clear_team_assignment
+    return unless rotta_shared_queue?
+
+    conversation.with_lock do
+      conversation.update!(team_id: nil)
+    end
+    nil
+  end
+
   def assign_agent_bot
     return unless agent_bot
 
@@ -60,6 +71,10 @@ class Conversations::AssignmentService
 
   def agent_bot_assignment?
     assignee_type.to_s == 'AgentBot'
+  end
+
+  def team_assignment?
+    assignee_type.to_s == 'Team'
   end
 
   def rotta_shared_queue?

@@ -1,4 +1,6 @@
 class Webhooks::UazapiController < ActionController::API
+  include Events::Types
+
   ACCOUNT_ID = ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   WEBHOOK_TOKEN = ENV.fetch('ROTTABRASIL_UAZAPI_WEBHOOK_TOKEN', 'rotta-uazapi-ack-v1').freeze
 
@@ -6,6 +8,12 @@ class Webhooks::UazapiController < ActionController::API
     return render json: { ok: false }, status: :unauthorized unless params[:token].to_s == WEBHOOK_TOKEN
 
     payload = JSON.parse(request.raw_post.presence || '{}')
+    event = extract_event(payload)
+
+    if presence_event?(event)
+      return process_presence_event(payload)
+    end
+
     raw_status = extract_status(payload)
     return render json: { ok: true, ignored: 'status ausente' } unless raw_status.present?
 
@@ -23,10 +31,50 @@ class Webhooks::UazapiController < ActionController::API
 
   private
 
+  def process_presence_event(payload)
+    presence = normalize_presence(extract_presence(payload))
+    return render json: { ok: true, ignored: 'presença ausente' } unless presence
+
+    conversation = find_conversation(payload, direct_only: true)
+    return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
+
+    event_name = presence == :on ? CONVERSATION_TYPING_ON : CONVERSATION_TYPING_OFF
+    Rails.configuration.dispatcher.dispatch(
+      event_name,
+      Time.zone.now,
+      conversation: conversation,
+      user: conversation.contact,
+      is_private: false
+    )
+
+    render json: { ok: true, event: 'presence', status: presence.to_s, conversation_id: conversation.id }
+  end
+
+  def extract_event(payload)
+    value_for_keys(payload, %w[event EventType eventType event_name type name]).to_s.downcase
+  end
+
+  def presence_event?(event)
+    event.include?('presence')
+  end
+
+  def extract_presence(payload)
+    value_for_keys(payload, %w[presence presenceStatus presence_status state typing_status]).to_s
+  end
+
+  def normalize_presence(value)
+    normalized = value.to_s.downcase
+    return :on if %w[composing typing recording record].any? { |item| normalized.include?(item) }
+    return :off if %w[paused pause available unavailable offline].any? { |item| normalized.include?(item) }
+
+    nil
+  end
+
   def find_message(payload)
     provider_ids = extract_provider_ids(payload)
+    provider_id_variants = provider_ids.flat_map { |id| [id, "uazapi:#{id}"] }.uniq
     message = Message.where(account_id: ACCOUNT_ID, message_type: Message.message_types[:outgoing])
-                     .where(source_id: provider_ids)
+                     .where(source_id: provider_id_variants)
                      .order(created_at: :desc).first if provider_ids.present?
     return message if message
 
@@ -40,16 +88,19 @@ class Webhooks::UazapiController < ActionController::API
 
     candidates.find do |candidate|
       external_ids = candidate.external_source_ids.is_a?(Hash) ? candidate.external_source_ids.values : []
-      (external_ids + [candidate.source_id]).compact.map(&:to_s).intersect?(provider_ids)
-    end || candidates.first
+      stored_ids = candidate.additional_attributes.is_a?(Hash) ? candidate.additional_attributes.values : []
+      (external_ids + stored_ids + [candidate.source_id]).flat_map { |value| value.is_a?(Array) ? value : [value] }
+        .compact.map(&:to_s).intersect?(provider_id_variants)
+    end
   end
 
-  def find_conversation(payload)
-    phone = extract_phone(payload)
+  def find_conversation(payload, direct_only: false)
+    phone = extract_phone(payload, direct_only: direct_only)
     return unless phone.present?
 
+    payload_phones = direct_only ? [phone] : extract_phones(payload)
     contact = Contact.where(account_id: ACCOUNT_ID).where.not(phone_number: nil).find do |candidate|
-      extract_phones(payload).include?(normalize_phone(candidate.phone_number))
+      payload_phones.include?(normalize_phone(candidate.phone_number))
     end
     return unless contact
 
@@ -58,7 +109,7 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def message_update_attributes(message, payload, raw_status)
-    normalized_status = normalize_status(raw_status)
+    normalized_status = promote_status(message.status, normalize_status(raw_status))
     attributes = message.additional_attributes.is_a?(Hash) ? message.additional_attributes : {}
     provider_id = extract_provider_ids(payload).first
     attributes = attributes.merge(
@@ -70,8 +121,26 @@ class Webhooks::UazapiController < ActionController::API
     { status: normalized_status, additional_attributes: attributes }
   end
 
+  def promote_status(current_status, incoming_status)
+    return incoming_status if incoming_status == :failed
+    return incoming_status if current_status.blank? || current_status == 'failed'
+
+    rank = { 'sent' => 0, 'delivered' => 1, 'read' => 2 }
+    current_rank = rank.fetch(current_status.to_s, 0)
+    incoming_rank = rank.fetch(incoming_status.to_s, 0)
+
+    incoming_rank >= current_rank ? incoming_status : current_status
+  end
+
   def normalize_status(value)
     normalized = value.to_s.downcase
+    if normalized.match?(/\A\d+\z/)
+      return :failed if normalized == '0'
+      return :delivered if normalized == '3'
+      return :read if %w[4 5].include?(normalized)
+      return :sent
+    end
+
     return :read if normalized.include?('read') || normalized.include?('played') || normalized.include?('seen')
     return :delivered if normalized.include?('deliver') || normalized.include?('delivery')
     return :failed if normalized.include?('fail') || normalized.include?('error') || normalized.include?('cancel')
@@ -82,7 +151,7 @@ class Webhooks::UazapiController < ActionController::API
   def extract_status(payload)
     value_for_keys(
       payload,
-      %w[status ack messageStatus message_status message_state state]
+      %w[status ack messageStatus message_status message_state state ackStatus ack_status acknowledgment acknowledgement statusCode status_code]
     )
   end
 
@@ -106,8 +175,17 @@ class Webhooks::UazapiController < ActionController::API
     (explicit_values + contextual_ids).compact_blank.map(&:to_s).uniq
   end
 
-  def extract_phone(payload)
+  def extract_phone(payload, direct_only: false)
+    return normalize_phone(extract_chat_identifier(payload)) if direct_only
+
     extract_phones(payload).first
+  end
+
+  def extract_chat_identifier(payload)
+    value_for_keys(
+      payload,
+      %w[remoteJid remote_jid remoteJidAlt remote_jid_alt chatId chatid chat_id chatJid chat_jid jid participant sender from phone number]
+    )
   end
 
   def extract_phones(payload)

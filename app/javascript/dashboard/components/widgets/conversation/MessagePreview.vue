@@ -4,6 +4,7 @@ import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import { ATTACHMENT_ICONS } from 'shared/constants/messages';
 import MessageStatus from 'dashboard/components-next/message/MessageStatus.vue';
 import { MESSAGE_STATUS } from 'dashboard/components-next/message/constants';
+import { getMessageDeliveryStatus } from 'dashboard/helper/messageStatus';
 
 export default {
   name: 'MessagePreview',
@@ -64,7 +65,7 @@ export default {
     deliveryStatus() {
       if (!this.messageByAgent || this.isMessagePrivate) return '';
 
-      const status = String(this.message.status || '').toLowerCase();
+      const status = getMessageDeliveryStatus(this.message);
       if (Object.values(MESSAGE_STATUS).includes(status)) return status;
       return '';
     },

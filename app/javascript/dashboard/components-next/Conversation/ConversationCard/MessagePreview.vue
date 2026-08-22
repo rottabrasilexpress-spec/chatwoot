@@ -5,6 +5,7 @@ import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import MessageStatus from 'dashboard/components-next/message/MessageStatus.vue';
 import { MESSAGE_STATUS } from 'dashboard/components-next/message/constants';
+import { getMessageDeliveryStatus } from 'dashboard/helper/messageStatus';
 
 const props = defineProps({
   message: {
@@ -77,7 +78,7 @@ const isMessageSticker = computed(() => {
 const deliveryStatus = computed(() => {
   if (!messageByAgent.value || isMessagePrivate.value) return '';
 
-  const status = String(props.message.status || '').toLowerCase();
+  const status = getMessageDeliveryStatus(props.message);
   return Object.values(MESSAGE_STATUS).includes(status) ? status : '';
 });
 </script>

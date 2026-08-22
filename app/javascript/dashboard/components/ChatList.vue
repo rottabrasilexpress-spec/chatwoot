@@ -902,23 +902,6 @@ function scheduleConversationSearch(query) {
   );
 }
 
-async function onAssignTeam(team, conversationId = null) {
-  try {
-    await store.dispatch('assignTeam', {
-      conversationId,
-      teamId: team.id,
-    });
-    useAlert(
-      t('CONVERSATION.CARD_CONTEXT_MENU.API.TEAM_ASSIGNMENT.SUCCESFUL', {
-        team: team.name,
-        conversationId,
-      })
-    );
-  } catch (error) {
-    useAlert(t('CONVERSATION.CARD_CONTEXT_MENU.API.TEAM_ASSIGNMENT.FAILED'));
-  }
-}
-
 function toggleConversationStatus(
   conversationId,
   status,
@@ -1084,7 +1067,6 @@ const handleDelete = conversationId => {
 
 provide('selectConversation', selectConversation);
 provide('deSelectConversation', deSelectConversation);
-provide('assignTeam', onAssignTeam);
 provide('assignLabels', onAssignLabels);
 provide('removeLabels', onRemoveLabels);
 provide('updateConversationStatus', handleResolveConversation);

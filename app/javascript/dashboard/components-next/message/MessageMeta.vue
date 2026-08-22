@@ -8,6 +8,7 @@ import { useInbox } from 'dashboard/composables/useInbox';
 import { useMessageContext } from './provider.js';
 
 import { MESSAGE_STATUS, MESSAGE_TYPES } from './constants';
+import { getMessageDeliveryStatus } from 'dashboard/helper/messageStatus';
 
 const {
   isAFacebookInbox,
@@ -36,33 +37,15 @@ const {
 const readableTime = computed(() => whatsappMessageTimestamp(createdAt.value));
 
 const providerStatus = computed(() => {
-  const attributes = additionalAttributes.value || {};
-  const messageAttributes = contentAttributes.value || {};
-  const raw =
-    attributes.uazapi_status ||
-    attributes.uazapiStatus ||
-    attributes.ack ||
-    attributes.ack_status ||
-    attributes.message_status ||
-    messageAttributes.uazapi_status ||
-    messageAttributes.uazapiStatus ||
-    messageAttributes.ack ||
-    messageAttributes.ack_status ||
-    messageAttributes.message_status;
-  return String(raw || '').toLowerCase();
+  return getMessageDeliveryStatus({
+    status: status.value,
+    additional_attributes: additionalAttributes.value,
+    content_attributes: contentAttributes.value,
+  });
 });
 
 const effectiveStatus = computed(() => {
-  if (
-    providerStatus.value.includes('read') ||
-    providerStatus.value.includes('seen')
-  ) {
-    return MESSAGE_STATUS.READ;
-  }
-  if (providerStatus.value.includes('deliver')) {
-    return MESSAGE_STATUS.DELIVERED;
-  }
-  return status.value;
+  return providerStatus.value || status.value;
 });
 
 const showStatusIndicator = computed(() => {

@@ -17,7 +17,6 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import BulkUpdateActions from './BulkUpdateActions.vue';
 import BulkLabelActions from './BulkLabelActions.vue';
-import BulkTeamActions from './BulkTeamActions.vue';
 import CustomSnoozeModal from 'dashboard/components/CustomSnoozeModal.vue';
 
 const props = defineProps({
@@ -56,7 +55,6 @@ const {
   selectedConversations,
   onAssignLabels,
   onRemoveLabels,
-  onAssignTeamsForBulk: onAssignTeam,
   onUpdateConversations,
 } = useBulkActions();
 
@@ -184,10 +182,6 @@ onUnmounted(() => {
             :show-reopen="!showOpenAction"
             :show-snooze="!showSnoozedAction"
             @update="onUpdateConversations"
-          />
-          <BulkTeamActions
-            :conversation-count="conversations.length"
-            @select="onAssignTeam"
           />
         </div>
       </div>

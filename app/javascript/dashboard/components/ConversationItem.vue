@@ -24,7 +24,6 @@ const store = useStore();
 
 const selectConversation = inject('selectConversation');
 const deSelectConversation = inject('deSelectConversation');
-const assignTeam = inject('assignTeam');
 const assignLabels = inject('assignLabels');
 const removeLabels = inject('removeLabels');
 const updateConversationStatus = inject('updateConversationStatus');
@@ -148,11 +147,6 @@ const onRemoveLabel = label => {
   removeLabels([label.title], [props.source.id]);
 };
 
-const onAssignTeam = team => {
-  assignTeam(team, props.source.id);
-  closeContextMenu();
-};
-
 const onMarkAsUnread = () => {
   markAsUnread(props.source.id);
   closeContextMenu();
@@ -248,7 +242,6 @@ const hasUnreadMessages = computed(() =>
       @update-conversation="onUpdateConversation"
       @assign-label="onAssignLabel"
       @remove-label="onRemoveLabel"
-      @assign-team="onAssignTeam"
       @mark-as-unread="onMarkAsUnread"
       @mark-as-read="onMarkAsRead"
       @assign-priority="onAssignPriority"

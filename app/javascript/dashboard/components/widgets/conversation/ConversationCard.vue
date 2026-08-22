@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useMapGetter } from 'dashboard/composables/store';
 import {
   getLastMessage,
   hasUnreadIncomingMessage,
@@ -38,12 +40,28 @@ const emit = defineEmits([
 ]);
 
 const hovered = ref(false);
+const { t } = useI18n();
 
 const hasUnread = computed(() => hasUnreadIncomingMessage(props.chat));
 const unreadCount = computed(() =>
   hasUnread.value ? Number(props.chat.unread_count || 0) : 0
 );
 const lastMessageInChat = computed(() => getLastMessage(props.chat));
+const typingUsersForConversation = useMapGetter(
+  'conversationTypingStatus/getUserList'
+);
+const isAnyoneTyping = computed(
+  () => typingUsersForConversation.value(props.chat.id).length > 0
+);
+const typingPreview = computed(() => {
+  const typingUsers = typingUsersForConversation.value(props.chat.id);
+  const contact = typingUsers.find(
+    user => user.type === 'Contact' || user.type === 'contact'
+  );
+  return t('CONVERSATION.TYPING.ONE', {
+    user: contact?.name || t('CONVERSATION.CONTACT'),
+  });
+});
 
 const voiceCallData = computed(() => {
   const last = lastMessageInChat.value;
@@ -238,8 +256,14 @@ watch(
         </div>
       </div>
       <div class="rotta-card-preview-row">
+        <p
+          v-if="isAnyoneTyping"
+          class="my-0 mx-2 leading-6 h-6 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-n-emerald-11 font-medium"
+        >
+          {{ typingPreview }}
+        </p>
         <VoiceCallStatus
-          v-if="voiceCallData.status"
+          v-else-if="voiceCallData.status"
           key="voice-status-row"
           :status="voiceCallData.status"
           :direction="voiceCallData.direction"

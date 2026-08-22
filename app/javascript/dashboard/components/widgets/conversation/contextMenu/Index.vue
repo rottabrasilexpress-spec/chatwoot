@@ -16,7 +16,6 @@ const MENU = {
   PRIORITY: 'priority',
   STATUS: 'status',
   SNOOZE: 'snooze',
-  TEAM: 'team',
   LABEL: 'label',
   DELETE: 'delete',
   OPEN_NEW_TAB: 'open-new-tab',
@@ -71,7 +70,6 @@ export default {
     'assignPriority',
     'markAsUnread',
     'markAsRead',
-    'assignTeam',
     'assignLabel',
     'removeLabel',
     'deleteConversation',
@@ -152,11 +150,6 @@ export default {
         icon: 'tag',
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.ASSIGN_LABEL'),
       },
-      teamMenuConfig: {
-        key: MENU.TEAM,
-        icon: 'people-team-add',
-        label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.ASSIGN_TEAM'),
-      },
       deleteOption: {
         key: MENU.DELETE,
         icon: 'delete',
@@ -182,7 +175,6 @@ export default {
   computed: {
     ...mapGetters({
       labels: 'labels/getLabels',
-      teams: 'teams/getTeams',
     }),
     showSnooze() {
       // Don't show snooze if the conversation is already snoozed/resolved/pending
@@ -253,7 +245,6 @@ export default {
         ...(type === 'label' && { color: option.color }),
         ...(type === 'text' && { label: option.label }),
         ...(type === 'label' && { label: option.title }),
-        ...(type === 'team' && { label: option.name }),
       };
     },
   },
@@ -307,7 +298,7 @@ export default {
       v-if="isAllowed([MENU.ARCHIVE])"
       class="m-1 rounded border-b border-n-weak dark:border-n-weak"
     />
-    <template v-if="isAllowed([MENU.PRIORITY, MENU.LABEL, MENU.TEAM])">
+    <template v-if="isAllowed([MENU.PRIORITY, MENU.LABEL])">
       <MenuItemWithSubmenu
         v-if="isAllowed([MENU.PRIORITY])"
         :option="priorityConfig"
@@ -367,18 +358,6 @@ export default {
             {{ $t('CONVERSATION.CARD_CONTEXT_MENU.NO_LABELS_FOUND') }}
           </p>
         </div>
-      </MenuItemWithSubmenu>
-      <MenuItemWithSubmenu
-        v-if="isAllowed([MENU.TEAM])"
-        :option="teamMenuConfig"
-        :sub-menu-available="!!teams.length"
-      >
-        <MenuItem
-          v-for="team in teams"
-          :key="team.id"
-          :option="generateMenuLabelConfig(team, 'team')"
-          @click.stop="$emit('assignTeam', team)"
-        />
       </MenuItemWithSubmenu>
       <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
     </template>

@@ -17,6 +17,7 @@ COPY config/routes.rb /app/config/routes.rb
 COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migrate/20260820000000_set_rotta_brasil_express_branding.rb
 COPY db/migrate/20260821000001_archive_existing_rotta_conversations.rb /app/db/migrate/20260821000001_archive_existing_rotta_conversations.rb
 COPY db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb /app/db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb
+COPY db/migrate/20260822000001_clear_rotta_conversation_teams.rb /app/db/migrate/20260822000001_clear_rotta_conversation_teams.rb
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi_contact_avatar_sync_job.rb

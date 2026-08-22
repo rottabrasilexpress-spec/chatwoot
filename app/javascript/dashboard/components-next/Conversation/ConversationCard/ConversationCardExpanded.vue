@@ -172,6 +172,7 @@ const selectedModel = computed({
         :voice-call-direction="voiceCallData.direction"
         :unread-count="unreadCount"
         :show-expanded-preview="false"
+        :conversation-id="chat.id"
       />
     </div>
 

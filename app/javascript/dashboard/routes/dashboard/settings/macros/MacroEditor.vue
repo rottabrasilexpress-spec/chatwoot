@@ -41,31 +41,31 @@ const isPublicMacroReadOnly = computed(
   () => macro.value?.visibility === 'global' && !isAdmin.value
 );
 
+const DISABLED_TEAM_ACTIONS = new Set(['assign_team', 'remove_assigned_team']);
+
 const fetchDropdownData = () =>
-  Promise.all([
-    store.dispatch('agents/get'),
-    store.dispatch('teams/get'),
-    store.dispatch('labels/get'),
-  ]);
+  Promise.all([store.dispatch('agents/get'), store.dispatch('labels/get')]);
 
 const formatMacro = macroData => {
-  const formattedActions = macroData.actions.map(action => {
-    let actionParams = [];
-    if (action.action_params.length) {
-      const inputType = macroActionTypes.value.find(
-        item => item.key === action.action_name
-      ).inputType;
-      if (inputType === 'multi_select' || inputType === 'search_select') {
-        actionParams = getMacroDropdownValues(action.action_name).filter(item =>
-          [...action.action_params].includes(item.id)
-        );
-      } else actionParams = [...action.action_params];
-    }
-    return {
-      ...action,
-      action_params: actionParams,
-    };
-  });
+  const formattedActions = macroData.actions
+    .filter(action => !DISABLED_TEAM_ACTIONS.has(action.action_name))
+    .map(action => {
+      let actionParams = [];
+      if (action.action_params.length) {
+        const inputType = macroActionTypes.value.find(
+          item => item.key === action.action_name
+        ).inputType;
+        if (inputType === 'multi_select' || inputType === 'search_select') {
+          actionParams = getMacroDropdownValues(action.action_name).filter(
+            item => [...action.action_params].includes(item.id)
+          );
+        } else actionParams = [...action.action_params];
+      }
+      return {
+        ...action,
+        action_params: actionParams,
+      };
+    });
   return {
     ...macroData,
     actions: formattedActions,
@@ -92,7 +92,7 @@ const initNewMacro = () => {
     name: '',
     actions: [
       {
-        action_name: 'assign_team',
+        action_name: 'add_label',
         action_params: [],
       },
     ],

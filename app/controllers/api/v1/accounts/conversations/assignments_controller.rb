@@ -34,6 +34,11 @@ class Api::V1::Accounts::Conversations::AssignmentsController < Api::V1::Account
   end
 
   def set_team
+    if @conversation.account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
+      @conversation.with_lock { @conversation.update!(team_id: nil) }
+      return render json: nil
+    end
+
     team_id = params[:team_id].to_i
     @team = team_id.positive? ? Current.account.teams.find(team_id) : nil
     @conversation.with_lock do

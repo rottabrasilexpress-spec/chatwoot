@@ -130,6 +130,13 @@ export default {
     typingUserNames() {
       const userList = this.typingUsersList;
       if (this.isAnyoneTyping) {
+        if (
+          userList.some(
+            user => user.type === 'Contact' || user.type === 'contact'
+          )
+        ) {
+          return 'digitando...';
+        }
         const [i18nKey, params] = getTypingUsersText(userList);
         return this.$t(i18nKey, params);
       }

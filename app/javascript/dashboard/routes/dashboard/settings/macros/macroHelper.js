@@ -3,7 +3,7 @@ export const emptyMacro = {
   name: '',
   actions: [
     {
-      action_name: 'assign_team',
+      action_name: 'add_label',
       action_params: [],
     },
   ],
