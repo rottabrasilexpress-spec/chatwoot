@@ -16,11 +16,15 @@ COPY config/schedule.yml /app/config/schedule.yml
 COPY config/routes.rb /app/config/routes.rb
 COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migrate/20260820000000_set_rotta_brasil_express_branding.rb
 COPY db/migrate/20260821000001_archive_existing_rotta_conversations.rb /app/db/migrate/20260821000001_archive_existing_rotta_conversations.rb
+COPY db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb /app/db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi_contact_avatar_sync_job.rb
 COPY app/controllers/api/v1/accounts/rotta_follow_up_controller.rb /app/app/controllers/api/v1/accounts/rotta_follow_up_controller.rb
 COPY app/controllers/webhooks/uazapi_controller.rb /app/app/controllers/webhooks/uazapi_controller.rb
+COPY app/services/action_service.rb /app/app/services/action_service.rb
+COPY app/services/auto_assignment/agent_assignment_service.rb /app/app/services/auto_assignment/agent_assignment_service.rb
+COPY app/services/conversations/assignment_service.rb /app/app/services/conversations/assignment_service.rb
 COPY app/models/conversation.rb /app/app/models/conversation.rb
 COPY app/models/message.rb /app/app/models/message.rb
 COPY app/models/label.rb /app/app/models/label.rb
