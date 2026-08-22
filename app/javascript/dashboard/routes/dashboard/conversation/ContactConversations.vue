@@ -11,6 +11,7 @@ import {
 import ConversationCard from 'dashboard/components/widgets/conversation/ConversationCard.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
 import ConversationContextMenu from 'dashboard/components/widgets/conversation/contextMenu/Index.vue';
+import { hasUnreadIncomingMessage } from 'dashboard/helper/conversationHelper';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 
 const props = defineProps({
@@ -164,7 +165,7 @@ onMounted(() => {
         :status="activeContextChat.status"
         :priority="activeContextChat.priority"
         :chat-id="activeContextChat.id"
-        :has-unread-messages="activeContextChat.unread_count > 0"
+        :has-unread-messages="hasUnreadIncomingMessage(activeContextChat)"
         :conversation-labels="activeContextChat.labels"
         :conversation-url="conversationPath"
         :allowed-options="['open-new-tab', 'copy-link']"

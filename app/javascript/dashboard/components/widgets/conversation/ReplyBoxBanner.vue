@@ -12,30 +12,6 @@ const store = useStore();
 const { t } = useI18n();
 
 const currentChat = useMapGetter('getSelectedChat');
-const currentUser = useMapGetter('getCurrentUser');
-
-const assignedAgent = computed({
-  get() {
-    return currentChat.value?.meta?.assignee;
-  },
-  set(agent) {
-    const agentId = agent ? agent.id : null;
-    store.dispatch('setCurrentChatAssignee', {
-      conversationId: currentChat.value?.id,
-      assignee: agent,
-      assigneeType: agent ? 'User' : null,
-    });
-    store.dispatch('assignAgent', {
-      conversationId: currentChat.value?.id,
-      agentId,
-    });
-  },
-});
-
-const isUnassigned = computed(() => !assignedAgent.value);
-const isAssignedToOtherAgent = computed(
-  () => assignedAgent.value?.id !== currentUser.value?.id
-);
 
 const isPendingConversation = computed(
   () => currentChat.value?.status === wootConstants.STATUS_TYPE.PENDING
@@ -50,20 +26,7 @@ const showBotHandoffBanner = computed(() => {
 });
 
 const botAssigneeName = computed(() => {
-  if (isAgentBotOwned.value && assignedAgent.value?.name) {
-    return assignedAgent.value.name;
-  }
-
   return t('CONVERSATION.BOT_HANDOFF_FALLBACK_ASSIGNEE');
-});
-
-const selfAssignConversation = async () => {
-  const { avatar_url, ...rest } = currentUser.value || {};
-  assignedAgent.value = { ...rest, thumbnail: avatar_url };
-};
-
-const needsAssignmentToCurrentUser = computed(() => {
-  return isUnassigned.value || isAssignedToOtherAgent.value;
 });
 
 const reopenConversation = async () => {
@@ -75,14 +38,13 @@ const reopenConversation = async () => {
 
 const onClickBotHandoff = async () => {
   try {
-    const shouldAssignToCurrentUser =
-      isAgentBotOwned.value || needsAssignmentToCurrentUser.value;
-
     await reopenConversation();
-
-    if (shouldAssignToCurrentUser) {
-      await selfAssignConversation();
-    }
+    // Reopen for the shared team and clear the bot owner without assigning a
+    // human agent. Every agent must see the same conversation pool.
+    await store.dispatch('assignAgent', {
+      conversationId: currentChat.value?.id,
+      agentId: null,
+    });
 
     useAlert(t('CONVERSATION.BOT_HANDOFF_SUCCESS'));
   } catch (error) {

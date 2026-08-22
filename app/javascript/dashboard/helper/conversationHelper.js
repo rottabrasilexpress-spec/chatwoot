@@ -47,9 +47,10 @@ export const filterDuplicateSourceMessages = (messages = []) => {
  * @returns {Object} The last message of the conversation.
  */
 export const getLastMessage = m => {
-  const lastMessageIncludingActivity = m.messages[m.messages.length - 1];
+  const messages = Array.isArray(m?.messages) ? m.messages : [];
+  const lastMessageIncludingActivity = messages[messages.length - 1];
 
-  const nonActivityMessages = m.messages.filter(
+  const nonActivityMessages = messages.filter(
     message => message.message_type !== 2
   );
   const lastNonActivityMessageInStore =
@@ -67,6 +68,23 @@ export const getLastMessage = m => {
     lastNonActivityMessageInStore,
     lastNonActivityMessageFromAPI
   );
+};
+
+/**
+ * Returns true when the latest customer-facing message came from the contact.
+ *
+ * The API can briefly retain an unread_count after an automated reply arrives.
+ * Conversation badges must follow the latest message direction, not that stale
+ * counter, otherwise an answered conversation still looks like it needs work.
+ */
+export const isIncomingMessage = message =>
+  message?.message_type === 0 || message?.message_type === 'incoming';
+
+export const hasUnreadIncomingMessage = conversation => {
+  if (!conversation) return false;
+
+  const unreadCount = Number(conversation?.unread_count || 0);
+  return unreadCount > 0 && isIncomingMessage(getLastMessage(conversation));
 };
 
 /**

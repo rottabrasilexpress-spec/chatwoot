@@ -5,6 +5,8 @@ class AutoAssignment::AgentAssignmentService
   pattr_initialize [:conversation!, :allowed_agent_ids!]
 
   def find_assignee
+    return if rotta_shared_queue?
+
     round_robin_manage_service.available_agent(allowed_agent_ids: allowed_online_agent_ids)
   end
 
@@ -13,6 +15,8 @@ class AutoAssignment::AgentAssignmentService
   # before_save so status and assignee commit as one change-set and both stay visible to
   # the after_commit callbacks. Returns the new assignee, or nil when nothing changed.
   def assign_under_lock
+    return if rotta_shared_queue?
+
     locked = Conversation.lock.find_by(id: conversation.id)
     return unless locked
 
@@ -77,5 +81,9 @@ class AutoAssignment::AgentAssignmentService
 
   def round_robin_key
     format(::Redis::Alfred::ROUND_ROBIN_AGENTS, inbox_id: conversation.inbox_id)
+  end
+
+  def rotta_shared_queue?
+    conversation.account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   end
 end

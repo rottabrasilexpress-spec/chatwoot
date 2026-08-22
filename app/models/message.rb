@@ -339,7 +339,7 @@ class Message < ApplicationRecord
   end
 
   def mark_conversation_read_after_outgoing_response
-    return unless outgoing? && !private?
+    return unless (outgoing? || template?) && !private?
 
     last_seen_at = [conversation.agent_last_seen_at, created_at].compact.max
     assignee_last_seen_at = [conversation.assignee_last_seen_at, created_at].compact.max

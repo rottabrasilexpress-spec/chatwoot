@@ -14,6 +14,9 @@ class Conversations::AssignmentService
   attr_reader :conversation, :assignee_id, :assignee_type
 
   def assign_agent
+    return clear_agent_assignment if assignee_id.blank? || assignee_id.to_s == 'nil'
+    return if rotta_shared_queue?
+
     conversation.with_lock do
       if assignee.present? && conversation.assignee_agent_bot_id.present? && conversation.pending?
         conversation.status = :open
@@ -24,6 +27,15 @@ class Conversations::AssignmentService
       conversation.save!
     end
     assignee
+  end
+
+  def clear_agent_assignment
+    conversation.with_lock do
+      conversation.assignee = nil
+      conversation.assignee_agent_bot = nil
+      conversation.save!
+    end
+    nil
   end
 
   def assign_agent_bot
@@ -48,5 +60,9 @@ class Conversations::AssignmentService
 
   def agent_bot_assignment?
     assignee_type.to_s == 'AgentBot'
+  end
+
+  def rotta_shared_queue?
+    conversation.account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   end
 end

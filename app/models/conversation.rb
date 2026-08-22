@@ -149,6 +149,7 @@ class Conversation < ApplicationRecord
   before_save :set_status_changed_at
   before_save :track_rotta_archived_at
   before_save :archive_conversation_when_label_added
+  before_save :clear_rotta_human_assignee
   before_create :determine_conversation_status
   before_create :ensure_waiting_since
 
@@ -370,6 +371,14 @@ class Conversation < ApplicationRecord
     return if assignee_id.blank?
 
     self.assignee_agent_bot_id = nil
+  end
+
+  def clear_rotta_human_assignee
+    return unless account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
+
+    # Rotta uses a shared queue. Keep AgentBot ownership for automation, but
+    # never persist an individual human assignee.
+    self.assignee_id = nil if assignee_id.present?
   end
 
   def determine_conversation_status

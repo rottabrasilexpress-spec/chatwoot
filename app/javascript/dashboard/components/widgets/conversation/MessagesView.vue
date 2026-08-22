@@ -28,6 +28,7 @@ import { LocalStorage } from 'shared/helpers/localStorage';
 import {
   filterDuplicateSourceMessages,
   getReadMessages,
+  hasUnreadIncomingMessage,
   getUnreadMessages,
 } from 'dashboard/helper/conversationHelper';
 
@@ -152,6 +153,8 @@ export default {
       );
     },
     unReadMessages() {
+      if (!hasUnreadIncomingMessage(this.currentChat)) return [];
+
       return getUnreadMessages(
         this.getMessages,
         this.currentChat.agent_last_seen_at
@@ -238,7 +241,9 @@ export default {
       return '';
     },
     unreadMessageCount() {
-      return this.currentChat.unread_count || 0;
+      return hasUnreadIncomingMessage(this.currentChat)
+        ? Number(this.currentChat.unread_count || 0)
+        : 0;
     },
     unreadMessageLabel() {
       const count =

@@ -3,6 +3,7 @@ import { computed, ref, watch, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
+import { hasUnreadIncomingMessage } from 'dashboard/helper/conversationHelper';
 import ConversationCard from './widgets/conversation/ConversationCard.vue';
 import ConversationCardExpanded from 'dashboard/components-next/Conversation/ConversationCard/ConversationCardExpanded.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
@@ -187,6 +188,10 @@ const isPinned = computed(() => {
   const value = props.source.custom_attributes?.rotta_pinned;
   return value === true || value === 1 || value === 'true' || value === '1';
 });
+
+const hasUnreadMessages = computed(() =>
+  hasUnreadIncomingMessage(props.source)
+);
 </script>
 
 <template>
@@ -236,7 +241,7 @@ const isPinned = computed(() => {
       :status="source.status"
       :priority="source.priority"
       :chat-id="source.id"
-      :has-unread-messages="source.unread_count > 0"
+      :has-unread-messages="hasUnreadMessages"
       :conversation-labels="source.labels"
       :pinned="isPinned"
       :conversation-url="conversationPath"

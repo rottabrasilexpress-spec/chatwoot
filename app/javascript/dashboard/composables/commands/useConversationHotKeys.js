@@ -5,7 +5,6 @@ import { useRoute } from 'vue-router';
 import { emitter } from 'shared/helpers/mitt';
 import { useConversationLabels } from 'dashboard/composables/useConversationLabels';
 import { useCaptain } from 'dashboard/composables/useCaptain';
-import { useAgentsList } from 'dashboard/composables/useAgentsList';
 import { CMD_AI_ASSIST } from 'dashboard/helper/commandbar/events';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 
@@ -13,7 +12,6 @@ import wootConstants from 'dashboard/constants/globals';
 
 import {
   ICON_ADD_LABEL,
-  ICON_ASSIGN_AGENT,
   ICON_ASSIGN_PRIORITY,
   ICON_ASSIGN_TEAM,
   ICON_REMOVE_LABEL,
@@ -147,7 +145,6 @@ export function useConversationHotKeys() {
   } = useConversationLabels();
 
   const { captainTasksEnabled } = useCaptain();
-  const { agentsList } = useAgentsList();
 
   const currentChat = useMapGetter('getSelectedChat');
   const replyMode = useMapGetter('draftMessages/getReplyEditorMode');
@@ -170,13 +167,6 @@ export function useConversationHotKeys() {
     }
     return teams.value;
   });
-
-  const onChangeAssignee = action => {
-    store.dispatch('assignAgent', {
-      conversationId: currentChat.value.id,
-      agentId: action.agentInfo.id,
-    });
-  };
 
   const onChangePriority = action => {
     store.dispatch('assignPriority', {
@@ -211,28 +201,6 @@ export function useConversationHotKeys() {
   const priorityOptions = computed(() =>
     createPriorityOptions(t, currentChat.value?.priority)
   );
-
-  const assignAgentActions = computed(() => {
-    const agentOptions = agentsList.value.map(agent => ({
-      id: `agent-${agent.id}`,
-      title: agent.name,
-      parent: 'assign_an_agent',
-      section: t('COMMAND_BAR.SECTIONS.CHANGE_ASSIGNEE'),
-      agentInfo: agent,
-      icon: ICON_ASSIGN_AGENT,
-      handler: onChangeAssignee,
-    }));
-    return [
-      {
-        id: 'assign_an_agent',
-        title: t('COMMAND_BAR.COMMANDS.ASSIGN_AN_AGENT'),
-        section: t('COMMAND_BAR.SECTIONS.CONVERSATION'),
-        icon: ICON_ASSIGN_AGENT,
-        children: agentOptions.map(option => option.id),
-      },
-      ...agentOptions,
-    ];
-  });
 
   const assignPriorityActions = computed(() => {
     const options = priorityOptions.value.map(priority => ({
@@ -376,7 +344,6 @@ export function useConversationHotKeys() {
     const defaultConversationHotKeys = [
       ...statusActions.value,
       ...conversationAdditionalActions.value,
-      ...assignAgentActions.value,
       ...assignTeamActions.value,
       ...labelActions.value,
       ...assignPriorityActions.value,

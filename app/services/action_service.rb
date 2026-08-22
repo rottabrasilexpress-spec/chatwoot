@@ -41,6 +41,12 @@ class ActionService
   end
 
   def assign_agent(agent_ids = [])
+    if rotta_shared_queue?
+      return @conversation.with_lock { @conversation.update!(assignee_id: nil) } if agent_ids.blank? || agent_ids[0].to_s == 'nil'
+
+      return
+    end
+
     return @conversation.with_lock { @conversation.update!(assignee_id: nil) } if agent_ids[0] == 'nil'
 
     agent_ids = [last_responding_agent_id] if agent_ids[0] == 'last_responding_agent'
@@ -116,6 +122,10 @@ class ActionService
     return false if @conversation.additional_attributes.blank?
 
     @conversation.additional_attributes['type'] == 'tweet'
+  end
+
+  def rotta_shared_queue?
+    @account.id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   end
 end
 

@@ -2,6 +2,7 @@ import {
   filterDuplicateSourceMessages,
   getLastMessage,
   getReadMessages,
+  hasUnreadIncomingMessage,
   getUnreadMessages,
 } from '../conversationHelper';
 import {
@@ -96,6 +97,28 @@ describe('conversationHelper', () => {
       expect(getLastMessage(testConversation)).toEqual(
         testConversation.messages[1]
       );
+    });
+  });
+
+  describe('#hasUnreadIncomingMessage', () => {
+    it('shows a badge when the latest message is from the customer', () => {
+      expect(
+        hasUnreadIncomingMessage({
+          unread_count: 2,
+          messages: [{ message_type: 0, created_at: 2 }],
+          last_non_activity_message: null,
+        })
+      ).toBe(true);
+    });
+
+    it('hides a stale badge after an outgoing response', () => {
+      expect(
+        hasUnreadIncomingMessage({
+          unread_count: 2,
+          messages: [{ message_type: 1, created_at: 2 }],
+          last_non_activity_message: null,
+        })
+      ).toBe(false);
     });
   });
 });
