@@ -42,11 +42,28 @@ const props = defineProps({
 
 const emit = defineEmits(['retry']);
 
+const accountLabels = useMapGetter('labels/getLabels');
+
 const isLabelActivity = message => {
   const activity =
     message?.content_attributes?.activity ||
     message?.contentAttributes?.activity;
-  return activity?.type === 'label_changed';
+  if (activity?.type === 'label_changed') return true;
+
+  // Older label activity messages were persisted before the activity marker
+  // was added. Keep them out of the visible timeline as well, while leaving
+  // unrelated activity messages untouched.
+  const messageType = message?.message_type ?? message?.messageType;
+  if (Number(messageType) !== MESSAGE_TYPES.ACTIVITY) return false;
+
+  const content = String(message?.content || '').toLocaleLowerCase();
+  if (!/\b(adicionou|removeu|added|removed)\b/.test(content)) return false;
+
+  const labels = (accountLabels.value || [])
+    .map(label => String(label?.title || '').toLocaleLowerCase())
+    .filter(Boolean);
+
+  return labels.some(label => content.includes(label));
 };
 
 const allMessages = computed(() => {

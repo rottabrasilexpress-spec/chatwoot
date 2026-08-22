@@ -90,7 +90,14 @@ class Webhooks::UazapiController < ActionController::API
       external_ids = candidate.external_source_ids.is_a?(Hash) ? candidate.external_source_ids.values : []
       stored_ids = candidate.additional_attributes.is_a?(Hash) ? candidate.additional_attributes.values : []
       (external_ids + stored_ids + [candidate.source_id]).flat_map { |value| value.is_a?(Array) ? value : [value] }
-        .compact.map(&:to_s).intersect?(provider_id_variants)
+        .compact.any? { |value| provider_id_matches?(value, provider_id_variants) }
+    end
+  end
+
+  def provider_id_matches?(value, provider_id_variants)
+    candidate_id = value.to_s
+    provider_id_variants.any? do |provider_id|
+      candidate_id == provider_id || candidate_id.end_with?(":#{provider_id}")
     end
   end
 
@@ -135,7 +142,7 @@ class Webhooks::UazapiController < ActionController::API
   def normalize_status(value)
     normalized = value.to_s.downcase
     if normalized.match?(/\A\d+\z/)
-      return :failed if normalized == '0'
+      return :sent if %w[0 1 2].include?(normalized)
       return :delivered if normalized == '3'
       return :read if %w[4 5].include?(normalized)
       return :sent
@@ -165,14 +172,39 @@ class Webhooks::UazapiController < ActionController::API
       %w[messageid messageId message_id source_id sourceId sourceID]
     )
 
+    message_id_values = array_values_for_keys(
+      payload,
+      %w[messageids messageIds message_ids]
+    )
+
     contextual_ids = payload_hashes(payload).filter_map do |node|
       keys = node.keys.map(&:to_s).map(&:downcase)
-      next unless keys.intersect?(%w[status ack fromme wassentbyapi messageid chatid remotejid participant])
+      next unless keys.intersect?(%w[status state ack fromme wassentbyapi messageid messageids message_ids chatid remotejid participant])
 
-      node['id'] || node['ID'] || node['Id']
+      values = [node['id'], node['ID'], node['Id']]
+      values.concat(
+        node.filter_map do |key, value|
+          next unless %w[messageids messageids message_ids].include?(key.to_s.downcase)
+
+          value
+        end.flat_map { |value| value.is_a?(Array) ? value : [value] }
+      )
+      values.compact
     end
 
-    (explicit_values + contextual_ids).compact_blank.map(&:to_s).uniq
+    (explicit_values + message_id_values + contextual_ids.flatten).compact_blank.map(&:to_s).uniq
+  end
+
+  def array_values_for_keys(payload, keys)
+    normalized_keys = keys.map(&:downcase)
+
+    payload_hashes(payload).flat_map do |node|
+      node.filter_map do |key, value|
+        next unless normalized_keys.include?(key.to_s.downcase)
+
+        value
+      end.flat_map { |value| value.is_a?(Array) ? value : [value] }
+    end
   end
 
   def extract_phone(payload, direct_only: false)
