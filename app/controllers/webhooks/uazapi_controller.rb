@@ -17,11 +17,14 @@ class Webhooks::UazapiController < ActionController::API
     raw_status = extract_status(payload)
     return render json: { ok: true, ignored: 'status ausente' } unless raw_status.present?
 
-    message = find_message(payload)
-    return render json: { ok: true, ignored: 'mensagem não localizada' } unless message
+    messages = find_messages(payload)
+    return render json: { ok: true, ignored: 'mensagem não localizada' } if messages.empty?
 
-    message.update!(message_update_attributes(message, payload, raw_status))
-    render json: { ok: true, message_id: message.id, status: message.status }
+    messages.each do |message|
+      message.update!(message_update_attributes(message, payload, raw_status))
+    end
+
+    render json: { ok: true, message_ids: messages.map(&:id), status: messages.map(&:status).uniq.join(',') }
   rescue JSON::ParserError
     render json: { ok: false, error: 'Payload inválido.' }, status: :bad_request
   rescue StandardError => e
@@ -70,23 +73,27 @@ class Webhooks::UazapiController < ActionController::API
     nil
   end
 
-  def find_message(payload)
+  def find_messages(payload)
     provider_ids = extract_provider_ids(payload)
     provider_id_variants = provider_ids.flat_map { |id| [id, "uazapi:#{id}"] }.uniq
-    message = Message.where(account_id: ACCOUNT_ID, message_type: Message.message_types[:outgoing])
-                     .where(source_id: provider_id_variants)
-                     .order(created_at: :desc).first if provider_ids.present?
-    return message if message
+    messages = if provider_ids.present?
+                 Message.where(account_id: ACCOUNT_ID, message_type: Message.message_types[:outgoing])
+                        .where(source_id: provider_id_variants)
+                        .order(created_at: :desc).to_a
+               else
+                 []
+               end
+    return messages if messages.present?
 
     conversation = find_conversation(payload)
-    return unless conversation
+    return [] unless conversation
 
     candidates = conversation.messages
                             .where(message_type: Message.message_types[:outgoing], private: false)
                             .order(created_at: :desc).limit(100)
-    return candidates.first unless provider_ids.present?
+    return [candidates.first].compact unless provider_ids.present?
 
-    candidates.find do |candidate|
+    candidates.select do |candidate|
       external_ids = candidate.external_source_ids.is_a?(Hash) ? candidate.external_source_ids.values : []
       stored_ids = candidate.additional_attributes.is_a?(Hash) ? candidate.additional_attributes.values : []
       (external_ids + stored_ids + [candidate.source_id]).flat_map { |value| value.is_a?(Array) ? value : [value] }
