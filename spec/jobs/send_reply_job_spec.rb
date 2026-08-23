@@ -111,10 +111,10 @@ RSpec.describe SendReplyJob do
       expect_mapped_service_to_perform(message, 'Messages::SendEmailNotificationService')
     end
 
-    it 'calls ::Messages::SendEmailNotificationService when its api channel message' do
+    it 'calls ::Messages::SendOnApiService when its api channel message' do
       api_channel = create(:channel_api)
       message = create(:message, conversation: create(:conversation, inbox: api_channel.inbox))
-      expect_mapped_service_to_perform(message, 'Messages::SendEmailNotificationService')
+      expect_mapped_service_to_perform(message, 'Messages::SendOnApiService')
     end
 
     it 'calls ::Tiktok::SendOnTiktokService when its tiktok message' do
