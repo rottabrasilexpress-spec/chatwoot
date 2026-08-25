@@ -9,6 +9,7 @@ import {
   shortTimestamp,
   whatsappMessageDayLabel,
   whatsappMessageTimestamp,
+  conversationActivityTimestamp,
 } from 'shared/helpers/timeHelper';
 
 beforeEach(() => {
@@ -75,6 +76,31 @@ describe('#whatsappMessageDayLabel', () => {
     expect(whatsappMessageDayLabel(olderMessage)).toEqual(
       'Terça-feira, 02/05/2023'
     );
+  });
+});
+
+describe('#conversationActivityTimestamp', () => {
+  it('uses the newest available activity timestamp', () => {
+    const earlier = Math.floor(Date.UTC(2026, 7, 25, 17, 49, 0) / 1000);
+    const latest = Math.floor(Date.UTC(2026, 7, 25, 18, 13, 0) / 1000);
+
+    expect(
+      conversationActivityTimestamp({
+        last_non_activity_message: { created_at: earlier },
+        timestamp: latest,
+      })
+    ).toBe(latest);
+  });
+
+  it('normalizes numeric, millisecond and ISO activity values together', () => {
+    const latest = Date.UTC(2026, 7, 25, 18, 13, 0);
+
+    expect(
+      conversationActivityTimestamp({
+        lastNonActivityMessage: { createdAt: latest - 60_000 },
+        timestamp: new Date(latest).toISOString(),
+      })
+    ).toBe(latest / 1000);
   });
 });
 

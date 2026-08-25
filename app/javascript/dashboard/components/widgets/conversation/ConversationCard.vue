@@ -18,6 +18,7 @@ import SLACardLabel from './components/SLACardLabel.vue';
 import VoiceCallStatus from './VoiceCallStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
+import { conversationActivityTimestamp } from 'shared/helpers/timeHelper';
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -246,9 +247,7 @@ watch(
             :aria-label="$t('CONVERSATION.HEADER.PINNED')"
           />
           <TimeAgo
-            :last-activity-timestamp="
-              chat.last_non_activity_message?.created_at || chat.timestamp
-            "
+            :last-activity-timestamp="conversationActivityTimestamp(chat)"
             :created-at-timestamp="chat.created_at"
             :conversation-id="chat.id"
             only-last-activity

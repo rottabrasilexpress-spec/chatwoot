@@ -15,6 +15,7 @@ import SLACardLabel from 'dashboard/components-next/Conversation/Sla/SLACardLabe
 import CardStatusIcon from './CardStatusIcon.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import { conversationActivityTimestamp } from 'shared/helpers/timeHelper';
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -193,9 +194,7 @@ const selectedModel = computed({
       <div class="flex-shrink-0 w-[4.375rem] text-end">
         <TimeAgo
           :conversation-id="chat.id"
-          :last-activity-timestamp="
-            chat.last_non_activity_message?.created_at || chat.timestamp
-          "
+          :last-activity-timestamp="conversationActivityTimestamp(chat)"
           :created-at-timestamp="chat.created_at"
           only-last-activity
           class="font-440 !text-xs text-n-slate-11"

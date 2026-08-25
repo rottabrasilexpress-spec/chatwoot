@@ -42,13 +42,44 @@ export const messageTimestamp = (time, dateFormat = 'MMM d, yyyy') => {
 const BRAZIL_TIME_ZONE = 'America/Sao_Paulo';
 
 const normalizeUnixDate = time => {
-  const numericTime = Number(time);
-  if (!Number.isFinite(numericTime)) return null;
+  const rawTime = String(time ?? '').trim();
+  const numericTime = /^\d+(\.\d+)?$/.test(rawTime) ? Number(rawTime) : NaN;
+
+  if (!Number.isFinite(numericTime)) {
+    const parsedTime = Date.parse(rawTime);
+    if (Number.isNaN(parsedTime)) return null;
+    return new Date(parsedTime);
+  }
 
   const date = new Date(
     numericTime > 1_000_000_000_000 ? numericTime : numericTime * 1000
   );
   return Number.isNaN(date.getTime()) ? null : date;
+};
+
+/**
+ * Returns the newest timestamp available for a conversation in Unix seconds.
+ * Chatwoot can temporarily expose an older `last_non_activity_message` while
+ * the live `timestamp` has already advanced. The UI must use the same newest
+ * value for the card clock and for ordering the conversation list.
+ * @param {Object} conversation - Conversation payload from the API/store.
+ * @returns {number} Latest activity in Unix seconds, or 0 when unavailable.
+ */
+export const conversationActivityTimestamp = conversation => {
+  const activityValues = [
+    conversation?.last_non_activity_message?.created_at,
+    conversation?.lastNonActivityMessage?.createdAt,
+    conversation?.timestamp,
+    conversation?.last_activity_at,
+    conversation?.lastActivityAt,
+    conversation?.created_at,
+    conversation?.createdAt,
+  ];
+
+  return activityValues.reduce((latest, value) => {
+    const normalized = (normalizeUnixDate(value)?.getTime() || 0) / 1000;
+    return Math.max(latest, normalized);
+  }, 0);
 };
 
 const brazilDateParts = value =>
