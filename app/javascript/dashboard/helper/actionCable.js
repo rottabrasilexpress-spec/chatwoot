@@ -149,6 +149,17 @@ class ActionCableConnector extends BaseActionCableConnector {
   onConversationUpdated = data => {
     this.app.$store.dispatch('updateConversation', data);
     this.fetchConversationStats();
+
+    const changedAttributes = data?.previous_changes;
+    const labelChangeKeys = ['label_list', 'cached_label_list', 'labels'];
+    const hasLabelChange =
+      changedAttributes &&
+      typeof changedAttributes === 'object' &&
+      Object.keys(changedAttributes).some(key => labelChangeKeys.includes(key));
+
+    if (hasLabelChange) {
+      emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, data);
+    }
   };
 
   onConversationUnreadCountChanged = () => {

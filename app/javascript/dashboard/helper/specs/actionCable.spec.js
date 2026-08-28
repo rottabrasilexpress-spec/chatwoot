@@ -1,6 +1,8 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import ActionCableConnector from '../actionCable';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { emitter } from 'shared/helpers/mitt';
 
 vi.mock('shared/helpers/mitt', () => ({
   emitter: {
@@ -375,6 +377,51 @@ describe('ActionCableConnector - Copilot Tests', () => {
 
       vi.advanceTimersByTime(4000);
       expect(mockDispatch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('conversation update event handlers', () => {
+    it('refreshes the Rotta follow-up queue from realtime conversation updates', () => {
+      const conversation = {
+        id: 206,
+        account_id: 1,
+        labels: ['primeiro-contato'],
+        previous_changes: {
+          label_list: [[], ['primeiro-contato']],
+        },
+      };
+
+      actionCable.onReceived({
+        event: 'conversation.updated',
+        data: conversation,
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'updateConversation',
+        conversation
+      );
+      expect(emitter.emit).toHaveBeenCalledWith(
+        BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH,
+        conversation
+      );
+    });
+
+    it('does not refresh the Rotta follow-up queue for unrelated updates', () => {
+      const conversation = {
+        id: 206,
+        account_id: 1,
+        previous_changes: { waiting_since: [null, '2026-01-01T00:00:00Z'] },
+      };
+
+      actionCable.onReceived({
+        event: 'conversation.updated',
+        data: conversation,
+      });
+
+      expect(emitter.emit).not.toHaveBeenCalledWith(
+        BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH,
+        conversation
+      );
     });
   });
 });

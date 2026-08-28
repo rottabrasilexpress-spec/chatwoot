@@ -87,7 +87,8 @@ class ActionCableListener < BaseListener
     conversation, account = extract_conversation_and_account(event)
     tokens = user_tokens(account, conversation.inbox.members) + contact_inbox_tokens(conversation.contact_inbox)
 
-    broadcast(account, tokens, CONVERSATION_UPDATED, conversation.push_event_data)
+    broadcast(account, tokens, CONVERSATION_UPDATED,
+              conversation.push_event_data.merge(previous_changes: event.data[:changed_attributes]))
   end
 
   def conversation_unread_count_changed(event)

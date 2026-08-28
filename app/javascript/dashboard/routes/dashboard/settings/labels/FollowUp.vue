@@ -3,6 +3,8 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useAlert } from 'dashboard/composables';
 import rottaFollowUpAPI from 'dashboard/api/rottaFollowUp';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { emitter } from 'shared/helpers/mitt';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
@@ -53,9 +55,18 @@ const searchQuery = ref('');
 const selectedStage = ref('all');
 const timezone = ref(TIMEZONE);
 const now = ref(Date.now());
+const lastSyncedAt = ref(null);
 const expandedJobs = ref(new Set());
 let refreshTimer;
 let clockTimer;
+let realtimeRefreshTimer;
+let settleRefreshTimer;
+let refreshRequested = false;
+let isMounted = false;
+let loadQueue;
+
+const REALTIME_REFRESH_DEBOUNCE_MS = 400;
+const REALTIME_SETTLE_REFRESH_MS = 1200;
 
 const labelInfo = slug => {
   const fallback = String(slug || 'outros')
@@ -329,8 +340,25 @@ const request = async payload => {
   return body;
 };
 
-const loadQueue = async () => {
-  if (isLoading.value) return;
+function scheduleRealtimeRefresh() {
+  if (!isMounted) return;
+  window.clearTimeout(realtimeRefreshTimer);
+  window.clearTimeout(settleRefreshTimer);
+  realtimeRefreshTimer = window.setTimeout(() => {
+    realtimeRefreshTimer = undefined;
+    loadQueue();
+    settleRefreshTimer = window.setTimeout(() => {
+      settleRefreshTimer = undefined;
+      loadQueue();
+    }, REALTIME_SETTLE_REFRESH_MS);
+  }, REALTIME_REFRESH_DEBOUNCE_MS);
+}
+
+loadQueue = async () => {
+  if (isLoading.value) {
+    refreshRequested = true;
+    return;
+  }
   isLoading.value = true;
   try {
     const body = await request({ action: 'list' });
@@ -342,10 +370,15 @@ const loadQueue = async () => {
     counts.value = body.counts || {};
     apiLabels.value = body.labels || {};
     timezone.value = body.timezone || TIMEZONE;
+    lastSyncedAt.value = Date.now();
   } catch (error) {
     useAlert(error.message || 'Não foi possível carregar a fila de follow-up.');
   } finally {
     isLoading.value = false;
+    if (refreshRequested && isMounted) {
+      refreshRequested = false;
+      scheduleRealtimeRefresh();
+    }
   }
 };
 
@@ -385,6 +418,9 @@ const openConversation = job => {
 };
 
 onMounted(async () => {
+  isMounted = true;
+  emitter.on(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, scheduleRealtimeRefresh);
+  emitter.on(BUS_EVENTS.WEBSOCKET_RECONNECT, scheduleRealtimeRefresh);
   await loadQueue();
   clockTimer = window.setInterval(() => {
     now.value = Date.now();
@@ -393,8 +429,13 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  isMounted = false;
+  emitter.off(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, scheduleRealtimeRefresh);
+  emitter.off(BUS_EVENTS.WEBSOCKET_RECONNECT, scheduleRealtimeRefresh);
   window.clearInterval(clockTimer);
   window.clearInterval(refreshTimer);
+  window.clearTimeout(realtimeRefreshTimer);
+  window.clearTimeout(settleRefreshTimer);
 });
 </script>
 
@@ -450,7 +491,13 @@ onUnmounted(() => {
               <h2>Próximos disparos</h2>
             </div>
             <p>
-              {{ timezoneTitle }} · atualização automática a cada 30 segundos
+              {{ timezoneTitle }} ·
+              {{
+                lastSyncedAt
+                  ? `ao vivo · sincronizado em ${formatDate(lastSyncedAt)}`
+                  : 'sincronizando…'
+              }}
+              · conferência a cada 30s
             </p>
           </div>
           <label class="rotta-select-wrap">
