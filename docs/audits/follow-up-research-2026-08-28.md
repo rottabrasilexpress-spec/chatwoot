@@ -54,3 +54,6 @@ Scope: official/first-party sources only. Read-only review of the Rotta follow-u
 - Counts for: Chatwoot webhook deliveries, n8n executions and node attempts, UazAPI HTTP outcomes, provider lifecycle updates, and final recipient-visible messages.
 - A dead-letter/reconciliation report for events/jobs in `processing`, `failed_send`, or `failed_labels`, plus a periodic Chatwoot/UazAPI backfill check.
 
+## Implementation boundary correction — 2026-08-28
+
+The WaSpeed workflow was used only as a read-only catalogue to identify label names and which labels represent follow-up stages. Its labels and execution logic are not imported into the native Chatwoot follow-up. The native workflow accepts only its own canonical Chatwoot slugs; WaSpeed V20/V40 and the Atendimento RT workflows remain independent and active.
