@@ -6,6 +6,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import MessageStatus from 'dashboard/components-next/message/MessageStatus.vue';
 import { MESSAGE_STATUS } from 'dashboard/components-next/message/constants';
 import { getMessageDeliveryStatus } from 'dashboard/helper/messageStatus';
+import { getMessageDisplayContent } from 'dashboard/components-next/message/helpers/messageContent';
 
 const props = defineProps({
   message: {
@@ -55,7 +56,21 @@ const isMessagePrivate = computed(() => {
 const parsedLastMessage = computed(() => {
   const { content_attributes: contentAttributes } = props.message;
   const { email: { subject } = {} } = contentAttributes || {};
-  return getPlainText(subject || props.message.content);
+  return getPlainText(
+    getMessageDisplayContent(
+      subject || props.message.content,
+      props.message.attachments
+    )
+  );
+});
+
+const hasDisplayableContent = computed(() => {
+  const { content_attributes: contentAttributes } = props.message;
+  const { email: { subject } = {} } = contentAttributes || {};
+  return !!getMessageDisplayContent(
+    subject || props.message.content,
+    props.message.attachments
+  );
 });
 
 const lastMessageFileType = computed(() => {
@@ -138,14 +153,14 @@ const deliveryStatus = computed(() => {
         />
       </template>
       <span
-        v-if="message.content && isMessageSticker"
+        v-if="hasDisplayableContent && message.content && isMessageSticker"
         class="inline-grid grid-flow-col auto-cols-max items-center gap-1"
       >
         <Icon icon="i-lucide-image" class="size-3.5" />
         {{ $t('CHAT_LIST.ATTACHMENTS.image.CONTENT') }}
       </span>
 
-      <template v-else-if="message.content">
+      <template v-else-if="hasDisplayableContent && message.content">
         {{ parsedLastMessage }}
       </template>
 

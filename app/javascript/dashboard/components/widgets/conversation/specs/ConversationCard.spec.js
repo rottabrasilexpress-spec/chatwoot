@@ -1,4 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
+import { createStore } from 'vuex';
 import ConversationCard from '../ConversationCard.vue';
 
 const defaultChat = {
@@ -24,6 +25,20 @@ const mountComponent = (chat, currentContact = {}) =>
       inbox: { id: 1 },
     },
     global: {
+      plugins: [
+        createStore({
+          modules: {
+            labels: {
+              namespaced: true,
+              getters: { getLabels: () => [] },
+            },
+            conversationTypingStatus: {
+              namespaced: true,
+              getters: { getUserList: () => () => [] },
+            },
+          },
+        }),
+      ],
       stubs: {
         'fluent-icon': true,
       },
@@ -56,5 +71,14 @@ describe('ConversationCard', () => {
     );
 
     expect(wrapper.findComponent({ name: 'CardLabels' }).exists()).toBe(false);
+  });
+
+  it('opens the contact profile without selecting the conversation', async () => {
+    const wrapper = mountComponent({});
+
+    await wrapper.find('.rotta-contact-avatar').trigger('click');
+
+    expect(wrapper.emitted('openContact')).toHaveLength(1);
+    expect(wrapper.emitted('selectConversation')).toBeUndefined();
   });
 });

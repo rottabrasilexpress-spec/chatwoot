@@ -34,6 +34,7 @@ const emit = defineEmits([
   'deSelectConversation',
   'click',
   'contextmenu',
+  'openContact',
 ]);
 
 const lastMessageInChat = computed(() => getLastMessage(props.chat));
@@ -159,6 +160,7 @@ const selectedModel = computed({
         :selected="false"
         :enable-selection="false"
         :hide-thumbnail="false"
+        @open-contact="emit('openContact')"
       />
 
       <h4

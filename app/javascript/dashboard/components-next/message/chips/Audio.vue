@@ -249,19 +249,17 @@ const onEnd = () => {
 <style scoped>
 .rotta-audio {
   display: flex;
-  width: min(25rem, 100%);
+  width: min(22rem, 100%);
   flex-direction: column;
   gap: 0.45rem;
-  padding: 0.6rem 0.7rem;
-  color: #e9edef;
-  background: #202c33;
+  padding: 0;
+  color: inherit;
+  background: transparent;
   border: 0;
-  border-radius: 0.85rem;
-  box-shadow: 0 1px 1px rgb(0 0 0 / 12%);
 }
 
 .rotta-audio--outgoing {
-  background: #075e54;
+  color: #111b21;
 }
 
 .rotta-audio__row {
@@ -278,14 +276,14 @@ const onEnd = () => {
   height: 2.15rem;
   place-items: center;
   color: #fff;
-  background: rgb(255 255 255 / 16%);
+  background: #00a884;
   border: 0;
   border-radius: 999px;
   cursor: pointer;
 }
 
 .rotta-audio__play:hover {
-  background: rgb(255 255 255 / 24%);
+  background: #008f72;
 }
 
 .rotta-audio__waveform {
@@ -303,13 +301,13 @@ const onEnd = () => {
   flex: 1 1 0;
   min-width: 2px;
   max-width: 4px;
-  background: #8eb9ae;
+  background: #8696a0;
   border-radius: 99px;
   opacity: 0.82;
 }
 
 .rotta-audio__bar--played {
-  background: #7fc8df;
+  background: #00a884;
   opacity: 1;
 }
 
@@ -326,7 +324,7 @@ const onEnd = () => {
 
 .rotta-audio__duration {
   min-width: 2.5rem;
-  color: #d7e3e0;
+  color: #667781;
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
   text-align: right;

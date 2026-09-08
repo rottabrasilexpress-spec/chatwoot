@@ -36,6 +36,7 @@ const props = defineProps({
 const emit = defineEmits([
   'click',
   'contextmenu',
+  'openContact',
   'selectConversation',
   'deSelectConversation',
 ]);
@@ -167,27 +168,30 @@ watch(
       @mouseenter="onThumbnailHover"
       @mouseleave="onThumbnailLeave"
     >
-      <Avatar
+      <button
         v-if="!hideThumbnail"
-        :name="currentContact.name"
-        :src="currentContactAvatarUrl"
-        :size="44"
-        :status="currentContact.availability_status"
-        class="rounded-full"
-        :class="!showInboxName ? 'mt-3' : 'mt-7'"
-        hide-offline-status
+        type="button"
+        class="rotta-contact-avatar"
+        :aria-label="`Abrir perfil de ${currentContact.name}`"
+        @click.stop="emit('openContact')"
       >
-        <template #overlay="{ size }">
-          <label
-            v-if="hovered || selected"
-            class="flex items-center justify-center rounded-full cursor-pointer absolute inset-0 z-10 backdrop-blur-[2px]"
-            :style="{ width: `${size}px`, height: `${size}px` }"
-            @click.stop
-          >
-            <Checkbox v-model="selectedModel" />
-          </label>
-        </template>
-      </Avatar>
+        <Avatar
+          :name="currentContact.name"
+          :src="currentContactAvatarUrl"
+          :size="44"
+          :status="currentContact.availability_status"
+          class="rounded-full"
+          :class="!showInboxName ? 'mt-3' : 'mt-7'"
+          hide-offline-status
+        />
+      </button>
+      <label
+        v-if="!hideThumbnail && (hovered || selected)"
+        class="rotta-conversation-select flex items-center justify-center rounded-full cursor-pointer absolute z-10"
+        @click.stop
+      >
+        <Checkbox v-model="selectedModel" />
+      </label>
     </div>
     <div
       class="rotta-conversation-content px-0 py-2.5 flex-1 min-w-0 border-line"
@@ -326,6 +330,29 @@ watch(
   flex-direction: column;
   min-width: 0;
   gap: 0.125rem;
+}
+
+.rotta-contact-avatar {
+  display: block;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.rotta-contact-avatar:focus-visible {
+  outline: 2px solid var(--color-n-brand, #2563eb);
+  outline-offset: 3px;
+}
+
+.rotta-conversation-select {
+  top: 0.25rem;
+  left: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 16%);
 }
 
 .rotta-card-heading {

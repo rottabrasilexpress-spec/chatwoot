@@ -7,6 +7,7 @@ import TranslationToggle from 'dashboard/components-next/message/TranslationTogg
 import { MESSAGE_TYPES } from '../../constants';
 import { useMessageContext } from '../../provider.js';
 import { useTranslations } from 'dashboard/composables/useTranslations';
+import { getMessageDisplayContent } from '../../helpers/messageContent';
 
 const { content, attachments, contentAttributes, messageType } =
   useMessageContext();
@@ -28,12 +29,16 @@ const renderContent = computed(() => {
   return content.value;
 });
 
+const displayedContent = computed(() =>
+  getMessageDisplayContent(renderContent.value, attachments.value)
+);
+
 const isTemplate = computed(() => {
   return messageType.value === MESSAGE_TYPES.TEMPLATE;
 });
 
 const isEmpty = computed(() => {
-  return !content.value && !attachments.value?.length;
+  return !displayedContent.value && !attachments.value?.length;
 });
 
 const handleSeeOriginal = () => {
@@ -47,7 +52,7 @@ const handleSeeOriginal = () => {
       <span v-if="isEmpty" class="text-n-slate-11">
         {{ $t('CONVERSATION.NO_CONTENT') }}
       </span>
-      <FormattedContent v-if="renderContent" :content="renderContent" />
+      <FormattedContent v-if="displayedContent" :content="displayedContent" />
       <TranslationToggle
         v-if="hasTranslations"
         class="-mt-3"

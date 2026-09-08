@@ -5,6 +5,7 @@ import { ATTACHMENT_ICONS } from 'shared/constants/messages';
 import MessageStatus from 'dashboard/components-next/message/MessageStatus.vue';
 import { MESSAGE_STATUS } from 'dashboard/components-next/message/constants';
 import { getMessageDeliveryStatus } from 'dashboard/helper/messageStatus';
+import { getMessageDisplayContent } from 'dashboard/components-next/message/helpers/messageContent';
 
 export default {
   name: 'MessagePreview',
@@ -47,7 +48,20 @@ export default {
     parsedLastMessage() {
       const { content_attributes: contentAttributes } = this.message;
       const { email: { subject } = {} } = contentAttributes || {};
-      return this.getPlainText(subject || this.message.content);
+      return this.getPlainText(
+        getMessageDisplayContent(
+          subject || this.message.content,
+          this.message.attachments
+        )
+      );
+    },
+    hasDisplayableContent() {
+      const { content_attributes: contentAttributes } = this.message;
+      const { email: { subject } = {} } = contentAttributes || {};
+      return !!getMessageDisplayContent(
+        subject || this.message.content,
+        this.message.attachments
+      );
     },
     lastMessageFileType() {
       const [{ file_type: fileType } = {}] = this.message.attachments;
@@ -100,7 +114,7 @@ export default {
         icon="info"
       />
     </template>
-    <span v-if="message.content && isMessageSticker">
+    <span v-if="hasDisplayableContent && message.content && isMessageSticker">
       <fluent-icon
         size="16"
         class="-mt-0.5 align-middle inline-block text-n-slate-11"
@@ -108,7 +122,7 @@ export default {
       />
       {{ $t('CHAT_LIST.ATTACHMENTS.image.CONTENT') }}
     </span>
-    <span v-else-if="message.content">
+    <span v-else-if="hasDisplayableContent && message.content">
       {{ parsedLastMessage }}
     </span>
     <span v-else-if="message.attachments">

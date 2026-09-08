@@ -97,6 +97,8 @@ export default {
       labelSuggestions: [],
       hasNewMessages: false,
       newMessagesCount: 0,
+      pendingScrollTop: 0,
+      scrollFrameId: null,
     };
   },
 
@@ -286,14 +288,10 @@ export default {
       }
       this.fetchAllAttachmentsFromCurrentChat();
       this.fetchSuggestions();
-      this.loadAllPreviousMessages();
       this.messageSentSinceOpened = false;
       this.hasNewMessages = false;
       this.newMessagesCount = 0;
       this.resetReplyEditorHeight();
-    },
-    'currentChat.dataFetched'(isFetched) {
-      if (isFetched) this.loadAllPreviousMessages();
     },
     'currentChat.messages.length'(newLength, oldLength) {
       this.handleLiveMessageBatch(newLength, oldLength);
@@ -313,7 +311,6 @@ export default {
     this.addScrollListener();
     this.fetchAllAttachmentsFromCurrentChat();
     this.fetchSuggestions();
-    this.loadAllPreviousMessages();
   },
 
   unmounted() {
@@ -389,64 +386,14 @@ export default {
       this.$nextTick(() => this.scrollToBottom());
       this.isLoadingPrevious = false;
     },
-    async loadAllPreviousMessages() {
-      const conversationId = this.currentChat?.id;
-      if (!conversationId || this.currentChat.dataFetched !== true) return;
-
-      this.isLoadingPrevious = true;
-      let previousFirstMessageId = null;
-      let pageCount = 0;
-
-      try {
-        while (
-          this.currentChat?.id === conversationId &&
-          !this.listLoadingStatus &&
-          this.currentChat.messages?.length &&
-          pageCount < 500
-        ) {
-          const firstMessageId = this.currentChat.messages[0]?.id;
-          if (!firstMessageId || firstMessageId === previousFirstMessageId) {
-            break;
-          }
-
-          previousFirstMessageId = firstMessageId;
-          const messageCountBefore = this.currentChat.messages.length;
-          // The next page depends on the first id returned by the previous page.
-          // eslint-disable-next-line no-await-in-loop
-          const loadedMoreMessages = await this.$store.dispatch(
-            'fetchPreviousMessages',
-            {
-              conversationId,
-              before: firstMessageId,
-            }
-          );
-
-          if (loadedMoreMessages === false) {
-            this.$store.commit('SET_ALL_MESSAGES_LOADED', conversationId);
-          }
-
-          if (loadedMoreMessages === null) {
-            break;
-          }
-
-          if (
-            this.currentChat.messages.length === messageCountBefore ||
-            this.currentChat.messages[0]?.id === firstMessageId
-          ) {
-            break;
-          }
-
-          pageCount += 1;
-        }
-      } finally {
-        this.isLoadingPrevious = false;
-        if (this.currentChat?.id === conversationId) {
-          this.$nextTick(() => this.scrollToBottom());
-        }
-      }
-    },
     removeScrollListener() {
       this.conversationPanel?.removeEventListener('scroll', this.handleScroll);
+      if (this.scrollFrameId !== null) {
+        (window.cancelAnimationFrame || window.clearTimeout)(
+          this.scrollFrameId
+        );
+        this.scrollFrameId = null;
+      }
     },
     isNearBottom(threshold = 96) {
       return isMessagePanelNearBottom(this.conversationPanel, threshold);
@@ -528,7 +475,6 @@ export default {
     },
 
     async fetchPreviousMessages(scrollTop = 0) {
-      this.setScrollParams();
       const shouldLoadMoreMessages =
         this.currentChat.dataFetched === true &&
         !this.listLoadingStatus &&
@@ -537,8 +483,10 @@ export default {
       if (
         scrollTop < 100 &&
         !this.isLoadingPrevious &&
-        shouldLoadMoreMessages
+        shouldLoadMoreMessages &&
+        this.currentChat.messages?.[0]?.id
       ) {
+        this.setScrollParams();
         this.isLoadingPrevious = true;
         try {
           await this.$store.dispatch('fetchPreviousMessages', {
@@ -559,19 +507,27 @@ export default {
     },
 
     handleScroll(e) {
-      if (this.isProgrammaticScroll) {
-        // Reset the flag
-        this.isProgrammaticScroll = false;
-        this.hasUserScrolled = false;
-      } else {
-        this.hasUserScrolled = true;
-      }
-      if (this.isNearBottom()) {
-        this.hasNewMessages = false;
-        this.newMessagesCount = 0;
-      }
-      emitter.emit(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL);
-      this.fetchPreviousMessages(e.target.scrollTop);
+      this.pendingScrollTop = e.target.scrollTop;
+      if (this.scrollFrameId !== null) return;
+
+      const scheduleFrame = window.requestAnimationFrame || window.setTimeout;
+      this.scrollFrameId = scheduleFrame(() => {
+        this.scrollFrameId = null;
+        const scrollTop = this.pendingScrollTop;
+
+        if (this.isProgrammaticScroll) {
+          this.isProgrammaticScroll = false;
+          this.hasUserScrolled = false;
+        } else {
+          this.hasUserScrolled = true;
+        }
+        if (this.isNearBottom()) {
+          this.hasNewMessages = false;
+          this.newMessagesCount = 0;
+        }
+        emitter.emit(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL);
+        this.fetchPreviousMessages(scrollTop);
+      });
     },
 
     makeMessagesRead() {

@@ -13,6 +13,7 @@ import wootConstants from 'dashboard/constants/globals';
 import { conversationListPageURL } from 'dashboard/helper/URLHelper';
 import { snoozedReopenTime } from 'dashboard/helper/snoozeHelpers';
 import { useInbox } from 'dashboard/composables/useInbox';
+import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -35,6 +36,7 @@ const route = useRoute();
 const conversationHeader = ref(null);
 const { width } = useElementSize(conversationHeader);
 const { isAWebWidgetInbox } = useInbox();
+const { updateUISettings } = useUISettings();
 
 const currentChat = computed(() => store.getters.getSelectedChat);
 const accountId = computed(() => store.getters.getCurrentAccountId);
@@ -78,14 +80,11 @@ const currentContactAvatarUrl = computed(() =>
     currentContact.value?.avatar_url || currentContact.value?.thumbnail
   )
 );
-const showAvatarModal = ref(false);
-
-const openContactAvatar = () => {
-  if (currentContactAvatarUrl.value) showAvatarModal.value = true;
-};
-
-const closeContactAvatar = () => {
-  showAvatarModal.value = false;
+const openContactProfile = () => {
+  updateUISettings({
+    is_contact_sidebar_open: true,
+    is_copilot_panel_open: false,
+  });
 };
 
 const isSnoozed = computed(
@@ -144,17 +143,9 @@ const copyConversationId = async () => {
       <button
         type="button"
         class="rotta-header-avatar-button"
-        :class="{
-          'rotta-header-avatar-button--clickable': currentContactAvatarUrl,
-        }"
-        :disabled="!currentContactAvatarUrl"
-        :aria-label="
-          currentContactAvatarUrl
-            ? `Abrir foto de perfil de ${currentContact.name}`
-            : undefined
-        "
-        :title="currentContactAvatarUrl ? 'Abrir foto do perfil' : undefined"
-        @click="openContactAvatar"
+        :aria-label="$t('CONVERSATION.SIDEBAR.CONTACT')"
+        :title="$t('CONVERSATION.SIDEBAR.CONTACT')"
+        @click="openContactProfile"
       >
         <Avatar
           :name="currentContact.name"
@@ -213,24 +204,6 @@ const copyConversationId = async () => {
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
       <MoreActions :conversation-id="currentChat.id" />
     </div>
-
-    <woot-modal
-      v-model:show="showAvatarModal"
-      :on-close="closeContactAvatar"
-      :show-close-button="false"
-    >
-      <div class="rotta-header-avatar-modal">
-        <woot-modal-header :header-title="currentContact.name" />
-        <img
-          :src="currentContactAvatarUrl"
-          :alt="`Foto de perfil de ${currentContact.name}`"
-          class="rotta-header-avatar-image"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-        />
-      </div>
-    </woot-modal>
   </div>
 </template>
 
@@ -241,36 +214,12 @@ const copyConversationId = async () => {
   background: transparent;
   border: 0;
   border-radius: 999px;
+  cursor: pointer;
 }
 
-.rotta-header-avatar-button--clickable {
-  cursor: zoom-in;
-}
-
-.rotta-header-avatar-button--clickable:focus-visible {
+.rotta-header-avatar-button:focus-visible {
   outline: 2px solid var(--color-n-brand, #2563eb);
   outline-offset: 3px;
-}
-
-.rotta-header-avatar-modal {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow: hidden;
-  padding: 0 1rem 1rem;
-}
-
-.rotta-header-avatar-image {
-  display: block;
-  width: 100%;
-  height: min(82vh, 60rem);
-  max-width: 100%;
-  box-sizing: border-box;
-  border-radius: 1rem;
-  object-fit: contain;
 }
 
 .rotta-kelvin-header {

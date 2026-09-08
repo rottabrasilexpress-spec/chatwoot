@@ -12,7 +12,7 @@ const props = defineProps({
   size: { type: Number, default: 24 },
 });
 
-const emit = defineEmits(['selectConversation']);
+const emit = defineEmits(['selectConversation', 'openContact']);
 
 const hovered = ref(false);
 
@@ -42,24 +42,37 @@ const avatarUrl = computed(() =>
     @mouseenter="onThumbnailHover"
     @mouseleave="onThumbnailLeave"
   >
-    <Avatar
+    <button
       v-if="!hideThumbnail"
-      :name="contact.name"
-      :src="avatarUrl"
-      :size="size"
-      :status="contact.availability_status"
-      class="rounded-full"
-      hide-offline-status
+      type="button"
+      class="p-0 bg-transparent border-0 rounded-full cursor-pointer"
+      :aria-label="`Abrir perfil de ${contact.name}`"
+      @click.stop="emit('openContact')"
     >
-      <template v-if="enableSelection" #overlay>
-        <div
-          v-if="hovered || selected"
-          class="flex items-center justify-center rounded-md cursor-pointer absolute inset-0 z-10 backdrop-blur-[2px] size-6"
-          @click.stop
-        >
-          <Checkbox v-model="selectedModel" />
-        </div>
-      </template>
-    </Avatar>
+      <Avatar
+        :name="contact.name"
+        :src="avatarUrl"
+        :size="size"
+        :status="contact.availability_status"
+        class="rounded-full"
+        hide-offline-status
+      />
+    </button>
+    <div
+      v-if="enableSelection && (hovered || selected)"
+      class="rotta-card-avatar-select absolute top-0.5 right-0.5 z-10 flex items-center justify-center rounded-md"
+      @click.stop
+    >
+      <Checkbox v-model="selectedModel" />
+    </div>
   </div>
 </template>
+
+<style scoped>
+.rotta-card-avatar-select {
+  width: 1.25rem;
+  height: 1.25rem;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 16%);
+}
+</style>

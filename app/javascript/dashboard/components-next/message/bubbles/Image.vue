@@ -50,7 +50,7 @@ const handleImageError = () => {
 
 <template>
   <BaseBubble
-    class="overflow-hidden p-3"
+    class="overflow-hidden p-1.5"
     data-bubble-name="image"
     @click="showGallery = true"
   >
@@ -62,10 +62,13 @@ const handleImageError = () => {
     </div>
     <div v-else-if="isLoaded" class="relative group rounded-lg overflow-hidden">
       <img
-        class="skip-context-menu"
+        class="rotta-single-image block max-w-full max-h-80 w-auto h-auto object-contain skip-context-menu"
         :src="attachment.dataUrl"
         :width="attachment.width"
         :height="attachment.height"
+        :alt="attachment.fallbackTitle || 'Imagem recebida'"
+        loading="lazy"
+        decoding="async"
       />
       <div
         class="inset-0 p-2 pointer-events-none absolute bg-gradient-to-tl from-n-slate-12/30 dark:from-n-slate-1/50 via-transparent to-transparent hidden group-hover:flex"
@@ -94,3 +97,9 @@ const handleImageError = () => {
     @close="() => (showGallery = false)"
   />
 </template>
+
+<style scoped>
+.rotta-single-image {
+  max-width: min(20rem, 100%);
+}
+</style>

@@ -111,6 +111,14 @@ const onCardClick = e => {
   router.push({ path });
 };
 
+const onContactClick = () => {
+  if (!senderId.value || !accountId.value) return;
+
+  router.push({
+    path: frontendURL(`accounts/${accountId.value}/contacts/${senderId.value}`),
+  });
+};
+
 const onExpandedSelect = checked => {
   if (checked) {
     selectConversation(props.source.id, inbox.value.id);
@@ -204,6 +212,7 @@ const hasUnreadMessages = computed(() =>
     @select-conversation="onExpandedSelect"
     @de-select-conversation="onExpandedSelect"
     @click="onCardClick"
+    @open-contact="onContactClick"
     @contextmenu="openContextMenu"
   />
 
@@ -219,6 +228,7 @@ const hasUnreadMessages = computed(() =>
     :show-assignee="showAssignee"
     :show-inbox-name="showInboxName"
     @click="onCardClick"
+    @open-contact="onContactClick"
     @contextmenu="openContextMenu"
     @select-conversation="selectConversation"
     @de-select-conversation="deSelectConversation"
