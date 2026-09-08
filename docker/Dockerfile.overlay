@@ -13,6 +13,7 @@ COPY public/brand-assets/rottabrasil-mark.png /app/public/brand-assets/rottabras
 COPY public/manifest.json /app/public/manifest.json
 COPY config/installation_config.yml /app/config/installation_config.yml
 COPY config/schedule.yml /app/config/schedule.yml
+COPY config/sidekiq-uazapi.yml /app/config/sidekiq-uazapi.yml
 COPY config/routes.rb /app/config/routes.rb
 COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migrate/20260820000000_set_rotta_brasil_express_branding.rb
 COPY db/migrate/20260821000001_archive_existing_rotta_conversations.rb /app/db/migrate/20260821000001_archive_existing_rotta_conversations.rb
