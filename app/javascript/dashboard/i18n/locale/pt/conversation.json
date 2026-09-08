@@ -26,7 +26,9 @@
       "NO_MATCHING_RESULTS": "Nenhum resultado encontrado."
     },
     "UNREAD_MESSAGES": "Mensagens por ler",
-    "UNREAD_MESSAGE": "Mensagens por ler",
+    "UNREAD_MESSAGE": "Mensagem por ler",
+    "NEW_MESSAGES": "{count} novas mensagens",
+    "JUMP_TO_NEW_MESSAGES": "Ir para novas mensagens",
     "CLICK_HERE": "Clique aqui",
     "LOADING_INBOXES": "A carregar caixas de entrada",
     "LOADING_CONVERSATIONS": "A carregar conversas",

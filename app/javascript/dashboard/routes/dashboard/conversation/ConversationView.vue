@@ -8,6 +8,7 @@ import wootConstants from 'dashboard/constants/globals';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBarConversationSnooze.vue';
 import { emitter } from 'shared/helpers/mitt';
+import { useWindowSize } from '@vueuse/core';
 import SidepanelSwitch from 'dashboard/components-next/Conversation/SidepanelSwitch.vue';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
 
@@ -60,11 +61,13 @@ export default {
   setup() {
     const { uiSettings, updateUISettings } = useUISettings();
     const { accountId } = useAccount();
+    const { width: windowWidth } = useWindowSize();
 
     return {
       uiSettings,
       updateUISettings,
       accountId,
+      windowWidth,
     };
   },
   data() {
@@ -78,10 +81,10 @@ export default {
       currentChat: 'getSelectedChat',
     }),
     showConversationList() {
-      return this.isOnExpandedLayout ? !this.conversationId : true;
+      return this.isStackedLayout ? !this.conversationId : true;
     },
     showMessageView() {
-      return this.conversationId ? true : !this.isOnExpandedLayout;
+      return this.conversationId ? true : !this.isStackedLayout;
     },
     isOnExpandedLayout() {
       const {
@@ -90,6 +93,14 @@ export default {
       const { conversation_display_type: conversationDisplayType = CONDENSED } =
         this.uiSettings;
       return conversationDisplayType !== CONDENSED;
+    },
+    // The three-column layout has a hard lower bound: the conversation pane
+    // must retain enough room for a usable message bubble and composer.
+    isNarrowConversationLayout() {
+      return this.windowWidth <= 1180;
+    },
+    isStackedLayout() {
+      return this.isOnExpandedLayout || this.isNarrowConversationLayout;
     },
 
     shouldShowSidebar() {
@@ -199,7 +210,7 @@ export default {
 </script>
 
 <template>
-  <section class="flex w-full h-full min-w-0">
+  <section class="rotta-conversation-view flex w-full h-full min-w-0">
     <ChatList
       :show-conversation-list="showConversationList"
       :conversation-inbox="inboxId"
@@ -208,13 +219,13 @@ export default {
       :conversation-type="conversationType"
       :folders-id="foldersId"
       :conversation-status="conversationStatus"
-      :is-on-expanded-layout="isOnExpandedLayout"
+      :is-on-expanded-layout="isStackedLayout"
       @conversation-load="onConversationLoad"
     />
     <ConversationBox
       v-if="showMessageView"
       :inbox-id="inboxId"
-      :is-on-expanded-layout="isOnExpandedLayout"
+      :is-on-expanded-layout="isStackedLayout"
     >
       <SidepanelSwitch v-if="currentChat.id" />
     </ConversationBox>
@@ -222,3 +233,9 @@ export default {
     <CmdBarConversationSnooze />
   </section>
 </template>
+
+<style scoped>
+.rotta-conversation-view {
+  position: relative;
+}
+</style>

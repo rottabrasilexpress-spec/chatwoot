@@ -77,6 +77,18 @@ const flexOrientationClass = computed(() => {
 const messageClass = computed(() => {
   const classToApply = [varaintBaseMap[variant.value]];
 
+  if (variant.value === MESSAGE_VARIANTS.USER) {
+    classToApply.push('rotta-bubble-incoming');
+  } else if (
+    [
+      MESSAGE_VARIANTS.AGENT,
+      MESSAGE_VARIANTS.BOT,
+      MESSAGE_VARIANTS.TEMPLATE,
+    ].includes(variant.value)
+  ) {
+    classToApply.push('rotta-bubble-outgoing');
+  }
+
   if (variant.value !== MESSAGE_VARIANTS.ACTIVITY) {
     classToApply.push(orientationMap[orientation.value]);
   } else {

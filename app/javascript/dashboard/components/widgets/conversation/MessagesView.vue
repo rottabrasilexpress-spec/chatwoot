@@ -11,6 +11,7 @@ import MessageList from 'next/message/MessageList.vue';
 import ConversationLabelSuggestion from './conversation/LabelSuggestion.vue';
 import Banner from 'dashboard/components/ui/Banner.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
 import ResizableEditorWrapper from './ResizableEditorWrapper.vue';
 import ReferralBubble from 'dashboard/components-next/Conversation/ReferralBubble.vue';
 
@@ -40,6 +41,10 @@ import wootConstants, {
 } from 'dashboard/constants/globals';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
+import {
+  getLiveMessageAction,
+  isNearBottom as isMessagePanelNearBottom,
+} from './helpers/liveMessageScrollHelper';
 
 export default {
   components: {
@@ -47,6 +52,7 @@ export default {
     ReplyBox,
     Banner,
     ConversationLabelSuggestion,
+    Icon,
     Spinner,
     ResizableEditorWrapper,
     ReferralBubble,
@@ -89,6 +95,8 @@ export default {
       isProgrammaticScroll: false,
       messageSentSinceOpened: false,
       labelSuggestions: [],
+      hasNewMessages: false,
+      newMessagesCount: 0,
     };
   },
 
@@ -280,10 +288,15 @@ export default {
       this.fetchSuggestions();
       this.loadAllPreviousMessages();
       this.messageSentSinceOpened = false;
+      this.hasNewMessages = false;
+      this.newMessagesCount = 0;
       this.resetReplyEditorHeight();
     },
     'currentChat.dataFetched'(isFetched) {
       if (isFetched) this.loadAllPreviousMessages();
+    },
+    'currentChat.messages.length'(newLength, oldLength) {
+      this.handleLiveMessageBatch(newLength, oldLength);
     },
   },
 
@@ -433,7 +446,48 @@ export default {
       }
     },
     removeScrollListener() {
-      this.conversationPanel.removeEventListener('scroll', this.handleScroll);
+      this.conversationPanel?.removeEventListener('scroll', this.handleScroll);
+    },
+    isNearBottom(threshold = 96) {
+      return isMessagePanelNearBottom(this.conversationPanel, threshold);
+    },
+    handleLiveMessageBatch(newLength, oldLength) {
+      if (!this.conversationPanel || !this.currentChat?.id) {
+        return;
+      }
+
+      const action = getLiveMessageAction({
+        newLength,
+        oldLength,
+        isLoadingPrevious: this.isLoadingPrevious,
+        wasNearBottom: this.isNearBottom(),
+      });
+
+      if (action.type === 'ignore') return;
+
+      this.$nextTick(() => {
+        if (this.isLoadingPrevious) return;
+
+        if (action.type === 'scroll') {
+          this.scrollToLatest();
+          return;
+        }
+
+        this.hasNewMessages = true;
+        this.newMessagesCount += action.addedMessages;
+      });
+    },
+    scrollToLatest() {
+      if (!this.conversationPanel) return;
+
+      this.isProgrammaticScroll = true;
+      this.conversationPanel.scrollTop = this.conversationPanel.scrollHeight;
+      this.hasNewMessages = false;
+      this.newMessagesCount = 0;
+      this.hasUserScrolled = false;
+      this.$nextTick(() => {
+        this.isProgrammaticScroll = false;
+      });
     },
     scrollToBottom() {
       this.isProgrammaticScroll = true;
@@ -511,6 +565,10 @@ export default {
         this.hasUserScrolled = false;
       } else {
         this.hasUserScrolled = true;
+      }
+      if (this.isNearBottom()) {
+        this.hasNewMessages = false;
+        this.newMessagesCount = 0;
       }
       emitter.emit(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL);
       this.fetchPreviousMessages(e.target.scrollTop);
@@ -605,7 +663,7 @@ export default {
         />
       </template>
     </MessageList>
-    <div class="flex relative flex-col bg-n-surface-1">
+    <div class="relative flex flex-col bg-n-surface-1">
       <div
         v-if="isAnyoneTyping"
         class="absolute flex items-center w-full h-0 -top-7"
@@ -621,6 +679,18 @@ export default {
           />
         </div>
       </div>
+      <button
+        v-if="hasNewMessages"
+        type="button"
+        class="rotta-new-messages absolute z-20 flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium shadow-lg"
+        :aria-label="$t('CONVERSATION.JUMP_TO_NEW_MESSAGES')"
+        @click="scrollToLatest"
+      >
+        <span>{{
+          $t('CONVERSATION.NEW_MESSAGES', { count: newMessagesCount })
+        }}</span>
+        <Icon icon="i-lucide-chevron-down" class="size-4" aria-hidden="true" />
+      </button>
       <ResizableEditorWrapper
         ref="resizableEditorWrapperRef"
         :container-height="Math.max(0, containerHeight - topBannerHeight)"
@@ -630,3 +700,25 @@ export default {
     </div>
   </div>
 </template>
+
+<style scoped>
+.rotta-new-messages {
+  right: 1rem;
+  bottom: calc(100% + 0.75rem);
+  color: #111b21;
+  background: #d9fdd3;
+}
+
+.rotta-new-messages:hover {
+  background: #c7f5c0;
+}
+
+:global(.dark) .rotta-new-messages {
+  color: #e9edef;
+  background: #005c4b;
+}
+
+:global(.dark) .rotta-new-messages:hover {
+  background: #087f68;
+}
+</style>

@@ -549,13 +549,18 @@ provideMessageContext({
   <div
     v-if="shouldRenderMessage"
     :id="`message${props.id}`"
-    class="flex w-full mb-2 message-bubble-container"
+    class="flex w-full mb-2 message-bubble-container rotta-message-bubble-container"
     :data-message-id="props.id"
     :class="[
       flexOrientationClass,
       {
         'group-with-next': shouldGroupWithNext,
         'bg-n-alpha-1': showBackgroundHighlight,
+        'message--incoming': orientation === ORIENTATION.LEFT,
+        'message--outgoing': orientation === ORIENTATION.RIGHT,
+        'message--activity': orientation === ORIENTATION.CENTER,
+        'message--failed': status === MESSAGE_STATUS.FAILED,
+        'message--private': variant === MESSAGE_VARIANTS.PRIVATE,
       },
     ]"
   >

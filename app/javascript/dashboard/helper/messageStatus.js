@@ -10,6 +10,12 @@ const providerStatusKeys = [
   'messageStatus',
 ];
 
+const statusRank = {
+  [MESSAGE_STATUS.SENT]: 0,
+  [MESSAGE_STATUS.DELIVERED]: 1,
+  [MESSAGE_STATUS.READ]: 2,
+};
+
 export const normalizeProviderMessageStatus = value => {
   const normalized = String(value ?? '')
     .trim()
@@ -60,8 +66,16 @@ export const getMessageDeliveryStatus = message => {
     ...providerStatusKeys.map(key => contentAttributes[key]),
   ];
 
-  return (
-    providerValues.map(normalizeProviderMessageStatus).find(Boolean) ||
-    normalizeProviderMessageStatus(message.status)
-  );
+  const statuses = [...providerValues, message.status]
+    .map(normalizeProviderMessageStatus)
+    .filter(Boolean);
+
+  if (statuses.includes(MESSAGE_STATUS.FAILED)) {
+    return MESSAGE_STATUS.FAILED;
+  }
+
+  return statuses.reduce((highest, candidate) => {
+    if (!highest) return candidate;
+    return statusRank[candidate] > statusRank[highest] ? candidate : highest;
+  }, '');
 };

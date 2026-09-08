@@ -27,6 +27,8 @@
     },
     "UNREAD_MESSAGES": "Mensagens não lidas",
     "UNREAD_MESSAGE": "Mensagem não lida",
+    "NEW_MESSAGES": "{count} novas mensagens",
+    "JUMP_TO_NEW_MESSAGES": "Ir para novas mensagens",
     "CLICK_HERE": "Clique aqui",
     "LOADING_INBOXES": "Carregando caixas de entrada",
     "LOADING_CONVERSATIONS": "Carregando conversas",
