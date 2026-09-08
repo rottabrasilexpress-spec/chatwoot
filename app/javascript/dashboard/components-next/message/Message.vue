@@ -380,10 +380,13 @@ const shouldShowWhatsappReferral = computed(
     !!props.contentAttributes?.referral
 );
 
-const canReplyToMessage = computed(() => {
-  const isFailedOrProcessing =
+const isFailedOrProcessing = computed(
+  () =>
     props.status === MESSAGE_STATUS.FAILED ||
-    props.status === MESSAGE_STATUS.PROGRESS;
+    props.status === MESSAGE_STATUS.PROGRESS
+);
+
+const canReplyToMessage = computed(() => {
   const supportsReply =
     props.inboxSupportsReplyTo?.incoming ||
     props.inboxSupportsReplyTo?.outgoing;
@@ -391,16 +394,18 @@ const canReplyToMessage = computed(() => {
     isBubble.value &&
     !props.private &&
     supportsReply &&
-    !isFailedOrProcessing &&
+    !isFailedOrProcessing.value &&
     !isMessageDeleted.value
   );
 });
 
 const canShowIncomingReplyAction = computed(
   () =>
-    canReplyToMessage.value &&
+    isBubble.value &&
     props.messageType === MESSAGE_TYPES.INCOMING &&
-    props.inboxSupportsReplyTo?.incoming
+    !props.private &&
+    !isFailedOrProcessing.value &&
+    !isMessageDeleted.value
 );
 
 const payloadForContextMenu = computed(() => {
@@ -423,7 +428,7 @@ const contextMenuEnabledOptions = computed(() => {
   const hasAttachments = !!(props.attachments && props.attachments.length > 0);
 
   const isOutgoing = props.messageType === MESSAGE_TYPES.OUTGOING;
-  const isFailedOrProcessing =
+  const isFailedOrProcessingMessage =
     props.status === MESSAGE_STATUS.FAILED ||
     props.status === MESSAGE_STATUS.PROGRESS;
   const hasProviderMessageId = !!props.sourceId;
@@ -433,27 +438,32 @@ const contextMenuEnabledOptions = computed(() => {
     copy: hasText,
     delete:
       (hasText || hasAttachments) &&
-      !isFailedOrProcessing &&
+      !isFailedOrProcessingMessage &&
       !isMessageDeleted.value,
     cannedResponse: isOutgoing && hasText && !isMessageDeleted.value,
-    copyLink: !isFailedOrProcessing,
-    translate: !isFailedOrProcessing && !isMessageDeleted.value && hasText,
+    copyLink: !isFailedOrProcessingMessage,
+    translate:
+      !isFailedOrProcessingMessage && !isMessageDeleted.value && hasText,
     edit:
       isOutgoing &&
       !props.private &&
       isTextMessage &&
       hasProviderMessageId &&
       hasText &&
-      !isFailedOrProcessing &&
+      !isFailedOrProcessingMessage &&
       !isMessageDeleted.value,
     reaction:
-      hasProviderMessageId && !isFailedOrProcessing && !isMessageDeleted.value,
+      hasProviderMessageId &&
+      !isFailedOrProcessingMessage &&
+      !isMessageDeleted.value,
     pin:
-      hasProviderMessageId && !isFailedOrProcessing && !isMessageDeleted.value,
+      hasProviderMessageId &&
+      !isFailedOrProcessingMessage &&
+      !isMessageDeleted.value,
     // Uazapi's forward endpoint is text-only in this integration; keep media
     // out of the menu until its upload contract is implemented end-to-end.
-    forward: hasText && !isFailedOrProcessing && !isMessageDeleted.value,
-    star: !isFailedOrProcessing && !isMessageDeleted.value,
+    forward: hasText && !isFailedOrProcessingMessage && !isMessageDeleted.value,
+    star: !isFailedOrProcessingMessage && !isMessageDeleted.value,
     replyTo: canReplyToMessage.value,
     report:
       isOnChatwootCloud.value &&
