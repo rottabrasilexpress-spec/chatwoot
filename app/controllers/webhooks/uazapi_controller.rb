@@ -14,6 +14,10 @@ class Webhooks::UazapiController < ActionController::API
       return process_presence_event(payload)
     end
 
+    if contacts_event?(event)
+      return process_contacts_event(payload)
+    end
+
     raw_status = extract_status(payload)
     return render json: { ok: true, ignored: 'status ausente' } unless raw_status.present?
 
@@ -59,6 +63,21 @@ class Webhooks::UazapiController < ActionController::API
 
   def presence_event?(event)
     event.include?('presence')
+  end
+
+  def contacts_event?(event)
+    event == 'contact' || event == 'contacts'
+  end
+
+  def process_contacts_event(payload)
+    contacts = find_contacts(payload)
+    return render json: { ok: true, event: 'contacts', ignored: 'contato não localizado' } if contacts.empty?
+
+    contacts.each do |contact|
+      RottaUazapiContactAvatarSyncJob.perform_later(contact.account_id, contact.id)
+    end
+
+    render json: { ok: true, event: 'contacts', contact_ids: contacts.map(&:id), queued: contacts.length }
   end
 
   def extract_presence(payload)
@@ -120,6 +139,37 @@ class Webhooks::UazapiController < ActionController::API
 
     Conversation.where(account_id: ACCOUNT_ID, contact_id: contact.id)
                 .order(last_activity_at: :desc).first
+  end
+
+  def find_contacts(payload)
+    phone_digits = extract_contact_phone_digits(payload)
+    return [] if phone_digits.empty?
+
+    phone_variants = phone_digits.flat_map { |digits| contact_phone_variants(digits) }.uniq
+    Contact.where(account_id: ACCOUNT_ID, phone_number: phone_variants).to_a.uniq(&:id)
+  end
+
+  def extract_contact_phone_digits(payload)
+    values_for_keys(
+      payload,
+      %w[
+        id jid wa_id waId phone number remoteJid remote_jid
+        chatid chatId chat_id chatJid chat_jid participant sender from to
+      ]
+    ).filter_map do |value|
+      raw_value = value.to_s
+      next if raw_value.downcase.include?('@g.us')
+
+      digits = raw_value.gsub(/\D/, '')
+      next if digits.length < 10
+
+      digits
+    end.uniq
+  end
+
+  def contact_phone_variants(digits)
+    normalized = normalize_phone(digits)
+    [digits, normalized, "55#{normalized}"].compact_blank.flat_map { |value| [value, "+#{value}"] }.uniq
   end
 
   def message_update_attributes(message, payload, raw_status)

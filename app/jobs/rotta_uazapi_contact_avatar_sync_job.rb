@@ -21,6 +21,11 @@ class RottaUazapiContactAvatarSyncJob < ApplicationJob
     image imagePreview profilePicUrl profilePictureUrl profile_picture_url
     profile_pic_url pictureUrl picture_url avatarUrl avatar_url thumbnail
   ].map { |key| key.delete('_').downcase }.freeze
+  PROFILE_NAME_KEYS = %w[
+    wa_name waName profileName profile_name pushName push_name name
+    wa_contactName waContactName
+  ].map { |key| key.delete('_').downcase }.freeze
+  PROFILE_NAME_ATTRIBUTE = 'rotta_uazapi_profile_name'.freeze
 
   def perform(account_id = ACCOUNT_ID, contact_id = nil)
     return if instance_token.blank?
@@ -61,7 +66,12 @@ class RottaUazapiContactAvatarSyncJob < ApplicationJob
 
     response = fetch_chat_details(number)
     image_url = extract_image_url(response)
+    profile_name = extract_profile_name(response)
     mark_sync(contact, image_url.present? ? 'found' : 'missing')
+    # mark_sync writes directly to the database. Reload before the avatar job
+    # so its additional_attributes update cannot overwrite the sync markers.
+    contact.reload
+    sync_profile_name(contact, profile_name)
     return if image_url.blank?
 
     previous_blob_id = contact.avatar.blob&.id
@@ -111,6 +121,48 @@ class RottaUazapiContactAvatarSyncJob < ApplicationJob
     values = []
     collect_image_values(payload, values)
     values.find { |value| valid_http_url?(value) }
+  end
+
+  def extract_profile_name(payload)
+    values = []
+    collect_profile_name_values(payload, values)
+    values.find { |value| value.to_s.strip.present? }&.to_s&.strip
+  end
+
+  def collect_profile_name_values(node, values)
+    case node
+    when Hash
+      node.each do |key, value|
+        normalized_key = key.to_s.delete('_').downcase
+        values << value if PROFILE_NAME_KEYS.include?(normalized_key) && value.is_a?(String)
+        collect_profile_name_values(value, values)
+      end
+    when Array
+      node.each { |value| collect_profile_name_values(value, values) }
+    end
+  end
+
+  def sync_profile_name(contact, profile_name)
+    return if profile_name.blank?
+    return if profile_name == contact.name.to_s.strip &&
+              contact.additional_attributes&.[](PROFILE_NAME_ATTRIBUTE) == profile_name
+
+    attributes = (contact.additional_attributes || {}).to_h.stringify_keys
+    last_profile_name = attributes[PROFILE_NAME_ATTRIBUTE].to_s
+    return unless contact_name_is_phone_number?(contact) || last_profile_name == contact.name.to_s.strip
+
+    attributes[PROFILE_NAME_ATTRIBUTE] = profile_name
+    contact.update!(name: profile_name, additional_attributes: attributes)
+  end
+
+  def contact_name_is_phone_number?(contact)
+    name_digits = contact.name.to_s.gsub(/\D/, '')
+    phone_digits = contact.phone_number.to_s.gsub(/\D/, '')
+    return false if name_digits.blank? || phone_digits.blank?
+
+    name_digits == phone_digits ||
+      name_digits == phone_digits.delete_prefix('55') ||
+      name_digits == "55#{phone_digits}"
   end
 
   def collect_image_values(node, values)
