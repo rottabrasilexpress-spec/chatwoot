@@ -245,6 +245,13 @@ describe('inboxMixin', () => {
       expect(wrapper.vm.inboxHasFeature('replyTo')).toBe(true);
       expect(wrapper.vm.inboxHasFeature('replyToOutgoing')).toBe(true);
     });
+
+    it('keeps reply features enabled while Rotta inbox metadata is unresolved', () => {
+      const Component = getComponentConfigForInbox(undefined, { id: 1 });
+      const wrapper = shallowMount(Component);
+      expect(wrapper.vm.inboxHasFeature('replyTo')).toBe(true);
+      expect(wrapper.vm.inboxHasFeature('replyToOutgoing')).toBe(true);
+    });
   });
 
   describe('isRottaReplyInbox', () => {

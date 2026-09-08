@@ -163,11 +163,19 @@ export default {
   },
   methods: {
     inboxHasFeature(feature) {
+      const isReplyFeature = [
+        INBOX_FEATURES.REPLY_TO,
+        INBOX_FEATURES.REPLY_TO_OUTGOING,
+      ].includes(feature);
+      const knownInboxId = this.inbox?.id ?? this.inboxId;
+
       if (
-        [INBOX_FEATURES.REPLY_TO, INBOX_FEATURES.REPLY_TO_OUTGOING].includes(
-          feature
-        ) &&
-        isRottaReplyInbox(this.channelType)
+        isReplyFeature &&
+        isRottaReplyMessage({
+          channelType: this.channelType,
+          inboxId: knownInboxId,
+          isEmailInbox: this.isAnEmailChannel,
+        })
       ) {
         return true;
       }
