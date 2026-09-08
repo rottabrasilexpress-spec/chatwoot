@@ -391,7 +391,7 @@ const canReplyToMessage = computed(() => {
   const supportsReply =
     props.inboxSupportsReplyTo?.incoming ||
     props.inboxSupportsReplyTo?.outgoing ||
-    isRottaReplyInbox(inbox.value?.channel_type);
+    isRottaReplyInbox(inbox.value?.channel_type, props.inboxId);
   return (
     isBubble.value &&
     !props.private &&

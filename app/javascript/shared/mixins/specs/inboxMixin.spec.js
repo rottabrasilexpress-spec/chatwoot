@@ -1,5 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
-import inboxMixin from '../inboxMixin';
+import inboxMixin, { isRottaReplyInbox } from '../inboxMixin';
 
 function getComponentConfigForInbox(channelType, additionalConfig = {}) {
   return {
@@ -240,6 +240,16 @@ describe('inboxMixin', () => {
       const wrapper = shallowMount(Component);
       expect(wrapper.vm.inboxHasFeature('replyTo')).toBe(true);
       expect(wrapper.vm.inboxHasFeature('replyToOutgoing')).toBe(true);
+    });
+  });
+
+  describe('isRottaReplyInbox', () => {
+    it('recognizes the synthetic UAZAPI inbox id used by the overlay', () => {
+      expect(isRottaReplyInbox(undefined, 0)).toBe(true);
+    });
+
+    it('does not classify a synthetic email inbox as UAZAPI', () => {
+      expect(isRottaReplyInbox('Channel::Email', 0)).toBe(false);
     });
   });
 

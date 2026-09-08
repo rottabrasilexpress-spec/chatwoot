@@ -5,12 +5,21 @@ export const INBOX_FEATURES = {
   REPLY_TO_OUTGOING: 'replyToOutgoing',
 };
 
-export const isRottaReplyInbox = channelType => {
+export const isRottaReplyInbox = (channelType, inboxId = null) => {
   const normalizedChannelType = String(channelType || '').toLowerCase();
+  // Rotta's UAZAPI overlay can persist the synthetic inbox as id 0. In that
+  // case the inbox record is not available to the frontend, so the channel
+  // type alone cannot advertise reply support.
+  const isSyntheticRottaInbox =
+    inboxId !== null &&
+    inboxId !== undefined &&
+    Number(inboxId) === 0 &&
+    !normalizedChannelType.includes('email');
 
   return (
     [INBOX_TYPES.API, INBOX_TYPES.WHATSAPP].includes(channelType) ||
-    normalizedChannelType.includes('uazapi')
+    normalizedChannelType.includes('uazapi') ||
+    isSyntheticRottaInbox
   );
 };
 
