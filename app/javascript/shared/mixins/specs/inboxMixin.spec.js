@@ -234,6 +234,13 @@ describe('inboxMixin', () => {
       expect(wrapper.vm.inboxHasFeature('replyTo')).toBe(false);
       expect(wrapper.vm.inboxHasFeature('feature-does-not-exist')).toBe(false);
     });
+
+    it('keeps reply features enabled for a UAZAPI inbox type', () => {
+      const Component = getComponentConfigForInbox('Channel::Uazapi');
+      const wrapper = shallowMount(Component);
+      expect(wrapper.vm.inboxHasFeature('replyTo')).toBe(true);
+      expect(wrapper.vm.inboxHasFeature('replyToOutgoing')).toBe(true);
+    });
   });
 
   describe('WhatsApp channel', () => {

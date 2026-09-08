@@ -5,6 +5,15 @@ export const INBOX_FEATURES = {
   REPLY_TO_OUTGOING: 'replyToOutgoing',
 };
 
+export const isRottaReplyInbox = channelType => {
+  const normalizedChannelType = String(channelType || '').toLowerCase();
+
+  return (
+    [INBOX_TYPES.API, INBOX_TYPES.WHATSAPP].includes(channelType) ||
+    normalizedChannelType.includes('uazapi')
+  );
+};
+
 // This is a single source of truth for inbox features
 // This is used to check if a feature is available for a particular inbox or not
 export const INBOX_FEATURE_MAP = {
@@ -137,6 +146,15 @@ export default {
   },
   methods: {
     inboxHasFeature(feature) {
+      if (
+        [INBOX_FEATURES.REPLY_TO, INBOX_FEATURES.REPLY_TO_OUTGOING].includes(
+          feature
+        ) &&
+        isRottaReplyInbox(this.channelType)
+      ) {
+        return true;
+      }
+
       return INBOX_FEATURE_MAP[feature]?.includes(this.channelType) ?? false;
     },
   },

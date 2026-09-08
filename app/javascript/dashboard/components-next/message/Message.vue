@@ -11,6 +11,7 @@ import { LocalStorage } from 'shared/helpers/localStorage';
 import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
+import { isRottaReplyInbox } from 'shared/mixins/inboxMixin';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import {
   MESSAGE_TYPES,
@@ -389,7 +390,8 @@ const isFailedOrProcessing = computed(
 const canReplyToMessage = computed(() => {
   const supportsReply =
     props.inboxSupportsReplyTo?.incoming ||
-    props.inboxSupportsReplyTo?.outgoing;
+    props.inboxSupportsReplyTo?.outgoing ||
+    isRottaReplyInbox(inbox.value?.channel_type);
   return (
     isBubble.value &&
     !props.private &&
