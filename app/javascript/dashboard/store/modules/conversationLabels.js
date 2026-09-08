@@ -1,5 +1,7 @@
 import * as types from '../mutation-types';
 import ConversationAPI from '../../api/conversations';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { emitter } from 'shared/helpers/mitt';
 
 const state = {
   records: {},
@@ -57,6 +59,10 @@ export const actions = {
       commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
         isUpdating: false,
         isError: false,
+      });
+      emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, {
+        conversation_id: conversationId,
+        labels: response.data.payload,
       });
     } catch (error) {
       commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {

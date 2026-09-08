@@ -1,14 +1,18 @@
 class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseController
   ADMIN_URL = 'https://saas.via-cargo.com/webhook/rotta-chatwoot-followup-admin-v1'.freeze
-  ALLOWED_ACTIONS = %w[list dispatch_now advance delay cancel].freeze
+  ALLOWED_ACTIONS = %w[list dispatch_now advance delay cancel remove_label].freeze
 
   def proxy
-    payload = JSON.parse(request.raw_post.presence || '{}').slice('action', 'job_id', 'hours')
+    payload = JSON.parse(request.raw_post.presence || '{}').slice(
+      'action', 'job_id', 'hours', 'conversation_id', 'label'
+    )
     action = payload['action'].to_s
 
     unless ALLOWED_ACTIONS.include?(action)
       return render json: { ok: false, error: 'Ação de follow-up inválida.' }, status: :unprocessable_entity
     end
+
+    return remove_label(payload) if action == 'remove_label'
 
     response = HTTParty.post(
       ADMIN_URL,
@@ -16,7 +20,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
         'Accept' => 'application/json',
         'Content-Type' => 'application/json'
       },
-      body: payload.to_json,
+      body: payload.slice('action', 'job_id', 'hours').to_json,
       timeout: 20
     )
 
@@ -31,6 +35,58 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   end
 
   private
+
+  def remove_label(payload)
+    conversation_id = payload['conversation_id'].presence
+    requested_label = payload['label'].to_s.strip
+    if conversation_id.blank? || requested_label.blank?
+      return render json: { ok: false, error: 'Conversa e etiqueta são obrigatórias.' }, status: :unprocessable_entity
+    end
+
+    conversation = Current.account.conversations.find_by(display_id: conversation_id)
+    return render json: { ok: false, error: 'Conversa não encontrada.' }, status: :not_found unless conversation
+
+    cancel_remote_job!(payload['job_id']) if remote_job_id?(payload['job_id'])
+
+    current_labels = conversation.label_list
+    updated_labels = current_labels.reject do |label|
+      follow_up_label_key(label) == follow_up_label_key(requested_label)
+    end
+    removed = updated_labels.length != current_labels.length
+    conversation.update_labels(updated_labels) if removed
+
+    render json: {
+      ok: true,
+      removed: removed,
+      cancelled: remote_job_id?(payload['job_id']),
+      conversation_id: conversation.display_id,
+      labels: conversation.label_list
+    }
+  end
+
+  def remote_job_id?(job_id)
+    job_id.present? && !job_id.to_s.start_with?('pending:')
+  end
+
+  def cancel_remote_job!(job_id)
+    response = HTTParty.post(
+      ADMIN_URL,
+      headers: {
+        'Accept' => 'application/json',
+        'Content-Type' => 'application/json'
+      },
+      body: { action: 'cancel', job_id: job_id }.to_json,
+      timeout: 20
+    )
+    body = JSON.parse(response.body)
+    return if response.code.to_i.between?(200, 299) && body['ok'] != false
+
+    raise "O painel não confirmou o cancelamento da etiqueta (HTTP #{response.code})."
+  end
+
+  def follow_up_label_key(label)
+    label.to_s.parameterize.sub(/\A\d+-/, '')
+  end
 
   # The worker can create the Chatwoot message before its Uazapi ACK arrives.
   # Keep the n8n status untouched, but expose the local message as auditable

@@ -148,6 +148,7 @@ const contextMenuPosition = ref({});
 const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
 const { t } = useI18n();
+const replyActionLabel = 'Responder';
 const route = useRoute();
 const inboxGetter = useMapGetter('inboxes/getInbox');
 const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
@@ -379,6 +380,29 @@ const shouldShowWhatsappReferral = computed(
     !!props.contentAttributes?.referral
 );
 
+const canReplyToMessage = computed(() => {
+  const isFailedOrProcessing =
+    props.status === MESSAGE_STATUS.FAILED ||
+    props.status === MESSAGE_STATUS.PROGRESS;
+  const supportsReply =
+    props.inboxSupportsReplyTo?.incoming ||
+    props.inboxSupportsReplyTo?.outgoing;
+  return (
+    isBubble.value &&
+    !props.private &&
+    supportsReply &&
+    !isFailedOrProcessing &&
+    !isMessageDeleted.value
+  );
+});
+
+const canShowIncomingReplyAction = computed(
+  () =>
+    canReplyToMessage.value &&
+    props.messageType === MESSAGE_TYPES.INCOMING &&
+    props.inboxSupportsReplyTo?.incoming
+);
+
 const payloadForContextMenu = computed(() => {
   return {
     id: props.id,
@@ -430,10 +454,7 @@ const contextMenuEnabledOptions = computed(() => {
     // out of the menu until its upload contract is implemented end-to-end.
     forward: hasText && !isFailedOrProcessing && !isMessageDeleted.value,
     star: !isFailedOrProcessing && !isMessageDeleted.value,
-    replyTo:
-      !props.private &&
-      props.inboxSupportsReplyTo.outgoing &&
-      !isFailedOrProcessing,
+    replyTo: canReplyToMessage.value,
     report:
       isOnChatwootCloud.value &&
       isCaptainMessage.value &&
@@ -641,6 +662,19 @@ provideMessageContext({
           />
           <Component :is="componentToRender" />
           <Button
+            v-if="canShowIncomingReplyAction"
+            type="button"
+            ghost
+            slate
+            xs
+            icon="i-lucide-reply"
+            label="Responder"
+            class="rotta-reply-action"
+            :aria-label="replyActionLabel"
+            :title="replyActionLabel"
+            @click.stop="handleReplyTo"
+          />
+          <Button
             v-if="shouldShowContextMenu && isBubble"
             type="button"
             ghost
@@ -719,9 +753,39 @@ provideMessageContext({
   background: rgb(var(--solid-2));
 }
 
+.rotta-reply-action {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  z-index: 2;
+  min-height: 1.75rem;
+  padding-inline: 0.45rem;
+  opacity: 0;
+  pointer-events: none;
+  @apply text-n-blue-11 bg-n-solid-1;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+  text-transform: uppercase;
+  transition: opacity 120ms ease;
+}
+
+.rotta-message-bubble-shell:hover .rotta-reply-action,
+.rotta-reply-action:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.rotta-reply-action:hover {
+  @apply text-n-blue-12 bg-n-blue-2;
+}
+
 @media (hover: none) {
   .rotta-message-action-trigger {
     opacity: 0.82;
+    pointer-events: auto;
+  }
+
+  .rotta-reply-action {
+    opacity: 0.92;
     pointer-events: auto;
   }
 }

@@ -9,6 +9,16 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
+import {
+  CONFIGURED_DELAY_HOURS,
+  countdownPartsFor,
+  currentStageFor,
+  delayHoursFor,
+  dispatchWindowFor,
+  effectiveDispatchAt,
+  isHistoricalJob,
+  kanbanBucketFor,
+} from './followUpHelpers';
 
 const TIMEZONE = 'America/Sao_Paulo';
 
@@ -49,6 +59,7 @@ const labelMeta = {
 const jobs = ref([]);
 const counts = ref({});
 const apiLabels = ref({});
+const responseMeta = ref({});
 const isLoading = ref(false);
 const busyJobId = ref('');
 const searchQuery = ref('');
@@ -57,16 +68,21 @@ const timezone = ref(TIMEZONE);
 const now = ref(Date.now());
 const lastSyncedAt = ref(null);
 const expandedJobs = ref(new Set());
+const pendingEnrollments = ref([]);
+const selectedView = ref('active');
+const customHours = ref({});
 let refreshTimer;
 let clockTimer;
 let realtimeRefreshTimer;
 let settleRefreshTimer;
+let fastRefreshTimers = [];
 let refreshRequested = false;
 let isMounted = false;
 let loadQueue;
 
 const REALTIME_REFRESH_DEBOUNCE_MS = 400;
 const REALTIME_SETTLE_REFRESH_MS = 1200;
+const FAST_REFRESH_DELAYS_MS = [300, 1000, 2500, 5000];
 
 const labelInfo = slug => {
   const fallback = String(slug || 'outros')
@@ -79,9 +95,30 @@ const labelInfo = slug => {
   };
 };
 
-const currentStage = job => job.current_label || job.source_label || '';
-const isHistoricalJob = job =>
-  job?.status === 'sent_history' || job?.status === 'history_only';
+const slugForLabel = value => {
+  const normalized = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/^\[\d+\]\s*/, '')
+    .replace(/[✅❌🫶💰🤝]/gu, '')
+    .trim();
+  const metadataMatch = Object.entries(labelMeta).find(([, metadata]) => {
+    const title = metadata.title
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[✅❌🫶💰🤝]/gu, '')
+      .trim()
+      .toLowerCase();
+    return title === normalized;
+  });
+  if (metadataMatch) return metadataMatch[0];
+  return normalized.replace(/\s+/g, '-');
+};
+
+const linkedLabelSlugs = new Set(Object.keys(CONFIGURED_DELAY_HOURS));
+
+const currentStage = currentStageFor;
 
 const contactTrail = [
   'contato-instantaneo',
@@ -125,6 +162,63 @@ const nextStageFor = job => {
   if (index >= 0 && index < trail.length - 1) return trail[index + 1];
   return job.next_label || '';
 };
+
+const kanbanColumns = [
+  {
+    key: 'ready',
+    title: 'Prontos agora',
+    description: 'Dentro da janela e aguardando o worker',
+    icon: 'i-lucide-zap',
+  },
+  {
+    key: 'today',
+    title: 'Hoje',
+    description: 'Programados para o dia de hoje',
+    icon: 'i-lucide-sun',
+  },
+  {
+    key: 'tomorrow',
+    title: 'Amanhã',
+    description: 'Próxima janela do calendário',
+    icon: 'i-lucide-calendar-days',
+  },
+  {
+    key: 'upcoming',
+    title: 'Próximos dias',
+    description: 'Agendamentos além de amanhã',
+    icon: 'i-lucide-calendar-clock',
+  },
+  {
+    key: 'attention',
+    title: 'Atenção',
+    description: 'Falha, horário ausente ou conciliação pendente',
+    icon: 'i-lucide-triangle-alert',
+  },
+  {
+    key: 'history',
+    title: 'Histórico',
+    description: 'Etapas já registradas',
+    icon: 'i-lucide-history',
+  },
+];
+
+const pendingJobKey = item => `${item.conversation_id}:${item.label}`;
+
+const pendingJobs = computed(() =>
+  pendingEnrollments.value.map(item => ({
+    job_id: `pending:${pendingJobKey(item)}`,
+    conversation_id: item.conversation_id,
+    account_id: item.account_id,
+    customer_name: item.customer_name,
+    phone: item.phone,
+    source_label: item.label,
+    current_label: item.label,
+    next_label: nextStageFor({ source_label: item.label }),
+    status: now.value - item.created_at > 15000 ? 'sync_failed' : 'syncing',
+    pending_enrollment: true,
+    pending_age_ms: now.value - item.created_at,
+  }))
+);
 
 const deliveryEvidence = job => job?.delivery_evidence;
 
@@ -214,20 +308,59 @@ const timezoneTitle = computed(() =>
   timezone.value === TIMEZONE ? 'Horário de Brasília' : timezone.value
 );
 
+const dispatchWindow = job => dispatchWindowFor(job, responseMeta.value);
+
+const queueJobs = computed(() => {
+  const returnedKeys = new Set(
+    jobs.value.map(job => `${job.conversation_id}:${currentStage(job)}`)
+  );
+  const waiting = pendingJobs.value.filter(
+    job => !returnedKeys.has(`${job.conversation_id}:${currentStage(job)}`)
+  );
+  return [...waiting, ...jobs.value];
+});
+
 const stageOptions = computed(() => {
-  const values = new Set(jobs.value.map(currentStage).filter(Boolean));
+  const values = new Set(queueJobs.value.map(currentStage).filter(Boolean));
   return [...values].sort((a, b) =>
     labelInfo(a).title.localeCompare(labelInfo(b).title, 'pt-BR')
   );
 });
 
 const activeJobs = computed(() =>
-  jobs.value.filter(job => !isHistoricalJob(job))
+  queueJobs.value.filter(job => !isHistoricalJob(job))
+);
+
+const bucketFor = job => kanbanBucketFor(job, now.value, responseMeta.value);
+
+const viewCount = view => {
+  if (view === 'active') return activeJobs.value.length;
+  if (view === 'all') return queueJobs.value.length;
+  return queueJobs.value.filter(job => bucketFor(job) === view).length;
+};
+
+const viewOptions = computed(() => [
+  { key: 'active', title: 'Ativos' },
+  { key: 'all', title: 'Todos' },
+  ...kanbanColumns.map(({ key, title }) => ({ key, title })),
+]);
+
+const visibleColumns = computed(() =>
+  kanbanColumns.filter(column => {
+    if (selectedView.value === 'active') return column.key !== 'history';
+    if (selectedView.value === 'all') return true;
+    return selectedView.value === column.key;
+  })
 );
 
 const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
-  return jobs.value.filter(job => {
+  return queueJobs.value.filter(job => {
+    const bucket = bucketFor(job);
+    const matchesView =
+      selectedView.value === 'active'
+        ? !isHistoricalJob(job)
+        : selectedView.value === 'all' || bucket === selectedView.value;
     const matchesStage =
       selectedStage.value === 'all' ||
       currentStage(job) === selectedStage.value;
@@ -242,14 +375,21 @@ const filteredJobs = computed(() => {
       .filter(Boolean)
       .join(' ')
       .toLowerCase();
-    return matchesStage && (!query || content.includes(query));
+    return matchesView && matchesStage && (!query || content.includes(query));
   });
 });
+
+const jobsForColumn = columnKey =>
+  filteredJobs.value.filter(job => bucketFor(job) === columnKey);
 
 const dueCount = computed(
   () =>
     activeJobs.value.filter(job => {
-      const timestamp = new Date(job.scheduled_at).getTime();
+      const timestamp = effectiveDispatchAt(
+        job.scheduled_at,
+        now.value,
+        dispatchWindow(job)
+      );
       return Number.isFinite(timestamp) && timestamp <= now.value;
     }).length
 );
@@ -275,29 +415,51 @@ const stageTrailText = (job, stage) => {
   return '';
 };
 
-const isDue = value => {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) && date.getTime() <= now.value;
+const isDue = job => {
+  const target = effectiveDispatchAt(
+    job?.scheduled_at,
+    now.value,
+    dispatchWindow(job)
+  );
+  return Number.isFinite(target) && target <= now.value;
 };
 
-const countdownText = value => {
-  const target = new Date(value).getTime();
-  if (!Number.isFinite(target)) return 'Sem horário definido';
+const countdownText = job => {
+  const target = effectiveDispatchAt(
+    job?.scheduled_at,
+    now.value,
+    dispatchWindow(job)
+  );
+  return countdownPartsFor(target, now.value).text;
+};
 
-  const difference = target - now.value;
-  if (difference <= 0) return 'Pronto para disparar';
+const delayText = job => {
+  const metadata = delayHoursFor(job);
+  if (metadata.hours === null) return 'Delay não informado';
+  if (metadata.hours === 0) return 'Imediato';
+  return `${metadata.hours}h programadas${metadata.source === 'configured' ? ' · configuração Rotta' : ''}`;
+};
 
-  const totalMinutes = Math.ceil(difference / 60000);
-  const days = Math.floor(totalMinutes / 1440);
-  const hours = Math.floor((totalMinutes % 1440) / 60);
-  const minutes = totalMinutes % 60;
-  const parts = [];
-  if (days) parts.push(`${days} ${days === 1 ? 'dia' : 'dias'}`);
-  if (hours) parts.push(`${hours} ${hours === 1 ? 'hora' : 'horas'}`);
-  if (!days && minutes) {
-    parts.push(`${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`);
+const windowText = job => {
+  const window = dispatchWindow(job);
+  const source = window.source === 'api' ? '' : ' · padrão Rotta';
+  return `${window.start}–${window.end} BRT${source}`;
+};
+
+const scheduleText = job => {
+  if (job.pending_enrollment) {
+    return job.status === 'sync_failed'
+      ? 'Conciliação não confirmada'
+      : 'Sincronizando etiqueta…';
   }
-  return `Faltam ${parts.join(' e ')}`;
+  if (!job.scheduled_at) return 'Sem horário definido';
+  const target = effectiveDispatchAt(
+    job.scheduled_at,
+    now.value,
+    dispatchWindow(job)
+  );
+  if (!Number.isFinite(target)) return 'Sem horário definido';
+  return formatDate(target);
 };
 
 const statusText = (status, job = null) => {
@@ -305,6 +467,8 @@ const statusText = (status, job = null) => {
   const values = {
     pending: 'Na fila',
     processing: 'Processando',
+    syncing: 'Sincronizando etiqueta',
+    sync_failed: 'Conciliação pendente',
     failed_send: 'Falha no envio',
     failed_labels: 'Falha nas etiquetas',
     sent_history: 'Histórico',
@@ -324,6 +488,8 @@ const statusClass = (status, job = null) => {
     return 'rotta-status--processing';
   }
   if (status === 'processing') return 'rotta-status--processing';
+  if (status === 'syncing') return 'rotta-status--processing';
+  if (status === 'sync_failed') return 'rotta-status--error';
   if (status?.startsWith('failed')) return 'rotta-status--error';
   if (status === 'sent_history' || status === 'history_only') {
     return 'rotta-status--history';
@@ -340,10 +506,53 @@ const request = async payload => {
   return body;
 };
 
-function scheduleRealtimeRefresh() {
+const registerPendingEnrollment = data => {
+  const conversation = data?.conversation || {};
+  const conversationId = data?.conversation_id || data?.id || conversation.id;
+  if (!conversationId) return;
+
+  const labels = data?.labels || conversation.labels || data?.label_list || [];
+  const linkedLabels = Array.isArray(labels)
+    ? labels.map(slugForLabel).filter(label => linkedLabelSlugs.has(label))
+    : [];
+  if (!linkedLabels.length) return;
+
+  const details = {
+    conversation_id: conversationId,
+    account_id: data?.account_id || conversation.account_id,
+    customer_name:
+      data?.customer_name ||
+      conversation.meta?.sender?.name ||
+      conversation.contact?.name,
+    phone:
+      data?.phone ||
+      conversation.meta?.sender?.phone_number ||
+      conversation.contact?.phone_number,
+    created_at: Date.now(),
+  };
+  const current = new Map(
+    pendingEnrollments.value.map(item => [pendingJobKey(item), item])
+  );
+  linkedLabels.forEach(label => {
+    const item = { ...details, label };
+    current.set(pendingJobKey(item), item);
+  });
+  pendingEnrollments.value = [...current.values()];
+};
+
+const scheduleFastRefresh = () => {
+  fastRefreshTimers.forEach(timer => window.clearTimeout(timer));
+  fastRefreshTimers = FAST_REFRESH_DELAYS_MS.map(delay =>
+    window.setTimeout(loadQueue, delay)
+  );
+};
+
+function scheduleRealtimeRefresh(data) {
   if (!isMounted) return;
+  registerPendingEnrollment(data);
   window.clearTimeout(realtimeRefreshTimer);
   window.clearTimeout(settleRefreshTimer);
+  scheduleFastRefresh();
   realtimeRefreshTimer = window.setTimeout(() => {
     realtimeRefreshTimer = undefined;
     loadQueue();
@@ -370,6 +579,19 @@ loadQueue = async () => {
     counts.value = body.counts || {};
     apiLabels.value = body.labels || {};
     timezone.value = body.timezone || TIMEZONE;
+    responseMeta.value = {
+      ...(body.meta || {}),
+      ...(body.config || {}),
+      timezone: body.timezone || body.meta?.timezone || TIMEZONE,
+    };
+    const returnedKeys = new Set(
+      jobs.value.map(job => `${job.conversation_id}:${currentStage(job)}`)
+    );
+    pendingEnrollments.value = pendingEnrollments.value.filter(
+      item =>
+        !returnedKeys.has(pendingJobKey(item)) &&
+        now.value - item.created_at < 60000
+    );
     lastSyncedAt.value = Date.now();
   } catch (error) {
     useAlert(error.message || 'Não foi possível carregar a fila de follow-up.');
@@ -377,18 +599,27 @@ loadQueue = async () => {
     isLoading.value = false;
     if (refreshRequested && isMounted) {
       refreshRequested = false;
-      scheduleRealtimeRefresh();
+      window.setTimeout(loadQueue, REALTIME_REFRESH_DEBOUNCE_MS);
     }
   }
 };
 
 const runAction = async (job, action, hours = undefined) => {
   if (isHistoricalJob(job)) return;
+  if (job.pending_enrollment && action !== 'remove_label') return;
   busyJobId.value = job.job_id;
   try {
     const payload = { action, job_id: job.job_id };
     if (hours !== undefined) payload.hours = hours;
+    if (action === 'remove_label') {
+      payload.conversation_id = job.conversation_id;
+      payload.label = currentStage(job);
+    }
     await request(payload);
+    pendingEnrollments.value = pendingEnrollments.value.filter(
+      item =>
+        pendingJobKey(item) !== `${job.conversation_id}:${currentStage(job)}`
+    );
     await loadQueue();
   } catch (error) {
     useAlert(error.message || 'Não foi possível atualizar este follow-up.');
@@ -398,11 +629,7 @@ const runAction = async (job, action, hours = undefined) => {
 };
 
 const runWithHours = (job, action) => {
-  const label = action === 'advance' ? 'adiantar' : 'atrasar';
-  // eslint-disable-next-line no-alert
-  const value = window.prompt(`Quantas horas deseja ${label}?`, '1');
-  if (value === null) return;
-  const hours = Number(value);
+  const hours = Number(customHours.value[job.job_id]);
   if (!Number.isFinite(hours) || hours <= 0) {
     useAlert('Informe uma quantidade de horas maior que zero.');
     return;
@@ -436,6 +663,7 @@ onUnmounted(() => {
   window.clearInterval(refreshTimer);
   window.clearTimeout(realtimeRefreshTimer);
   window.clearTimeout(settleRefreshTimer);
+  fastRefreshTimers.forEach(timer => window.clearTimeout(timer));
 });
 </script>
 
@@ -446,7 +674,7 @@ onUnmounted(() => {
       <BaseSettingsHeader
         v-model:search-query="searchQuery"
         title="Follow-up da Rotta"
-        description="Fila de disparos contextualizados por etiqueta. O n8n mantém a lógica e esta tela apenas acompanha e ajusta os horários."
+        description="Kanban operacional por etiqueta, janela de envio e trilha do cliente. O n8n continua como executor do WhatsApp."
         search-placeholder="Buscar cliente, telefone ou etiqueta"
       >
         <template #actions>
@@ -468,7 +696,7 @@ onUnmounted(() => {
             <span>Na fila</span>
             <strong>{{ activeJobs.length }}</strong>
             <small
-              >{{ jobs.length - activeJobs.length }} histórico(s) no
+              >{{ queueJobs.length - activeJobs.length }} histórico(s) no
               painel</small
             >
           </article>
@@ -488,7 +716,7 @@ onUnmounted(() => {
           <div class="rotta-toolbar__title">
             <div class="flex items-center gap-2">
               <Icon icon="i-lucide-clock-3" class="size-5 text-n-brand" />
-              <h2>Próximos disparos</h2>
+              <h2>Quadro de follow-ups</h2>
             </div>
             <p>
               {{ timezoneTitle }} ·
@@ -497,8 +725,28 @@ onUnmounted(() => {
                   ? `ao vivo · sincronizado em ${formatDate(lastSyncedAt)}`
                   : 'sincronizando…'
               }}
-              · conferência a cada 30s
+              · janela {{ dispatchWindow({}).start }}–{{
+                dispatchWindow({}).end
+              }}
             </p>
+          </div>
+          <div
+            class="rotta-view-tabs"
+            role="tablist"
+            aria-label="Visão do quadro"
+          >
+            <button
+              v-for="view in viewOptions"
+              :key="view.key"
+              type="button"
+              role="tab"
+              :aria-selected="selectedView === view.key"
+              :class="{ 'rotta-view-tab--active': selectedView === view.key }"
+              @click="selectedView = view.key"
+            >
+              {{ view.title }}
+              <span>{{ viewCount(view.key) }}</span>
+            </button>
           </div>
           <label class="rotta-select-wrap">
             <span>Filtrar etapa</span>
@@ -511,7 +759,7 @@ onUnmounted(() => {
           </label>
         </div>
 
-        <div v-if="isLoading && !jobs.length" class="rotta-empty-state">
+        <div v-if="isLoading && !queueJobs.length" class="rotta-empty-state">
           <Icon icon="i-lucide-loader-circle" class="size-5 animate-spin" />
           <span>Carregando a fila…</span>
         </div>
@@ -527,6 +775,254 @@ onUnmounted(() => {
         </div>
 
         <div v-else class="rotta-queue">
+          <div class="rotta-board" aria-label="Quadro de follow-ups">
+            <article
+              v-for="column in visibleColumns"
+              :key="column.key"
+              class="rotta-board-column"
+              :class="`rotta-board-column--${column.key}`"
+            >
+              <header class="rotta-board-column__header">
+                <div class="rotta-board-column__title">
+                  <Icon :icon="column.icon" class="size-4" />
+                  <h3>{{ column.title }}</h3>
+                  <span>{{ jobsForColumn(column.key).length }}</span>
+                </div>
+                <p>{{ column.description }}</p>
+              </header>
+
+              <div
+                v-if="jobsForColumn(column.key).length"
+                class="rotta-board-column__body"
+              >
+                <article
+                  v-for="job in jobsForColumn(column.key)"
+                  :key="job.job_id"
+                  class="rotta-board-card"
+                  :class="{
+                    'rotta-board-card--expanded': isHistoryExpanded(job),
+                  }"
+                  tabindex="0"
+                  @click="toggleJobHistory(job)"
+                  @keydown.enter="toggleJobHistory(job)"
+                >
+                  <div class="rotta-board-card__topline">
+                    <button
+                      class="rotta-client rotta-client--board"
+                      type="button"
+                      @click.stop="openConversation(job)"
+                    >
+                      <strong>{{
+                        job.customer_name || 'Cliente sem nome'
+                      }}</strong>
+                      <span>{{ job.phone || 'Telefone não informado' }}</span>
+                    </button>
+                    <span
+                      class="rotta-status"
+                      :class="statusClass(job.status, job)"
+                    >
+                      {{ statusText(job.status, job) }}
+                    </span>
+                  </div>
+
+                  <div class="rotta-board-card__labels">
+                    <span
+                      class="rotta-label-pill"
+                      :style="{
+                        '--label-color': labelInfo(currentStage(job)).color,
+                      }"
+                    >
+                      {{ labelInfo(currentStage(job)).title }}
+                    </span>
+                    <span
+                      v-if="nextStageFor(job)"
+                      class="rotta-board-card__next"
+                    >
+                      <Icon icon="i-lucide-arrow-right" class="size-3.5" />
+                      {{ labelInfo(nextStageFor(job)).title }}
+                    </span>
+                  </div>
+
+                  <div class="rotta-board-card__schedule">
+                    <div class="rotta-board-card__schedule-main">
+                      <Icon
+                        icon="i-lucide-clock-3"
+                        class="size-4 text-n-brand"
+                      />
+                      <div>
+                        <strong>{{ scheduleText(job) }}</strong>
+                        <small
+                          v-if="
+                            !job.pending_enrollment && !isHistoricalJob(job)
+                          "
+                        >
+                          {{
+                            isDue(job)
+                              ? 'Pronto para disparar'
+                              : countdownText(job)
+                          }}
+                        </small>
+                        <small v-else-if="isHistoricalJob(job)"
+                          >Último disparo registrado</small
+                        >
+                        <small v-else
+                          >O job será substituído aqui assim que o n8n
+                          confirmar</small
+                        >
+                      </div>
+                    </div>
+                    <div class="rotta-board-card__schedule-meta">
+                      <span>{{ delayText(job) }}</span>
+                      <span>{{ windowText(job) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="rotta-board-card__footer">
+                    <button
+                      type="button"
+                      class="rotta-history-toggle"
+                      :aria-expanded="isHistoryExpanded(job)"
+                      @click.stop="toggleJobHistory(job)"
+                    >
+                      <Icon
+                        :icon="
+                          isHistoryExpanded(job)
+                            ? 'i-lucide-chevron-up'
+                            : 'i-lucide-route'
+                        "
+                        class="size-3.5"
+                      />
+                      {{
+                        isHistoryExpanded(job)
+                          ? 'Ocultar trilha'
+                          : 'Abrir trilha do cliente'
+                      }}
+                    </button>
+                    <span
+                      v-if="deliveryEvidence(job)?.message_id"
+                      class="rotta-delivery-evidence"
+                    >
+                      {{ evidenceConfirmationText(job) }}
+                    </span>
+                  </div>
+
+                  <div
+                    v-if="!isHistoricalJob(job)"
+                    class="rotta-board-card__actions"
+                    @click.stop
+                  >
+                    <template v-if="job.pending_enrollment">
+                      <span class="rotta-board-card__hint">
+                        <Icon icon="i-lucide-radio-tower" class="size-3.5" />
+                        {{
+                          job.status === 'sync_failed'
+                            ? 'Confira o webhook do n8n'
+                            : 'Atualização em tempo real'
+                        }}
+                      </span>
+                    </template>
+                    <template v-else>
+                      <Button
+                        label="Disparar agora"
+                        size="sm"
+                        teal
+                        :is-loading="busyJobId === job.job_id"
+                        @click="runAction(job, 'dispatch_now')"
+                      />
+                      <label class="rotta-hours-input">
+                        <span>Horas</span>
+                        <input
+                          v-model.number="customHours[job.job_id]"
+                          type="number"
+                          min="0.25"
+                          max="720"
+                          step="0.25"
+                          inputmode="decimal"
+                          aria-label="Quantidade de horas"
+                        />
+                      </label>
+                      <Button
+                        label="Adiantar"
+                        size="sm"
+                        slate
+                        ghost
+                        :disabled="busyJobId === job.job_id"
+                        @click="runWithHours(job, 'advance')"
+                      />
+                      <Button
+                        label="Atrasar"
+                        size="sm"
+                        slate
+                        ghost
+                        :disabled="busyJobId === job.job_id"
+                        @click="runWithHours(job, 'delay')"
+                      />
+                      <Button
+                        label="Cancelar"
+                        size="sm"
+                        ruby
+                        ghost
+                        :disabled="busyJobId === job.job_id"
+                        @click="runAction(job, 'cancel')"
+                      />
+                    </template>
+                    <Button
+                      label="Remover etiqueta"
+                      size="sm"
+                      ruby
+                      ghost
+                      :disabled="busyJobId === job.job_id"
+                      @click="runAction(job, 'remove_label')"
+                    />
+                  </div>
+
+                  <div
+                    v-if="isHistoryExpanded(job)"
+                    class="rotta-history rotta-history--board"
+                  >
+                    <div class="rotta-history__heading">
+                      <strong
+                        >Trilha de {{ job.customer_name || 'cliente' }}</strong
+                      >
+                      <span>
+                        {{
+                          deliveryEvidence(job)?.message_id
+                            ? `${labelInfo(currentStage(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
+                            : normaliseHistory(job).length
+                              ? 'Etapas disparadas registradas pelo worker'
+                              : job.pending_enrollment
+                                ? 'Etiqueta recebida; aguardando o job correspondente do n8n'
+                                : 'Aguardando o histórico de disparos do worker'
+                        }}
+                      </span>
+                    </div>
+                    <ol class="rotta-stage-track">
+                      <li
+                        v-for="stage in trailFor(job)"
+                        :key="`${job.job_id}-board-${stage}`"
+                        :class="{
+                          'rotta-stage--current': currentStage(job) === stage,
+                          'rotta-stage--next': nextStageFor(job) === stage,
+                          'rotta-stage--sent': isStageDispatched(job, stage),
+                        }"
+                      >
+                        <span class="rotta-stage-dot" />
+                        <span>{{ labelInfo(stage).title }}</span>
+                        <small v-if="stageTrailText(job, stage)">{{
+                          stageTrailText(job, stage)
+                        }}</small>
+                      </li>
+                    </ol>
+                  </div>
+                </article>
+              </div>
+              <div v-else class="rotta-board-column__empty">
+                <Icon icon="i-lucide-check-circle-2" class="size-5" />
+                <span>Sem clientes nesta etapa</span>
+              </div>
+            </article>
+          </div>
+
           <div class="rotta-queue__desktop">
             <div class="rotta-table-wrap">
               <table class="rotta-table">
@@ -604,22 +1100,20 @@ onUnmounted(() => {
                       <div v-else class="rotta-schedule">
                         <span
                           :class="{
-                            'rotta-due':
-                              isDue(job.scheduled_at) && !isHistoricalJob(job),
+                            'rotta-due': isDue(job) && !isHistoricalJob(job),
                           }"
                         >
                           {{ formatDate(job.scheduled_at) }}
                         </span>
                         <small
                           :class="{
-                            'rotta-due':
-                              isDue(job.scheduled_at) && !isHistoricalJob(job),
+                            'rotta-due': isDue(job) && !isHistoricalJob(job),
                           }"
                         >
                           {{
                             isHistoricalJob(job)
                               ? 'Último disparo registrado'
-                              : countdownText(job.scheduled_at)
+                              : countdownText(job)
                           }}
                         </small>
                       </div>
@@ -840,22 +1334,20 @@ onUnmounted(() => {
                 <span v-else class="rotta-schedule">
                   <span
                     :class="{
-                      'rotta-due':
-                        isDue(job.scheduled_at) && !isHistoricalJob(job),
+                      'rotta-due': isDue(job) && !isHistoricalJob(job),
                     }"
                   >
                     {{ formatDate(job.scheduled_at) }}
                   </span>
                   <small
                     :class="{
-                      'rotta-due':
-                        isDue(job.scheduled_at) && !isHistoricalJob(job),
+                      'rotta-due': isDue(job) && !isHistoricalJob(job),
                     }"
                   >
                     {{
                       isHistoricalJob(job)
                         ? 'Último disparo registrado'
-                        : countdownText(job.scheduled_at)
+                        : countdownText(job)
                     }}
                   </small>
                 </span>
@@ -969,6 +1461,7 @@ onUnmounted(() => {
   display: flex;
   align-items: end;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
   padding: 1rem;
 }
@@ -982,6 +1475,279 @@ onUnmounted(() => {
 
 .rotta-toolbar__title p {
   margin: 0.35rem 0 0;
+}
+
+.rotta-view-tabs {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 0.35rem;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.rotta-view-tabs button {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0.4rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  @apply text-n-slate-11 bg-n-alpha-1 border border-n-weak;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 0.65rem;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.rotta-view-tabs button:hover,
+.rotta-view-tabs button:focus-visible {
+  @apply text-n-blue-11 border-n-blue-7;
+}
+
+.rotta-view-tab--active {
+  @apply text-n-blue-11 bg-n-blue-2 border-n-blue-7;
+}
+
+.rotta-view-tabs button span {
+  min-width: 1.15rem;
+  padding: 0.1rem 0.3rem;
+  @apply text-n-slate-11 bg-n-solid-1;
+  font-size: 0.65rem;
+  text-align: center;
+  border-radius: 999px;
+}
+
+.rotta-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.rotta-board-column {
+  display: flex;
+  min-width: 0;
+  min-height: 15rem;
+  flex-direction: column;
+  @apply bg-n-solid-2 border border-n-weak;
+  border-radius: 1rem;
+}
+
+.rotta-board-column--ready {
+  @apply border-n-teal-7;
+}
+
+.rotta-board-column--attention {
+  @apply border-n-ruby-7;
+}
+
+.rotta-board-column__header {
+  padding: 0.8rem 0.85rem 0.7rem;
+  @apply border-b border-n-weak;
+}
+
+.rotta-board-column__title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  @apply text-n-slate-12;
+}
+
+.rotta-board-column__title h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.rotta-board-column__title > span {
+  min-width: 1.45rem;
+  padding: 0.12rem 0.35rem;
+  @apply text-n-slate-11 bg-n-alpha-1;
+  font-size: 0.68rem;
+  text-align: center;
+  border-radius: 999px;
+}
+
+.rotta-board-column__header p {
+  margin: 0.35rem 0 0;
+  @apply text-n-slate-11;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.rotta-board-column__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.6rem;
+}
+
+.rotta-board-column__empty {
+  display: flex;
+  min-height: 9rem;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 1rem;
+  @apply text-n-slate-10;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.rotta-board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.75rem;
+  @apply bg-n-solid-1 border border-n-weak;
+  border-radius: 0.85rem;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+.rotta-board-card:hover,
+.rotta-board-card:focus-visible,
+.rotta-board-card--expanded {
+  @apply border-n-blue-7;
+  box-shadow: 0 5px 18px rgb(15 23 42 / 9%);
+}
+
+.rotta-board-card:focus-visible {
+  outline: 2px solid rgb(var(--blue-7));
+  outline-offset: 2px;
+}
+
+.rotta-board-card__topline,
+.rotta-board-card__labels,
+.rotta-board-card__footer,
+.rotta-board-card__schedule-main,
+.rotta-board-card__schedule-meta {
+  display: flex;
+  align-items: center;
+}
+
+.rotta-board-card__topline,
+.rotta-board-card__footer {
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.rotta-client--board {
+  min-width: 0;
+  flex: 1;
+}
+
+.rotta-board-card__labels {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rotta-board-card__next {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  @apply text-n-slate-11;
+  font-size: 0.7rem;
+}
+
+.rotta-board-card__schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  @apply bg-n-alpha-1;
+  border-radius: 0.65rem;
+}
+
+.rotta-board-card__schedule-main {
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.rotta-board-card__schedule-main > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.rotta-board-card__schedule-main strong {
+  @apply text-n-slate-12;
+  font-size: 0.76rem;
+}
+
+.rotta-board-card__schedule-main small,
+.rotta-board-card__schedule-meta {
+  @apply text-n-slate-11;
+  font-size: 0.67rem;
+}
+
+.rotta-board-card__schedule-meta {
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.rotta-board-card__schedule-meta span {
+  padding: 0.15rem 0.35rem;
+  @apply bg-n-solid-2;
+  border-radius: 0.35rem;
+}
+
+.rotta-board-card__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding-top: 0.1rem;
+  @apply border-t border-n-weak;
+}
+
+.rotta-board-card__actions :deep(button) {
+  flex: 0 0 auto;
+}
+
+.rotta-hours-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  @apply text-n-slate-11;
+  font-size: 0.66rem;
+}
+
+.rotta-hours-input input {
+  width: 3.35rem;
+  height: 2rem;
+  padding: 0 0.35rem;
+  @apply text-n-slate-12 bg-n-solid-1 border border-n-strong;
+  font-size: 0.72rem;
+  border-radius: 0.45rem;
+}
+
+.rotta-board-card__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 1;
+  @apply text-n-slate-11;
+  font-size: 0.68rem;
+}
+
+.rotta-history--board {
+  margin: -0.1rem -0.1rem 0;
+  padding: 0.7rem;
+  @apply bg-n-alpha-1;
+  border-radius: 0.65rem;
 }
 
 .rotta-select-wrap {
@@ -1358,6 +2124,34 @@ onUnmounted(() => {
 
   .rotta-schedule {
     white-space: normal;
+  }
+}
+
+/* The kanban is the single operational surface; the legacy table markup is
+   kept below temporarily so the migration remains easy to review. */
+.rotta-queue__desktop,
+.rotta-queue__mobile {
+  display: none !important;
+}
+
+@media (max-width: 1023px) {
+  .rotta-board {
+    grid-template-columns: minmax(16rem, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .rotta-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rotta-view-tabs {
+    margin-inline: -0.25rem;
+    padding-inline: 0.25rem;
+  }
+
+  .rotta-board-card__actions :deep(button) {
+    flex: 1 1 auto;
   }
 }
 </style>
