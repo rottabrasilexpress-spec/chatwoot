@@ -1,6 +1,7 @@
 import { shallowMount } from '@vue/test-utils';
 import inboxMixin, {
   isRottaReplyInbox,
+  isRottaReplyMessage,
   isSyntheticRottaInboxId,
 } from '../inboxMixin';
 
@@ -260,6 +261,15 @@ describe('inboxMixin', () => {
       expect(isSyntheticRottaInboxId(null)).toBe(false);
       expect(isSyntheticRottaInboxId(undefined)).toBe(false);
       expect(isSyntheticRottaInboxId(12)).toBe(false);
+    });
+
+    it('allows unresolved non-email inbox metadata in the Rotta overlay', () => {
+      expect(
+        isRottaReplyMessage({ channelType: undefined, inboxId: 1 })
+      ).toBe(true);
+      expect(
+        isRottaReplyMessage({ channelType: undefined, inboxId: 1, isEmailInbox: true })
+      ).toBe(false);
     });
   });
 

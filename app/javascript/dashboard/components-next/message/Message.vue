@@ -12,8 +12,7 @@ import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
 import {
-  isRottaReplyInbox,
-  isSyntheticRottaInboxId,
+  isRottaReplyMessage,
 } from 'shared/mixins/inboxMixin';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import {
@@ -394,8 +393,11 @@ const canReplyToMessage = computed(() => {
   const supportsReply =
     props.inboxSupportsReplyTo?.incoming ||
     props.inboxSupportsReplyTo?.outgoing ||
-    isRottaReplyInbox(inbox.value?.channel_type) ||
-    (isSyntheticRottaInboxId(props.inboxId) && !props.isEmailInbox);
+    isRottaReplyMessage({
+      channelType: inbox.value?.channel_type,
+      inboxId: props.inboxId,
+      isEmailInbox: props.isEmailInbox,
+    });
   return (
     isBubble.value &&
     !props.private &&

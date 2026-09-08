@@ -17,6 +17,20 @@ export const isRottaReplyInbox = channelType => {
   );
 };
 
+export const isRottaReplyMessage = ({
+  channelType,
+  inboxId,
+  isEmailInbox = false,
+}) => {
+  if (isEmailInbox) return false;
+  if (isRottaReplyInbox(channelType)) return true;
+  if (isSyntheticRottaInboxId(inboxId)) return true;
+
+  // The overlay can render a conversation before its inbox catalog is
+  // hydrated. An unresolved, non-email inbox is still a Rotta reply inbox.
+  return inboxId !== null && inboxId !== undefined && !channelType;
+};
+
 // This is a single source of truth for inbox features
 // This is used to check if a feature is available for a particular inbox or not
 export const INBOX_FEATURE_MAP = {
