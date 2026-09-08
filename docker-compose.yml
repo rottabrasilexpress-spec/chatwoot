@@ -6,8 +6,6 @@ services:
     image: rotta-chatwoot:v4.17.0-custom-v1
     env_file:
       - .env
-    ports:
-      - "3020:3000"
     volumes:
       - storage_data:/app/storage
     environment:
