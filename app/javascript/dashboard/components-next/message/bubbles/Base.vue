@@ -112,7 +112,7 @@ const shouldShowMeta = computed(
 );
 
 const replyToPreview = computed(() => {
-  if (!inReplyTo) return '';
+  if (!inReplyTo.value) return '';
 
   const { content, attachments } = inReplyTo.value;
 
@@ -125,6 +125,18 @@ const replyToPreview = computed(() => {
   }
 
   return t('CONVERSATION.REPLY_MESSAGE_NOT_FOUND');
+});
+
+const replyToSenderName = computed(() => {
+  const replyMessage = inReplyTo.value;
+  const replySender = replyMessage?.sender || {};
+
+  return (
+    replySender.name ||
+    replyMessage?.sender_name ||
+    replyMessage?.senderName ||
+    t('CONVERSATION.CONTACT')
+  );
 });
 </script>
 
@@ -140,9 +152,10 @@ const replyToPreview = computed(() => {
   >
     <div
       v-if="inReplyTo"
-      class="p-2 -mx-1 mb-2 rounded-lg cursor-pointer bg-n-alpha-black1"
+      class="rotta-reply-preview p-2 -mx-1 mb-2 rounded-lg cursor-pointer bg-n-alpha-black1"
       @click="scrollToMessage"
     >
+      <div class="rotta-reply-author truncate">{{ replyToSenderName }}</div>
       <div
         v-dompurify-html="replyToPreview"
         class="prose prose-bubble line-clamp-2"
@@ -167,3 +180,16 @@ const replyToPreview = computed(() => {
     </template>
   </div>
 </template>
+
+<style scoped>
+.rotta-reply-preview {
+  box-shadow: inset 3px 0 0 var(--color-n-brand);
+}
+
+.rotta-reply-author {
+  color: var(--color-n-brand);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.25rem;
+}
+</style>

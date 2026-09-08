@@ -54,6 +54,7 @@ const avatarUrl = computed(() =>
         :src="avatarUrl"
         :size="size"
         :status="contact.availability_status"
+        rounded-full
         class="rounded-full"
         hide-offline-status
       />

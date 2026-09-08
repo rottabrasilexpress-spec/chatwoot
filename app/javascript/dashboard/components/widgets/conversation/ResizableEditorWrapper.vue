@@ -15,8 +15,10 @@ const props = defineProps({
   containerHeight: { type: Number, default: 0 },
 });
 
-const DEFAULT_HEIGHT = 120;
-const MIN_HEIGHT = 80;
+// Keep the resting composer close to WhatsApp Web while retaining the
+// drag handle and the expand toggle for longer replies.
+const DEFAULT_HEIGHT = 72;
+const MIN_HEIGHT = 64;
 const MIN_MESSAGES_HEIGHT = 200;
 const EXPAND_RATIO = 0.5;
 const RESET_DELAY_MS = 120;
@@ -171,8 +173,8 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
       @dblclick="resetEditorHeight"
     >
       <div
-        class="w-8 h-0.5 mt-1 rounded-full bg-n-slate-6 group-hover:bg-n-slate-8 transition-all duration-200 motion-safe:group-hover:animate-bounce"
-        :class="{ 'bg-n-slate-8 animate-bounce': isResizing }"
+        class="w-8 h-0.5 mt-1 rounded-full bg-n-slate-6 group-hover:bg-n-slate-8 transition-all duration-200 motion-safe:group-hover:scale-x-125"
+        :class="{ 'bg-n-slate-8 scale-x-125': isResizing }"
       />
     </div>
     <slot />

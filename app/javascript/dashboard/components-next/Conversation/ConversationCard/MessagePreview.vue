@@ -43,6 +43,11 @@ const messageByAgent = computed(() => {
   return messageType === MESSAGE_TYPE.OUTGOING;
 });
 
+const messageByContact = computed(() => {
+  const { message_type: messageType } = props.message;
+  return messageType === MESSAGE_TYPE.INCOMING;
+});
+
 const isMessageAnActivity = computed(() => {
   const { message_type: messageType } = props.message;
   return messageType === MESSAGE_TYPE.ACTIVITY;
@@ -124,6 +129,11 @@ const deliveryStatus = computed(() => {
         class="size-3.5"
       />
       <Icon
+        v-else-if="messageByContact"
+        icon="i-lucide-arrow-down-left"
+        class="size-3.5 text-n-emerald-11"
+      />
+      <Icon
         v-else-if="isMessageAnActivity"
         icon="i-lucide-info"
         class="size-3.5"
@@ -145,6 +155,11 @@ const deliveryStatus = computed(() => {
           v-else-if="messageByAgent"
           icon="i-lucide-undo-2"
           class="inline-block align-middle size-3.5 ltr:mr-1 rtl:ml-1"
+        />
+        <Icon
+          v-else-if="messageByContact"
+          icon="i-lucide-arrow-down-left"
+          class="inline-block align-middle size-3.5 ltr:mr-1 rtl:ml-1 text-n-emerald-11"
         />
         <Icon
           v-else-if="isMessageAnActivity"

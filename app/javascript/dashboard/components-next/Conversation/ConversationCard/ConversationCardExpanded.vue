@@ -3,6 +3,7 @@ import { computed, useTemplateRef } from 'vue';
 import {
   getLastMessage,
   hasUnreadIncomingMessage,
+  isIncomingMessage,
 } from 'dashboard/helper/conversationHelper';
 import CardAvatar from './CardAvatar.vue';
 import CardContent from './CardContent.vue';
@@ -38,6 +39,9 @@ const emit = defineEmits([
 ]);
 
 const lastMessageInChat = computed(() => getLastMessage(props.chat));
+const lastMessageFromContact = computed(() =>
+  isIncomingMessage(lastMessageInChat.value)
+);
 const showLabelsSection = computed(() => props.chat.labels?.length > 0);
 
 const voiceCallData = computed(() => {
@@ -84,6 +88,7 @@ const selectedModel = computed({
       'active animate-card-select bg-n-alpha-1 dark:bg-n-alpha-3 !border-n-surface-1':
         isActiveChat,
       'selected bg-n-slate-2 dark:bg-n-slate-3 !border-n-surface-1': selected,
+      'rotta-incoming-card': lastMessageFromContact && unreadCount > 0,
       'hover:bg-n-alpha-1': !isActiveChat && !selected,
       'grid-cols-[minmax(0,2fr)_minmax(0,1fr)]': showLabelsSection,
       'grid-cols-[minmax(0,2fr)_max-content]': !showLabelsSection,
@@ -205,3 +210,13 @@ const selectedModel = computed({
     </div>
   </div>
 </template>
+
+<style scoped>
+.rotta-incoming-card {
+  background: color-mix(in srgb, var(--color-n-emerald-3) 42%, transparent);
+}
+
+.dark .rotta-incoming-card {
+  background: color-mix(in srgb, var(--color-n-emerald-9) 14%, transparent);
+}
+</style>

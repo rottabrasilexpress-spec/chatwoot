@@ -37,6 +37,10 @@ export default {
       const { message_type: messageType } = this.message;
       return messageType === MESSAGE_TYPE.OUTGOING;
     },
+    messageByContact() {
+      const { message_type: messageType } = this.message;
+      return messageType === MESSAGE_TYPE.INCOMING;
+    },
     isMessageAnActivity() {
       const { message_type: messageType } = this.message;
       return messageType === MESSAGE_TYPE.ACTIVITY;
@@ -106,6 +110,12 @@ export default {
         size="16"
         class="-mt-0.5 align-middle text-n-slate-11 inline-block"
         icon="arrow-reply"
+      />
+      <fluent-icon
+        v-else-if="messageByContact"
+        size="16"
+        class="-mt-0.5 align-middle text-n-emerald-11 inline-block"
+        icon="arrow-down-left"
       />
       <fluent-icon
         v-else-if="isMessageAnActivity"

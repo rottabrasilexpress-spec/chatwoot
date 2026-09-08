@@ -23,6 +23,7 @@ import {
 } from './constants';
 
 import Avatar from 'next/avatar/Avatar.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 import TextBubble from './bubbles/Text/Index.vue';
 import ActivityBubble from './bubbles/Activity.vue';
@@ -458,6 +459,17 @@ function openContextMenu(e) {
   showContextMenu.value = true;
 }
 
+function openContextMenuFromTrigger(e) {
+  e.preventDefault();
+  useTrack(ACCOUNT_EVENTS.OPEN_MESSAGE_CONTEXT_MENU);
+  const { right, bottom } = e.currentTarget.getBoundingClientRect();
+  contextMenuPosition.value = {
+    x: right - 8,
+    y: bottom + 4,
+  };
+  showContextMenu.value = true;
+}
+
 function closeContextMenu() {
   showContextMenu.value = false;
   contextMenuPosition.value = { x: null, y: null };
@@ -586,7 +598,7 @@ provideMessageContext({
         v-tooltip.left-end="avatarTooltip"
         class="[grid-area:avatar] flex items-end"
       >
-        <Avatar v-bind="avatarInfo" :size="24" />
+        <Avatar v-bind="avatarInfo" :size="24" rounded-full />
       </div>
       <div
         class="[grid-area:bubble] flex min-w-0"
@@ -597,11 +609,25 @@ provideMessageContext({
         }"
         @contextmenu="openContextMenu($event)"
       >
-        <WhatsappReferral
-          v-if="shouldShowWhatsappReferral"
-          :referral="contentAttributes.referral"
-        />
-        <Component :is="componentToRender" />
+        <div class="rotta-message-bubble-shell relative min-w-0 max-w-full">
+          <WhatsappReferral
+            v-if="shouldShowWhatsappReferral"
+            :referral="contentAttributes.referral"
+          />
+          <Component :is="componentToRender" />
+          <Button
+            v-if="shouldShowContextMenu && isBubble"
+            type="button"
+            ghost
+            slate
+            xs
+            icon="i-lucide-chevron-down"
+            class="rotta-message-action-trigger"
+            :aria-label="$t('CONVERSATION.HEADER.MORE_ACTIONS')"
+            :title="$t('CONVERSATION.HEADER.MORE_ACTIONS')"
+            @click.stop="openContextMenuFromTrigger"
+          />
+        </div>
       </div>
       <MessageError
         v-if="contentAttributes.externalError"
@@ -635,6 +661,43 @@ provideMessageContext({
 
   .right-bubble {
     @apply ltr:rounded-tr-sm rtl:rounded-tl-sm;
+  }
+}
+
+.rotta-message-bubble-shell {
+  isolation: isolate;
+}
+
+.rotta-message-action-trigger {
+  position: absolute;
+  top: 0.35rem;
+  inset-inline-end: 0.35rem;
+  z-index: 2;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-n-background) 86%, transparent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 14%);
+  transition: opacity 120ms ease;
+}
+
+.rotta-message-bubble-shell:hover .rotta-message-action-trigger,
+.rotta-message-action-trigger:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.rotta-message-action-trigger:hover {
+  background: var(--color-n-solid-2);
+}
+
+@media (hover: none) {
+  .rotta-message-action-trigger {
+    opacity: 0.82;
+    pointer-events: auto;
   }
 }
 </style>

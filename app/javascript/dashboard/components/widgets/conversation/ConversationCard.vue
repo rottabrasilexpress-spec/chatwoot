@@ -5,6 +5,7 @@ import { useMapGetter } from 'dashboard/composables/store';
 import {
   getLastMessage,
   hasUnreadIncomingMessage,
+  isIncomingMessage,
 } from 'dashboard/helper/conversationHelper';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -49,6 +50,9 @@ const unreadCount = computed(() =>
   hasUnread.value ? Number(props.chat.unread_count || 0) : 0
 );
 const lastMessageInChat = computed(() => getLastMessage(props.chat));
+const lastMessageFromContact = computed(() =>
+  isIncomingMessage(lastMessageInChat.value)
+);
 const typingUsersForConversation = useMapGetter(
   'conversationTypingStatus/getUserList'
 );
@@ -114,6 +118,9 @@ const isPinned = computed(() => {
 const messagePreviewClass = computed(() => {
   return [
     hasUnread.value ? 'font-medium text-n-slate-12' : 'text-n-slate-11',
+    lastMessageFromContact.value && hasUnread.value
+      ? 'rotta-incoming-preview'
+      : '',
     !props.compact && hasUnread.value ? 'ltr:pr-4 rtl:pl-4' : '',
     props.compact && hasUnread.value ? 'ltr:pr-6 rtl:pl-6' : '',
   ];
@@ -157,6 +164,7 @@ watch(
       'selected bg-n-slate-2 !border-n-surface-1': selected,
       'rotta-kelvin-card': hasKelvinCaioLabel,
       'rotta-pinned-card': isPinned,
+      'rotta-incoming-card': lastMessageFromContact && hasUnread,
       'px-0': compact,
       'px-3': !compact,
     }"
@@ -323,6 +331,23 @@ watch(
 
 .rotta-pinned-card {
   background: color-mix(in srgb, var(--color-n-brand, #2563eb) 4%, transparent);
+}
+
+.rotta-incoming-card {
+  background: color-mix(in srgb, var(--color-n-emerald-3) 48%, transparent);
+}
+
+.rotta-incoming-card .conversation--user {
+  font-weight: 700;
+}
+
+.rotta-incoming-preview {
+  color: var(--color-n-emerald-11) !important;
+  font-weight: 650;
+}
+
+.dark .rotta-incoming-card {
+  background: color-mix(in srgb, var(--color-n-emerald-9) 14%, transparent);
 }
 
 .rotta-conversation-content {

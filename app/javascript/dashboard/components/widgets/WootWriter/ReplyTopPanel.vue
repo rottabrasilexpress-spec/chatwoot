@@ -167,8 +167,8 @@ export default {
         </span>
       </div>
     </div>
-    <div v-if="captainTasksEnabled" class="flex items-center gap-2">
-      <div class="relative">
+    <div class="flex items-center gap-2">
+      <div v-if="captainTasksEnabled" class="relative">
         <NextButton
           ref="copilotToggleRef"
           ghost
@@ -199,6 +199,8 @@ export default {
         class="text-n-slate-11"
         sm
         icon="i-lucide-maximize-2"
+        :aria-label="$t('CONVERSATION.HEADER.MORE_ACTIONS')"
+        :title="$t('CONVERSATION.HEADER.MORE_ACTIONS')"
         @click="$emit('toggleEditorSize')"
       />
     </div>

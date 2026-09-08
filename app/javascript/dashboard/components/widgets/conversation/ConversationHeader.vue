@@ -152,6 +152,7 @@ const copyConversationId = async () => {
           :src="currentContactAvatarUrl"
           :size="44"
           :status="currentContact.availability_status"
+          rounded-full
           class="rounded-full"
           hide-offline-status
         />

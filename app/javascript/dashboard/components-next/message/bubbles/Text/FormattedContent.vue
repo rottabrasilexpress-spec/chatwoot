@@ -26,3 +26,19 @@ const formattedContent = computed(() => {
 <template>
   <span v-dompurify-html="formattedContent" class="prose prose-bubble" />
 </template>
+
+<style scoped>
+.prose-bubble :deep(.prosemirror-mention-node) {
+  display: inline-block;
+  padding: 0 0.25rem;
+  color: var(--color-n-blue-11);
+  font-weight: 650;
+  background: color-mix(in srgb, var(--color-n-blue-3) 72%, transparent);
+  border-radius: 0.35rem;
+}
+
+.dark .prose-bubble :deep(.prosemirror-mention-node) {
+  color: var(--color-n-blue-12);
+  background: color-mix(in srgb, var(--color-n-blue-9) 28%, transparent);
+}
+</style>
