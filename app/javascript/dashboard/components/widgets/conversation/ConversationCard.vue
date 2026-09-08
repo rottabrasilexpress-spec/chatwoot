@@ -188,6 +188,7 @@ watch(
           :src="currentContactAvatarUrl"
           :size="44"
           :status="currentContact.availability_status"
+          rounded-full
           class="rounded-full"
           :class="!showInboxName ? 'mt-3' : 'mt-7'"
           hide-offline-status
@@ -334,7 +335,7 @@ watch(
 }
 
 .rotta-incoming-card {
-  background: color-mix(in srgb, var(--color-n-emerald-3) 48%, transparent);
+  background: color-mix(in srgb, rgb(var(--teal-3)) 48%, transparent);
 }
 
 .rotta-incoming-card .conversation--user {
@@ -342,12 +343,12 @@ watch(
 }
 
 .rotta-incoming-preview {
-  color: var(--color-n-emerald-11) !important;
+  color: rgb(var(--teal-11)) !important;
   font-weight: 650;
 }
 
 .dark .rotta-incoming-card {
-  background: color-mix(in srgb, var(--color-n-emerald-9) 14%, transparent);
+  background: color-mix(in srgb, rgb(var(--teal-9)) 14%, transparent);
 }
 
 .rotta-conversation-content {

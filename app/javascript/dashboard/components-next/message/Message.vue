@@ -679,7 +679,7 @@ provideMessageContext({
   opacity: 0;
   pointer-events: none;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-n-background) 86%, transparent);
+  background: color-mix(in srgb, rgb(var(--solid-1)) 86%, transparent);
   box-shadow: 0 1px 3px rgb(0 0 0 / 14%);
   transition: opacity 120ms ease;
 }
@@ -691,7 +691,7 @@ provideMessageContext({
 }
 
 .rotta-message-action-trigger:hover {
-  background: var(--color-n-solid-2);
+  background: rgb(var(--solid-2));
 }
 
 @media (hover: none) {

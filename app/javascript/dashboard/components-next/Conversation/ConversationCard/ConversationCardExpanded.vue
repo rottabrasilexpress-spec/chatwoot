@@ -213,10 +213,10 @@ const selectedModel = computed({
 
 <style scoped>
 .rotta-incoming-card {
-  background: color-mix(in srgb, var(--color-n-emerald-3) 42%, transparent);
+  background: color-mix(in srgb, rgb(var(--teal-3)) 42%, transparent);
 }
 
 .dark .rotta-incoming-card {
-  background: color-mix(in srgb, var(--color-n-emerald-9) 14%, transparent);
+  background: color-mix(in srgb, rgb(var(--teal-9)) 14%, transparent);
 }
 </style>

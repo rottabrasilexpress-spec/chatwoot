@@ -31,14 +31,14 @@ const formattedContent = computed(() => {
 .prose-bubble :deep(.prosemirror-mention-node) {
   display: inline-block;
   padding: 0 0.25rem;
-  color: var(--color-n-blue-11);
+  color: rgb(var(--blue-11));
   font-weight: 650;
-  background: color-mix(in srgb, var(--color-n-blue-3) 72%, transparent);
+  background: color-mix(in srgb, rgb(var(--blue-3)) 72%, transparent);
   border-radius: 0.35rem;
 }
 
 .dark .prose-bubble :deep(.prosemirror-mention-node) {
-  color: var(--color-n-blue-12);
-  background: color-mix(in srgb, var(--color-n-blue-9) 28%, transparent);
+  color: rgb(var(--blue-12));
+  background: color-mix(in srgb, rgb(var(--blue-9)) 28%, transparent);
 }
 </style>

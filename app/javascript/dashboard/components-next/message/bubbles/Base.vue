@@ -183,11 +183,11 @@ const replyToSenderName = computed(() => {
 
 <style scoped>
 .rotta-reply-preview {
-  box-shadow: inset 3px 0 0 var(--color-n-brand);
+  box-shadow: inset 3px 0 0 rgb(var(--blue-9));
 }
 
 .rotta-reply-author {
-  color: var(--color-n-brand);
+  color: rgb(var(--blue-9));
   font-size: 0.75rem;
   font-weight: 650;
   line-height: 1.25rem;
