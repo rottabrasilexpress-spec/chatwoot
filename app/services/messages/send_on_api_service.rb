@@ -10,16 +10,23 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   def perform_reply
     return fail_message('Mídia enviada pelo Chatwoot ainda não está habilitada neste canal') if message.attachments.present?
 
+    content_attributes = message.content_attributes.to_h.with_indifferent_access
+    body = {
+      number: recipient_number,
+      text: message.outgoing_content.to_s,
+      delay: 2,
+      readchat: true,
+      linkPreview: false
+    }
+    body[:forward] = true if content_attributes[:rotta_forwarded]
+    body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
+    body[:track_source] = 'chatwoot'
+    body[:track_id] = "message-#{message.id}"
+
     response = HTTParty.post(
       "#{uazapi_base_url}#{UAZAPI_PATH}",
       headers: uazapi_headers,
-      body: {
-        number: recipient_number,
-        text: message.outgoing_content.to_s,
-        delay: 2,
-        readchat: true,
-        linkPreview: false
-      }.to_json,
+      body: body.to_json,
       timeout: 30
     )
 
@@ -49,7 +56,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def recipient_number
     source_id = conversation.contact_inbox.source_id.to_s.strip
-    return source_id if source_id.end_with?('@g.us')
+    return source_id if source_id.end_with?('@g.us', '@newsletter', '@lid', '@s.whatsapp.net')
 
     digits = source_id.gsub(/\D/, '')
     raise ArgumentError, 'Contato sem número WhatsApp válido' if digits.blank?

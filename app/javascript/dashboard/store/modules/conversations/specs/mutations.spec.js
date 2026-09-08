@@ -2,6 +2,33 @@ import { mutations } from '../index';
 import types from '../../../mutation-types';
 
 describe('#mutations', () => {
+  describe('#ADD_MESSAGE', () => {
+    it('merges partial updates without losing local message state', () => {
+      const state = {
+        allConversations: [
+          {
+            id: 1,
+            messages: [{ id: 7, content: 'Original', starred: true }],
+          },
+        ],
+        selectedChatId: 1,
+      };
+
+      mutations[types.ADD_MESSAGE](state, {
+        id: 7,
+        conversation_id: 1,
+        content: 'Edited',
+      });
+
+      expect(state.allConversations[0].messages[0]).toEqual({
+        id: 7,
+        conversation_id: 1,
+        content: 'Edited',
+        starred: true,
+      });
+    });
+  });
+
   describe('#UPDATE_MESSAGE_CALL_STATUS', () => {
     it('does nothing if conversation is not found', () => {
       const state = { allConversations: [] };

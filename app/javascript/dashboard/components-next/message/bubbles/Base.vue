@@ -24,6 +24,8 @@ const {
   id,
   sender,
   senderType,
+  contentAttributes,
+  starred,
 } = useMessageContext();
 const { t } = useI18n();
 
@@ -162,6 +164,45 @@ const replyToSenderName = computed(() => {
       />
     </div>
     <slot />
+    <div
+      v-if="contentAttributes?.rottaForwarded"
+      class="rotta-message-forwarded"
+    >
+      {{ t('CONVERSATION.CONTEXT_MENU.FORWARDED_LABEL') }}
+    </div>
+    <div v-if="contentAttributes?.edited" class="rotta-message-forwarded">
+      {{ t('CONVERSATION.CONTEXT_MENU.EDITED_LABEL') }}
+    </div>
+    <div
+      v-if="
+        contentAttributes?.rottaReaction ||
+        contentAttributes?.rottaPinned ||
+        starred
+      "
+      class="rotta-message-markers"
+    >
+      <span
+        v-if="contentAttributes?.rottaReaction"
+        class="rotta-message-reaction"
+        :title="t('CONVERSATION.CONTEXT_MENU.REACTION')"
+      >
+        {{ contentAttributes.rottaReaction }}
+      </span>
+      <span
+        v-if="contentAttributes?.rottaPinned"
+        class="rotta-message-marker"
+        :title="t('CONVERSATION.CONTEXT_MENU.PINNED')"
+      >
+        <span class="i-lucide-pin size-3" />
+      </span>
+      <span
+        v-if="starred"
+        class="rotta-message-marker rotta-message-marker--star"
+        :title="t('CONVERSATION.CONTEXT_MENU.STARRED')"
+      >
+        <span class="i-lucide-star size-3" />
+      </span>
+    </div>
     <template v-if="shouldShowMeta">
       <CaptainGenerationDetails
         v-if="isCaptainMessage"
@@ -191,5 +232,26 @@ const replyToSenderName = computed(() => {
   font-size: 0.75rem;
   font-weight: 650;
   line-height: 1.25rem;
+}
+
+.rotta-message-forwarded {
+  @apply mt-1 text-xs italic text-n-slate-10;
+}
+
+.rotta-message-markers {
+  @apply mt-1 flex items-center gap-1;
+}
+
+.rotta-message-reaction,
+.rotta-message-marker {
+  @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-n-strong bg-n-surface-1 px-1 text-xs shadow-sm;
+}
+
+.rotta-message-marker {
+  @apply text-n-slate-10;
+}
+
+.rotta-message-marker--star {
+  @apply text-n-amber-10;
 }
 </style>

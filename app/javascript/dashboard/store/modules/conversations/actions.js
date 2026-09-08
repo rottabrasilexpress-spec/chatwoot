@@ -448,6 +448,59 @@ const actions = {
     }
   },
 
+  editMessage: async function editMessage(
+    { commit },
+    { conversationId, messageId, text }
+  ) {
+    const { data } = await MessageApi.edit(conversationId, messageId, text);
+    commit(types.ADD_MESSAGE, data);
+    return data;
+  },
+
+  reactToMessage: async function reactToMessage(
+    { commit },
+    { conversationId, messageId, emoji }
+  ) {
+    const { data } = await MessageApi.react(conversationId, messageId, emoji);
+    commit(types.ADD_MESSAGE, data);
+    return data;
+  },
+
+  pinMessage: async function pinMessage(
+    { commit },
+    { conversationId, messageId, pin, duration = 30 }
+  ) {
+    const { data } = await MessageApi.pin(
+      conversationId,
+      messageId,
+      pin,
+      duration
+    );
+    commit(types.ADD_MESSAGE, data);
+    return data;
+  },
+
+  forwardMessage: async function forwardMessage(
+    _context,
+    { conversationId, messageId, targetConversationId }
+  ) {
+    const { data } = await MessageApi.forward(
+      conversationId,
+      messageId,
+      targetConversationId
+    );
+    return data;
+  },
+
+  toggleMessageStar: async function toggleMessageStar(
+    { commit },
+    { conversationId, messageId, starred }
+  ) {
+    const { data } = await MessageApi.star(conversationId, messageId, starred);
+    commit(types.ADD_MESSAGE, data);
+    return data;
+  },
+
   deleteConversation: async ({ commit, dispatch }, conversationId) => {
     try {
       await ConversationApi.delete(conversationId);

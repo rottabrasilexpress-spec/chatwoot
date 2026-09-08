@@ -18,6 +18,10 @@ class Webhooks::UazapiController < ActionController::API
       return process_contacts_event(payload)
     end
 
+    if incoming_message_event?(event)
+      return process_incoming_message(payload)
+    end
+
     raw_status = extract_status(payload)
     return render json: { ok: true, ignored: 'status ausente' } unless raw_status.present?
 
@@ -58,6 +62,13 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def extract_event(payload)
+    route_event = params[:event].to_s.split('/').first
+    known_events = %w[
+      connection history message messages messages_update newsletter_messages call
+      contacts contact presence groups labels chats chat_labels blocks sender
+    ]
+    return route_event.downcase if known_events.include?(route_event.downcase)
+
     value_for_keys(payload, %w[event EventType eventType event_name type name]).to_s.downcase
   end
 
@@ -66,7 +77,47 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def contacts_event?(event)
-    event == 'contact' || event == 'contacts'
+    event.match?(/\Acontacts?(?:[._-].*)?\z/)
+  end
+
+  def incoming_message_event?(event)
+    %w[message messages history].include?(event)
+  end
+
+  def process_incoming_message(payload)
+    incoming = extract_message_payload(payload)
+    return render json: { ok: true, ignored: 'mensagem ausente' } unless incoming
+    return render json: { ok: true, ignored: 'mensagem enviada pela própria instância' } if from_me?(incoming)
+
+    provider_id = message_provider_id(incoming)
+    if provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: provider_id).exists?
+      return render json: { ok: true, ignored: 'mensagem duplicada', source_id: provider_id }
+    end
+
+    conversation = find_conversation(incoming)
+    return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
+
+    content = incoming_message_content(incoming)
+    return render json: { ok: true, ignored: 'conteúdo não suportado' } if content.blank?
+
+    attributes = { 'uazapi_message_type' => value_for_keys(incoming, %w[type messageType]) }.compact
+    quoted_id = value_for_keys(incoming, %w[quoted quotedId quoted_id replyid reply_id])
+    attributes['in_reply_to_external_id'] = quoted_id if quoted_id.present?
+
+    message = Messages::MessageBuilder.new(
+      nil,
+      conversation,
+      ActionController::Parameters.new(
+        content: content,
+        message_type: 'incoming',
+        private: false,
+        source_id: provider_id,
+        content_attributes: attributes
+      )
+    ).perform
+
+    RottaUazapiContactAvatarSyncJob.perform_later(conversation.account_id, conversation.contact_id)
+    render json: { ok: true, message_ids: [message.id], source_id: provider_id }
   end
 
   def process_contacts_event(payload)
@@ -78,6 +129,39 @@ class Webhooks::UazapiController < ActionController::API
     end
 
     render json: { ok: true, event: 'contacts', contact_ids: contacts.map(&:id), queued: contacts.length }
+  end
+
+  def extract_message_payload(payload)
+    candidates = payload_hashes(payload).select do |node|
+      keys = node.keys.map(&:to_s).map(&:downcase)
+      keys.intersect?(%w[messageid message_id id chatid chat_id from_me fromme messagetype type text caption body])
+    end
+
+    candidates.max_by do |node|
+      keys = node.keys.map(&:to_s).map(&:downcase)
+      score = 0
+      score += 4 if keys.intersect?(%w[messageid message_id])
+      score += 2 if keys.intersect?(%w[chatid chat_id])
+      score += 1 if keys.intersect?(%w[from_me fromme type text caption body])
+      score
+    end
+  end
+
+  def from_me?(message)
+    value = value_for_keys(message, %w[from_me fromMe fromme wasSentByApi]).to_s.downcase
+    ActiveModel::Type::Boolean.new.cast(value)
+  end
+
+  def message_provider_id(message)
+    value_for_keys(message, %w[message_id messageId messageid id])&.to_s&.presence
+  end
+
+  def incoming_message_content(message)
+    text = value_for_keys(message, %w[text caption body content button_or_listid buttonOrListId selected_id selectedId])
+    return text.to_s.strip if text.present?
+
+    type = value_for_keys(message, %w[type messageType]).to_s.strip
+    type.present? ? "[#{type}]" : nil
   end
 
   def extract_presence(payload)
@@ -132,9 +216,8 @@ class Webhooks::UazapiController < ActionController::API
     return unless phone.present?
 
     payload_phones = direct_only ? [phone] : extract_phones(payload)
-    contact = Contact.where(account_id: ACCOUNT_ID).where.not(phone_number: nil).find do |candidate|
-      payload_phones.include?(normalize_phone(candidate.phone_number))
-    end
+    phone_variants = payload_phones.flat_map { |value| contact_phone_variants(value) }.uniq
+    contact = Contact.where(account_id: ACCOUNT_ID).where(phone_number: phone_variants).first
     return unless contact
 
     Conversation.where(account_id: ACCOUNT_ID, contact_id: contact.id)

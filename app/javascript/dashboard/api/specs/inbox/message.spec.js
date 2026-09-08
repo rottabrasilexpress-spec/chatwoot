@@ -10,6 +10,11 @@ describe('#ConversationAPI', () => {
     expect(messageAPI).toHaveProperty('update');
     expect(messageAPI).toHaveProperty('delete');
     expect(messageAPI).toHaveProperty('getPreviousMessages');
+    expect(messageAPI).toHaveProperty('edit');
+    expect(messageAPI).toHaveProperty('react');
+    expect(messageAPI).toHaveProperty('pin');
+    expect(messageAPI).toHaveProperty('forward');
+    expect(messageAPI).toHaveProperty('star');
   });
 
   describe('API calls', () => {
@@ -41,6 +46,40 @@ describe('#ConversationAPI', () => {
             before: 4573,
           },
         }
+      );
+    });
+
+    it('uses the message action endpoints', async () => {
+      await messageAPI.edit(12, 34, 'edited');
+      await messageAPI.react(12, 34, '👍');
+      await messageAPI.pin(12, 34, true, 7);
+      await messageAPI.forward(12, 34, 56);
+      await messageAPI.star(12, 34, true);
+
+      expect(axiosMock.post).toHaveBeenNthCalledWith(
+        1,
+        '/api/v1/conversations/12/messages/34/edit',
+        { text: 'edited' }
+      );
+      expect(axiosMock.post).toHaveBeenNthCalledWith(
+        2,
+        '/api/v1/conversations/12/messages/34/react',
+        { emoji: '👍' }
+      );
+      expect(axiosMock.post).toHaveBeenNthCalledWith(
+        3,
+        '/api/v1/conversations/12/messages/34/pin',
+        { pin: true, duration: 7 }
+      );
+      expect(axiosMock.post).toHaveBeenNthCalledWith(
+        4,
+        '/api/v1/conversations/12/messages/34/forward',
+        { target_conversation_id: 56 }
+      );
+      expect(axiosMock.post).toHaveBeenNthCalledWith(
+        5,
+        '/api/v1/conversations/12/messages/34/star',
+        { starred: true }
       );
     });
   });

@@ -218,7 +218,13 @@ export const mutations = {
 
     const pendingMessageIndex = findPendingMessageIndex(chat, message);
     if (pendingMessageIndex !== -1) {
-      chat.messages[pendingMessageIndex] = message;
+      // Action Cable updates and action responses are partial payloads in a
+      // few flows. Merge them so per-agent UI state (for example favorites)
+      // is not lost when a provider status update arrives immediately after.
+      chat.messages[pendingMessageIndex] = {
+        ...chat.messages[pendingMessageIndex],
+        ...message,
+      };
     } else {
       chat.messages.push(message);
       chat.timestamp = message.created_at;

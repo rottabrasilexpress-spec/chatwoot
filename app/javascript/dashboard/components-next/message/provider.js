@@ -98,6 +98,7 @@ const MessageControl = Symbol('MessageControl');
  * @property {import('vue').Ref<boolean>} [groupWithNext=false] - Whether the message should be grouped with the next message
  * @property {import('vue').Ref<boolean>} [isEmailInbox=false] - Whether the message is from an email inbox
  * @property {import('vue').Ref<boolean>} [private=false] - Whether the message is private
+ * @property {import('vue').Ref<boolean>} [starred=false] - Whether the current agent starred the message
  * @property {import('vue').Ref<number|null>} [senderId=null] - The ID of the sender
  * @property {import('vue').Ref<string|null>} [error=null] - Error message if the message failed to send
  * @property {import('vue').Ref<Attachment[]>} [attachments=[]] - The attachments associated with the message

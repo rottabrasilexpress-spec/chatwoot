@@ -12,7 +12,10 @@ const MAX_DISCONNECT_SECONDS = 10800;
 // disconnections (for example, the websocket disconnection takes up to 3 seconds)
 // while fetching the latest updated conversations or messages.
 const DISCONNECT_DELAY_THRESHOLD = 15;
-const ACTIVE_CONVERSATION_SYNC_INTERVAL = 5000;
+// Action Cable is the primary path. This short, scoped reconciliation only
+// runs for the visible conversation and prevents a missed message when a
+// proxy/browser drops the socket without immediately reporting it.
+const ACTIVE_CONVERSATION_SYNC_INTERVAL = 2000;
 
 class ReconnectService {
   constructor(store, router) {

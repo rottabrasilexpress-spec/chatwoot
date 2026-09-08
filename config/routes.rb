@@ -170,6 +170,11 @@ Rails.application.routes.draw do
                 member do
                   post :translate
                   post :retry
+                  post :edit
+                  post :react
+                  post :pin
+                  post :forward
+                  post :star
                 end
               end
               resources :assignments, only: [:create]
@@ -665,6 +670,8 @@ Rails.application.routes.draw do
   post 'webhooks/line/:line_channel_id', to: 'webhooks/line#process_payload'
   post 'webhooks/telegram/:bot_token', to: 'webhooks/telegram#process_payload'
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'
+  post 'webhooks/uazapi/:token/:event/:message_type', to: 'webhooks/uazapi#process_payload'
+  post 'webhooks/uazapi/:token/:event', to: 'webhooks/uazapi#process_payload'
   post 'webhooks/uazapi/:token', to: 'webhooks/uazapi#process_payload'
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'
   post 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#process_payload'

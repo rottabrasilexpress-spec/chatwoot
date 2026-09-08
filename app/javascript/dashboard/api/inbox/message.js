@@ -92,6 +92,41 @@ class MessageApi extends ApiClient {
     return axios.delete(`${this.url}/${conversationID}/messages/${messageId}`);
   }
 
+  edit(conversationId, messageId, text) {
+    return axios.post(
+      `${this.url}/${conversationId}/messages/${messageId}/edit`,
+      { text }
+    );
+  }
+
+  react(conversationId, messageId, emoji) {
+    return axios.post(
+      `${this.url}/${conversationId}/messages/${messageId}/react`,
+      { emoji }
+    );
+  }
+
+  pin(conversationId, messageId, pin, duration = 30) {
+    return axios.post(
+      `${this.url}/${conversationId}/messages/${messageId}/pin`,
+      { pin, duration }
+    );
+  }
+
+  forward(conversationId, messageId, targetConversationId) {
+    return axios.post(
+      `${this.url}/${conversationId}/messages/${messageId}/forward`,
+      { target_conversation_id: targetConversationId }
+    );
+  }
+
+  star(conversationId, messageId, starred) {
+    return axios.post(
+      `${this.url}/${conversationId}/messages/${messageId}/star`,
+      { starred }
+    );
+  }
+
   retry(conversationID, messageId) {
     return axios.post(
       `${this.url}/${conversationID}/messages/${messageId}/retry`

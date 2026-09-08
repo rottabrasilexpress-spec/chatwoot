@@ -139,6 +139,7 @@ const props = defineProps({
   senderId: { type: Number, default: null },
   senderType: { type: String, default: null },
   sourceId: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties
+  starred: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['retry']);
@@ -384,6 +385,12 @@ const payloadForContextMenu = computed(() => {
     content_attributes: props.contentAttributes,
     content: props.content,
     conversation_id: props.conversationId,
+    message_type: props.messageType,
+    content_type: props.contentType,
+    private: props.private,
+    source_id: props.sourceId,
+    starred: props.starred,
+    attachments: props.attachments,
   };
 });
 
@@ -395,6 +402,8 @@ const contextMenuEnabledOptions = computed(() => {
   const isFailedOrProcessing =
     props.status === MESSAGE_STATUS.FAILED ||
     props.status === MESSAGE_STATUS.PROGRESS;
+  const hasProviderMessageId = !!props.sourceId;
+  const isTextMessage = props.contentType === CONTENT_TYPES.TEXT;
 
   return {
     copy: hasText,
@@ -405,6 +414,22 @@ const contextMenuEnabledOptions = computed(() => {
     cannedResponse: isOutgoing && hasText && !isMessageDeleted.value,
     copyLink: !isFailedOrProcessing,
     translate: !isFailedOrProcessing && !isMessageDeleted.value && hasText,
+    edit:
+      isOutgoing &&
+      !props.private &&
+      isTextMessage &&
+      hasProviderMessageId &&
+      hasText &&
+      !isFailedOrProcessing &&
+      !isMessageDeleted.value,
+    reaction:
+      hasProviderMessageId && !isFailedOrProcessing && !isMessageDeleted.value,
+    pin:
+      hasProviderMessageId && !isFailedOrProcessing && !isMessageDeleted.value,
+    // Uazapi's forward endpoint is text-only in this integration; keep media
+    // out of the menu until its upload contract is implemented end-to-end.
+    forward: hasText && !isFailedOrProcessing && !isMessageDeleted.value,
+    star: !isFailedOrProcessing && !isMessageDeleted.value,
     replyTo:
       !props.private &&
       props.inboxSupportsReplyTo.outgoing &&

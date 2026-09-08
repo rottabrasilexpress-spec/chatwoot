@@ -59,6 +59,13 @@ export default {
     return {
       isCannedResponseModalOpen: false,
       showDeleteModal: false,
+      showEditModal: false,
+      showReactionModal: false,
+      showForwardModal: false,
+      editedContent: '',
+      forwardSearch: '',
+      isActionPending: false,
+      quickReactions: ['👍', '❤️', '😂', '😮', '😢', '🙏'],
     };
   },
   computed: {
@@ -66,6 +73,7 @@ export default {
       getAccount: 'accounts/getAccount',
       currentAccountId: 'getCurrentAccountId',
       getUISettings: 'getUISettings',
+      getAllConversations: 'getAllConversations',
     }),
     plainTextContent() {
       return this.getPlainText(this.messageContent);
@@ -83,6 +91,37 @@ export default {
       return useSnakeCase(
         this.message.content_attributes ?? this.message.contentAttributes
       );
+    },
+    isStarred() {
+      return !!this.message.starred;
+    },
+    currentReaction() {
+      return this.contentAttributes?.rotta_reaction || '';
+    },
+    pinActionLabel() {
+      if (this.contentAttributes?.rotta_pinned) {
+        return this.$t('CONVERSATION.CONTEXT_MENU.UNPIN');
+      }
+      return this.$t('CONVERSATION.CONTEXT_MENU.PIN');
+    },
+    starActionLabel() {
+      if (this.isStarred) {
+        return this.$t('CONVERSATION.CONTEXT_MENU.UNSTAR');
+      }
+      return this.$t('CONVERSATION.CONTEXT_MENU.STAR');
+    },
+    forwardableConversations() {
+      const query = this.forwardSearch.trim().toLowerCase();
+      return (this.getAllConversations || [])
+        .filter(
+          conversation =>
+            Number(conversation.id) !== Number(this.conversationId)
+        )
+        .filter(conversation => {
+          if (!query) return true;
+          return this.conversationSearchText(conversation).includes(query);
+        })
+        .slice(0, 40);
     },
   },
   methods: {
@@ -140,6 +179,150 @@ export default {
       this.$emit('replyTo', this.message);
       this.handleClose();
     },
+    openEditModal() {
+      this.handleClose();
+      this.editedContent = this.plainTextContent;
+      this.showEditModal = true;
+    },
+    closeEditModal() {
+      this.showEditModal = false;
+    },
+    async confirmEdit() {
+      if (!this.editedContent.trim() || this.isActionPending) return;
+
+      this.isActionPending = true;
+      try {
+        await this.$store.dispatch('editMessage', {
+          conversationId: this.conversationId,
+          messageId: this.messageId,
+          text: this.editedContent.trim(),
+        });
+        useAlert(this.$t('CONVERSATION.CONTEXT_MENU.EDIT_SUCCESS'));
+        this.closeEditModal();
+      } catch (error) {
+        useAlert(parseAPIErrorResponse(error));
+      } finally {
+        this.isActionPending = false;
+      }
+    },
+    openReactionModal() {
+      this.handleClose();
+      this.showReactionModal = true;
+    },
+    closeReactionModal() {
+      this.showReactionModal = false;
+    },
+    async selectReaction(emoji) {
+      if (this.isActionPending) return;
+
+      this.isActionPending = true;
+      try {
+        await this.$store.dispatch('reactToMessage', {
+          conversationId: this.conversationId,
+          messageId: this.messageId,
+          emoji,
+        });
+        useAlert(
+          emoji
+            ? this.$t('CONVERSATION.CONTEXT_MENU.REACTION_SUCCESS')
+            : this.$t('CONVERSATION.CONTEXT_MENU.REACTION_REMOVED')
+        );
+        this.closeReactionModal();
+      } catch (error) {
+        useAlert(parseAPIErrorResponse(error));
+      } finally {
+        this.isActionPending = false;
+      }
+    },
+    async togglePin() {
+      if (this.isActionPending) return;
+
+      const pin = !this.contentAttributes?.rotta_pinned;
+      this.handleClose();
+      this.isActionPending = true;
+      try {
+        await this.$store.dispatch('pinMessage', {
+          conversationId: this.conversationId,
+          messageId: this.messageId,
+          pin,
+          duration: 30,
+        });
+        useAlert(
+          pin
+            ? this.$t('CONVERSATION.CONTEXT_MENU.PIN_SUCCESS')
+            : this.$t('CONVERSATION.CONTEXT_MENU.UNPIN_SUCCESS')
+        );
+      } catch (error) {
+        useAlert(parseAPIErrorResponse(error));
+      } finally {
+        this.isActionPending = false;
+      }
+    },
+    async toggleStar() {
+      if (this.isActionPending) return;
+
+      const starred = !this.isStarred;
+      this.handleClose();
+      this.isActionPending = true;
+      try {
+        await this.$store.dispatch('toggleMessageStar', {
+          conversationId: this.conversationId,
+          messageId: this.messageId,
+          starred,
+        });
+        useAlert(
+          starred
+            ? this.$t('CONVERSATION.CONTEXT_MENU.STAR_SUCCESS')
+            : this.$t('CONVERSATION.CONTEXT_MENU.UNSTAR_SUCCESS')
+        );
+      } catch (error) {
+        useAlert(parseAPIErrorResponse(error));
+      } finally {
+        this.isActionPending = false;
+      }
+    },
+    openForwardModal() {
+      this.handleClose();
+      this.forwardSearch = '';
+      this.showForwardModal = true;
+    },
+    closeForwardModal() {
+      this.showForwardModal = false;
+    },
+    conversationSearchText(conversation) {
+      const sender = conversation?.meta?.sender || conversation?.contact || {};
+      return [
+        sender.name,
+        sender.phone_number,
+        conversation?.id,
+        conversation?.display_id,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+    },
+    conversationTitle(conversation) {
+      const sender = conversation?.meta?.sender || conversation?.contact || {};
+      return sender.name || sender.phone_number || `#${conversation.id}`;
+    },
+    async forwardTo(targetConversationId) {
+      if (this.isActionPending) return;
+
+      this.isActionPending = true;
+      try {
+        await this.$store.dispatch('forwardMessage', {
+          conversationId: this.conversationId,
+          messageId: this.messageId,
+          targetConversationId,
+        });
+        useAlert(this.$t('CONVERSATION.CONTEXT_MENU.FORWARDED_SUCCESS'));
+        this.closeForwardModal();
+      } catch (error) {
+        useAlert(parseAPIErrorResponse(error));
+      } finally {
+        this.isActionPending = false;
+      }
+    },
     openDeleteModal() {
       this.handleClose();
       this.showDeleteModal = true;
@@ -169,6 +352,109 @@ export default {
 
 <template>
   <div class="context-menu">
+    <!-- Edit text message -->
+    <woot-modal
+      v-if="showEditModal && enabledOptions['edit']"
+      v-model:show="showEditModal"
+      :on-close="closeEditModal"
+    >
+      <div class="rotta-action-modal">
+        <woot-modal-header
+          :header-title="$t('CONVERSATION.CONTEXT_MENU.EDIT_MESSAGE')"
+        />
+        <textarea
+          v-model="editedContent"
+          class="rotta-action-textarea"
+          :placeholder="$t('CONVERSATION.CONTEXT_MENU.EDIT_PLACEHOLDER')"
+          autofocus
+          @keydown.meta.enter.prevent="confirmEdit"
+          @keydown.ctrl.enter.prevent="confirmEdit"
+        />
+        <div class="rotta-action-modal__actions">
+          <NextButton
+            faded
+            slate
+            :label="$t('CONVERSATION.CONTEXT_MENU.CANCEL')"
+            @click="closeEditModal"
+          />
+          <NextButton
+            :label="$t('CONVERSATION.CONTEXT_MENU.SAVE')"
+            :is-loading="isActionPending"
+            :disabled="!editedContent.trim()"
+            @click="confirmEdit"
+          />
+        </div>
+      </div>
+    </woot-modal>
+    <!-- Reaction picker -->
+    <woot-modal
+      v-if="showReactionModal && enabledOptions['reaction']"
+      v-model:show="showReactionModal"
+      :on-close="closeReactionModal"
+    >
+      <div class="rotta-action-modal">
+        <woot-modal-header
+          :header-title="$t('CONVERSATION.CONTEXT_MENU.REACTION_TITLE')"
+        />
+        <div class="rotta-reaction-grid">
+          <button
+            v-for="emoji in quickReactions"
+            :key="emoji"
+            type="button"
+            class="rotta-reaction-choice"
+            :aria-label="emoji"
+            @click="selectReaction(emoji)"
+          >
+            {{ emoji }}
+          </button>
+        </div>
+        <NextButton
+          v-if="currentReaction"
+          faded
+          slate
+          class="mt-4 w-full"
+          :label="$t('CONVERSATION.CONTEXT_MENU.REMOVE_REACTION')"
+          :is-loading="isActionPending"
+          @click="selectReaction('')"
+        />
+      </div>
+    </woot-modal>
+    <!-- Forward to another loaded conversation -->
+    <woot-modal
+      v-if="showForwardModal && enabledOptions['forward']"
+      v-model:show="showForwardModal"
+      :on-close="closeForwardModal"
+    >
+      <div class="rotta-action-modal">
+        <woot-modal-header
+          :header-title="$t('CONVERSATION.CONTEXT_MENU.FORWARD_TITLE')"
+        />
+        <input
+          v-model="forwardSearch"
+          class="rotta-forward-search"
+          type="search"
+          :placeholder="$t('CONVERSATION.CONTEXT_MENU.FORWARD_SEARCH')"
+        />
+        <div class="rotta-forward-list">
+          <button
+            v-for="conversation in forwardableConversations"
+            :key="conversation.id"
+            type="button"
+            class="rotta-forward-item"
+            :disabled="isActionPending"
+            @click="forwardTo(conversation.id)"
+          >
+            <span class="rotta-forward-item__title truncate">
+              {{ conversationTitle(conversation) }}
+            </span>
+            <span class="rotta-forward-item__id">{{ conversation.id }}</span>
+          </button>
+          <p v-if="!forwardableConversations.length" class="rotta-empty-state">
+            {{ $t('CONVERSATION.CONTEXT_MENU.NO_CONVERSATIONS') }}
+          </p>
+        </div>
+      </div>
+    </woot-modal>
     <!-- Add To Canned Responses -->
     <woot-modal
       v-if="isCannedResponseModalOpen && enabledOptions['cannedResponse']"
@@ -225,6 +511,58 @@ export default {
           }"
           variant="icon"
           @click.stop="handleCopy"
+        />
+        <MenuItem
+          v-if="enabledOptions['reaction']"
+          :option="{
+            icon: 'i-lucide-smile-plus',
+            label: $t('CONVERSATION.CONTEXT_MENU.REACT'),
+          }"
+          variant="icon"
+          @click.stop="openReactionModal"
+        />
+        <MenuItem
+          v-if="enabledOptions['edit']"
+          :option="{
+            icon: 'i-lucide-pencil',
+            label: $t('CONVERSATION.CONTEXT_MENU.EDIT'),
+          }"
+          variant="icon"
+          @click.stop="openEditModal"
+        />
+        <MenuItem
+          v-if="enabledOptions['forward']"
+          :option="{
+            icon: 'i-lucide-forward',
+            label: $t('CONVERSATION.CONTEXT_MENU.FORWARD'),
+          }"
+          variant="icon"
+          @click.stop="openForwardModal"
+        />
+        <MenuItem
+          v-if="enabledOptions['pin']"
+          :option="{
+            icon: 'i-lucide-pin',
+            label: pinActionLabel,
+          }"
+          variant="icon"
+          @click.stop="togglePin"
+        />
+        <MenuItem
+          v-if="enabledOptions['star']"
+          :option="{
+            icon: 'i-lucide-star',
+            label: starActionLabel,
+          }"
+          variant="icon"
+          @click.stop="toggleStar"
+        />
+        <hr
+          v-if="
+            enabledOptions['translate'] ||
+            enabledOptions['copyLink'] ||
+            enabledOptions['cannedResponse']
+          "
         />
         <MenuItem
           v-if="enabledOptions['translate']"
@@ -285,6 +623,57 @@ export default {
 </template>
 
 <style lang="scss" scoped>
+.rotta-action-modal {
+  @apply flex flex-col gap-4 p-1;
+  min-width: min(34rem, 82vw);
+}
+
+.rotta-action-modal__actions {
+  @apply flex justify-end gap-2;
+}
+
+.rotta-action-textarea,
+.rotta-forward-search {
+  @apply w-full rounded-lg border border-n-strong bg-n-surface-2 px-3 py-2 text-sm text-n-slate-12 outline-none;
+
+  &:focus {
+    @apply border-n-brand ring-1 ring-n-brand;
+  }
+}
+
+.rotta-action-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.rotta-reaction-grid {
+  @apply grid grid-cols-3 gap-2 sm:grid-cols-6;
+}
+
+.rotta-reaction-choice {
+  @apply flex h-12 items-center justify-center rounded-lg bg-n-surface-2 text-2xl transition-colors hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand;
+}
+
+.rotta-forward-list {
+  @apply flex max-h-80 flex-col gap-1 overflow-y-auto;
+}
+
+.rotta-forward-item {
+  @apply flex min-w-0 items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50;
+}
+
+.rotta-forward-item__title {
+  @apply min-w-0 flex-1 font-medium;
+}
+
+.rotta-forward-item__id {
+  @apply shrink-0 text-xs text-n-slate-10;
+}
+
+.rotta-empty-state {
+  @apply py-6 text-center text-sm text-n-slate-10;
+}
+
 .menu-container {
   @apply p-1 bg-n-background shadow-xl rounded-md;
 

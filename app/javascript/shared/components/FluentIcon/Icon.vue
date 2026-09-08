@@ -31,10 +31,13 @@ export default {
     pathSource() {
       // To support icons with multiple paths
       const path = this.icons[`${this.icon}-${this.type}`];
-      if (path.constructor === Array) {
+      // A stale/unknown icon should not take down the whole message view.
+      // This is especially important while a provider-specific action menu
+      // is being hydrated during a reconnect.
+      if (Array.isArray(path)) {
         return path;
       }
-      return [path];
+      return path ? [path] : [];
     },
   },
 };
