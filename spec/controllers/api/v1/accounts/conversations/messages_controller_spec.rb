@@ -199,6 +199,17 @@ RSpec.describe 'Conversation Messages API', type: :request do
         create(:inbox_member, inbox: conversation.inbox, user: agent)
       end
 
+      it 'returns the complete conversation history' do
+        messages = create_list(:message, 2, conversation: conversation, account: account)
+
+        get "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages",
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['payload'].pluck('id')).to contain_exactly(*messages.map(&:id))
+      end
+
       it 'shows the conversation' do
         get "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages",
             headers: agent.create_new_auth_token,

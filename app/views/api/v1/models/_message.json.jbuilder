@@ -10,14 +10,16 @@ json.content_attributes message.content_attributes
 json.created_at message.created_at.to_i
 json.private message.private
 json.source_id message.source_id
-json.starred if Current.user.is_a?(User)
-  if defined?(@starred_message_ids) && @starred_message_ids
-    @starred_message_ids.include?(message.id)
-  else
-    MessageStar.exists?(message_id: message.id, user_id: Current.user.id)
-  end
+if Current.user.is_a?(User)
+  starred =
+    if defined?(@starred_message_ids) && @starred_message_ids
+      @starred_message_ids.include?(message.id)
+    else
+      MessageStar.exists?(message_id: message.id, user_id: Current.user.id)
+    end
+  json.starred starred
 else
-  false
+  json.starred false
 end
 json.sender message.sender.push_event_data if message.sender
 json.attachments message.attachments.map(&:push_event_data) if message.attachments.present?
