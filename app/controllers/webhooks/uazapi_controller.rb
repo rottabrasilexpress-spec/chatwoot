@@ -2,7 +2,7 @@ class Webhooks::UazapiController < ActionController::API
   include Events::Types
 
   ACCOUNT_ID = ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
-  WEBHOOK_TOKEN = ENV.fetch('ROTTABRASIL_UAZAPI_WEBHOOK_TOKEN', 'rotta-uazapi-ack-v1').freeze
+  WEBHOOK_TOKEN = ENV.fetch('ROTTABRASIL_UAZAPI_WEBHOOK_TOKEN').freeze
 
   def process_payload
     return render json: { ok: false }, status: :unauthorized unless params[:token].to_s == WEBHOOK_TOKEN

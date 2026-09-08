@@ -87,4 +87,4 @@ rotta_archived_conversation_retention_job:
 rotta_uazapi_contact_avatar_sync_job:
   cron: '*/10 * * * *'
   class: 'RottaUazapiContactAvatarSyncJob'
-  queue: housekeeping
+  queue: uazapi_sync

@@ -32,5 +32,21 @@ services:
     command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
     restart: always
 
+  sidekiq_uazapi:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.overlay
+    image: rotta-chatwoot:v4.17.0-custom-v1
+    env_file:
+      - .env
+    volumes:
+      - storage_data:/app/storage
+    environment:
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq-uazapi.yml"]
+    restart: always
+
 volumes:
   storage_data:

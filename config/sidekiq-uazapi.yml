@@ -1,0 +1,13 @@
+# Dedicated worker for Uazapi profile/avatar synchronization.
+# Keeping provider calls out of the general housekeeping process prevents a
+# slow external request from delaying unrelated Chatwoot maintenance jobs.
+---
+:verbose: false
+:concurrency: <%= ENV.fetch("ROTTABRASIL_UAZAPI_SIDEKIQ_CONCURRENCY", 1) %>
+:timeout: 20
+:max_retries: 3
+:queues:
+  - uazapi_sync
+
+production:
+  :concurrency: <%= ENV.fetch("ROTTABRASIL_UAZAPI_SIDEKIQ_CONCURRENCY", 1) %>

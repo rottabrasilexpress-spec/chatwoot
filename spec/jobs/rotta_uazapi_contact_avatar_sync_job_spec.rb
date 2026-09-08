@@ -1,6 +1,10 @@
 require 'rails_helper'
 
 RSpec.describe RottaUazapiContactAvatarSyncJob, type: :job do
+  it 'uses the dedicated Uazapi queue' do
+    expect(described_class.queue_name).to eq('uazapi_sync')
+  end
+
   let(:account) { create(:account) }
   let(:contact) do
     create(

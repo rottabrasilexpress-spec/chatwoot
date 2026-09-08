@@ -8,7 +8,7 @@ require 'uri'
 # AvatarFromUrlJob downloads it into Chatwoot Active Storage, so the UI keeps
 # working even after the provider URL expires.
 class RottaUazapiContactAvatarSyncJob < ApplicationJob
-  queue_as :housekeeping
+  queue_as :uazapi_sync
 
   ACCOUNT_ID = ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   BASE_URL = ENV.fetch('ROTTABRASIL_UAZAPI_BASE_URL', 'https://transportadoras.uazapi.com').freeze
