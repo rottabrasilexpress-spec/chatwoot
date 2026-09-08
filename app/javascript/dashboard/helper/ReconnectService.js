@@ -12,12 +12,15 @@ const MAX_DISCONNECT_SECONDS = 10800;
 // disconnections (for example, the websocket disconnection takes up to 3 seconds)
 // while fetching the latest updated conversations or messages.
 const DISCONNECT_DELAY_THRESHOLD = 15;
+const ACTIVE_CONVERSATION_SYNC_INTERVAL = 5000;
 
 class ReconnectService {
   constructor(store, router) {
     this.store = store;
     this.router = router;
     this.disconnectTime = null;
+    this.activeConversationSyncTimer = null;
+    this.activeConversationSyncInFlight = false;
 
     this.setupEventListeners();
   }
@@ -26,14 +29,59 @@ class ReconnectService {
 
   setupEventListeners = () => {
     window.addEventListener('online', this.handleOnlineEvent);
+    window.addEventListener('focus', this.syncActiveConversation);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
     emitter.on(BUS_EVENTS.WEBSOCKET_RECONNECT, this.onReconnect);
     emitter.on(BUS_EVENTS.WEBSOCKET_DISCONNECT, this.onDisconnect);
+    this.activeConversationSyncTimer = window.setInterval(
+      this.syncActiveConversation,
+      ACTIVE_CONVERSATION_SYNC_INTERVAL
+    );
   };
 
   removeEventListeners = () => {
     window.removeEventListener('online', this.handleOnlineEvent);
+    window.removeEventListener('focus', this.syncActiveConversation);
+    document.removeEventListener(
+      'visibilitychange',
+      this.handleVisibilityChange
+    );
     emitter.off(BUS_EVENTS.WEBSOCKET_RECONNECT, this.onReconnect);
     emitter.off(BUS_EVENTS.WEBSOCKET_DISCONNECT, this.onDisconnect);
+    window.clearInterval(this.activeConversationSyncTimer);
+    this.activeConversationSyncTimer = null;
+  };
+
+  handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      this.syncActiveConversation();
+    }
+  };
+
+  syncActiveConversation = async () => {
+    if (
+      this.activeConversationSyncInFlight ||
+      document.visibilityState !== 'visible'
+    ) {
+      return;
+    }
+
+    const currentRoute = this.router.currentRoute.value.name;
+    if (!isAConversationRoute(currentRoute, true)) return;
+
+    const { conversation_id: conversationId } =
+      this.router.currentRoute.value.params;
+    if (!conversationId) return;
+
+    this.activeConversationSyncInFlight = true;
+    try {
+      await this.store.dispatch('syncActiveConversationMessages', {
+        conversationId: Number(conversationId),
+        preserveLastMessageId: true,
+      });
+    } finally {
+      this.activeConversationSyncInFlight = false;
+    }
   };
 
   getSecondsSinceDisconnect = () =>

@@ -198,7 +198,7 @@ const actions = {
 
   syncActiveConversationMessages: async (
     { commit, state, dispatch },
-    { conversationId }
+    { conversationId, preserveLastMessageId = false }
   ) => {
     const { allConversations, syncConversationsMessages } = state;
     const lastMessageId = syncConversationsMessages[conversationId];
@@ -234,7 +234,9 @@ const actions = {
       });
       commit(types.SET_LAST_MESSAGE_ID_IN_SYNC_CONVERSATION, {
         conversationId,
-        messageId: null,
+        messageId: preserveLastMessageId
+          ? sortedMessages[sortedMessages.length - 1]?.id || null
+          : null,
       });
       dispatch('markMessagesRead', { id: conversationId }, { root: true });
     } catch (error) {

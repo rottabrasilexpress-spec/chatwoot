@@ -335,7 +335,12 @@ class Message < ApplicationRecord
   end
 
   def update_contact_activity
-    sender.update(last_activity_at: DateTime.now) if sender.is_a?(Contact)
+    return unless sender.is_a?(Contact)
+
+    sender.update(last_activity_at: DateTime.now)
+    return unless incoming? && !private? && inbox.api?
+
+    RottaUazapiContactAvatarSyncJob.perform_later(account_id, sender.id)
   end
 
   def mark_conversation_read_after_outgoing_response

@@ -670,6 +670,38 @@ describe('#addMentions', () => {
     ]);
   });
 
+  it('#syncActiveConversationMessages preserves the cursor for live reconciliation', async () => {
+    const conversations = [
+      {
+        id: 1,
+        messages: [{ id: 1, content: 'Hello' }],
+      },
+    ];
+    axios.get.mockResolvedValue({
+      data: {
+        payload: [{ id: 2, content: 'Welcome' }],
+        meta: {},
+      },
+    });
+
+    await actions.syncActiveConversationMessages(
+      {
+        commit,
+        dispatch,
+        state: {
+          allConversations: conversations,
+          syncConversationsMessages: { 1: 1 },
+        },
+      },
+      { conversationId: 1, preserveLastMessageId: true }
+    );
+
+    expect(commit).toHaveBeenCalledWith(
+      'SET_LAST_MESSAGE_ID_FOR_SYNC_CONVERSATION',
+      { conversationId: 1, messageId: 2 }
+    );
+  });
+
   describe('#fetchAllAttachments', () => {
     it('fetches all attachments', async () => {
       axios.get.mockResolvedValue({

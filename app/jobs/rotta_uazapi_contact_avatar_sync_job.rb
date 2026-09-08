@@ -14,6 +14,7 @@ class RottaUazapiContactAvatarSyncJob < ApplicationJob
   BASE_URL = ENV.fetch('ROTTABRASIL_UAZAPI_BASE_URL', 'https://transportadoras.uazapi.com').freeze
   BATCH_SIZE = ENV.fetch('ROTTABRASIL_UAZAPI_AVATAR_BATCH_SIZE', '50').to_i.clamp(1, 250)
   SYNC_INTERVAL = ENV.fetch('ROTTABRASIL_UAZAPI_AVATAR_SYNC_HOURS', '12').to_i.clamp(1, 168).hours
+  EVENT_SYNC_COOLDOWN = 1.minute
   REQUEST_TIMEOUT = 12
 
   IMAGE_KEYS = %w[
@@ -25,6 +26,8 @@ class RottaUazapiContactAvatarSyncJob < ApplicationJob
     return if instance_token.blank?
 
     contacts_scope(account_id, contact_id).each do |contact|
+      next if contact_id.present? && event_sync_recent?(contact)
+
       sync_contact(contact)
     end
   end
@@ -72,6 +75,15 @@ class RottaUazapiContactAvatarSyncJob < ApplicationJob
   rescue StandardError => e
     mark_sync(contact, 'error') if contact&.persisted?
     Rails.logger.warn("[RottaAvatarSync] contact=#{contact&.id} #{e.class}: #{e.message}")
+  end
+
+  def event_sync_recent?(contact)
+    last_sync_at = contact.additional_attributes&.[]('rotta_uazapi_avatar_sync_at')
+    return false if last_sync_at.blank?
+
+    Time.zone.parse(last_sync_at) >= EVENT_SYNC_COOLDOWN.ago
+  rescue ArgumentError, TypeError
+    false
   end
 
   def fetch_chat_details(number)

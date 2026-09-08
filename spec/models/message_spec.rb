@@ -420,6 +420,24 @@ RSpec.describe Message do
   context 'when message is created' do
     let(:message) { build(:message, account: create(:account)) }
 
+    context 'when an incoming message belongs to an API inbox' do
+      let(:api_channel) { create(:channel_api, account: message.account) }
+
+      before do
+        message.inbox = api_channel.inbox
+        message.conversation.update!(inbox: api_channel.inbox)
+        message.message_type = :incoming
+        allow(RottaUazapiContactAvatarSyncJob).to receive(:perform_later)
+      end
+
+      it 'schedules a contact avatar refresh' do
+        message.save!
+
+        expect(RottaUazapiContactAvatarSyncJob).to have_received(:perform_later)
+          .with(message.account_id, message.sender_id)
+      end
+    end
+
     it 'updates conversation last_activity_at when created' do
       message.save!
       expect(message.created_at).to eq message.conversation.last_activity_at

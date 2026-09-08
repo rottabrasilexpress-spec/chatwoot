@@ -46,6 +46,7 @@ describe('ReconnectService', () => {
   let reconnectService;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     window.addEventListener = vi.fn();
     window.removeEventListener = vi.fn();
     Object.defineProperty(window, 'location', {
@@ -56,6 +57,8 @@ describe('ReconnectService', () => {
   });
 
   afterEach(() => {
+    reconnectService.disconnect();
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -237,6 +240,43 @@ describe('ReconnectService', () => {
         'syncActiveConversationMessages',
         expect.anything()
       );
+    });
+  });
+
+  describe('active conversation synchronization', () => {
+    beforeEach(() => {
+      isAConversationRoute.mockReturnValue(true);
+      routerMock.currentRoute.value.params.conversation_id = 1;
+      storeMock.dispatch.mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      routerMock.currentRoute.value.params.conversation_id = null;
+    });
+
+    it('synchronizes the visible conversation periodically', async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(storeMock.dispatch).toHaveBeenCalledWith(
+        'syncActiveConversationMessages',
+        { conversationId: 1, preserveLastMessageId: true }
+      );
+    });
+
+    it('does not start a second synchronization while one is in flight', async () => {
+      let resolveSync;
+      storeMock.dispatch.mockImplementation(action =>
+        action === 'syncActiveConversationMessages'
+          ? new Promise(resolve => {
+              resolveSync = resolve;
+            })
+          : Promise.resolve(undefined)
+      );
+
+      await vi.advanceTimersByTimeAsync(10000);
+
+      expect(storeMock.dispatch).toHaveBeenCalledTimes(1);
+      resolveSync();
     });
   });
 
