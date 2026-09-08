@@ -7,6 +7,8 @@ import {
   isWithinDispatchWindow,
   kanbanBucketFor,
   delayHoursFor,
+  FOLLOW_UP_STAGE_ORDER,
+  orderedFollowUpStages,
 } from '../followUpHelpers';
 
 const WINDOW = {
@@ -97,5 +99,22 @@ describe('follow-up helpers', () => {
       timezone: 'America/Sao_Paulo',
       source: 'api',
     });
+  });
+
+  it('keeps configured stages in operational order and appends unknown labels', () => {
+    expect(
+      orderedFollowUpStages([
+        'orcamento-feito',
+        'primeiro-contato',
+        'etapa-customizada',
+        'arquivado',
+      ])
+    ).toEqual([
+      'primeiro-contato',
+      'orcamento-feito',
+      'arquivado',
+      'etapa-customizada',
+    ]);
+    expect(FOLLOW_UP_STAGE_ORDER[0]).toBe('contato-instantaneo');
   });
 });

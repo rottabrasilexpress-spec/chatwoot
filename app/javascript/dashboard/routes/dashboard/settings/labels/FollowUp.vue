@@ -16,8 +16,10 @@ import {
   delayHoursFor,
   dispatchWindowFor,
   effectiveDispatchAt,
+  FOLLOW_UP_STAGE_ORDER,
   isHistoricalJob,
   kanbanBucketFor,
+  orderedFollowUpStages,
 } from './followUpHelpers';
 
 const TIMEZONE = 'America/Sao_Paulo';
@@ -69,7 +71,7 @@ const now = ref(Date.now());
 const lastSyncedAt = ref(null);
 const expandedJobs = ref(new Set());
 const pendingEnrollments = ref([]);
-const selectedView = ref('active');
+const selectedView = ref('stages');
 const customHours = ref({});
 let refreshTimer;
 let clockTimer;
@@ -327,6 +329,32 @@ const stageOptions = computed(() => {
   );
 });
 
+const stageColumns = computed(() => {
+  const stages = orderedFollowUpStages([
+    ...FOLLOW_UP_STAGE_ORDER,
+    ...queueJobs.value.map(currentStage),
+  ]);
+
+  const stageDescription = stage => {
+    if (stage === 'arquivado') return 'Clientes retirados da operação ativa';
+    if (stage === 'clientes-fechados') return 'Conversões concluídas';
+    return 'Clientes nesta etapa da trilha';
+  };
+
+  const stageIcon = stage => {
+    if (stage === 'arquivado') return 'i-lucide-archive';
+    if (stage === 'clientes-fechados') return 'i-lucide-handshake';
+    return 'i-lucide-tag';
+  };
+
+  return stages.map(stage => ({
+    key: stage,
+    title: labelInfo(stage).title,
+    description: stageDescription(stage),
+    icon: stageIcon(stage),
+  }));
+});
+
 const activeJobs = computed(() =>
   queueJobs.value.filter(job => !isHistoricalJob(job))
 );
@@ -334,33 +362,35 @@ const activeJobs = computed(() =>
 const bucketFor = job => kanbanBucketFor(job, now.value, responseMeta.value);
 
 const viewCount = view => {
+  if (view === 'stages') return activeJobs.value.length;
   if (view === 'active') return activeJobs.value.length;
   if (view === 'all') return queueJobs.value.length;
   return queueJobs.value.filter(job => bucketFor(job) === view).length;
 };
 
 const viewOptions = computed(() => [
-  { key: 'active', title: 'Ativos' },
+  { key: 'stages', title: 'Etapas' },
   { key: 'all', title: 'Todos' },
+  { key: 'active', title: 'Ativos' },
   ...kanbanColumns.map(({ key, title }) => ({ key, title })),
 ]);
 
 const visibleColumns = computed(() =>
-  kanbanColumns.filter(column => {
-    if (selectedView.value === 'active') return column.key !== 'history';
-    if (selectedView.value === 'all') return true;
-    return selectedView.value === column.key;
-  })
+  ['stages', 'all'].includes(selectedView.value)
+    ? stageColumns.value
+    : kanbanColumns.filter(column => {
+        if (selectedView.value === 'active') return column.key !== 'history';
+        return selectedView.value === column.key;
+      })
 );
 
 const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
   return queueJobs.value.filter(job => {
     const bucket = bucketFor(job);
-    const matchesView =
-      selectedView.value === 'active'
-        ? !isHistoricalJob(job)
-        : selectedView.value === 'all' || bucket === selectedView.value;
+    const matchesView = ['stages', 'active'].includes(selectedView.value)
+      ? !isHistoricalJob(job)
+      : selectedView.value === 'all' || bucket === selectedView.value;
     const matchesStage =
       selectedStage.value === 'all' ||
       currentStage(job) === selectedStage.value;
@@ -380,7 +410,11 @@ const filteredJobs = computed(() => {
 });
 
 const jobsForColumn = columnKey =>
-  filteredJobs.value.filter(job => bucketFor(job) === columnKey);
+  filteredJobs.value.filter(job =>
+    ['stages', 'all'].includes(selectedView.value)
+      ? currentStage(job) === columnKey
+      : bucketFor(job) === columnKey
+  );
 
 const dueCount = computed(
   () =>
@@ -803,6 +837,9 @@ onUnmounted(() => {
                     'rotta-board-card--expanded': isHistoryExpanded(job),
                   }"
                   tabindex="0"
+                  role="button"
+                  :aria-expanded="isHistoryExpanded(job)"
+                  :aria-label="`Abrir trilha de ${job.customer_name || 'cliente'}`"
                   @click="toggleJobHistory(job)"
                   @keydown.enter="toggleJobHistory(job)"
                 >
@@ -880,8 +917,18 @@ onUnmounted(() => {
                   <div class="rotta-board-card__footer">
                     <button
                       type="button"
-                      class="rotta-history-toggle"
+                      class="rotta-history-toggle rotta-history-toggle--icon"
                       :aria-expanded="isHistoryExpanded(job)"
+                      :aria-label="
+                        isHistoryExpanded(job)
+                          ? 'Ocultar trilha'
+                          : 'Mostrar trilha'
+                      "
+                      :title="
+                        isHistoryExpanded(job)
+                          ? 'Ocultar trilha'
+                          : 'Mostrar trilha'
+                      "
                       @click.stop="toggleJobHistory(job)"
                     >
                       <Icon
@@ -892,11 +939,6 @@ onUnmounted(() => {
                         "
                         class="size-3.5"
                       />
-                      {{
-                        isHistoryExpanded(job)
-                          ? 'Ocultar trilha'
-                          : 'Abrir trilha do cliente'
-                      }}
                     </button>
                     <span
                       v-if="deliveryEvidence(job)?.message_id"
@@ -1051,8 +1093,18 @@ onUnmounted(() => {
                       </button>
                       <button
                         type="button"
-                        class="rotta-history-toggle"
+                        class="rotta-history-toggle rotta-history-toggle--icon"
                         :aria-expanded="isHistoryExpanded(job)"
+                        :aria-label="
+                          isHistoryExpanded(job)
+                            ? 'Ocultar trilha'
+                            : 'Mostrar trilha'
+                        "
+                        :title="
+                          isHistoryExpanded(job)
+                            ? 'Ocultar trilha'
+                            : 'Mostrar trilha'
+                        "
                         @click.stop="toggleJobHistory(job)"
                       >
                         <Icon
@@ -1063,11 +1115,6 @@ onUnmounted(() => {
                           "
                           class="size-3.5"
                         />
-                        {{
-                          isHistoryExpanded(job)
-                            ? 'Ocultar trilha'
-                            : 'Ver trilha completa'
-                        }}
                       </button>
                     </td>
                     <td>
@@ -1254,12 +1301,22 @@ onUnmounted(() => {
                   {{ evidenceConfirmationText(job) }}
                 </small>
               </div>
-              <button
-                type="button"
-                class="rotta-history-toggle rotta-history-toggle--mobile"
-                :aria-expanded="isHistoryExpanded(job)"
-                @click.stop="toggleJobHistory(job)"
-              >
+                <button
+                  type="button"
+                  class="rotta-history-toggle rotta-history-toggle--mobile rotta-history-toggle--icon"
+                  :aria-expanded="isHistoryExpanded(job)"
+                  :aria-label="
+                    isHistoryExpanded(job)
+                      ? 'Ocultar trilha'
+                      : 'Mostrar trilha'
+                  "
+                  :title="
+                    isHistoryExpanded(job)
+                      ? 'Ocultar trilha'
+                      : 'Mostrar trilha'
+                  "
+                  @click.stop="toggleJobHistory(job)"
+                >
                 <Icon
                   :icon="
                     isHistoryExpanded(job)
@@ -1268,12 +1325,7 @@ onUnmounted(() => {
                   "
                   class="size-3.5"
                 />
-                {{
-                  isHistoryExpanded(job)
-                    ? 'Ocultar trilha'
-                    : 'Ver trilha completa'
-                }}
-              </button>
+                </button>
               <div v-if="isHistoryExpanded(job)" class="rotta-history">
                 <div class="rotta-history__heading">
                   <strong>Trilha do cliente</strong>
@@ -1717,6 +1769,11 @@ onUnmounted(() => {
   flex: 0 0 auto;
 }
 
+.rotta-board-card__footer .rotta-delivery-evidence {
+  flex: 1;
+  text-align: right;
+}
+
 .rotta-hours-input {
   display: inline-flex;
   align-items: center;
@@ -1850,6 +1907,21 @@ onUnmounted(() => {
 
 .rotta-history-toggle:hover {
   @apply text-n-blue-12;
+}
+
+.rotta-history-toggle--icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  justify-content: center;
+  margin-top: 0;
+  padding: 0;
+  @apply bg-n-alpha-1 border border-n-weak;
+  border-radius: 0.5rem;
+}
+
+.rotta-history-toggle--icon:hover,
+.rotta-history-toggle--icon:focus-visible {
+  @apply bg-n-blue-2 border-n-blue-7;
 }
 
 .rotta-history-row td {
@@ -2152,6 +2224,15 @@ onUnmounted(() => {
 
   .rotta-board-card__actions :deep(button) {
     flex: 1 1 auto;
+  }
+
+  .rotta-board-card {
+    gap: 0.6rem;
+    padding: 0.65rem;
+  }
+
+  .rotta-board-card__footer .rotta-delivery-evidence {
+    text-align: left;
   }
 }
 </style>

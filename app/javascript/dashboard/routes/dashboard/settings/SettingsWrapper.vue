@@ -16,13 +16,20 @@ const route = useRoute();
 const routeKey = computed(() =>
   route.meta.reuseOnQueryChange ? route.path : route.fullPath
 );
+
+const isRottaWideSettings = computed(() =>
+  ['labels_list', 'rotta_follow_up'].includes(String(route.name))
+);
 </script>
 
 <template>
   <div
     class="flex flex-col w-full h-full m-0 pb-8 pt-4 px-6 overflow-auto bg-n-surface-1"
   >
-    <div class="flex items-start w-full max-w-5xl mx-auto">
+    <div
+      class="flex items-start w-full max-w-5xl mx-auto"
+      :class="{ '!max-w-none': isRottaWideSettings }"
+    >
       <router-view v-slot="{ Component }">
         <keep-alive v-if="keepAlive">
           <component :is="Component" :key="routeKey" />

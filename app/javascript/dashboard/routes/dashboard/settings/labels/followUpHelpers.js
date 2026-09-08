@@ -25,6 +25,23 @@ export const CONFIGURED_DELAY_HOURS = {
   'orcamento-15-dias': 360,
 };
 
+export const FOLLOW_UP_STAGE_ORDER = [
+  ...Object.keys(CONFIGURED_DELAY_HOURS),
+  'clientes-fechados',
+  'arquivado',
+];
+
+export const orderedFollowUpStages = stages => {
+  const uniqueStages = [...new Set(stages.filter(Boolean))];
+  const knownStages = FOLLOW_UP_STAGE_ORDER.filter(stage =>
+    uniqueStages.includes(stage)
+  );
+  const additionalStages = uniqueStages
+    .filter(stage => !FOLLOW_UP_STAGE_ORDER.includes(stage))
+    .sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+  return [...knownStages, ...additionalStages];
+};
+
 const HISTORICAL_STATUSES = new Set(['sent_history', 'history_only']);
 
 export const isHistoricalJob = job => HISTORICAL_STATUSES.has(job?.status);

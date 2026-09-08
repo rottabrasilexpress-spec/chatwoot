@@ -1,5 +1,5 @@
 <script setup>
-import { h, ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { provideSidebarContext, useSidebarResize } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useConfig } from 'dashboard/composables/useConfig';
@@ -20,12 +20,6 @@ import SidebarChangelogButton from './SidebarChangelogButton.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
-import {
-  SIDEBAR_SORT_SECTIONS,
-  getSidebarSortOptions,
-  resolveSidebarSort,
-  sortSidebarItems,
-} from 'dashboard/helper/sidebarSort';
 import wootConstants from 'dashboard/constants/globals';
 
 const props = defineProps({
@@ -206,16 +200,11 @@ const allUnreadCount = useMapGetter(
 const getLabelUnreadCount = useMapGetter(
   'conversationUnreadCounts/getLabelUnreadCount'
 );
-const contactCustomViews = useMapGetter('customViews/getContactCustomViews');
-const getSidebarSectionSort = useMapGetter(
-  'sidebarSortPreferences/getSectionSort'
-);
 
 onMounted(() => {
   store.dispatch('labels/get');
   store.dispatch('notifications/unReadCount');
   store.dispatch('attributes/get');
-  store.dispatch('customViews/get', 'contact');
 });
 
 watch([accountId, hasConversationUnreadCounts], fetchConversationUnreadCounts, {
@@ -226,70 +215,12 @@ watch([accountId, currentUserId], fetchSidebarSortPreferences, {
   immediate: true,
 });
 
-const hasUnreadCountsForSection = () => hasConversationUnreadCounts.value;
-
-const getSortOptionsForSection = section =>
-  getSidebarSortOptions(section, {
-    hasUnreadCounts: hasUnreadCountsForSection(section),
-  });
-
-const getSortForSection = section =>
-  resolveSidebarSort(section, getSidebarSectionSort.value(section), {
-    hasUnreadCounts: hasUnreadCountsForSection(section),
-  });
-
-const updateSortPreference = (section, sortBy) => {
-  store.dispatch('sidebarSortPreferences/setSectionSort', {
-    section,
-    sortBy,
-  });
-};
-
-const buildSortConfig = section => ({
-  sortOptions: getSortOptionsForSection(section),
-  activeSort: getSortForSection(section),
-  onSortChange: sortBy => updateSortPreference(section, sortBy),
-});
-
 const normalizeSidebarLabel = value =>
   String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
-
-const ROTTA_LABEL_ORDER = [
-  'kelvincaio',
-  'contatoinstantaneo',
-  'primeirocontato',
-  'segundocontato',
-  'terceirocontato',
-  'ultimocontato',
-  'orcamentoinstantaneo',
-  'orcamentofeito',
-  'orcamentotentativa2',
-  'orcamentotentativa3',
-  'orcamentotentativa4',
-  'orcamento5dias',
-  'orcamento10dias',
-  'orcamento15dias',
-  'clientesfechados',
-  'arquivado',
-];
-
-const rottaLabelOrder = label => {
-  const index = ROTTA_LABEL_ORDER.indexOf(normalizeSidebarLabel(label.title));
-  return index === -1 ? ROTTA_LABEL_ORDER.length : index;
-};
-
-const sortedLabels = computed(() =>
-  sortSidebarItems(labels.value, {
-    sortBy: getSortForSection(SIDEBAR_SORT_SECTIONS.LABELS),
-    labelKey: label => label.title,
-    unreadCountKey: label => getLabelUnreadCount.value(label.id),
-    orderKey: rottaLabelOrder,
-  })
-);
 
 const budgetLabel = computed(
   () =>
@@ -415,27 +346,6 @@ const menuItems = computed(() => {
           to: accountScopedRoute('conversation_priority'),
         },
         {
-          name: 'Labels',
-          label: 'Etiquetas',
-          icon: 'i-lucide-tag',
-          activeOn: ['conversations_through_label'],
-          ...buildSortConfig(SIDEBAR_SORT_SECTIONS.LABELS),
-          collapsible: true,
-          showTreeLine: true,
-          children: sortedLabels.value.map(label => ({
-            name: `${label.title}-${label.id}`,
-            label: label.title,
-            badgeCount: getLabelUnreadCount.value(label.id),
-            icon: h('span', {
-              class: `size-[8px] rounded-sm`,
-              style: { backgroundColor: label.color },
-            }),
-            to: accountScopedRoute('label_conversations', {
-              label: label.title,
-            }),
-          })),
-        },
-        {
           name: 'Archived',
           label: 'Arquivados',
           icon: 'i-lucide-archive',
@@ -452,6 +362,13 @@ const menuItems = computed(() => {
       to: accountScopedRoute('rotta_follow_up'),
       activeOn: ['rotta_follow_up'],
     },
+    {
+      name: 'Labels',
+      label: 'Etiquetas',
+      icon: 'i-lucide-tags',
+      to: accountScopedRoute('labels_list'),
+      activeOn: ['labels_list', 'labels_wrapper'],
+    },
     ...(isCallsAvailable.value
       ? [
           {
@@ -463,73 +380,6 @@ const menuItems = computed(() => {
           },
         ]
       : []),
-    {
-      name: 'Contacts',
-      label: t('SIDEBAR.CONTACTS'),
-      icon: 'i-lucide-contact',
-      children: [
-        {
-          name: 'All Contacts',
-          label: t('SIDEBAR.ALL_CONTACTS'),
-          to: accountScopedRoute(
-            'contacts_dashboard_index',
-            {},
-            { page: 1, search: undefined }
-          ),
-          activeOn: ['contacts_dashboard_index', 'contacts_edit'],
-        },
-        {
-          name: 'Active',
-          label: t('SIDEBAR.ACTIVE'),
-          to: accountScopedRoute('contacts_dashboard_active'),
-          activeOn: ['contacts_dashboard_active'],
-        },
-        {
-          name: 'Segments',
-          icon: 'i-lucide-group',
-          label: t('SIDEBAR.CUSTOM_VIEWS_SEGMENTS'),
-          collapsible: true,
-          showTreeLine: true,
-          children: contactCustomViews.value.map(view => ({
-            name: `${view.name}-${view.id}`,
-            label: view.name,
-            to: accountScopedRoute(
-              'contacts_dashboard_segments_index',
-              { segmentId: view.id },
-              { page: 1 }
-            ),
-            activeOn: [
-              'contacts_dashboard_segments_index',
-              'contacts_edit_segment',
-            ],
-          })),
-        },
-        {
-          name: 'Tagged With',
-          icon: 'i-lucide-tag',
-          label: t('SIDEBAR.TAGGED_WITH'),
-          collapsible: true,
-          showTreeLine: true,
-          children: labels.value.map(label => ({
-            name: `${label.title}-${label.id}`,
-            label: label.title,
-            icon: h('span', {
-              class: `size-[8px] rounded-sm`,
-              style: { backgroundColor: label.color },
-            }),
-            to: accountScopedRoute(
-              'contacts_dashboard_labels_index',
-              { label: label.title },
-              { page: 1, search: undefined }
-            ),
-            activeOn: [
-              'contacts_dashboard_labels_index',
-              'contacts_edit_label',
-            ],
-          })),
-        },
-      ],
-    },
     {
       name: 'Companies',
       label: t('SIDEBAR.COMPANIES'),

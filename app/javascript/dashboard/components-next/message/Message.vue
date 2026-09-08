@@ -401,11 +401,9 @@ const canReplyToMessage = computed(() => {
 
 const canShowIncomingReplyAction = computed(
   () =>
-    isBubble.value &&
+    canReplyToMessage.value &&
     props.messageType === MESSAGE_TYPES.INCOMING &&
-    !props.private &&
-    !isFailedOrProcessing.value &&
-    !isMessageDeleted.value
+    isBubble.value
 );
 
 const payloadForContextMenu = computed(() => {
@@ -678,7 +676,6 @@ provideMessageContext({
             slate
             xs
             icon="i-lucide-reply"
-            label="Responder"
             class="rotta-reply-action"
             :aria-label="replyActionLabel"
             :title="replyActionLabel"
@@ -768,13 +765,16 @@ provideMessageContext({
   right: 0.4rem;
   bottom: 0.4rem;
   z-index: 2;
-  min-height: 1.75rem;
-  padding-inline: 0.45rem;
+  width: 1.65rem;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  min-height: 1.65rem;
+  padding: 0 !important;
   opacity: 0;
   pointer-events: none;
   @apply text-n-blue-11 bg-n-solid-1;
   box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
-  text-transform: uppercase;
+  border-radius: 0.5rem;
   transition: opacity 120ms ease;
 }
 

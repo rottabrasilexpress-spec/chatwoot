@@ -1,10 +1,10 @@
 class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseController
   ADMIN_URL = 'https://saas.via-cargo.com/webhook/rotta-chatwoot-followup-admin-v1'.freeze
-  ALLOWED_ACTIONS = %w[list dispatch_now advance delay cancel remove_label].freeze
+  ALLOWED_ACTIONS = %w[list config dispatch_now advance delay cancel remove_label].freeze
 
   def proxy
     payload = JSON.parse(request.raw_post.presence || '{}').slice(
-      'action', 'job_id', 'hours', 'conversation_id', 'label'
+      'action', 'job_id', 'hours', 'conversation_id', 'label', 'config'
     )
     action = payload['action'].to_s
 
@@ -20,7 +20,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
         'Accept' => 'application/json',
         'Content-Type' => 'application/json'
       },
-      body: payload.slice('action', 'job_id', 'hours').to_json,
+      body: payload.slice('action', 'job_id', 'hours', 'config').to_json,
       timeout: 20
     )
 
