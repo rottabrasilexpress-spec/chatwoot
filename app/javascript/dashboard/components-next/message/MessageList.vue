@@ -308,7 +308,7 @@ const getInReplyToMessage = parentMessage => {
   scroll-margin-top: 1rem;
 }
 
-:global(.dark) .rotta-message-list {
+:global(body.dark .rotta-message-list) {
   background-color: #0b141a;
   background-image: radial-gradient(
     circle at 20% 20%,
@@ -317,32 +317,40 @@ const getInReplyToMessage = parentMessage => {
   );
 }
 
-:global(.dark)
-  .rotta-message-list
-  :deep(.rotta-message-bubble-container:hover) {
+:global(body.dark .rotta-message-list .rotta-message-bubble-container:hover) {
   background-color: rgb(255 255 255 / 3%);
 }
 
-:global(.dark)
-  .rotta-message-list:not(.rotta-message-list--email)
-  :deep(.rotta-bubble-incoming) {
+:global(
+    body.dark
+      .rotta-message-list:not(.rotta-message-list--email)
+      .rotta-bubble-incoming
+  ) {
   color: #e9edef !important;
   background-color: #202c33 !important;
 }
 
-:global(.dark)
-  .rotta-message-list:not(.rotta-message-list--email)
-  :deep(.rotta-bubble-outgoing) {
+:global(
+    body.dark
+      .rotta-message-list:not(.rotta-message-list--email)
+      .rotta-bubble-outgoing
+  ) {
   color: #e9edef !important;
   background-color: #005c4b !important;
 }
 
-:global(.dark)
-  .rotta-message-list:not(.rotta-message-list--email)
-  :deep(.rotta-bubble-incoming > .text-xs),
-:global(.dark)
-  .rotta-message-list:not(.rotta-message-list--email)
-  :deep(.rotta-bubble-outgoing > .text-xs) {
+:global(
+    body.dark
+      .rotta-message-list:not(.rotta-message-list--email)
+      .rotta-bubble-incoming
+      > .text-xs
+  ),
+:global(
+    body.dark
+      .rotta-message-list:not(.rotta-message-list--email)
+      .rotta-bubble-outgoing
+      > .text-xs
+  ) {
   color: #aebac1 !important;
 }
 </style>
