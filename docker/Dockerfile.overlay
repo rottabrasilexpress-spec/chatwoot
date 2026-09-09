@@ -26,6 +26,7 @@ COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi
 COPY app/controllers/api/v1/accounts/rotta_follow_up_controller.rb /app/app/controllers/api/v1/accounts/rotta_follow_up_controller.rb
 COPY app/controllers/api/v1/accounts/conversations/messages_controller.rb /app/app/controllers/api/v1/accounts/conversations/messages_controller.rb
 COPY app/controllers/webhooks/uazapi_controller.rb /app/app/controllers/webhooks/uazapi_controller.rb
+COPY app/services/rotta_uazapi_call_event_service.rb /app/app/services/rotta_uazapi_call_event_service.rb
 COPY app/services/messages/send_on_api_service.rb /app/app/services/messages/send_on_api_service.rb
 COPY app/services/messages/uazapi_action_service.rb /app/app/services/messages/uazapi_action_service.rb
 COPY app/jobs/send_reply_job.rb /app/app/jobs/send_reply_job.rb
