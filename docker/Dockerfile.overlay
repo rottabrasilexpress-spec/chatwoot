@@ -10,6 +10,7 @@ COPY public/vite /app/public/vite
 COPY public/brand-assets/rottabrasil-logo.png /app/public/brand-assets/rottabrasil-logo.png
 COPY public/brand-assets/rottabrasil-logo-dark.png /app/public/brand-assets/rottabrasil-logo-dark.png
 COPY public/brand-assets/rottabrasil-mark.png /app/public/brand-assets/rottabrasil-mark.png
+COPY public/brand-assets/rottabrasil-mark-transparent.png /app/public/brand-assets/rottabrasil-mark-transparent.png
 COPY public/manifest.json /app/public/manifest.json
 COPY config/installation_config.yml /app/config/installation_config.yml
 COPY config/schedule.yml /app/config/schedule.yml
