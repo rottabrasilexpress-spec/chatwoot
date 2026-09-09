@@ -1,13 +1,18 @@
+require 'digest'
+
 class Webhooks::UazapiController < ActionController::API
   include Events::Types
 
   ACCOUNT_ID = ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   WEBHOOK_TOKEN = ENV.fetch('ROTTABRASIL_UAZAPI_WEBHOOK_TOKEN').freeze
+  UNKNOWN_DELIVERY_EVENT = 'unknown'.freeze
 
   def process_payload
     return render json: { ok: false }, status: :unauthorized unless params[:token].to_s == WEBHOOK_TOKEN
 
+    begin_uazapi_delivery
     payload = JSON.parse(request.raw_post.presence || '{}')
+    register_uazapi_delivery(payload)
     event = extract_event(payload)
 
     if presence_event?(event)
@@ -36,15 +41,146 @@ class Webhooks::UazapiController < ActionController::API
       message.update!(message_update_attributes(message, payload, raw_status))
     end
 
+    associate_uazapi_delivery(messages.first.conversation)
+
     render json: { ok: true, message_ids: messages.map(&:id), status: messages.map(&:status).uniq.join(',') }
-  rescue JSON::ParserError
+  rescue JSON::ParserError => e
+    @uazapi_delivery_error = e
     render json: { ok: false, error: 'Payload inválido.' }, status: :bad_request
   rescue StandardError => e
-    Rails.logger.error("[UazapiWebhook] #{e.class}: #{e.message}")
+    @uazapi_delivery_error = e
+    Rails.logger.error("[UazapiWebhook] correlation_id=#{@uazapi_delivery_correlation_id} class=#{e.class.name} error=processing_failed")
     render json: { ok: false, error: 'Falha ao processar confirmação Uazapi.' }, status: :unprocessable_entity
+  ensure
+    finalize_uazapi_delivery
   end
 
   private
+
+  def begin_uazapi_delivery
+    @uazapi_delivery_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    payload_digest = Digest::SHA256.hexdigest(request.raw_post.to_s)
+    @uazapi_delivery_correlation_id = sanitized_correlation_id(request.request_id, payload_digest)
+    @uazapi_delivery = UazapiWebhookDelivery.create!(
+      account_id: ACCOUNT_ID,
+      event: UNKNOWN_DELIVERY_EVENT,
+      status: 'received',
+      attempts: 1,
+      received_at: Time.current,
+      payload_digest: payload_digest,
+      correlation_id: @uazapi_delivery_correlation_id,
+      metadata: request_delivery_metadata
+    )
+  rescue StandardError => e
+    @uazapi_delivery = nil
+    Rails.logger.error("[UazapiWebhookTelemetry] start_failed class=#{e.class.name}")
+  end
+
+  def register_uazapi_delivery(payload)
+    return unless @uazapi_delivery
+
+    @uazapi_delivery.update_columns(
+      event: sanitized_delivery_event(extract_event(payload)),
+      provider_message_id: extract_provider_ids(payload).first&.to_s&.presence,
+      track_id: value_for_keys(payload, %w[track_id trackId])&.to_s&.presence,
+      status: 'processing',
+      metadata: payload_delivery_metadata(payload),
+      updated_at: Time.current
+    )
+  rescue StandardError => e
+    Rails.logger.error("[UazapiWebhookTelemetry] register_failed correlation_id=#{@uazapi_delivery_correlation_id} class=#{e.class.name}")
+  end
+
+  def finalize_uazapi_delivery
+    return unless @uazapi_delivery
+
+    response_status = response.status.to_i
+    duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - @uazapi_delivery_started_at) * 1000).round
+    body = response_body
+    status = delivery_status(response_status, body)
+    attributes = {
+      status: status,
+      processed_at: Time.current,
+      duration_ms: duration_ms,
+      response_status: response_status,
+      updated_at: Time.current
+    }
+    if @uazapi_delivery_error
+      attributes[:error_class] = @uazapi_delivery_error.class.name
+      attributes[:error_message] = delivery_error_message(@uazapi_delivery_error)
+    elsif response_status >= 400
+      attributes[:error_class] = "HTTP::#{response_status}"
+      attributes[:error_message] = 'http_error'
+    end
+
+    @uazapi_delivery.update_columns(attributes)
+    Rails.logger.info(
+      "[UazapiWebhookDelivery] delivery_id=#{@uazapi_delivery.id} " \
+      "correlation_id=#{@uazapi_delivery_correlation_id} event=#{sanitized_delivery_event(@uazapi_delivery.event)} " \
+      "status=#{status} response_status=#{response_status} duration_ms=#{duration_ms}"
+    )
+  rescue StandardError => e
+    Rails.logger.error("[UazapiWebhookTelemetry] finalize_failed correlation_id=#{@uazapi_delivery_correlation_id} class=#{e.class.name}")
+  end
+
+  def delivery_status(response_status, body)
+    return 'failed' if response_status >= 400
+
+    ignored = body.is_a?(Hash) ? body['ignored'].to_s : ''
+    return 'duplicate' if ignored.match?(/duplicad/i)
+    return 'ignored' if ignored.present?
+
+    'persisted'
+  end
+
+  def response_body
+    JSON.parse(response.body.to_s)
+  rescue JSON::ParserError
+    {}
+  end
+
+  def delivery_error_message(error)
+    error.is_a?(JSON::ParserError) ? 'invalid_json' : 'processing_failed'
+  end
+
+  def associate_uazapi_delivery(conversation)
+    return unless @uazapi_delivery && conversation
+
+    @uazapi_delivery.update_columns(conversation_id: conversation.id, updated_at: Time.current)
+  rescue StandardError => e
+    Rails.logger.error("[UazapiWebhookTelemetry] association_failed correlation_id=#{@uazapi_delivery_correlation_id} class=#{e.class.name}")
+  end
+
+  def request_delivery_metadata
+    {
+      'content_type' => request.content_type.to_s.presence,
+      'content_length' => request.content_length.to_i
+    }.compact
+  end
+
+  def payload_delivery_metadata(payload)
+    keys = payload_hashes(payload).flat_map { |node| node.keys.map { |key| sanitized_metadata_key(key) } }.compact.uniq.sort
+
+    {
+      'top_level_keys' => (payload.is_a?(Hash) ? payload.keys.map { |key| sanitized_metadata_key(key) }.compact : []),
+      'nested_keys' => keys.first(100),
+      'has_message_id' => keys.any? { |key| %w[messageid message_id messageids message_ids].include?(key) },
+      'has_chat_identifier' => keys.any? { |key| %w[chatid chat_id remotejid remote_jid jid].include?(key) },
+      'has_text_content' => keys.any? { |key| %w[text caption body content].include?(key) }
+    }
+  end
+
+  def sanitized_metadata_key(key)
+    key.to_s.downcase.gsub(/[^a-z0-9_:-]/, '_')[0, 80].presence
+  end
+
+  def sanitized_delivery_event(event)
+    event.to_s.downcase.gsub(/[^a-z0-9_.:-]/, '_')[0, 100].presence || UNKNOWN_DELIVERY_EVENT
+  end
+
+  def sanitized_correlation_id(request_id, payload_digest)
+    request_id.to_s.gsub(/[^a-zA-Z0-9_.:-]/, '_')[0, 100].presence || "uazapi-#{payload_digest.first(24)}"
+  end
 
   def process_presence_event(payload)
     presence = normalize_presence(extract_presence(payload))
@@ -52,6 +188,7 @@ class Webhooks::UazapiController < ActionController::API
 
     conversation = find_conversation(payload, direct_only: true)
     return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
+    associate_uazapi_delivery(conversation)
 
     event_name = presence == :on ? CONVERSATION_TYPING_ON : CONVERSATION_TYPING_OFF
     Rails.configuration.dispatcher.dispatch(
@@ -90,6 +227,8 @@ class Webhooks::UazapiController < ActionController::API
 
   def process_call_event(payload)
     result = RottaUazapiCallEventService.perform(account_id: ACCOUNT_ID, payload: payload)
+    conversation_id = Call.where(id: result[:call_ids]).pick(:conversation_id) if result[:call_ids].present?
+    associate_uazapi_delivery(Conversation.find_by(id: conversation_id)) if conversation_id
     render json: result
   end
 
@@ -110,6 +249,7 @@ class Webhooks::UazapiController < ActionController::API
 
     conversation = find_conversation(incoming)
     return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
+    associate_uazapi_delivery(conversation)
 
     content = incoming_message_content(incoming)
     return render json: { ok: true, ignored: 'conteúdo não suportado' } if content.blank?
@@ -140,12 +280,14 @@ class Webhooks::UazapiController < ActionController::API
 
     existing_message = find_existing_echo_message(payload, provider_id)
     if existing_message
+      associate_uazapi_delivery(existing_message.conversation)
       existing_message.update!(source_id: provider_id) if existing_message.source_id.blank?
       return render json: { ok: true, message_ids: [existing_message.id], source_id: provider_id }
     end
 
     conversation = find_conversation(incoming)
     return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
+    associate_uazapi_delivery(conversation)
 
     content = incoming_message_content(incoming)
     return render json: { ok: true, ignored: 'conteúdo não suportado' } if content.blank?

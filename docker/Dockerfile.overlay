@@ -20,9 +20,11 @@ COPY db/migrate/20260821000001_archive_existing_rotta_conversations.rb /app/db/m
 COPY db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb /app/db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb
 COPY db/migrate/20260822000001_clear_rotta_conversation_teams.rb /app/db/migrate/20260822000001_clear_rotta_conversation_teams.rb
 COPY db/migrate/20260908000000_create_message_stars.rb /app/db/migrate/20260908000000_create_message_stars.rb
+COPY db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb /app/db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi_contact_avatar_sync_job.rb
+COPY app/jobs/rotta_uazapi_webhook_delivery_retention_job.rb /app/app/jobs/rotta_uazapi_webhook_delivery_retention_job.rb
 COPY app/controllers/api/v1/accounts/rotta_follow_up_controller.rb /app/app/controllers/api/v1/accounts/rotta_follow_up_controller.rb
 COPY app/controllers/api/v1/accounts/conversations/messages_controller.rb /app/app/controllers/api/v1/accounts/conversations/messages_controller.rb
 COPY app/controllers/webhooks/uazapi_controller.rb /app/app/controllers/webhooks/uazapi_controller.rb
@@ -36,6 +38,7 @@ COPY app/services/conversations/assignment_service.rb /app/app/services/conversa
 COPY app/models/conversation.rb /app/app/models/conversation.rb
 COPY app/models/message.rb /app/app/models/message.rb
 COPY app/models/message_star.rb /app/app/models/message_star.rb
+COPY app/models/uazapi_webhook_delivery.rb /app/app/models/uazapi_webhook_delivery.rb
 COPY app/models/account.rb /app/app/models/account.rb
 COPY app/models/user.rb /app/app/models/user.rb
 COPY app/models/label.rb /app/app/models/label.rb

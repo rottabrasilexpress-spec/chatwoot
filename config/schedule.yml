@@ -88,3 +88,9 @@ rotta_uazapi_contact_avatar_sync_job:
   cron: '*/10 * * * *'
   class: 'RottaUazapiContactAvatarSyncJob'
   queue: uazapi_sync
+
+# executed daily; keeps the webhook audit ledger bounded without retaining raw WhatsApp content
+rotta_uazapi_webhook_delivery_retention_job:
+  cron: '30 2 * * *'
+  class: 'RottaUazapiWebhookDeliveryRetentionJob'
+  queue: housekeeping

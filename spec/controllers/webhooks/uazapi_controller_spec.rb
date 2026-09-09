@@ -59,6 +59,75 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(RottaUazapiContactAvatarSyncJob).not_to have_received(:perform_later)
     end
 
+    it 'records a sanitized terminal delivery for a successful webhook' do
+      payload = {
+        event: 'contacts',
+        instance: 'rotta',
+        data: [{ id: '5511999999999@s.whatsapp.net', name: 'Nome que não deve ser armazenado' }]
+      }
+
+      post_uazapi(payload)
+
+      delivery = UazapiWebhookDelivery.order(:id).last
+      expect(delivery).to have_attributes(
+        account_id: account.id,
+        event: 'contacts',
+        status: 'ignored',
+        attempts: 1,
+        response_status: 200,
+        error_class: nil,
+        error_message: nil
+      )
+      expect(delivery.payload_digest).to eq(Digest::SHA256.hexdigest(payload.to_json))
+      expect(delivery.correlation_id).to be_present
+      expect(delivery.metadata['top_level_keys']).to include('event', 'instance', 'data')
+      expect(delivery.metadata.to_json).not_to include('Nome que não deve ser armazenado', '5511999999999')
+    end
+
+    it 'records invalid JSON as a terminal failed delivery' do
+      post "/webhooks/uazapi/#{webhook_token}",
+           params: '{"event":',
+           headers: { 'CONTENT_TYPE' => 'application/json' }
+
+      expect(response).to have_http_status(:bad_request)
+
+      delivery = UazapiWebhookDelivery.order(:id).last
+      expect(delivery).to have_attributes(
+        event: 'unknown',
+        status: 'failed',
+        response_status: 400,
+        error_class: 'JSON::ParserError',
+        error_message: 'invalid_json'
+      )
+    end
+
+    it 'records processing failures without exposing the exception message' do
+      allow(RottaUazapiCallEventService).to receive(:perform).and_raise(RuntimeError, 'provider phone 5511999999999 secret text')
+
+      post_uazapi(event: 'call', data: { call: { id: 'uazapi-failed-call' } })
+
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      delivery = UazapiWebhookDelivery.order(:id).last
+      expect(delivery).to have_attributes(
+        event: 'call',
+        status: 'failed',
+        response_status: 422,
+        error_class: 'RuntimeError',
+        error_message: 'processing_failed'
+      )
+      expect(delivery.error_message).not_to include('5511999999999', 'secret text')
+    end
+
+    it 'keeps the webhook flow available when the audit ledger is unavailable' do
+      allow(UazapiWebhookDelivery).to receive(:create!).and_raise(ActiveRecord::StatementInvalid, 'audit table unavailable')
+
+      post_uazapi(event: 'contacts', data: [])
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include('ok' => true, 'event' => 'contacts')
+    end
+
     it 'creates an incoming message immediately when Uazapi sends a messages event' do
       api_channel = create(:channel_api, account: account)
       api_inbox = create(:inbox, channel: api_channel, account: account)
@@ -160,6 +229,12 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       )
       expect(message.content_attributes['external_echo']).to be(true)
       expect(response.parsed_body).to include('ok' => true, 'message_ids' => [message.id])
+      expect(UazapiWebhookDelivery.order(:id).last).to have_attributes(
+        event: 'messages',
+        provider_message_id: 'uazapi-outgoing-ai-1',
+        conversation_id: conversation.id,
+        status: 'persisted'
+      )
     end
 
     it 'correlates a Chatwoot-originated echo by track_id instead of duplicating it' do
