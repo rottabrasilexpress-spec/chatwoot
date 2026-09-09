@@ -13,8 +13,8 @@ const MAX_DISCONNECT_SECONDS = 10800;
 // while fetching the latest updated conversations or messages.
 const DISCONNECT_DELAY_THRESHOLD = 15;
 // Action Cable is the primary path. This short, scoped reconciliation only
-// runs for the visible conversation and prevents a missed message when a
-// proxy/browser drops the socket without immediately reporting it.
+// runs for the visible conversation while the socket is disconnected, and
+// prevents a missed message when a proxy/browser drops the socket.
 const ACTIVE_CONVERSATION_SYNC_INTERVAL = 2000;
 
 class ReconnectService {
@@ -24,6 +24,7 @@ class ReconnectService {
     this.disconnectTime = null;
     this.activeConversationSyncTimer = null;
     this.activeConversationSyncInFlight = false;
+    this.websocketConnected = true;
 
     this.setupEventListeners();
   }
@@ -63,6 +64,7 @@ class ReconnectService {
 
   syncActiveConversation = async () => {
     if (
+      this.websocketConnected ||
       this.activeConversationSyncInFlight ||
       document.visibilityState !== 'visible'
     ) {
@@ -186,11 +188,13 @@ class ReconnectService {
   };
 
   onDisconnect = () => {
+    this.websocketConnected = false;
     this.disconnectTime = new Date();
     this.setConversationLastMessageId();
   };
 
   onReconnect = async () => {
+    this.websocketConnected = true;
     await this.handleRouteSpecificFetch();
     await this.revalidateCaches();
     emitter.emit(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED);

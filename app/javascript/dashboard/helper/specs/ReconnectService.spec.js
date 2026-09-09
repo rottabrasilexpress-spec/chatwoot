@@ -254,7 +254,17 @@ describe('ReconnectService', () => {
       routerMock.currentRoute.value.params.conversation_id = null;
     });
 
-    it('synchronizes the visible conversation periodically', async () => {
+    it('does not poll while the websocket is connected', async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(storeMock.dispatch).not.toHaveBeenCalledWith(
+        'syncActiveConversationMessages',
+        { conversationId: 1, preserveLastMessageId: true }
+      );
+    });
+
+    it('synchronizes the visible conversation while the websocket is disconnected', async () => {
+      reconnectService.onDisconnect();
       await vi.advanceTimersByTimeAsync(5000);
 
       expect(storeMock.dispatch).toHaveBeenCalledWith(
@@ -264,6 +274,8 @@ describe('ReconnectService', () => {
     });
 
     it('does not start a second synchronization while one is in flight', async () => {
+      reconnectService.setConversationLastMessageId = vi.fn();
+      reconnectService.onDisconnect();
       let resolveSync;
       storeMock.dispatch.mockImplementation(action =>
         action === 'syncActiveConversationMessages'
@@ -361,15 +373,18 @@ describe('ReconnectService', () => {
       reconnectService.setConversationLastMessageId = vi.fn();
       reconnectService.onDisconnect();
       expect(reconnectService.disconnectTime).toBeInstanceOf(Date);
+      expect(reconnectService.websocketConnected).toBe(false);
       expect(reconnectService.setConversationLastMessageId).toHaveBeenCalled();
     });
   });
 
   describe('onReconnect', () => {
     it('should handle route-specific fetch, revalidate caches, and emit WEBSOCKET_RECONNECT_COMPLETED event', async () => {
+      reconnectService.websocketConnected = false;
       reconnectService.handleRouteSpecificFetch = vi.fn();
       reconnectService.revalidateCaches = vi.fn();
       await reconnectService.onReconnect();
+      expect(reconnectService.websocketConnected).toBe(true);
       expect(reconnectService.handleRouteSpecificFetch).toHaveBeenCalled();
       expect(reconnectService.revalidateCaches).toHaveBeenCalled();
       expect(emitter.emit).toHaveBeenCalledWith(
