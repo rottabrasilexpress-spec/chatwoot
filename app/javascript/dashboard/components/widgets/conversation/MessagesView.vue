@@ -671,6 +671,31 @@ export default {
   background: #c7f5c0;
 }
 
+:global(.conversation-panel) {
+  scrollbar-color: #f57611 transparent;
+  scrollbar-width: thin;
+}
+
+:global(.conversation-panel::-webkit-scrollbar) {
+  width: 0.55rem;
+}
+
+:global(.conversation-panel::-webkit-scrollbar-track) {
+  background: transparent;
+}
+
+:global(.conversation-panel::-webkit-scrollbar-thumb) {
+  background: #f57611;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+:global(.conversation-panel::-webkit-scrollbar-thumb:hover) {
+  background: #dc650d;
+  background-clip: padding-box;
+}
+
 :global(.dark) .rotta-new-messages {
   color: #e9edef;
   background: #005c4b;

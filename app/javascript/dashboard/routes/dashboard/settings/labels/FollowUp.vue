@@ -329,29 +329,76 @@ const stageOptions = computed(() => {
   );
 });
 
-const stageColumns = computed(() => {
+const trailColumnDefinitions = [
+  {
+    key: 'instant',
+    title: 'Instantâneos',
+    description: 'Entradas rápidas para iniciar ou retomar o atendimento.',
+    icon: 'i-lucide-zap',
+    stages: ['contato-instantaneo', 'orcamento-instantaneo'],
+  },
+  {
+    key: 'contact',
+    title: 'Trilha de contato',
+    description: 'Cadência de relacionamento antes do orçamento.',
+    icon: 'i-lucide-route',
+    stages: [
+      'primeiro-contato',
+      'segundo-contato',
+      'terceiro-contato',
+      'ultimo-contato',
+    ],
+  },
+  {
+    key: 'budget',
+    title: 'Trilha de orçamento',
+    description: 'Tentativas e lembretes para converter o orçamento.',
+    icon: 'i-lucide-badge-dollar-sign',
+    stages: [
+      'orcamento-feito',
+      'orcamento-tentativa-2',
+      'orcamento-tentativa-3',
+      'orcamento-tentativa-4',
+      'orcamento-5-dias',
+      'orcamento-10-dias',
+      'orcamento-15-dias',
+    ],
+  },
+  {
+    key: 'closing',
+    title: 'Encerramento',
+    description: 'Conversões concluídas e contatos fora da operação ativa.',
+    icon: 'i-lucide-handshake',
+    stages: ['clientes-fechados', 'arquivado'],
+  },
+];
+
+const trailColumns = computed(() => {
   const stages = orderedFollowUpStages([
     ...FOLLOW_UP_STAGE_ORDER,
     ...queueJobs.value.map(currentStage),
   ]);
+  const groupedStages = new Set(
+    trailColumnDefinitions.flatMap(column => column.stages)
+  );
+  const additionalStages = stages.filter(stage => !groupedStages.has(stage));
 
-  const stageDescription = stage => {
-    if (stage === 'arquivado') return 'Clientes retirados da operação ativa';
-    if (stage === 'clientes-fechados') return 'Conversões concluídas';
-    return 'Clientes nesta etapa da trilha';
-  };
-
-  const stageIcon = stage => {
-    if (stage === 'arquivado') return 'i-lucide-archive';
-    if (stage === 'clientes-fechados') return 'i-lucide-handshake';
-    return 'i-lucide-tag';
-  };
-
-  return stages.map(stage => ({
-    key: stage,
-    title: labelInfo(stage).title,
-    description: stageDescription(stage),
-    icon: stageIcon(stage),
+  return [
+    ...trailColumnDefinitions,
+    ...(additionalStages.length
+      ? [
+          {
+            key: 'other',
+            title: 'Outras etapas',
+            description: 'Etiquetas adicionais mantidas no fluxo.',
+            icon: 'i-lucide-tags',
+            stages: additionalStages,
+          },
+        ]
+      : []),
+  ].map(column => ({
+    ...column,
+    stageKeys: column.stages,
   }));
 });
 
@@ -377,7 +424,7 @@ const viewOptions = computed(() => [
 
 const visibleColumns = computed(() =>
   ['stages', 'all'].includes(selectedView.value)
-    ? stageColumns.value
+    ? trailColumns.value
     : kanbanColumns.filter(column => {
         if (selectedView.value === 'active') return column.key !== 'history';
         return selectedView.value === column.key;
@@ -409,12 +456,27 @@ const filteredJobs = computed(() => {
   });
 });
 
-const jobsForColumn = columnKey =>
-  filteredJobs.value.filter(job =>
-    ['stages', 'all'].includes(selectedView.value)
-      ? currentStage(job) === columnKey
+const jobsForColumn = columnKey => {
+  const groupedColumn = trailColumns.value.find(
+    column => column.key === columnKey
+  );
+  const jobsInColumn = filteredJobs.value.filter(job =>
+    groupedColumn?.stageKeys
+      ? groupedColumn.stageKeys.includes(currentStage(job))
       : bucketFor(job) === columnKey
   );
+
+  if (!groupedColumn) return jobsInColumn;
+
+  const stageOrder = new Map(
+    groupedColumn.stageKeys.map((stage, index) => [stage, index])
+  );
+  return [...jobsInColumn].sort(
+    (left, right) =>
+      (stageOrder.get(currentStage(left)) ?? Number.MAX_SAFE_INTEGER) -
+      (stageOrder.get(currentStage(right)) ?? Number.MAX_SAFE_INTEGER)
+  );
+};
 
 const dueCount = computed(
   () =>
@@ -809,7 +871,13 @@ onUnmounted(() => {
         </div>
 
         <div v-else class="rotta-queue">
-          <div class="rotta-board" aria-label="Quadro de follow-ups">
+          <div
+            class="rotta-board"
+            :class="{
+              'rotta-board--trails': ['stages', 'all'].includes(selectedView),
+            }"
+            aria-label="Quadro de follow-ups"
+          >
             <article
               v-for="column in visibleColumns"
               :key="column.key"
@@ -823,6 +891,22 @@ onUnmounted(() => {
                   <span>{{ jobsForColumn(column.key).length }}</span>
                 </div>
                 <p>{{ column.description }}</p>
+                <div
+                  v-if="column.stageKeys"
+                  class="rotta-board-column__stages"
+                  :aria-label="`Etapas de ${column.title}`"
+                >
+                  <span
+                    v-for="stage in column.stageKeys"
+                    :key="stage"
+                    class="rotta-stage-chip"
+                    :style="{
+                      '--stage-color': labelInfo(stage).color,
+                    }"
+                  >
+                    {{ labelInfo(stage).title }}
+                  </span>
+                </div>
               </header>
 
               <div
@@ -1591,6 +1675,10 @@ onUnmounted(() => {
   align-items: start;
 }
 
+.rotta-board--trails {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .rotta-board-column {
   display: flex;
   min-width: 0;
@@ -1641,6 +1729,37 @@ onUnmounted(() => {
   @apply text-n-slate-11;
   font-size: 0.68rem;
   line-height: 1.35;
+}
+
+.rotta-board-column__stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.65rem;
+}
+
+.rotta-stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  padding: 0.18rem 0.4rem;
+  overflow: hidden;
+  @apply text-n-slate-11 bg-n-alpha-1;
+  border-radius: 0.35rem;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rotta-stage-chip::before {
+  width: 0.35rem;
+  height: 0.35rem;
+  flex: 0 0 auto;
+  background: var(--stage-color);
+  border-radius: 999px;
+  content: '';
 }
 
 .rotta-board-column__body {
@@ -2232,7 +2351,7 @@ onUnmounted(() => {
 
 @media (max-width: 1023px) {
   .rotta-board {
-    grid-template-columns: minmax(16rem, 1fr);
+    grid-template-columns: repeat(2, minmax(16rem, 1fr));
   }
 }
 

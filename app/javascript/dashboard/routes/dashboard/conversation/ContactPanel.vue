@@ -14,6 +14,7 @@ import ContactConversations from './ContactConversations.vue';
 import ConversationAction from './ConversationAction.vue';
 import ConversationParticipant from './ConversationParticipant.vue';
 import ContactInfo from './contact/ContactInfo.vue';
+import RottaContactProfile from './contact/RottaContactProfile.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
@@ -138,6 +139,7 @@ onMounted(() => {
       @close="closeContactPanel"
     />
     <ContactInfo :contact="contact" :channel-type="channelType" />
+    <RottaContactProfile :contact="contact" />
     <div class="px-2 pb-8 list-group">
       <Draggable
         :list="conversationSidebarItems"
