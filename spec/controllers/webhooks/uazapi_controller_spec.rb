@@ -12,7 +12,8 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
     stub_const('Webhooks::UazapiController::WEBHOOK_TOKEN', webhook_token)
   end
 
-  def post_uazapi(payload, token: webhook_token)
+  def post_uazapi(payload = nil, token: webhook_token, **payload_keywords)
+    payload ||= payload_keywords
     post "/webhooks/uazapi/#{token}",
          params: payload.to_json,
          headers: { 'CONTENT_TYPE' => 'application/json' }
@@ -160,6 +161,52 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(response).to have_http_status(:success)
       expect(response.parsed_body).to include('ok' => true, 'message_ids' => kind_of(Array))
       expect(conversation.messages.find_by!(source_id: 'uazapi-incoming-1').content).to eq('Mensagem recebida em tempo real')
+    end
+
+    it 'persists an incoming media attachment from the Uazapi file URL' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      media_url = 'https://example.com/uazapi-image.jpg'
+      stub_request(:get, media_url).to_return(
+        status: 200,
+        body: Rails.root.join('spec/assets/avatar.png').binread,
+        headers: { 'Content-Type' => 'image/png' }
+      )
+      payload = {
+        event: 'messages',
+        data: {
+          message: {
+            messageId: 'uazapi-incoming-media-1',
+            chatid: '5511999999999@s.whatsapp.net',
+            fromMe: false,
+            type: 'image',
+            fileURL: media_url
+          }
+        }
+      }
+
+      expect(RottaUazapiMessageMediaSyncJob).to receive(:perform_later).with(
+        account.id,
+        kind_of(Integer),
+        'uazapi-incoming-media-1',
+        media_url,
+        'image'
+      )
+      expect do
+        post_uazapi(payload)
+      end.to change { conversation.messages.where(source_id: 'uazapi-incoming-media-1').count }.from(0).to(1)
+
+      expect(response).to have_http_status(:success)
+      message = conversation.messages.find_by!(source_id: 'uazapi-incoming-media-1')
+      expect(message.content).to eq('[image]')
     end
 
     it 'deduplicates repeated incoming messages by provider ID' do

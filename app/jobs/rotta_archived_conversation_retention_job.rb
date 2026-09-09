@@ -22,25 +22,34 @@ class RottaArchivedConversationRetentionJob < ApplicationJob
   private
 
   def candidates(cutoff)
-    archived = archived_label_scope
+    resolved_rotta_conversations = Conversation.where(
+      account_id: rotta_account_id,
+      status: :resolved
+    )
+    archived = archived_label_scope(resolved_rotta_conversations)
                .where("additional_attributes->>'rotta_archived_at' <= ?", cutoff.iso8601)
 
     # Existing conversations without the Rotta timestamp (created before this
-    # rule) are covered by their last interaction. The business rule is based
-    # on inactivity, regardless of whether the old conversation is still open.
-    stale_conversations = Conversation.where('last_activity_at < ?', cutoff)
+    # rule) are covered by their last interaction. Restrict this fallback to
+    # resolved Rotta conversations so this housekeeping job cannot remove
+    # another account's data or an active conversation.
+    stale_conversations = resolved_rotta_conversations.where('last_activity_at < ?', cutoff)
 
     archived.or(stale_conversations).distinct
   end
 
-  def archived_label_scope
-    Conversation.where(
+  def archived_label_scope(scope)
+    scope.where(
       'cached_label_list = :label OR cached_label_list LIKE :prefix OR cached_label_list LIKE :suffix OR cached_label_list LIKE :middle',
       label: 'arquivado',
       prefix: 'arquivado,%',
       suffix: '%,arquivado',
       middle: '%,arquivado,%'
     )
+  end
+
+  def rotta_account_id
+    ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   end
 end
 

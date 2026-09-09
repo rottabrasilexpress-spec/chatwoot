@@ -3,12 +3,15 @@ require 'digest'
 class Webhooks::UazapiController < ActionController::API
   include Events::Types
 
+  skip_before_action :authenticate_secure_password!, raise: false
+
   ACCOUNT_ID = ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   WEBHOOK_TOKEN = ENV.fetch('ROTTABRASIL_UAZAPI_WEBHOOK_TOKEN').freeze
   UNKNOWN_DELIVERY_EVENT = 'unknown'.freeze
 
   def process_payload
-    return render json: { ok: false }, status: :unauthorized unless params[:token].to_s == WEBHOOK_TOKEN
+    route_token = request.path_parameters[:token]
+    return render json: { ok: false }, status: :unauthorized unless route_token.to_s == WEBHOOK_TOKEN
 
     begin_uazapi_delivery
     payload = JSON.parse(request.raw_post.presence || '{}')
@@ -45,6 +48,9 @@ class Webhooks::UazapiController < ActionController::API
 
     render json: { ok: true, message_ids: messages.map(&:id), status: messages.map(&:status).uniq.join(',') }
   rescue JSON::ParserError => e
+    @uazapi_delivery_error = e
+    render json: { ok: false, error: 'Payload inválido.' }, status: :bad_request
+  rescue ActionDispatch::Http::Parameters::ParseError => e
     @uazapi_delivery_error = e
     render json: { ok: false, error: 'Payload inválido.' }, status: :bad_request
   rescue StandardError => e
@@ -96,7 +102,7 @@ class Webhooks::UazapiController < ActionController::API
 
     response_status = response.status.to_i
     duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - @uazapi_delivery_started_at) * 1000).round
-    body = response_body
+    body = parsed_response_body
     status = delivery_status(response_status, body)
     attributes = {
       status: status,
@@ -133,7 +139,7 @@ class Webhooks::UazapiController < ActionController::API
     'persisted'
   end
 
-  def response_body
+  def parsed_response_body
     JSON.parse(response.body.to_s)
   rescue JSON::ParserError
     {}
@@ -273,6 +279,16 @@ class Webhooks::UazapiController < ActionController::API
       )
     ).perform
 
+    if incoming_media?(incoming, provider_id)
+      RottaUazapiMessageMediaSyncJob.perform_later(
+        conversation.account_id,
+        message.id,
+        provider_id,
+        incoming_media_url(incoming),
+        incoming_media_type(incoming)
+      )
+    end
+
     RottaUazapiContactAvatarSyncJob.perform_later(conversation.account_id, conversation.contact_id)
     render json: { ok: true, message_ids: [message.id], source_id: provider_id }
   end
@@ -359,7 +375,7 @@ class Webhooks::UazapiController < ActionController::API
   def extract_message_payload(payload)
     candidates = payload_hashes(payload).select do |node|
       keys = node.keys.map(&:to_s).map(&:downcase)
-      keys.intersect?(%w[messageid message_id id chatid chat_id from_me fromme messagetype type text caption body])
+      keys.intersect?(%w[messageid message_id id chatid chat_id from_me fromme messagetype type text caption body fileurl file_url mediaurl media_url])
     end
 
     candidates.max_by do |node|
@@ -368,6 +384,7 @@ class Webhooks::UazapiController < ActionController::API
       score += 4 if keys.intersect?(%w[messageid message_id])
       score += 2 if keys.intersect?(%w[chatid chat_id])
       score += 1 if keys.intersect?(%w[from_me fromme type text caption body])
+      score += 1 if keys.intersect?(%w[fileurl file_url mediaurl media_url])
       score
     end
   end
@@ -386,7 +403,24 @@ class Webhooks::UazapiController < ActionController::API
     return text.to_s.strip if text.present?
 
     type = value_for_keys(message, %w[type messageType]).to_s.strip
-    type.present? ? "[#{type}]" : nil
+    return "[#{type}]" if type.present?
+
+    incoming_media_url(message).present? ? '[arquivo]' : nil
+  end
+
+  def incoming_media?(message, provider_id)
+    return false if provider_id.blank? && incoming_media_url(message).blank?
+
+    media_type = incoming_media_type(message).to_s.downcase
+    incoming_media_url(message).present? || media_type.match?(/image|video|audio|document|sticker|file/)
+  end
+
+  def incoming_media_url(message)
+    value_for_keys(message, %w[fileURL fileUrl file_url mediaURL mediaUrl media_url])&.to_s&.strip.presence
+  end
+
+  def incoming_media_type(message)
+    value_for_keys(message, %w[type messageType])&.to_s&.strip.presence
   end
 
   def extract_presence(payload)

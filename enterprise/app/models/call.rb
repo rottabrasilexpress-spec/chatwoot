@@ -118,11 +118,11 @@ class Call < ApplicationRecord
   end
 
   def from_number
-    incoming? ? contact.phone_number : inbox.channel&.phone_number
+    incoming? ? contact.phone_number : channel_phone_number
   end
 
   def to_number
-    incoming? ? inbox.channel&.phone_number : contact.phone_number
+    incoming? ? channel_phone_number : contact.phone_number
   end
 
   def recording_url
@@ -150,5 +150,12 @@ class Call < ApplicationRecord
       recording_url: recording_url,
       transcript: transcript
     }
+  end
+
+  private
+
+  def channel_phone_number
+    channel = inbox.channel
+    channel.phone_number if channel.respond_to?(:phone_number)
   end
 end
