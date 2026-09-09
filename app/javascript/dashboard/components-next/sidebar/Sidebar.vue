@@ -130,6 +130,23 @@ const isEffectivelyCollapsed = computed(
   () => !isMobile.value && isCollapsed.value
 );
 
+const sidebarToggleLabel = computed(() =>
+  isEffectivelyCollapsed.value
+    ? 'Expandir barra lateral'
+    : 'Recolher barra lateral'
+);
+const sidebarToggleIcon = computed(() =>
+  isEffectivelyCollapsed.value
+    ? 'i-lucide-panel-left-open'
+    : 'i-lucide-panel-left-close'
+);
+
+const toggleSidebar = () => {
+  if (isMobile.value) return;
+  if (isEffectivelyCollapsed.value) snapToExpanded();
+  else snapToCollapsed();
+};
+
 // Resize handle logic
 const isResizing = ref(false);
 const startX = ref(0);
@@ -645,6 +662,18 @@ const menuItems = computed(() => {
         />
       </div>
     </section>
+    <button
+      v-if="!isMobile"
+      type="button"
+      class="rotta-sidebar-toggle"
+      data-testid="sidebar-toggle"
+      :aria-label="sidebarToggleLabel"
+      :aria-expanded="!isEffectivelyCollapsed"
+      :title="sidebarToggleLabel"
+      @click="toggleSidebar"
+    >
+      <span :class="sidebarToggleIcon" aria-hidden="true" />
+    </button>
     <!-- Resize Handle (desktop only) -->
     <div
       class="hidden md:block absolute top-0 h-full w-1 cursor-col-resize z-40 ltr:right-0 rtl:left-0 group"
@@ -659,3 +688,44 @@ const menuItems = computed(() => {
     </div>
   </aside>
 </template>
+
+<style scoped>
+.rotta-sidebar-toggle {
+  position: absolute;
+  inset-block-start: 4.35rem;
+  inset-inline-end: -0.75rem;
+  z-index: 45;
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  @apply text-n-slate-11 bg-n-surface-1 border border-n-weak;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 12%);
+  transition:
+    color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.rotta-sidebar-toggle:hover {
+  @apply text-n-slate-12 bg-n-alpha-2;
+  box-shadow: 0 3px 10px rgb(15 23 42 / 16%);
+}
+
+.rotta-sidebar-toggle:focus-visible {
+  outline: 2px solid rgb(var(--brand-9));
+  outline-offset: 2px;
+}
+
+.rotta-sidebar-toggle > span {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+@media (max-width: 767px) {
+  .rotta-sidebar-toggle {
+    display: none;
+  }
+}
+</style>

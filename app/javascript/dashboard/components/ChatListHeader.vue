@@ -37,6 +37,7 @@ const rottaCopy = {
   markAllRead: 'Marcar tudo como lido',
   searchPlaceholder: 'Pesquisar conversas...',
   searchLabel: 'Pesquisar conversas',
+  clearSearch: 'Limpar pesquisa',
   newConversation: 'Iniciar nova conversa',
 };
 
@@ -183,20 +184,32 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <label class="relative flex-1 min-w-0">
+      <div class="relative flex-1 min-w-0 rotta-conversation-search">
         <span
-          class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none i-lucide-search size-4 text-n-slate-10"
+          class="absolute inset-y-0 ltr:left-2.5 rtl:right-2.5 flex items-center pointer-events-none i-lucide-search size-4 text-n-slate-10"
         />
         <input
+          id="conversation-search"
           :value="searchQuery"
           type="search"
           autocomplete="off"
           :placeholder="rottaCopy.searchPlaceholder"
           :aria-label="rottaCopy.searchLabel"
-          class="w-full h-8 pl-8 pr-3 rounded-lg outline outline-1 outline-n-weak bg-n-surface-2 text-sm text-n-slate-12 placeholder:text-n-slate-10 focus:outline-n-brand"
+          class="w-full h-8 ltr:pl-8 rtl:pr-8 ltr:pr-9 rtl:pl-9 rounded-xl outline outline-1 outline-n-weak bg-n-surface-2 text-sm text-n-slate-12 placeholder:text-n-slate-10 focus:outline-n-brand"
           @input="emit('updateSearchQuery', $event.target.value)"
+          @keydown.esc.prevent="emit('updateSearchQuery', '')"
         />
-      </label>
+        <button
+          v-if="searchQuery"
+          type="button"
+          class="absolute top-1/2 ltr:right-1 rtl:left-1 flex items-center justify-center size-6 -translate-y-1/2 rounded-lg text-n-slate-10 hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+          :aria-label="rottaCopy.clearSearch"
+          :title="rottaCopy.clearSearch"
+          @click="emit('updateSearchQuery', '')"
+        >
+          <span class="i-lucide-x size-3.5" aria-hidden="true" />
+        </button>
+      </div>
       <ComposeConversation align="start">
         <template #trigger="{ isOpen }">
           <NextButton
@@ -213,3 +226,11 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Keep the clear affordance consistent across Chromium, Firefox, and Safari. */
+:global(.rotta-conversation-search input::-webkit-search-cancel-button) {
+  display: none;
+  appearance: none;
+}
+</style>

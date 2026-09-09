@@ -6,7 +6,10 @@ import { useI18n } from 'vue-i18n';
 import { useStoreGetters, useStore } from 'dashboard/composables/store';
 import { picoSearch } from '@chatwoot/pico-search';
 import rottaFollowUpAPI from 'dashboard/api/rottaFollowUp';
-import { CONFIGURED_DELAY_HOURS, orderedFollowUpStages } from './followUpHelpers';
+import {
+  CONFIGURED_DELAY_HOURS,
+  orderedFollowUpStages,
+} from './followUpHelpers';
 
 import AddLabel from './AddLabel.vue';
 import EditLabel from './EditLabel.vue';
@@ -82,6 +85,39 @@ const followUpConfigRows = computed(() => {
     const row = followUpConfig.value.find(item => item.stage_label === stage);
     return row || normaliseFollowUpConfig({ stage_label: stage });
   });
+});
+
+const followUpConfigSections = computed(() => {
+  const sections = [
+    {
+      key: 'contact',
+      title: 'Trilha de contato',
+      description: 'Cadência para o primeiro atendimento e os lembretes.',
+      rows: followUpConfigRows.value.filter(row =>
+        row.stage_label.startsWith('contato-')
+      ),
+    },
+    {
+      key: 'budget',
+      title: 'Trilha de orçamento',
+      description: 'Etapas de orçamento instantâneo, tentativas e reativações.',
+      rows: followUpConfigRows.value.filter(row =>
+        row.stage_label.startsWith('orcamento-')
+      ),
+    },
+    {
+      key: 'other',
+      title: 'Encerramento e outras etapas',
+      description: 'Etiquetas que não pertencem a uma trilha principal.',
+      rows: followUpConfigRows.value.filter(
+        row =>
+          !row.stage_label.startsWith('contato-') &&
+          !row.stage_label.startsWith('orcamento-')
+      ),
+    },
+  ];
+
+  return sections.filter(section => section.rows.length);
 });
 
 const labelForStage = stage =>
@@ -263,123 +299,151 @@ onBeforeMount(async () => {
           Carregando configurações…
         </div>
         <div v-else class="rotta-config-list">
-          <article
-            v-for="row in followUpConfigRows"
-            :key="row.stage_label"
-            class="rotta-config-row"
+          <section
+            v-for="section in followUpConfigSections"
+            :key="section.key"
+            class="rotta-config-section"
           >
-            <div class="rotta-config-row__label">
-              <span class="rotta-config-row__dot" />
+            <div class="rotta-config-section__header">
               <div>
-                <strong>{{ stageTitle(row.stage_label) }}</strong>
-                <small>{{ row.stage_label }}</small>
+                <h3>{{ section.title }}</h3>
+                <p>{{ section.description }}</p>
               </div>
+              <span class="rotta-config-section__count">
+                {{ section.rows.length }} etapas
+              </span>
             </div>
-            <label class="rotta-config-toggle">
-              <input v-model="row.enabled" type="checkbox" />
-              <span>Ativo</span>
-            </label>
-            <div class="rotta-config-duration" aria-label="Delay da etiqueta">
-              <label>
-                <span>Dias</span>
-                <input
-                  v-model.number="row.days"
-                  type="number"
-                  min="0"
-                  max="365"
-                  inputmode="numeric"
+            <div class="rotta-config-section__rows">
+              <article
+                v-for="row in section.rows"
+                :key="row.stage_label"
+                class="rotta-config-row"
+              >
+                <div class="rotta-config-row__label">
+                  <span class="rotta-config-row__dot" />
+                  <div>
+                    <strong>{{ stageTitle(row.stage_label) }}</strong>
+                    <small>{{ row.stage_label }}</small>
+                  </div>
+                </div>
+                <label class="rotta-config-toggle">
+                  <input v-model="row.enabled" type="checkbox" />
+                  <span>Ativo</span>
+                </label>
+                <div
+                  class="rotta-config-duration"
+                  aria-label="Delay da etiqueta"
+                >
+                  <label>
+                    <span>Dias</span>
+                    <input
+                      v-model.number="row.days"
+                      type="number"
+                      min="0"
+                      max="365"
+                      inputmode="numeric"
+                    />
+                  </label>
+                  <label>
+                    <span>Horas</span>
+                    <input
+                      v-model.number="row.hours"
+                      type="number"
+                      min="0"
+                      max="23"
+                      inputmode="numeric"
+                    />
+                  </label>
+                  <label>
+                    <span>Minutos</span>
+                    <input
+                      v-model.number="row.minutes"
+                      type="number"
+                      min="0"
+                      max="59"
+                      inputmode="numeric"
+                    />
+                  </label>
+                </div>
+                <Button
+                  label="Salvar"
+                  size="sm"
+                  :is-loading="followUpConfigSaving[row.stage_label]"
+                  @click="saveFollowUpConfig(row)"
                 />
-              </label>
-              <label>
-                <span>Horas</span>
-                <input
-                  v-model.number="row.hours"
-                  type="number"
-                  min="0"
-                  max="23"
-                  inputmode="numeric"
-                />
-              </label>
-              <label>
-                <span>Minutos</span>
-                <input
-                  v-model.number="row.minutes"
-                  type="number"
-                  min="0"
-                  max="59"
-                  inputmode="numeric"
-                />
-              </label>
+              </article>
             </div>
-            <Button
-              label="Salvar"
-              size="sm"
-              :is-loading="followUpConfigSaving[row.stage_label]"
-              @click="saveFollowUpConfig(row)"
-            />
-          </article>
+          </section>
         </div>
       </section>
 
-      <BaseTable
-        :headers="tableHeaders"
-        :items="filteredRecords"
-        :no-data-message="
-          searchQuery ? $t('LABEL_MGMT.NO_RESULTS') : $t('LABEL_MGMT.LIST.404')
-        "
-      >
-        <template #row="{ items }">
-          <BaseTableRow v-for="label in items" :key="label.title" :item="label">
-            <template #default>
-              <BaseTableCell>
-                <span class="text-body-main text-n-slate-12">
-                  {{ label.title }}
-                </span>
-              </BaseTableCell>
-
-              <BaseTableCell>
-                <span class="text-body-main text-n-slate-11">
-                  {{ label.description }}
-                </span>
-              </BaseTableCell>
-
-              <BaseTableCell>
-                <div class="flex items-center">
-                  <span
-                    class="w-4 h-4 ltr:mr-2 rtl:ml-2 border border-solid rounded border-n-weak"
-                    :style="{ backgroundColor: label.color }"
-                  />
+      <div class="rotta-labels-table-shell">
+        <BaseTable
+          :headers="tableHeaders"
+          :items="filteredRecords"
+          :no-data-message="
+            searchQuery
+              ? $t('LABEL_MGMT.NO_RESULTS')
+              : $t('LABEL_MGMT.LIST.404')
+          "
+        >
+          <template #row="{ items }">
+            <BaseTableRow
+              v-for="label in items"
+              :key="label.title"
+              :item="label"
+            >
+              <template #default>
+                <BaseTableCell>
                   <span class="text-body-main text-n-slate-12">
-                    {{ label.color }}
+                    {{ label.title }}
                   </span>
-                </div>
-              </BaseTableCell>
+                </BaseTableCell>
 
-              <BaseTableCell align="end">
-                <div class="flex gap-3 justify-end flex-shrink-0">
-                  <Button
-                    v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
-                    icon="i-woot-edit-pen"
-                    slate
-                    sm
-                    :is-loading="loading[label.id]"
-                    @click="openEditPopup(label)"
-                  />
-                  <Button
-                    v-tooltip.top="$t('LABEL_MGMT.FORM.DELETE')"
-                    icon="i-woot-bin"
-                    slate
-                    sm
-                    class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
-                    :is-loading="loading[label.id]"
-                    @click="openDeletePopup(label)"
-                  />
-                </div>
-              </BaseTableCell>
-            </template>
-          </BaseTableRow>
-        </template>
-      </BaseTable>
+                <BaseTableCell>
+                  <span class="text-body-main text-n-slate-11">
+                    {{ label.description }}
+                  </span>
+                </BaseTableCell>
+
+                <BaseTableCell>
+                  <div class="flex items-center">
+                    <span
+                      class="w-4 h-4 ltr:mr-2 rtl:ml-2 border border-solid rounded border-n-weak"
+                      :style="{ backgroundColor: label.color }"
+                    />
+                    <span class="text-body-main text-n-slate-12">
+                      {{ label.color }}
+                    </span>
+                  </div>
+                </BaseTableCell>
+
+                <BaseTableCell align="end">
+                  <div class="flex gap-3 justify-end flex-shrink-0">
+                    <Button
+                      v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
+                      icon="i-woot-edit-pen"
+                      slate
+                      sm
+                      :is-loading="loading[label.id]"
+                      @click="openEditPopup(label)"
+                    />
+                    <Button
+                      v-tooltip.top="$t('LABEL_MGMT.FORM.DELETE')"
+                      icon="i-woot-bin"
+                      slate
+                      sm
+                      class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
+                      :is-loading="loading[label.id]"
+                      @click="openDeletePopup(label)"
+                    />
+                  </div>
+                </BaseTableCell>
+              </template>
+            </BaseTableRow>
+          </template>
+        </BaseTable>
+      </div>
     </template>
 
     <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">
@@ -454,6 +518,46 @@ onBeforeMount(async () => {
 
 .rotta-config-list {
   display: grid;
+  gap: 1rem;
+}
+
+.rotta-config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.rotta-config-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.2rem;
+}
+
+.rotta-config-section__header h3 {
+  margin: 0;
+  @apply text-n-slate-12;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.rotta-config-section__header p {
+  margin: 0.2rem 0 0;
+  @apply text-n-slate-11;
+  font-size: 0.7rem;
+}
+
+.rotta-config-section__count {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.5rem;
+  @apply text-n-slate-11 bg-n-alpha-1;
+  font-size: 0.68rem;
+  border-radius: 999px;
+}
+
+.rotta-config-section__rows {
+  display: grid;
   gap: 0.55rem;
 }
 
@@ -464,7 +568,13 @@ onBeforeMount(async () => {
   gap: 0.75rem;
   padding: 0.7rem;
   @apply bg-n-solid-1 border border-n-weak;
-  border-radius: 0.75rem;
+  border-radius: 1rem;
+}
+
+.rotta-labels-table-shell {
+  overflow: hidden;
+  @apply bg-n-solid-1 border border-n-weak;
+  border-radius: 1rem;
 }
 
 .rotta-config-row__label,
@@ -554,6 +664,11 @@ onBeforeMount(async () => {
 @media (max-width: 640px) {
   .rotta-config-panel__header {
     flex-direction: column;
+  }
+
+  .rotta-config-section__header {
+    flex-direction: column;
+    gap: 0.45rem;
   }
 
   .rotta-config-row {
