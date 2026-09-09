@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { provideSidebarContext, useSidebarResize } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useConfig } from 'dashboard/composables/useConfig';
@@ -8,6 +8,8 @@ import { useMapGetter } from 'dashboard/composables/store';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
+import { useEmitter } from 'dashboard/composables/emitter';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useWindowSize, useEventListener } from '@vueuse/core';
@@ -21,6 +23,10 @@ import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import wootConstants from 'dashboard/constants/globals';
+import {
+  SIDEBAR_LABEL_DEFINITIONS,
+  findSidebarLabel,
+} from '../../store/modules/labels';
 
 const props = defineProps({
   isMobileSidebarOpen: {
@@ -211,20 +217,58 @@ useEventListener(document, 'touchmove', onResizeMove, { passive: false });
 useEventListener(document, 'touchend', onResizeEnd);
 
 const labels = useMapGetter('labels/getLabelsOnSidebar');
+const allLabels = useMapGetter('labels/getLabels');
 const allUnreadCount = useMapGetter(
   'conversationUnreadCounts/getAllUnreadCount'
 );
-const getLabelUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getLabelUnreadCount'
-);
+const getSidebarLabelCount = useMapGetter('labels/getSidebarLabelCount');
 const archivedUnreadCount = useMapGetter(
   'conversationUnreadCounts/getArchivedUnreadCount'
 );
+
+const budgetLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[0];
+const caioAttentionLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[1];
+const closedClientsLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[2];
+
+const getSidebarLabelTitle = definition =>
+  findSidebarLabel(allLabels.value, definition)?.title ||
+  definition.fallbackTitle;
+
+const budgetLabelTitle = computed(() =>
+  getSidebarLabelTitle(budgetLabelDefinition)
+);
+const caioAttentionLabelTitle = computed(() =>
+  getSidebarLabelTitle(caioAttentionLabelDefinition)
+);
+const closedClientsLabelTitle = computed(() =>
+  getSidebarLabelTitle(closedClientsLabelDefinition)
+);
+
+const refreshSidebarLabelCounts = () => {
+  if (!accountId.value || !allLabels.value.length) return;
+  store.dispatch('labels/getSidebarCounts');
+};
+
+useEmitter('fetch_conversation_stats', refreshSidebarLabelCounts);
+useEmitter(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, refreshSidebarLabelCounts);
+useEmitter(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED, refreshSidebarLabelCounts);
+
+let sidebarLabelCountsRefreshTimer;
 
 onMounted(() => {
   store.dispatch('labels/get');
   store.dispatch('notifications/unReadCount');
   store.dispatch('attributes/get');
+  sidebarLabelCountsRefreshTimer = setInterval(
+    refreshSidebarLabelCounts,
+    10000
+  );
+});
+
+onBeforeUnmount(() => {
+  if (sidebarLabelCountsRefreshTimer) {
+    clearInterval(sidebarLabelCountsRefreshTimer);
+  }
 });
 
 watch([accountId, hasConversationUnreadCounts], fetchConversationUnreadCounts, {
@@ -235,22 +279,13 @@ watch([accountId, currentUserId], fetchSidebarSortPreferences, {
   immediate: true,
 });
 
-const normalizeSidebarLabel = value =>
-  String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-
-const budgetLabel = computed(
-  () =>
-    labels.value.find(
-      label => normalizeSidebarLabel(label.title) === 'kelvin'
-    ) ||
-    labels.value.find(label => {
-      const normalized = normalizeSidebarLabel(label.title);
-      return normalized.includes('kelvin') && normalized.includes('caio');
-    }) || { title: 'kelvin', color: '#f59e0b' }
+watch(
+  [accountId, allLabels],
+  ([currentAccountId, currentLabels]) => {
+    if (!currentAccountId || !currentLabels.length) return;
+    refreshSidebarLabelCounts();
+  },
+  { immediate: true }
 );
 
 const prefetchSignature = ref('');
@@ -278,7 +313,15 @@ const prefetchConversationViews = () => {
       conversationType: wootConstants.CONVERSATION_TYPE.ARCHIVED,
       labels: ['arquivado'],
     },
-    ...labels.value.map(label => ({ ...common, labels: [label.title] })),
+    ...[
+      ...labels.value.map(label => label.title),
+      ...SIDEBAR_LABEL_DEFINITIONS.map(
+        definition => findSidebarLabel(allLabels.value, definition)?.title
+      ),
+    ]
+      .filter(Boolean)
+      .filter((title, index, titles) => titles.indexOf(title) === index)
+      .map(title => ({ ...common, labels: [title] })),
   ];
 
   store.dispatch('prefetchConversationViews', views);
@@ -361,23 +404,34 @@ const menuItems = computed(() => {
           name: 'Budgets',
           label: 'ORÇAMENTOS',
           icon: 'i-lucide-clipboard-list',
+          color: budgetLabelDefinition.color,
           to: accountScopedRoute('label_conversations', {
-            label: budgetLabel.value.title,
+            label: budgetLabelTitle.value,
           }),
           activeOn: ['label_conversations', 'conversations_through_label'],
-          badgeCount: getLabelUnreadCount.value(budgetLabel.value.id),
+          badgeCount: getSidebarLabelCount.value('budget'),
         },
         {
           name: 'CaioAttention',
           label: 'Caio Atenção',
           icon: 'i-lucide-bell-ring',
+          color: caioAttentionLabelDefinition.color,
           to: accountScopedRoute('label_conversations', {
-            label: 'caio-atencao',
+            label: caioAttentionLabelTitle.value,
           }),
           activeOn: ['label_conversations', 'conversations_through_label'],
-          badgeCount: getLabelUnreadCount.value(
-            labels.value.find(label => label.title === 'caio-atencao')?.id
-          ),
+          badgeCount: getSidebarLabelCount.value('caioAttention'),
+        },
+        {
+          name: 'ClosedClients',
+          label: 'Clientes Fechados',
+          icon: 'i-lucide-badge-check',
+          color: closedClientsLabelDefinition.color,
+          to: accountScopedRoute('label_conversations', {
+            label: closedClientsLabelTitle.value,
+          }),
+          activeOn: ['label_conversations', 'conversations_through_label'],
+          badgeCount: getSidebarLabelCount.value('closedClients'),
         },
       ],
     },

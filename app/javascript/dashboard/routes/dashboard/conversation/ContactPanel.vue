@@ -18,7 +18,6 @@ import RottaContactProfile from './contact/RottaContactProfile.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
-import SharedFiles from './SharedFiles.vue';
 import Draggable from 'vuedraggable';
 import MacrosList from './Macros/List.vue';
 import ShopifyOrdersList from 'dashboard/components/widgets/conversation/ShopifyOrdersList.vue';
@@ -139,7 +138,6 @@ onMounted(() => {
       @close="closeContactPanel"
     />
     <ContactInfo :contact="contact" :channel-type="channelType" />
-    <RottaContactProfile :contact="contact" />
     <div class="px-2 pb-8 list-group">
       <Draggable
         :list="conversationSidebarItems"
@@ -309,7 +307,7 @@ onMounted(() => {
                 value => toggleSidebarUIState('is_shared_files_open', value)
               "
             >
-              <SharedFiles />
+              <RottaContactProfile />
             </AccordionItem>
           </div>
         </template>

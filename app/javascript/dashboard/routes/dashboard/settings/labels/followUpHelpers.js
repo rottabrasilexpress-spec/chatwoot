@@ -25,11 +25,125 @@ export const CONFIGURED_DELAY_HOURS = {
   'orcamento-15-dias': 360,
 };
 
-export const FOLLOW_UP_STAGE_ORDER = [
-  ...Object.keys(CONFIGURED_DELAY_HOURS),
-  'clientes-fechados',
-  'arquivado',
+// These are the operational slugs used by the existing n8n workflow. The
+// legacy "ultimo-contato" slug is intentionally retained as the API value;
+// the UI presents it as the fourth contact attempt.
+export const CONTACT_TRAIL_STAGES = [
+  'primeiro-contato',
+  'segundo-contato',
+  'terceiro-contato',
+  'ultimo-contato',
 ];
+
+export const BUDGET_TRAIL_STAGES = [
+  'orcamento-feito',
+  'orcamento-tentativa-2',
+  'orcamento-tentativa-3',
+  'orcamento-tentativa-4',
+  'orcamento-5-dias',
+  'orcamento-10-dias',
+  'orcamento-15-dias',
+];
+
+export const FOLLOW_UP_STAGE_TITLES = Object.freeze({
+  'primeiro-contato': 'Primeiro contato',
+  'segundo-contato': 'Segundo contato',
+  'terceiro-contato': 'Terceiro contato',
+  'ultimo-contato': 'Quarto contato',
+  'orcamento-feito': 'Orçamento feito',
+  'orcamento-tentativa-2': 'Segundo orçamento',
+  'orcamento-tentativa-3': 'Terceiro orçamento',
+  'orcamento-tentativa-4': 'Quarto orçamento',
+  'orcamento-5-dias': 'Orçamento 5 dias',
+  'orcamento-10-dias': 'Orçamento 10 dias',
+  'orcamento-15-dias': 'Orçamento 15 dias',
+});
+
+export const ARCHIVED_FOLLOW_UP_STAGES = ['arquivado'];
+
+export const FOLLOW_UP_TRAILS = Object.freeze({
+  contact: CONTACT_TRAIL_STAGES,
+  budget: BUDGET_TRAIL_STAGES,
+});
+
+const LEGACY_STAGE_ALIASES = Object.freeze({
+  'contato-instantaneo': 'primeiro-contato',
+  'orcamento-instantaneo': 'orcamento-feito',
+  'clientes-fechados': 'arquivado',
+  'quarto-contato': 'ultimo-contato',
+});
+
+const normaliseStage = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[✅❌🫶💰🤝]/gu, '')
+    .trim()
+    .replace(/\s+/g, '-');
+
+export const canonicalFollowUpStage = value => {
+  const stage = normaliseStage(value);
+  return LEGACY_STAGE_ALIASES[stage] || stage;
+};
+
+export const isArchivedStage = stage =>
+  ARCHIVED_FOLLOW_UP_STAGES.includes(canonicalFollowUpStage(stage));
+
+export const followUpTrailForStage = stage => {
+  const canonicalStage = canonicalFollowUpStage(stage);
+  if (CONTACT_TRAIL_STAGES.includes(canonicalStage)) return 'contact';
+  if (BUDGET_TRAIL_STAGES.includes(canonicalStage)) return 'budget';
+  return null;
+};
+
+const historyLabelsFor = job =>
+  ['history', 'sent_history', 'dispatched_labels', 'follow_up_history'].flatMap(
+    key =>
+      Array.isArray(job?.[key])
+        ? job[key]
+            .map(item =>
+              typeof item === 'string'
+                ? item
+                : item?.label || item?.slug || item?.name
+            )
+            .filter(Boolean)
+        : []
+  );
+
+export const followUpTrailForJob = job => {
+  const currentStage = canonicalFollowUpStage(
+    job?.current_label || job?.source_label || ''
+  );
+  if (isArchivedStage(currentStage)) return null;
+
+  const stages = [
+    currentStage,
+    job?.source_label,
+    job?.next_label,
+    ...historyLabelsFor(job),
+  ];
+  return stages.some(stage => followUpTrailForStage(stage) === 'budget')
+    ? 'budget'
+    : 'contact';
+};
+
+export const FOLLOW_UP_STAGE_ORDER = [
+  ...CONTACT_TRAIL_STAGES,
+  ...BUDGET_TRAIL_STAGES,
+  ...ARCHIVED_FOLLOW_UP_STAGES,
+  'contato-instantaneo',
+  'orcamento-instantaneo',
+  'clientes-fechados',
+];
+
+export const orderedTrailStages = (stages, trailKey) => {
+  const configuredStages = FOLLOW_UP_TRAILS[trailKey] || [];
+  const presentStages = new Set(
+    stages.filter(Boolean).map(canonicalFollowUpStage)
+  );
+  return configuredStages.filter(stage => presentStages.has(stage));
+};
 
 export const orderedFollowUpStages = stages => {
   const uniqueStages = [...new Set(stages.filter(Boolean))];

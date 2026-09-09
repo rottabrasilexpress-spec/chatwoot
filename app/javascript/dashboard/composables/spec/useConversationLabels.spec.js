@@ -121,4 +121,37 @@ describe('useConversationLabels', () => {
       labels: ['Label 1'],
     });
   });
+
+  it('sends only the archived label and emits a danger toast when archiving', async () => {
+    store.dispatch.mockResolvedValue(true);
+    store.getters['conversationLabels/getConversationLabels'].mockReturnValue([
+      'primeiro-contato',
+      'orcamento-feito',
+    ]);
+    getters['labels/getLabels'].value = [
+      { id: 1, title: 'primeiro-contato' },
+      { id: 2, title: 'orcamento-feito' },
+      { id: 3, title: '[1] arquivado' },
+    ];
+    const alerts = [];
+    const collectAlert = payload => alerts.push(payload);
+    emitter.on('newToastMessage', collectAlert);
+
+    const { onUpdateLabels } = useConversationLabels();
+    await onUpdateLabels([
+      'primeiro-contato',
+      'orcamento-feito',
+      '[1] arquivado',
+    ]);
+
+    emitter.off('newToastMessage', collectAlert);
+    expect(store.dispatch).toHaveBeenCalledWith('conversationLabels/update', {
+      conversationId: 1,
+      labels: ['[1] arquivado'],
+    });
+    expect(alerts).toContainEqual({
+      message: 'Etiqueta "[1] arquivado" adicionada à conversa.',
+      action: { variant: 'danger' },
+    });
+  });
 });

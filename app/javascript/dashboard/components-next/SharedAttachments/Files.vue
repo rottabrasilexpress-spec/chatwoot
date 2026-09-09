@@ -9,6 +9,7 @@ import {
   MEDIA_TYPES,
   NON_FILE_TYPES,
 } from 'dashboard/components-next/message/constants';
+import { setAttachmentDragData } from 'dashboard/routes/dashboard/conversation/attachmentDrag';
 
 import FileIcon from 'next/icon/FileIcon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -67,6 +68,10 @@ const displayTime = attachment => {
 
 const onActivate = attachment => emit('select', attachment);
 
+const onDragStart = (event, attachment) => {
+  setAttachmentDragData(event.dataTransfer, attachment);
+};
+
 const onDownloadFile = async attachment => {
   const { id, file_type: type, data_url: url, extension } = attachment;
   try {
@@ -114,8 +119,10 @@ const onDownloadFile = async attachment => {
         :key="attachment.id"
         role="button"
         tabindex="0"
+        draggable="true"
         class="flex items-center gap-3 px-2 py-2 transition-colors rounded-lg cursor-pointer hover:bg-n-slate-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-n-blue-9"
         @click="onActivate(attachment)"
+        @dragstart="onDragStart($event, attachment)"
         @keydown.enter="onActivate(attachment)"
         @keydown.space.prevent="onActivate(attachment)"
       >

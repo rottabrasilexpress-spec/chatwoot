@@ -6,6 +6,21 @@ import { useMapGetter } from 'dashboard/composables/store.js';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
 import wootConstants from 'dashboard/constants/globals';
 
+const ARCHIVED_LABEL_KEYS = new Set(['arquivado', 'arquivados']);
+
+const normalizedLabelKey = label =>
+  String(label || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/^\[\d+\]\s*/, '')
+    .replace(/^\d+[-\s]+/, '')
+    .replace(/\s+/g, '-');
+
+const isArchivedLabel = label =>
+  ARCHIVED_LABEL_KEYS.has(normalizedLabelKey(label));
+
 export const mergeConversationLabels = (
   conversation,
   { add = [], remove = [] } = {}
@@ -17,6 +32,9 @@ export const mergeConversationLabels = (
     : [];
   const labelsToAdd = Array.isArray(add) ? add : [add];
   const labelsToRemove = new Set(Array.isArray(remove) ? remove : [remove]);
+  const archivedLabel = labelsToAdd.find(isArchivedLabel);
+
+  if (archivedLabel) return [archivedLabel];
 
   return [
     ...new Set([...currentLabels, ...labelsToAdd].filter(Boolean)),
@@ -116,12 +134,13 @@ export function useBulkActions() {
 
   // Same method used in context menu, conversationId being passed from there.
   async function onAssignLabels(newLabels, conversationId = null) {
+    const labelsToAssign = Array.isArray(newLabels) ? newLabels : [newLabels];
     try {
       await store.dispatch('bulkActions/process', {
         type: 'Conversation',
         ids: conversationId || selectedConversations.value,
         labels: {
-          add: newLabels,
+          add: labelsToAssign,
         },
       });
       // Apply the server-confirmed label change in place. A full list requery
@@ -129,18 +148,23 @@ export function useBulkActions() {
       // contact jump to the top even though no message was sent.
       await updateConversationLabelsLocally(
         conversationId || selectedConversations.value,
-        { add: newLabels }
+        { add: labelsToAssign }
       );
+      await store.dispatch('labels/get');
       store.dispatch('bulkActions/clearSelectedConversationIds');
       if (conversationId) {
         useAlert(
           t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_ASSIGNMENT.SUCCESFUL', {
-            labelName: newLabels[0],
+            labelName: labelsToAssign[0],
             conversationId,
-          })
+          }),
+          labelsToAssign.some(isArchivedLabel) ? { variant: 'danger' } : null
         );
       } else {
-        useAlert(t('BULK_ACTION.LABELS.ASSIGN_SUCCESFUL'));
+        useAlert(
+          t('BULK_ACTION.LABELS.ASSIGN_SUCCESFUL'),
+          labelsToAssign.some(isArchivedLabel) ? { variant: 'danger' } : null
+        );
       }
     } catch (err) {
       useAlert(t('BULK_ACTION.LABELS.ASSIGN_FAILED'));

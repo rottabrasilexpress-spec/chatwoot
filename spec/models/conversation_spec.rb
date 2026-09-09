@@ -1292,4 +1292,47 @@ RSpec.describe Conversation do
       expect(conversation.reload.status_changed_at).to be_within(1.second).of(original)
     end
   end
+
+  describe 'Rotta archived label lifecycle' do
+    let(:account) { create(:account) }
+    let(:conversation) { create(:conversation, account: account, status: :open) }
+    let!(:contact_stage) { create(:label, account: account, title: 'primeiro-contato') }
+    let!(:budget_stage) { create(:label, account: account, title: 'orcamento-feito') }
+    let!(:archived_label) { create(:label, account: account, title: 'arquivado') }
+
+    it 'keeps only the archived label when archiving a conversation' do
+      conversation.update!(label_list: [contact_stage.title, budget_stage.title, archived_label.title])
+
+      expect(conversation.reload.label_list).to eq([archived_label.title])
+      expect(conversation).to be_resolved
+      expect(conversation.additional_attributes['rotta_archived_at']).to be_present
+    end
+
+    it 'reopens the conversation in Todos when the archived label is removed' do
+      conversation.update!(label_list: [contact_stage.title, archived_label.title])
+      archived_last_activity_at = conversation.reload.last_activity_at
+
+      conversation.update!(label_list: [])
+
+      expect(conversation.reload).to be_open
+      expect(conversation.label_list).to be_empty
+      expect(conversation.last_activity_at).to eq(archived_last_activity_at)
+      expect(conversation.additional_attributes['rotta_archived_at']).to be_nil
+    end
+
+    it 'keeps the archived label exclusive even when a numbered label title is used' do
+      conversation.update!(label_list: ['primeiro-contato', '[1] arquivado', 'orcamento-feito'])
+
+      expect(conversation.reload.label_list).to eq(['[1] arquivado'])
+      expect(conversation).to be_resolved
+    end
+
+    it 'reopens a previously resolved conversation when its archived label is removed' do
+      conversation.update!(status: :resolved, label_list: [archived_label.title])
+
+      conversation.update!(label_list: [])
+
+      expect(conversation.reload).to be_open
+    end
+  end
 end

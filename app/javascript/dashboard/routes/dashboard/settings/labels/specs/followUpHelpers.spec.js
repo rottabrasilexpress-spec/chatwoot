@@ -8,6 +8,12 @@ import {
   kanbanBucketFor,
   delayHoursFor,
   FOLLOW_UP_STAGE_ORDER,
+  CONTACT_TRAIL_STAGES,
+  BUDGET_TRAIL_STAGES,
+  followUpTrailForJob,
+  followUpTrailForStage,
+  isArchivedStage,
+  orderedTrailStages,
   orderedFollowUpStages,
 } from '../followUpHelpers';
 
@@ -115,6 +121,62 @@ describe('follow-up helpers', () => {
       'arquivado',
       'etapa-customizada',
     ]);
-    expect(FOLLOW_UP_STAGE_ORDER[0]).toBe('contato-instantaneo');
+    expect(FOLLOW_UP_STAGE_ORDER[0]).toBe('primeiro-contato');
+  });
+
+  it('orders every visible contact and budget stage without treating archive as a stage', () => {
+    expect(
+      orderedTrailStages(
+        [
+          'arquivado',
+          'ultimo-contato',
+          'terceiro-contato',
+          'segundo-contato',
+          'primeiro-contato',
+        ],
+        'contact'
+      )
+    ).toEqual(CONTACT_TRAIL_STAGES);
+    expect(
+      orderedTrailStages(
+        [
+          'orcamento-15-dias',
+          'orcamento-feito',
+          'arquivado',
+          'orcamento-tentativa-3',
+          'orcamento-tentativa-2',
+          'orcamento-10-dias',
+          'orcamento-tentativa-4',
+          'orcamento-5-dias',
+        ],
+        'budget'
+      )
+    ).toEqual(BUDGET_TRAIL_STAGES);
+  });
+
+  it('routes jobs to the trail represented by their current or historical labels', () => {
+    expect(followUpTrailForStage('primeiro-contato')).toBe('contact');
+    expect(followUpTrailForStage('orcamento-tentativa-3')).toBe('budget');
+    expect(
+      followUpTrailForJob({
+        current_label: 'primeiro-contato',
+        history: [{ label: 'orcamento-feito' }],
+      })
+    ).toBe('budget');
+    expect(followUpTrailForJob({ current_label: 'segundo-contato' })).toBe(
+      'contact'
+    );
+  });
+
+  it('keeps archived jobs out of both the board and its stage counts', () => {
+    expect(isArchivedStage('arquivado')).toBe(true);
+    expect(isArchivedStage('clientes-fechados')).toBe(true);
+    expect(followUpTrailForJob({ current_label: 'arquivado' })).toBe(null);
+    expect(
+      orderedTrailStages(['primeiro-contato', 'arquivado'], 'contact')
+    ).toEqual(['primeiro-contato']);
+    expect(
+      orderedTrailStages(['orcamento-feito', 'clientes-fechados'], 'budget')
+    ).toEqual(['orcamento-feito']);
   });
 });

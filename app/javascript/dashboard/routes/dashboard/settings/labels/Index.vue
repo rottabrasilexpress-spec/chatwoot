@@ -7,8 +7,11 @@ import { useStoreGetters, useStore } from 'dashboard/composables/store';
 import { picoSearch } from '@chatwoot/pico-search';
 import rottaFollowUpAPI from 'dashboard/api/rottaFollowUp';
 import {
+  canonicalFollowUpStage,
   CONFIGURED_DELAY_HOURS,
+  FOLLOW_UP_STAGE_TITLES,
   orderedFollowUpStages,
+  orderedTrailStages,
 } from './followUpHelpers';
 
 import AddLabel from './AddLabel.vue';
@@ -36,12 +39,6 @@ const records = computed(() => getters['labels/getLabels'].value);
 const followUpConfigLoading = ref(false);
 const followUpConfigUnavailable = ref(false);
 const followUpConfigSaving = ref({});
-const legacyFollowUpStages = new Set([
-  'contato-instantaneo',
-  'orcamento-instantaneo',
-  'clientes-fechados',
-]);
-
 const fallbackFollowUpConfig = () =>
   Object.entries(CONFIGURED_DELAY_HOURS).map(([stageLabel, hours]) => ({
     stage_label: stageLabel,
@@ -82,47 +79,77 @@ const normaliseFollowUpConfig = row => {
   };
 };
 
+const mergeFollowUpConfig = rows => {
+  const incomingRows = Array.isArray(rows)
+    ? rows.map(normaliseFollowUpConfig)
+    : [];
+  const incomingByStage = new Map(
+    incomingRows.map(row => [canonicalFollowUpStage(row.stage_label), row])
+  );
+  const fallbackRows = fallbackFollowUpConfig();
+  const fallbackStages = new Set(
+    fallbackRows.map(row => canonicalFollowUpStage(row.stage_label))
+  );
+  const mergedRows = fallbackRows.map(
+    row =>
+      incomingByStage.get(canonicalFollowUpStage(row.stage_label)) ||
+      normaliseFollowUpConfig(row)
+  );
+  const additionalRows = incomingRows.filter(
+    row => !fallbackStages.has(canonicalFollowUpStage(row.stage_label))
+  );
+  return [...mergedRows, ...additionalRows];
+};
+
 const followUpConfigRows = computed(() => {
   const stages = orderedFollowUpStages(
     followUpConfig.value.map(row => row.stage_label)
   );
   return stages.map(stage => {
     const row = followUpConfig.value.find(item => item.stage_label === stage);
-    return row || normaliseFollowUpConfig({ stage_label: stage });
+    return normaliseFollowUpConfig(row || { stage_label: stage });
   });
 });
 
 const followUpConfigSections = computed(() => {
+  const rowsForTrail = trailKey => {
+    const orderedStages = orderedTrailStages(
+      followUpConfigRows.value.map(row => row.stage_label),
+      trailKey
+    );
+    return orderedStages
+      .map(stage =>
+        followUpConfigRows.value.find(
+          row => canonicalFollowUpStage(row.stage_label) === stage
+        )
+      )
+      .filter(Boolean);
+  };
   const sections = [
     {
       key: 'contact',
       title: 'Trilha de contato',
       description: 'Cadência para o primeiro atendimento e os lembretes.',
-      rows: followUpConfigRows.value.filter(
-        row =>
-          row.stage_label.startsWith('contato-') &&
-          !legacyFollowUpStages.has(row.stage_label)
-      ),
+      rows: rowsForTrail('contact'),
     },
     {
       key: 'budget',
       title: 'Trilha de orçamento',
       description: 'Etapas de orçamento, tentativas e reativações.',
-      rows: followUpConfigRows.value.filter(
-        row =>
-          row.stage_label.startsWith('orcamento-') &&
-          !legacyFollowUpStages.has(row.stage_label)
-      ),
+      rows: rowsForTrail('budget'),
     },
   ];
 
-  return sections.filter(section => section.rows.length);
+  return sections;
 });
 
 const labelForStage = stage =>
   records.value.find(label => slugForLabel(label.title) === stage) || null;
 
-const stageTitle = stage => labelForStage(stage)?.title || stage;
+const stageTitle = stage =>
+  FOLLOW_UP_STAGE_TITLES[canonicalFollowUpStage(stage)] ||
+  labelForStage(stage)?.title ||
+  stage;
 
 const loadFollowUpConfig = async () => {
   followUpConfigLoading.value = true;
@@ -131,7 +158,7 @@ const loadFollowUpConfig = async () => {
     const response = await rottaFollowUpAPI.create({ action: 'config' });
     const body = response.data || {};
     if (Array.isArray(body.config) && body.config.length) {
-      followUpConfig.value = body.config.map(normaliseFollowUpConfig);
+      followUpConfig.value = mergeFollowUpConfig(body.config);
     }
   } catch (error) {
     followUpConfigUnavailable.value = true;
@@ -164,7 +191,7 @@ const saveFollowUpConfig = async row => {
     });
     const body = response.data || {};
     if (Array.isArray(body.config) && body.config.length) {
-      followUpConfig.value = body.config.map(normaliseFollowUpConfig);
+      followUpConfig.value = mergeFollowUpConfig(body.config);
     } else {
       Object.assign(row, {
         delay_minutes: delayMinutes,

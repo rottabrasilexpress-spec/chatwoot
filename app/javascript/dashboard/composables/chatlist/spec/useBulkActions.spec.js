@@ -27,4 +27,13 @@ describe('mergeConversationLabels', () => {
       )
     ).toEqual(['primeiro-contato', 'segundo-contato', 'terceiro-contato']);
   });
+
+  it('makes archived the only label when it is added', () => {
+    expect(
+      mergeConversationLabels(
+        { labels: ['primeiro-contato', 'orcamento-feito'] },
+        { add: ['[1] arquivado'] }
+      )
+    ).toEqual(['[1] arquivado']);
+  });
 });

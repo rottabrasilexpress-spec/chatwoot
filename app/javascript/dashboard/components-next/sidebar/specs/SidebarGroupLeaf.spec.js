@@ -73,4 +73,15 @@ describe('SidebarGroupLeaf', () => {
 
     expect(wrapper.find('[data-test-id="custom-leaf-count"]').text()).toBe('4');
   });
+
+  it('applies a configured accent color without changing the unread badge', () => {
+    const wrapper = mountLeaf({ color: '#16a34a', badgeCount: 4 });
+
+    expect(wrapper.find('a').attributes('style')).toContain(
+      'color: rgb(22, 163, 74)'
+    );
+    expect(wrapper.find('[data-test-id="sidebar-unread-badge"]').text()).toBe(
+      '4'
+    );
+  });
 });

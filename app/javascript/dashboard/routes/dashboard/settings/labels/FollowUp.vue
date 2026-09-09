@@ -12,10 +12,17 @@ import SettingsLayout from '../SettingsLayout.vue';
 import {
   CONFIGURED_DELAY_HOURS,
   countdownPartsFor,
+  canonicalFollowUpStage,
+  CONTACT_TRAIL_STAGES,
   currentStageFor,
   delayHoursFor,
   dispatchWindowFor,
+  BUDGET_TRAIL_STAGES,
+  FOLLOW_UP_STAGE_TITLES,
+  followUpTrailForJob,
+  followUpTrailForStage,
   effectiveDispatchAt,
+  isArchivedStage,
   isHistoricalJob,
   orderedFollowUpStages,
 } from './followUpHelpers';
@@ -26,18 +33,18 @@ const labelMeta = {
   'primeiro-contato': { title: 'Primeiro contato', color: '#16a34a' },
   'segundo-contato': { title: 'Segundo contato', color: '#f59e0b' },
   'terceiro-contato': { title: 'Terceiro contato', color: '#3b82f6' },
-  'ultimo-contato': { title: 'Último contato ❌', color: '#dc2626' },
+  'ultimo-contato': { title: 'Quarto contato', color: '#dc2626' },
   'orcamento-feito': { title: 'Orçamento feito ✅', color: '#16a34a' },
   'orcamento-tentativa-2': {
-    title: 'Orçamento tentativa 2',
+    title: 'Segundo orçamento',
     color: '#f59e0b',
   },
   'orcamento-tentativa-3': {
-    title: 'Orçamento tentativa 3',
+    title: 'Terceiro orçamento',
     color: '#3b82f6',
   },
   'orcamento-tentativa-4': {
-    title: 'Orçamento tentativa 4 ❌',
+    title: 'Quarto orçamento',
     color: '#dc2626',
   },
   'orcamento-5-dias': { title: 'Orçamento 5 dias', color: '#06b6d4' },
@@ -76,13 +83,21 @@ const REALTIME_SETTLE_REFRESH_MS = 1200;
 const FAST_REFRESH_DELAYS_MS = [300, 1000, 2500, 5000];
 
 const labelInfo = slug => {
+  const canonicalStage = canonicalFollowUpStage(slug);
   const fallback = String(slug || 'outros')
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
   return {
-    title: apiLabels.value[slug] || labelMeta[slug]?.title || fallback,
-    color: labelMeta[slug]?.color || '#64748b',
+    title:
+      FOLLOW_UP_STAGE_TITLES[canonicalStage] ||
+      labelMeta[canonicalStage]?.title ||
+      apiLabels.value[slug] ||
+      apiLabels.value[canonicalStage] ||
+      labelMeta[slug]?.title ||
+      fallback,
+    color:
+      labelMeta[canonicalStage]?.color || labelMeta[slug]?.color || '#64748b',
   };
 };
 
@@ -111,66 +126,28 @@ const linkedLabelSlugs = new Set(Object.keys(CONFIGURED_DELAY_HOURS));
 
 const currentStage = currentStageFor;
 
-const contactTrail = [
-  'primeiro-contato',
-  'segundo-contato',
-  'terceiro-contato',
-  'ultimo-contato',
-  'arquivado',
-];
-
-const budgetTrail = [
-  'orcamento-feito',
-  'orcamento-tentativa-2',
-  'orcamento-tentativa-3',
-  'orcamento-tentativa-4',
-  'orcamento-5-dias',
-  'orcamento-10-dias',
-  'orcamento-15-dias',
-  'arquivado',
-];
-
-const isBudgetStage = stage => String(stage || '').startsWith('orcamento-');
-
-const jobHasBudgetTrail = job => {
-  const history = [
-    'history',
-    'sent_history',
-    'dispatched_labels',
-    'follow_up_history',
-  ].flatMap(key =>
-    Array.isArray(job?.[key])
-      ? job[key].map(item => item?.label || item?.slug || item)
-      : []
-  );
-  return [
-    job?.current_label,
-    job?.source_label,
-    job?.next_label,
-    ...history,
-  ].some(isBudgetStage);
-};
+const contactTrail = CONTACT_TRAIL_STAGES;
+const budgetTrail = BUDGET_TRAIL_STAGES;
 
 const displayStageFor = job => {
-  const stage = currentStage(job);
-  if (stage === 'contato-instantaneo') return 'primeiro-contato';
-  if (stage === 'orcamento-instantaneo') return 'orcamento-feito';
-  if (stage === 'clientes-fechados') return 'arquivado';
-  return stage;
+  return canonicalFollowUpStage(currentStage(job));
 };
 
-const trailFor = job => (jobHasBudgetTrail(job) ? budgetTrail : contactTrail);
+const trailFor = job => {
+  const trail = followUpTrailForJob(job);
+  if (trail === 'budget') return budgetTrail;
+  if (trail === 'contact') return contactTrail;
+  return [];
+};
 
 const nextStageFor = job => {
-  const stage = currentStage(job);
+  const stage = displayStageFor(job);
   const trail = trailFor(job);
   const index = trail.indexOf(stage);
 
-  if (stage === 'contato-instantaneo') return 'primeiro-contato';
-  if (stage === 'orcamento-instantaneo') return 'orcamento-feito';
-  if (stage === 'clientes-fechados') return '';
   if (index >= 0 && index < trail.length - 1) return trail[index + 1];
-  return job.next_label || '';
+  const nextStage = canonicalFollowUpStage(job.next_label);
+  return isArchivedStage(nextStage) ? '' : nextStage;
 };
 
 const pendingJobKey = item => `${item.conversation_id}:${item.label}`;
@@ -319,7 +296,7 @@ const selectedTrailView = computed(
     trailViews.find(view => view.key === selectedView.value) || trailViews[0]
 );
 
-const trailViewForJob = job => (jobHasBudgetTrail(job) ? 'budget' : 'contact');
+const trailViewForJob = followUpTrailForJob;
 
 const stageOptions = computed(() => {
   const values = new Set([
@@ -342,31 +319,41 @@ const trailColumns = computed(() => {
         stage =>
           stage &&
           !configuredStages.includes(stage) &&
+          !followUpTrailForStage(stage) &&
+          !isArchivedStage(stage) &&
           !legacyStagesHiddenFromFilter.has(stage)
       )
   );
-  const columns = [
-    selectedTrailView.value,
-    ...(additionalStages.length
-      ? [
-          {
-            key: 'other',
-            title: 'Outras etapas',
-            description: 'Etiquetas adicionais mantidas no fluxo.',
-            icon: 'i-lucide-tags',
-            stages: additionalStages,
-          },
-        ]
-      : []),
-  ];
+  const columns = configuredStages.map(stage => ({
+    key: `stage-${stage}`,
+    title: labelInfo(stage).title,
+    description: selectedTrailView.value.title,
+    icon: selectedTrailView.value.icon,
+    stages: [stage],
+    stageKeys: [stage],
+    showStageChips: false,
+  }));
+  if (additionalStages.length) {
+    columns.push({
+      key: 'other',
+      title: 'Outras etapas',
+      description: 'Etiquetas adicionais mantidas no fluxo.',
+      icon: 'i-lucide-tags',
+      stages: additionalStages,
+      stageKeys: additionalStages,
+      showStageChips: true,
+    });
+  }
   return columns.map(column => ({
     ...column,
-    stageKeys: column.stages,
+    stageKeys: column.stageKeys || column.stages,
   }));
 });
 
 const activeJobs = computed(() =>
-  queueJobs.value.filter(job => !isHistoricalJob(job))
+  queueJobs.value.filter(
+    job => !isHistoricalJob(job) && Boolean(trailViewForJob(job))
+  )
 );
 
 const viewCount = view => {
@@ -381,13 +368,13 @@ const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
   return queueJobs.value.filter(job => {
     const matchesView = trailViewForJob(job) === selectedView.value;
+    const displayStage = displayStageFor(job);
     const matchesStage =
-      selectedStage.value === 'all' ||
-      displayStageFor(job) === selectedStage.value;
+      selectedStage.value === 'all' || displayStage === selectedStage.value;
     const content = [
       job.customer_name,
       job.phone,
-      currentStage(job),
+      displayStage,
       nextStageFor(job),
       labelInfo(displayStageFor(job)).title,
       labelInfo(nextStageFor(job)).title,
@@ -395,7 +382,12 @@ const filteredJobs = computed(() => {
       .filter(Boolean)
       .join(' ')
       .toLowerCase();
-    return matchesView && matchesStage && (!query || content.includes(query));
+    return (
+      matchesView &&
+      !isArchivedStage(displayStage) &&
+      matchesStage &&
+      (!query || content.includes(query))
+    );
   });
 });
 
@@ -428,11 +420,12 @@ const jobsForColumn = columnKey => {
   const groupedColumn = trailColumns.value.find(
     column => column.key === columnKey
   );
-  const jobsInColumn = orderedFilteredJobs.value.filter(job =>
-    groupedColumn?.stageKeys
-      ? groupedColumn.stageKeys.includes(displayStageFor(job))
-      : false
-  );
+  const jobsInColumn = orderedFilteredJobs.value.filter(job => {
+    const stage = displayStageFor(job);
+    return groupedColumn?.stageKeys
+      ? groupedColumn.stageKeys.includes(stage)
+      : false;
+  });
 
   if (!groupedColumn) return jobsInColumn;
 
@@ -861,7 +854,7 @@ onUnmounted(() => {
                 </div>
                 <p>{{ column.description }}</p>
                 <div
-                  v-if="column.stageKeys"
+                  v-if="column.showStageChips && column.stageKeys"
                   class="rotta-board-column__stages"
                   :aria-label="`Etapas de ${column.title}`"
                 >
@@ -1596,7 +1589,8 @@ onUnmounted(() => {
 }
 
 .rotta-view-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(12rem, 1fr));
   flex: 1 1 100%;
   gap: 0.35rem;
   max-width: 100%;
@@ -1609,10 +1603,11 @@ onUnmounted(() => {
   align-items: center;
   flex: 0 0 auto;
   gap: 0.4rem;
-  min-height: 2rem;
-  padding: 0.35rem 0.65rem;
+  min-height: 3.25rem;
+  justify-content: center;
+  padding: 0.7rem 1rem;
   @apply text-n-slate-11 bg-n-alpha-1 border border-n-weak;
-  font-size: 0.72rem;
+  font-size: 0.9rem;
   font-weight: 600;
   border-radius: 0.65rem;
   cursor: pointer;
@@ -1632,10 +1627,10 @@ onUnmounted(() => {
 }
 
 .rotta-view-tabs button span {
-  min-width: 1.15rem;
-  padding: 0.1rem 0.3rem;
+  min-width: 1.45rem;
+  padding: 0.15rem 0.4rem;
   @apply text-n-slate-11 bg-n-solid-1;
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   text-align: center;
   border-radius: 999px;
 }
@@ -1648,13 +1643,17 @@ onUnmounted(() => {
 }
 
 .rotta-board--trails {
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(12rem, 15rem);
+  grid-template-columns: none;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
 }
 
 .rotta-board-column {
   display: flex;
   min-width: 0;
-  min-height: 15rem;
+  min-height: 12rem;
   flex-direction: column;
   @apply bg-n-solid-2 border border-n-weak;
   border-radius: 1rem;
@@ -1669,7 +1668,7 @@ onUnmounted(() => {
 }
 
 .rotta-board-column__header {
-  padding: 0.8rem 0.85rem 0.7rem;
+  padding: 0.65rem 0.7rem 0.55rem;
   @apply border-b border-n-weak;
 }
 
@@ -1737,8 +1736,8 @@ onUnmounted(() => {
 .rotta-board-column__body {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding: 0.6rem;
+  gap: 0.45rem;
+  padding: 0.45rem;
 }
 
 .rotta-board-column__empty {
@@ -1757,8 +1756,8 @@ onUnmounted(() => {
 .rotta-board-card {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
-  padding: 0.75rem;
+  gap: 0.55rem;
+  padding: 0.65rem;
   @apply bg-n-solid-1 border border-n-weak;
   border-radius: 0.85rem;
   cursor: pointer;
@@ -2322,8 +2321,13 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1023px) {
-  .rotta-board {
+  .rotta-board:not(.rotta-board--trails) {
     grid-template-columns: repeat(2, minmax(16rem, 1fr));
+  }
+
+  .rotta-board--trails {
+    grid-template-columns: none;
+    grid-auto-columns: minmax(11.5rem, 14rem);
   }
 }
 
@@ -2335,6 +2339,7 @@ onUnmounted(() => {
   .rotta-view-tabs {
     margin-inline: -0.25rem;
     padding-inline: 0.25rem;
+    grid-template-columns: repeat(2, minmax(11rem, 1fr));
   }
 
   .rotta-board-card__actions :deep(button) {

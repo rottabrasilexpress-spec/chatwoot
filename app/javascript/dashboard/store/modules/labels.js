@@ -1,11 +1,65 @@
 import * as MutationHelpers from 'shared/helpers/vuex/mutationHelpers';
 import types from '../mutation-types';
 import LabelsAPI from '../../api/labels';
+import ContactAPI from '../../api/contacts';
 import AnalyticsHelper from '../../helper/AnalyticsHelper';
 import { LABEL_EVENTS } from '../../helper/AnalyticsHelper/events';
 
+export const SIDEBAR_LABEL_COUNTS_MUTATION = 'SET_SIDEBAR_LABEL_COUNTS';
+
+const SIDEBAR_LABEL_COLOR = Object.freeze({
+  budget: '#f59e0b',
+  caioAttention: '#1e3a8a',
+  closedClients: '#16a34a',
+});
+
+export const normalizeSidebarLabel = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+export const SIDEBAR_LABEL_DEFINITIONS = Object.freeze([
+  Object.freeze({
+    key: 'budget',
+    fallbackTitle: 'kelvin',
+    aliases: Object.freeze(['kelvin', 'kelvin-caio']),
+    color: SIDEBAR_LABEL_COLOR.budget,
+  }),
+  Object.freeze({
+    key: 'caioAttention',
+    fallbackTitle: 'caio-atencao',
+    aliases: Object.freeze(['caio-atencao']),
+    color: SIDEBAR_LABEL_COLOR.caioAttention,
+  }),
+  Object.freeze({
+    key: 'closedClients',
+    fallbackTitle: 'clientes-fechados',
+    aliases: Object.freeze(['clientes-fechados']),
+    color: SIDEBAR_LABEL_COLOR.closedClients,
+  }),
+]);
+
+export const findSidebarLabel = (records, definition) => {
+  const aliases = definition?.aliases || [];
+  const normalizedAliases = aliases.map(normalizeSidebarLabel);
+
+  return (Array.isArray(records) ? records : []).find(record =>
+    normalizedAliases.includes(normalizeSidebarLabel(record.title))
+  );
+};
+
+const normalizeCount = value => {
+  const count = Number(value);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+};
+
+let sidebarCountsRequestId = 0;
+
 export const state = {
   records: [],
+  sidebarLabelCounts: {},
   uiFlags: {
     isFetching: false,
     isFetchingItem: false,
@@ -28,6 +82,15 @@ export const getters = {
   },
   getLabelById: _state => id => {
     return _state.records.find(record => record.id === Number(id)) || {};
+  },
+  getSidebarLabelCount: _state => key => {
+    const definition = SIDEBAR_LABEL_DEFINITIONS.find(item => item.key === key);
+    if (definition && !findSidebarLabel(_state.records, definition)) return 0;
+
+    return normalizeCount(_state.sidebarLabelCounts?.[key]);
+  },
+  getSidebarLabelCounts(_state) {
+    return _state.sidebarLabelCounts;
   },
 };
 
@@ -56,6 +119,38 @@ export const actions = {
       // Ignore error
     } finally {
       commit(types.SET_LABEL_UI_FLAG, { isFetching: false });
+    }
+  },
+
+  getSidebarCounts: async function getSidebarCounts({
+    state: moduleState,
+    commit,
+  }) {
+    sidebarCountsRequestId += 1;
+    const requestId = sidebarCountsRequestId;
+    const labelsToCount = SIDEBAR_LABEL_DEFINITIONS.map(definition => ({
+      definition,
+      label: findSidebarLabel(moduleState.records, definition),
+    })).filter(({ label }) => label);
+
+    if (!labelsToCount.length) return;
+
+    const responses = await Promise.all(
+      labelsToCount.map(async ({ definition, label }) => {
+        try {
+          const response = await ContactAPI.get(1, 'name', label.title);
+          return [definition.key, normalizeCount(response.data?.meta?.count)];
+        } catch (error) {
+          return null;
+        }
+      })
+    );
+
+    if (requestId !== sidebarCountsRequestId) return;
+
+    const counts = Object.fromEntries(responses.filter(Boolean));
+    if (Object.keys(counts).length) {
+      commit(SIDEBAR_LABEL_COUNTS_MUTATION, counts);
     }
   },
 
@@ -112,6 +207,12 @@ export const mutations = {
   [types.ADD_LABEL]: MutationHelpers.create,
   [types.EDIT_LABEL]: MutationHelpers.update,
   [types.DELETE_LABEL]: MutationHelpers.destroy,
+  [SIDEBAR_LABEL_COUNTS_MUTATION](_state, counts) {
+    _state.sidebarLabelCounts = {
+      ..._state.sidebarLabelCounts,
+      ...counts,
+    };
+  },
 };
 
 export default {

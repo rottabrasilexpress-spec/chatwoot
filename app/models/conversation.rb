@@ -146,9 +146,11 @@ class Conversation < ApplicationRecord
   has_many :automation_rule_pending_executions, dependent: :delete_all
 
   before_save :ensure_snooze_until_reset
-  before_save :set_status_changed_at
+  before_save :normalize_rotta_archived_labels
   before_save :track_rotta_archived_at
   before_save :archive_conversation_when_label_added
+  before_save :restore_conversation_when_archived_label_removed
+  before_save :set_status_changed_at
   before_save :clear_rotta_human_assignee
   before_save :clear_rotta_team_assignment
   before_create :determine_conversation_status
@@ -303,6 +305,15 @@ class Conversation < ApplicationRecord
     self.snoozed_until = nil unless snoozed?
   end
 
+  def normalize_rotta_archived_labels
+    return unless will_save_change_to_label_list?
+
+    archived_label = Array(label_list).find do |label|
+      rotta_archived_label_present?([label])
+    end
+    self.label_list = [archived_label] if archived_label.present?
+  end
+
   def track_rotta_archived_at
     return unless will_save_change_to_label_list?
 
@@ -317,6 +328,7 @@ class Conversation < ApplicationRecord
     attributes = (additional_attributes || {}).deep_dup
     if current_archived
       attributes['rotta_archived_at'] = Time.current.iso8601
+      attributes['rotta_archived_previous_status'] = status
     else
       attributes.delete('rotta_archived_at')
     end
@@ -331,6 +343,28 @@ class Conversation < ApplicationRecord
     return unless rotta_archived_label_present?(current_labels)
 
     self.status = :resolved unless resolved?
+  end
+
+  def restore_conversation_when_archived_label_removed
+    return unless will_save_change_to_label_list?
+
+    previous_labels, current_labels =
+      changes_to_save['label_list'] || changes_to_save[:label_list]
+    return unless rotta_archived_label_present?(previous_labels)
+    return if rotta_archived_label_present?(current_labels)
+
+    previous_status = additional_attributes&.[]('rotta_archived_previous_status')
+    self.status = if previous_status.present? &&
+                      previous_status != 'resolved' &&
+                      self.class.statuses.key?(previous_status)
+                    previous_status
+                  else
+                    :open
+                  end
+
+    attributes = (additional_attributes || {}).deep_dup
+    attributes.delete('rotta_archived_previous_status')
+    self.additional_attributes = attributes
   end
 
   def rotta_archived_label_added?
@@ -352,8 +386,12 @@ class Conversation < ApplicationRecord
 
   def rotta_archived_label_present?(labels)
     Array(labels).any? do |label|
-      ROTTA_ARCHIVED_LABEL_KEYS.include?(label.to_s.parameterize)
+      ROTTA_ARCHIVED_LABEL_KEYS.include?(rotta_archived_label_key(label))
     end
+  end
+
+  def rotta_archived_label_key(label)
+    label.to_s.parameterize.sub(/\A\d+-/, '')
   end
 
   def set_status_changed_at

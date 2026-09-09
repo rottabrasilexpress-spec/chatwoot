@@ -2,6 +2,21 @@ import { computed } from 'vue';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 
+const ARCHIVED_LABEL_KEYS = new Set(['arquivado', 'arquivados']);
+
+const normalizedLabelKey = label =>
+  String(label || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/^\[\d+\]\s*/, '')
+    .replace(/^\d+[-\s]+/, '')
+    .replace(/\s+/g, '-');
+
+const isArchivedLabel = label =>
+  ARCHIVED_LABEL_KEYS.has(normalizedLabelKey(label));
+
 /**
  * Composable for managing conversation labels
  * @returns {Object} An object containing methods and computed properties for conversation labels
@@ -79,23 +94,30 @@ export function useConversationLabels() {
    */
   const onUpdateLabels = async selectedLabels => {
     const previousLabels = savedLabels.value;
+    const labels = Array.isArray(selectedLabels) ? selectedLabels : [];
+    const archivedLabel = labels.find(isArchivedLabel);
+    const normalizedSelectedLabels = archivedLabel ? [archivedLabel] : labels;
     const updated = await store.dispatch('conversationLabels/update', {
       conversationId: conversationId.value,
-      labels: selectedLabels,
+      labels: normalizedSelectedLabels,
     });
 
     if (!updated) return false;
 
-    const addedLabels = selectedLabels.filter(
+    await store.dispatch('labels/get');
+
+    const addedLabels = normalizedSelectedLabels.filter(
       label => !previousLabels.includes(label)
     );
     const removedLabels = previousLabels.filter(
-      label => !selectedLabels.includes(label)
+      label => !normalizedSelectedLabels.includes(label)
     );
 
-    addedLabels.forEach(label =>
-      useAlert(`Etiqueta "${label}" adicionada à conversa.`)
-    );
+    addedLabels.forEach(label => {
+      useAlert(`Etiqueta "${label}" adicionada à conversa.`, {
+        ...(isArchivedLabel(label) ? { variant: 'danger' } : {}),
+      });
+    });
     removedLabels.forEach(label =>
       useAlert(`Etiqueta "${label}" removida da conversa.`)
     );
