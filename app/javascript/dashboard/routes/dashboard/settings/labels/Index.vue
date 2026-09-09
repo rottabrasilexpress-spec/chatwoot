@@ -36,6 +36,11 @@ const records = computed(() => getters['labels/getLabels'].value);
 const followUpConfigLoading = ref(false);
 const followUpConfigUnavailable = ref(false);
 const followUpConfigSaving = ref({});
+const legacyFollowUpStages = new Set([
+  'contato-instantaneo',
+  'orcamento-instantaneo',
+  'clientes-fechados',
+]);
 
 const fallbackFollowUpConfig = () =>
   Object.entries(CONFIGURED_DELAY_HOURS).map(([stageLabel, hours]) => ({
@@ -93,26 +98,20 @@ const followUpConfigSections = computed(() => {
       key: 'contact',
       title: 'Trilha de contato',
       description: 'Cadência para o primeiro atendimento e os lembretes.',
-      rows: followUpConfigRows.value.filter(row =>
-        row.stage_label.startsWith('contato-')
+      rows: followUpConfigRows.value.filter(
+        row =>
+          row.stage_label.startsWith('contato-') &&
+          !legacyFollowUpStages.has(row.stage_label)
       ),
     },
     {
       key: 'budget',
       title: 'Trilha de orçamento',
-      description: 'Etapas de orçamento instantâneo, tentativas e reativações.',
-      rows: followUpConfigRows.value.filter(row =>
-        row.stage_label.startsWith('orcamento-')
-      ),
-    },
-    {
-      key: 'other',
-      title: 'Encerramento e outras etapas',
-      description: 'Etiquetas que não pertencem a uma trilha principal.',
+      description: 'Etapas de orçamento, tentativas e reativações.',
       rows: followUpConfigRows.value.filter(
         row =>
-          !row.stage_label.startsWith('contato-') &&
-          !row.stage_label.startsWith('orcamento-')
+          row.stage_label.startsWith('orcamento-') &&
+          !legacyFollowUpStages.has(row.stage_label)
       ),
     },
   ];

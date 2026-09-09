@@ -122,6 +122,23 @@ describe('#applyPageFilters', () => {
       expect(applyPageFilters(conversationList[1], filters)).toEqual(true);
     });
   });
+
+  describe('#filter-unread', () => {
+    it('keeps only conversations with an unread count', () => {
+      expect(
+        applyPageFilters(
+          { ...conversationList[0], unread_count: 2 },
+          { status: 'all', conversationType: 'unread' }
+        )
+      ).toBe(true);
+      expect(
+        applyPageFilters(
+          { ...conversationList[1], unread_count: 0 },
+          { status: 'all', conversationType: 'unread' }
+        )
+      ).toBe(false);
+    });
+  });
 });
 
 describe('#filterByInbox', () => {

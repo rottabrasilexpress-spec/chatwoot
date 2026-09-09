@@ -23,6 +23,7 @@ class Conversations::UnreadCounts::Counter
 
     {
       all_count: inbox_counts.values.sum,
+      archived_count: archived_unread_count,
       inboxes: inbox_counts,
       labels: unread_label_counts,
       teams: unread_team_counts
@@ -78,6 +79,25 @@ class Conversations::UnreadCounts::Counter
 
   def unread_inbox_counts
     counts_for_grouped_keys(visible_inbox_ids.index_with { |inbox_id| inbox_keys_for_mode(inbox_id) })
+  end
+
+  def archived_unread_count
+    relation = account.conversations
+                      .resolved
+                      .joins(:messages)
+                      .merge(Message.incoming.reorder(nil))
+                      .where(messages: { account_id: account.id })
+                      .where(unread_since_last_seen_condition)
+                      .distinct
+
+    Conversations::PermissionFilterService.new(relation, user, account).perform.count
+  end
+
+  def unread_since_last_seen_condition
+    conversations = Conversation.arel_table
+    messages = Message.arel_table
+
+    conversations[:agent_last_seen_at].eq(nil).or(messages[:created_at].gt(conversations[:agent_last_seen_at]))
   end
 
   def unread_label_counts
@@ -200,7 +220,7 @@ class Conversations::UnreadCounts::Counter
   end
 
   def empty_counts
-    { all_count: 0, inboxes: {}, labels: {}, teams: {} }
+    { all_count: 0, archived_count: 0, inboxes: {}, labels: {}, teams: {} }
   end
 
   def store

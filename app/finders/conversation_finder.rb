@@ -148,6 +148,16 @@ class ConversationFinder
       @conversations = @conversations.unattended
     when 'awaiting_reply'
       @conversations = @conversations.awaiting_reply
+    when 'unread'
+      @conversations = @conversations
+                                   .joins(:messages)
+                                   .where(messages: {
+                                            account_id: current_account.id,
+                                            message_type: Message.message_types[:incoming]
+                                          })
+                                   .where(unread_since_last_seen_condition)
+                                   .where.not(status: Conversation.statuses[:resolved])
+                                   .distinct
     when 'priority'
       @conversations = @conversations.prioritized
     when 'archived'
@@ -172,9 +182,9 @@ class ConversationFinder
   def filter_by_status
     if params[:status] == 'all'
       # The main "Todos" view is the active workspace. Resolved conversations
-      # belong exclusively to Arquivados, while a label view must still be
-      # able to find a resolved conversation carrying that label.
-      return if params[:labels].present? || params[:conversation_type] == 'archived'
+      # belong exclusively to Arquivados. This applies to label views too, so
+      # a conversation cannot reappear in the active workspace through a tag.
+      return if params[:conversation_type] == 'archived'
 
       @conversations = @conversations.where.not(status: Conversation.statuses[:resolved])
       return

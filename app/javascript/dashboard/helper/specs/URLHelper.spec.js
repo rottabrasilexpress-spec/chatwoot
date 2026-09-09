@@ -49,6 +49,11 @@ describe('#URL Helpers', () => {
         })
       ).toBe('/app/accounts/1/participating/conversations');
     });
+    it('should return url to unread conversations', () => {
+      expect(
+        conversationListPageURL({ accountId: 1, conversationType: 'unread' })
+      ).toBe('/app/accounts/1/unread/conversations');
+    });
   });
   describe('conversationUrl', () => {
     it('should return direct conversation URL if activeInbox is nil', () => {

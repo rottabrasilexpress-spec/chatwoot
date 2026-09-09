@@ -13,7 +13,7 @@ RSpec.describe Conversations::UnreadCounts::Builder do
   end
 
   describe '#build_base!' do
-    it 'stores unread open conversations by inbox and label inbox' do
+    it 'stores unread active conversations by inbox and label inbox' do
       unread_conversation = create_unread_conversation(account: account, inbox: inbox, labels: [label.title], team: team)
       create_read_conversation
       create_resolved_unread_conversation

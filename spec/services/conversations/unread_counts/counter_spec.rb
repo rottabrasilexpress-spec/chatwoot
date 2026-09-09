@@ -63,6 +63,7 @@ RSpec.describe Conversations::UnreadCounts::Counter do
 
     expect(result).to eq(
       all_count: 1,
+      archived_count: 0,
       inboxes: { visible_inbox.id.to_s => 1 },
       labels: { label.id.to_s => 1 },
       teams: { visible_team.id.to_s => 1 }
@@ -77,6 +78,7 @@ RSpec.describe Conversations::UnreadCounts::Counter do
 
     expect(result).to eq(
       all_count: 2,
+      archived_count: 0,
       inboxes: { visible_inbox.id.to_s => 1, hidden_inbox.id.to_s => 1 },
       labels: { label.id.to_s => 2 },
       teams: { visible_team.id.to_s => 2 }
@@ -90,6 +92,7 @@ RSpec.describe Conversations::UnreadCounts::Counter do
 
     expect(result).to eq(
       all_count: 1,
+      archived_count: 0,
       inboxes: { visible_inbox.id.to_s => 1 },
       labels: {},
       teams: { visible_team.id.to_s => 1 }
@@ -112,5 +115,16 @@ RSpec.describe Conversations::UnreadCounts::Counter do
       unattended_count: 3,
       folders: { '4' => 5 }
     )
+  end
+
+  it 'counts unread resolved conversations separately for the archived badge' do
+    archived = create(:conversation, account: account, inbox: visible_inbox, status: :resolved, agent_last_seen_at: 1.hour.ago)
+    create(:message, account: account, inbox: visible_inbox, conversation: archived, message_type: :incoming)
+    create_unread_conversation(account: account, inbox: visible_inbox)
+
+    result = described_class.new(account: account, user: agent).perform
+
+    expect(result[:all_count]).to eq(1)
+    expect(result[:archived_count]).to eq(1)
   end
 end

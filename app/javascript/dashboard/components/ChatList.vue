@@ -76,9 +76,15 @@ const store = useStore();
 const resolveAttributesModalRef = ref(null);
 
 const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ALL);
-const activeStatus = ref(
-  props.conversationStatus || wootConstants.STATUS_TYPE.OPEN
-);
+const defaultConversationStatus =
+  props.conversationStatus ||
+  (!props.conversationType &&
+  !props.conversationInbox &&
+  !props.label &&
+  !props.teamId
+    ? wootConstants.STATUS_TYPE.ALL
+    : wootConstants.STATUS_TYPE.OPEN);
+const activeStatus = ref(defaultConversationStatus);
 const activeSortBy = ref(wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC);
 const showAdvancedFilters = ref(false);
 // chatsOnView is to store the chats that are currently visible on the screen,
@@ -261,6 +267,7 @@ const conversationListPagination = computed(() => {
 const isSpecialConversationView = computed(() =>
   [
     wootConstants.CONVERSATION_TYPE.AWAITING_REPLY,
+    wootConstants.CONVERSATION_TYPE.UNREAD,
     wootConstants.CONVERSATION_TYPE.PRIORITY,
   ].includes(props.conversationType)
 );
@@ -271,8 +278,6 @@ const conversationFilters = computed(() => {
     assigneeType: isSpecialConversationView.value
       ? wootConstants.ASSIGNEE_TYPE.ALL
       : activeAssigneeTab.value,
-    // A label view must include resolved conversations as well. This is what
-    // makes the native "arquivado" label find conversations in Arquivados.
     status: props.label ? wootConstants.STATUS_TYPE.ALL : activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
@@ -317,7 +322,10 @@ const pageTitle = computed(() => {
     return t('CHAT_LIST.UNATTENDED_HEADING');
   }
   if (
-    props.conversationType === wootConstants.CONVERSATION_TYPE.AWAITING_REPLY
+    [
+      wootConstants.CONVERSATION_TYPE.AWAITING_REPLY,
+      wootConstants.CONVERSATION_TYPE.UNREAD,
+    ].includes(props.conversationType)
   ) {
     return 'Não lidas';
   }
@@ -473,7 +481,10 @@ function setFiltersFromUISettings() {
   const { conversations_filter_by: filterBy = {} } = uiSettings.value;
   const { status, order_by: orderBy } = filterBy;
   activeStatus.value =
-    props.conversationStatus || status || wootConstants.STATUS_TYPE.OPEN;
+    props.conversationStatus ||
+    (defaultConversationStatus === wootConstants.STATUS_TYPE.ALL
+      ? wootConstants.STATUS_TYPE.ALL
+      : status || defaultConversationStatus);
   activeSortBy.value = Object.values(wootConstants.SORT_BY_TYPE).includes(
     orderBy
   )
@@ -745,6 +756,11 @@ function redirectToConversationList() {
     name === 'conversation_through_awaiting_reply'
   ) {
     conversationType = wootConstants.CONVERSATION_TYPE.AWAITING_REPLY;
+  } else if (
+    name === 'conversation_unread' ||
+    name === 'conversation_through_unread'
+  ) {
+    conversationType = wootConstants.CONVERSATION_TYPE.UNREAD;
   } else if (
     name === 'conversation_priority' ||
     name === 'conversation_through_priority'
@@ -1072,7 +1088,7 @@ watch(
 watch(
   computed(() => props.conversationStatus),
   value => {
-    activeStatus.value = value || wootConstants.STATUS_TYPE.OPEN;
+    activeStatus.value = value || defaultConversationStatus;
     resetAndFetchData();
   }
 );

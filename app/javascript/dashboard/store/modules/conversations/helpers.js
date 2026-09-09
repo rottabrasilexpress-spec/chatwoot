@@ -39,7 +39,8 @@ export const filterByConversationType = (
   shouldFilter,
   conversationType,
   priority,
-  lastNonActivityMessage
+  lastNonActivityMessage,
+  unreadCount
 ) => {
   if (conversationType === 'priority') {
     // `low` is a valid priority and is serialized as 0.
@@ -50,6 +51,10 @@ export const filterByConversationType = (
 
   if (conversationType === 'awaiting_reply') {
     return lastNonActivityMessage?.message_type === 0 && shouldFilter;
+  }
+
+  if (conversationType === 'unread') {
+    return Number(unreadCount) > 0 && shouldFilter;
   }
 
   return shouldFilter;
@@ -66,6 +71,7 @@ export const applyPageFilters = (conversation, filters) => {
     waiting_since: waitingSince,
     priority,
     last_non_activity_message: lastNonActivityMessage,
+    unread_count: unreadCount,
   } = conversation;
   const team = meta.team || {};
   const { id: chatTeamId } = team;
@@ -84,7 +90,8 @@ export const applyPageFilters = (conversation, filters) => {
     shouldFilter,
     conversationType,
     priority,
-    lastNonActivityMessage
+    lastNonActivityMessage,
+    unreadCount
   );
 
   return shouldFilter;

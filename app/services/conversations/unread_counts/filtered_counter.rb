@@ -99,18 +99,18 @@ class Conversations::UnreadCounts::FilteredCounter
     {
       mentions_count: count_relation(mentioned_unread_conversations),
       participating_count: count_relation(participating_unread_conversations),
-      unattended_count: count_relation(unread_open_accessible_conversations.unattended)
+      unattended_count: count_relation(unread_active_accessible_conversations.unattended)
     }
   end
 
   def mentioned_unread_conversations
-    unread_open_accessible_conversations
+    unread_active_accessible_conversations
       .joins(:mentions)
       .where(mentions: { account_id: account.id, user_id: user.id })
   end
 
   def participating_unread_conversations
-    unread_open_accessible_conversations
+    unread_active_accessible_conversations
       .joins(:conversation_participants)
       .where(conversation_participants: { user_id: user.id })
   end
@@ -169,9 +169,9 @@ class Conversations::UnreadCounts::FilteredCounter
 
   def delete_filter_count!(filter_id) = store.delete_filter_count!(account_id: account.id, filter_id: filter_id).then { nil }
 
-  def unread_open_accessible_conversations
-    @unread_open_accessible_conversations ||= Conversations::PermissionFilterService.new(
-      unread_conversations.open,
+  def unread_active_accessible_conversations
+    @unread_active_accessible_conversations ||= Conversations::PermissionFilterService.new(
+      unread_conversations.where.not(status: Conversation.statuses[:resolved]),
       user,
       account
     ).perform

@@ -254,7 +254,10 @@ class Webhooks::UazapiController < ActionController::API
     content = incoming_message_content(incoming)
     return render json: { ok: true, ignored: 'conteúdo não suportado' } if content.blank?
 
-    attributes = { 'uazapi_message_type' => value_for_keys(incoming, %w[type messageType]) }.compact
+    attributes = {
+      'rotta_uazapi' => true,
+      'uazapi_message_type' => value_for_keys(incoming, %w[type messageType])
+    }.compact
     quoted_id = value_for_keys(incoming, %w[quoted quotedId quoted_id replyid reply_id])
     attributes['in_reply_to_external_id'] = quoted_id if quoted_id.present?
 
@@ -328,6 +331,7 @@ class Webhooks::UazapiController < ActionController::API
 
   def outgoing_echo_attributes(payload, incoming)
     attributes = {
+      'rotta_uazapi' => true,
       'external_echo' => true,
       'uazapi_from_me' => true,
       'uazapi_message_type' => value_for_keys(incoming, %w[type messageType]),

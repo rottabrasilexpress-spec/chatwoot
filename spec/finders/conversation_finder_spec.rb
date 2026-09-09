@@ -94,9 +94,35 @@ describe ConversationFinder do
     context 'with status all' do
       let(:params) { { status: 'all' } }
 
-      it 'returns all conversations' do
+      it 'returns all active conversations without resolved conversations' do
         result = conversation_finder.perform
-        expect(result[:conversations].length).to be 5
+        expect(result[:conversations].length).to be 4
+        expect(result[:conversations].map(&:status)).not_to include('resolved')
+      end
+    end
+
+    context 'with unread conversations' do
+      let(:params) do
+        {
+          status: 'all',
+          assignee_type: 'all',
+          conversation_type: 'unread'
+        }
+      end
+
+      it 'returns only active conversations with an unread incoming message' do
+        unread_open = create(:conversation, account: account, inbox: inbox, agent_last_seen_at: 1.hour.ago)
+        unread_pending = create(:conversation, account: account, inbox: inbox, status: :pending, agent_last_seen_at: 1.hour.ago)
+        read_open = create(:conversation, account: account, inbox: inbox, agent_last_seen_at: 1.minute.from_now)
+        unread_resolved = create(:conversation, account: account, inbox: inbox, status: :resolved, agent_last_seen_at: 1.hour.ago)
+
+        [unread_open, unread_pending, read_open, unread_resolved].each do |conversation|
+          create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming)
+        end
+
+        result = conversation_finder.perform
+
+        expect(result[:conversations]).to contain_exactly(unread_open, unread_pending)
       end
     end
 
@@ -204,6 +230,21 @@ describe ConversationFinder do
 
         result = conversation_finder.perform
         expect(result[:conversations].length).to be 1
+      end
+    end
+
+    context 'with labels and status all' do
+      let(:params) { { labels: ['budget'], status: 'all' } }
+
+      it 'keeps resolved conversations out of active label views' do
+        resolved = create(:conversation, account: account, inbox: inbox, status: :resolved)
+        resolved.update_labels(['budget'])
+        active = create(:conversation, account: account, inbox: inbox)
+        active.update_labels(['budget'])
+
+        result = conversation_finder.perform
+
+        expect(result[:conversations]).to contain_exactly(active)
       end
     end
 

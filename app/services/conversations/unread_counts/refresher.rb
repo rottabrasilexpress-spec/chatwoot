@@ -101,8 +101,9 @@ class Conversations::UnreadCounts::Refresher
   end
 
   def unread?
-    # Sidebar unread counts intentionally track only open conversations.
-    return false unless conversation.open?
+    # Active unread counts include open, pending and snoozed conversations;
+    # resolved conversations are represented by the archived counter.
+    return false if conversation.resolved?
 
     incoming_messages = conversation.messages.incoming.where(account_id: account.id)
     if conversation.agent_last_seen_at

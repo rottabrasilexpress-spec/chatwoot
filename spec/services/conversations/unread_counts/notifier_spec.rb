@@ -43,6 +43,23 @@ RSpec.describe Conversations::UnreadCounts::Notifier do
     end
   end
 
+  context 'when a resolved conversation changes' do
+    before do
+      conversation.update!(status: :resolved)
+      allow(refresher).to receive(:perform).and_return(false)
+    end
+
+    it 'dispatches a refresh so archived unread badges stay current' do
+      described_class.new(conversation).perform
+
+      expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+        'conversation.unread_count_changed',
+        kind_of(Time),
+        conversation: conversation
+      )
+    end
+  end
+
   context 'when conversation unread counts feature is disabled' do
     before do
       conversation.account.disable_features!(:conversation_unread_counts)

@@ -217,6 +217,9 @@ const allUnreadCount = useMapGetter(
 const getLabelUnreadCount = useMapGetter(
   'conversationUnreadCounts/getLabelUnreadCount'
 );
+const archivedUnreadCount = useMapGetter(
+  'conversationUnreadCounts/getArchivedUnreadCount'
+);
 
 onMounted(() => {
   store.dispatch('labels/get');
@@ -241,10 +244,13 @@ const normalizeSidebarLabel = value =>
 
 const budgetLabel = computed(
   () =>
+    labels.value.find(
+      label => normalizeSidebarLabel(label.title) === 'kelvin'
+    ) ||
     labels.value.find(label => {
       const normalized = normalizeSidebarLabel(label.title);
       return normalized.includes('kelvin') && normalized.includes('caio');
-    }) || { title: 'kelvin/caio', color: '#f59e0b' }
+    }) || { title: 'kelvin', color: '#f59e0b' }
 );
 
 const prefetchSignature = ref('');
@@ -254,7 +260,7 @@ const prefetchConversationViews = () => {
 
   const common = {
     assigneeType: wootConstants.ASSIGNEE_TYPE.ALL,
-    status: wootConstants.STATUS_TYPE.OPEN,
+    status: wootConstants.STATUS_TYPE.ALL,
     sortBy: wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC,
     page: 1,
   };
@@ -263,7 +269,7 @@ const prefetchConversationViews = () => {
     common,
     {
       ...common,
-      conversationType: wootConstants.CONVERSATION_TYPE.AWAITING_REPLY,
+      conversationType: wootConstants.CONVERSATION_TYPE.UNREAD,
     },
     { ...common, conversationType: wootConstants.CONVERSATION_TYPE.PRIORITY },
     {
@@ -323,16 +329,6 @@ const reportRoutes = computed(() => newReportRoutes());
 const menuItems = computed(() => {
   return [
     {
-      name: 'Budgets',
-      label: 'ORÇAMENTOS',
-      icon: 'i-lucide-clipboard-list',
-      to: accountScopedRoute('label_conversations', {
-        label: budgetLabel.value.title,
-      }),
-      activeOn: ['label_conversations', 'conversations_through_label'],
-      badgeCount: getLabelUnreadCount.value(budgetLabel.value.id),
-    },
-    {
       name: 'Conversation',
       label: 'Conversas',
       icon: 'i-lucide-message-circle',
@@ -349,11 +345,8 @@ const menuItems = computed(() => {
           name: 'Unread',
           label: 'Não lidas',
           icon: 'i-lucide-mail-open',
-          activeOn: [
-            'conversation_awaiting_reply',
-            'conversation_through_awaiting_reply',
-          ],
-          to: accountScopedRoute('conversation_awaiting_reply'),
+          activeOn: ['conversation_unread', 'conversation_through_unread'],
+          to: accountScopedRoute('conversation_unread'),
         },
         {
           name: 'Archived',
@@ -362,6 +355,29 @@ const menuItems = computed(() => {
           color: '#dc2626',
           activeOn: ['archived_conversations', 'archived_conversation'],
           to: accountScopedRoute('archived_conversations'),
+          badgeCount: archivedUnreadCount.value,
+        },
+        {
+          name: 'Budgets',
+          label: 'ORÇAMENTOS',
+          icon: 'i-lucide-clipboard-list',
+          to: accountScopedRoute('label_conversations', {
+            label: budgetLabel.value.title,
+          }),
+          activeOn: ['label_conversations', 'conversations_through_label'],
+          badgeCount: getLabelUnreadCount.value(budgetLabel.value.id),
+        },
+        {
+          name: 'CaioAttention',
+          label: 'Caio Atenção',
+          icon: 'i-lucide-bell-ring',
+          to: accountScopedRoute('label_conversations', {
+            label: 'caio-atencao',
+          }),
+          activeOn: ['label_conversations', 'conversations_through_label'],
+          badgeCount: getLabelUnreadCount.value(
+            labels.value.find(label => label.title === 'caio-atencao')?.id
+          ),
         },
       ],
     },

@@ -246,6 +246,18 @@ RSpec.describe Message do
       expect(message.conversation.open?).to be true
     end
 
+    it 'keeps a resolved API conversation archived when a contact sends a message' do
+      api_channel = build(:channel_api, account: conversation.account)
+      api_inbox = create(:inbox, account: conversation.account, channel: api_channel)
+      conversation.update!(inbox: api_inbox)
+      conversation.resolved!
+      message.content_attributes = { 'rotta_uazapi' => true }
+
+      message.save!
+
+      expect(message.conversation.resolved?).to be true
+    end
+
     it 'reopens snoozed conversation when the message is from a contact' do
       conversation.snoozed!
       message.save!

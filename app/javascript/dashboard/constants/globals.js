@@ -17,6 +17,7 @@ export default {
     PARTICIPATING: 'participating',
     UNATTENDED: 'unattended',
     AWAITING_REPLY: 'awaiting_reply',
+    UNREAD: 'unread',
     PRIORITY: 'priority',
     ARCHIVED: 'archived',
   },

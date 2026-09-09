@@ -29,6 +29,8 @@ export const conversationUrl = ({
     url = `accounts/${accountId}/unattended/conversations/${id}`;
   } else if (conversationType === 'awaiting_reply') {
     url = `accounts/${accountId}/awaiting/conversations/${id}`;
+  } else if (conversationType === 'unread') {
+    url = `accounts/${accountId}/unread/conversations/${id}`;
   } else if (conversationType === 'priority') {
     url = `accounts/${accountId}/priority/conversations/${id}`;
   } else if (conversationType === 'archived') {
@@ -60,6 +62,7 @@ export const conversationListPageURL = ({
       participating: 'participating/conversations',
       unattended: 'unattended/conversations',
       awaiting_reply: 'awaiting/conversations',
+      unread: 'unread/conversations',
       priority: 'priority/conversations',
       archived: 'archived/conversations',
     };

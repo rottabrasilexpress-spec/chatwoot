@@ -1,6 +1,6 @@
 <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useAlert } from 'dashboard/composables';
 import rottaFollowUpAPI from 'dashboard/api/rottaFollowUp';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -16,9 +16,7 @@ import {
   delayHoursFor,
   dispatchWindowFor,
   effectiveDispatchAt,
-  FOLLOW_UP_STAGE_ORDER,
   isHistoricalJob,
-  kanbanBucketFor,
   orderedFollowUpStages,
 } from './followUpHelpers';
 
@@ -45,15 +43,6 @@ const labelMeta = {
   'orcamento-5-dias': { title: 'Orçamento 5 dias', color: '#06b6d4' },
   'orcamento-10-dias': { title: 'Orçamento 10 dias', color: '#4f46e5' },
   'orcamento-15-dias': { title: 'Orçamento 15 dias', color: '#7c3aed' },
-  'contato-instantaneo': {
-    title: 'Contato instantâneo 🫶',
-    color: '#e11d48',
-  },
-  'orcamento-instantaneo': {
-    title: 'Orçamento instantâneo 💰',
-    color: '#f97316',
-  },
-  'clientes-fechados': { title: 'Clientes fechados 🤝', color: '#059669' },
   'kelvin-caio': { title: 'KELVIN / CAIO', color: '#c026d3' },
   arquivado: { title: 'Arquivado', color: '#991b1b' },
 };
@@ -71,7 +60,7 @@ const now = ref(Date.now());
 const lastSyncedAt = ref(null);
 const expandedJobs = ref(new Set());
 const pendingEnrollments = ref([]);
-const selectedView = ref('stages');
+const selectedView = ref('contact');
 const customHours = ref({});
 let refreshTimer;
 let clockTimer;
@@ -123,7 +112,6 @@ const linkedLabelSlugs = new Set(Object.keys(CONFIGURED_DELAY_HOURS));
 const currentStage = currentStageFor;
 
 const contactTrail = [
-  'contato-instantaneo',
   'primeiro-contato',
   'segundo-contato',
   'terceiro-contato',
@@ -132,77 +120,58 @@ const contactTrail = [
 ];
 
 const budgetTrail = [
-  'orcamento-instantaneo',
   'orcamento-feito',
   'orcamento-tentativa-2',
   'orcamento-tentativa-3',
   'orcamento-tentativa-4',
+  'orcamento-5-dias',
+  'orcamento-10-dias',
+  'orcamento-15-dias',
   'arquivado',
 ];
 
-const isBudgetStage = stage =>
-  String(stage || '').startsWith('orcamento-') || stage === 'clientes-fechados';
+const isBudgetStage = stage => String(stage || '').startsWith('orcamento-');
 
-const trailFor = job =>
-  isBudgetStage(currentStage(job)) || isBudgetStage(job.next_label)
-    ? budgetTrail
-    : contactTrail;
+const jobHasBudgetTrail = job => {
+  const history = [
+    'history',
+    'sent_history',
+    'dispatched_labels',
+    'follow_up_history',
+  ].flatMap(key =>
+    Array.isArray(job?.[key])
+      ? job[key].map(item => item?.label || item?.slug || item)
+      : []
+  );
+  return [
+    job?.current_label,
+    job?.source_label,
+    job?.next_label,
+    ...history,
+  ].some(isBudgetStage);
+};
+
+const displayStageFor = job => {
+  const stage = currentStage(job);
+  if (stage === 'contato-instantaneo') return 'primeiro-contato';
+  if (stage === 'orcamento-instantaneo') return 'orcamento-feito';
+  if (stage === 'clientes-fechados') return 'arquivado';
+  return stage;
+};
+
+const trailFor = job => (jobHasBudgetTrail(job) ? budgetTrail : contactTrail);
 
 const nextStageFor = job => {
   const stage = currentStage(job);
   const trail = trailFor(job);
   const index = trail.indexOf(stage);
 
-  if (
-    stage === 'orcamento-5-dias' ||
-    stage === 'orcamento-10-dias' ||
-    stage === 'orcamento-15-dias'
-  ) {
-    return 'orcamento-feito';
-  }
-
+  if (stage === 'contato-instantaneo') return 'primeiro-contato';
+  if (stage === 'orcamento-instantaneo') return 'orcamento-feito';
+  if (stage === 'clientes-fechados') return '';
   if (index >= 0 && index < trail.length - 1) return trail[index + 1];
   return job.next_label || '';
 };
-
-const kanbanColumns = [
-  {
-    key: 'ready',
-    title: 'Prontos agora',
-    description: 'Dentro da janela e aguardando o worker',
-    icon: 'i-lucide-zap',
-  },
-  {
-    key: 'today',
-    title: 'Hoje',
-    description: 'Programados para o dia de hoje',
-    icon: 'i-lucide-sun',
-  },
-  {
-    key: 'tomorrow',
-    title: 'Amanhã',
-    description: 'Próxima janela do calendário',
-    icon: 'i-lucide-calendar-days',
-  },
-  {
-    key: 'upcoming',
-    title: 'Próximos dias',
-    description: 'Agendamentos além de amanhã',
-    icon: 'i-lucide-calendar-clock',
-  },
-  {
-    key: 'attention',
-    title: 'Atenção',
-    description: 'Falha, horário ausente ou conciliação pendente',
-    icon: 'i-lucide-triangle-alert',
-  },
-  {
-    key: 'history',
-    title: 'Histórico',
-    description: 'Etapas já registradas',
-    icon: 'i-lucide-history',
-  },
-];
 
 const pendingJobKey = item => `${item.conversation_id}:${item.label}`;
 
@@ -322,69 +291,62 @@ const queueJobs = computed(() => {
   return [...waiting, ...jobs.value];
 });
 
-const stageOptions = computed(() => {
-  const values = new Set(queueJobs.value.map(currentStage).filter(Boolean));
-  return [...values].sort((a, b) =>
-    labelInfo(a).title.localeCompare(labelInfo(b).title, 'pt-BR')
-  );
-});
-
-const trailColumnDefinitions = [
-  {
-    key: 'instant',
-    title: 'Instantâneos',
-    description: 'Entradas rápidas para iniciar ou retomar o atendimento.',
-    icon: 'i-lucide-zap',
-    stages: ['contato-instantaneo', 'orcamento-instantaneo'],
-  },
+const trailViews = [
   {
     key: 'contact',
     title: 'Trilha de contato',
     description: 'Cadência de relacionamento antes do orçamento.',
     icon: 'i-lucide-route',
-    stages: [
-      'primeiro-contato',
-      'segundo-contato',
-      'terceiro-contato',
-      'ultimo-contato',
-    ],
+    stages: contactTrail,
   },
   {
     key: 'budget',
     title: 'Trilha de orçamento',
     description: 'Tentativas e lembretes para converter o orçamento.',
     icon: 'i-lucide-badge-dollar-sign',
-    stages: [
-      'orcamento-feito',
-      'orcamento-tentativa-2',
-      'orcamento-tentativa-3',
-      'orcamento-tentativa-4',
-      'orcamento-5-dias',
-      'orcamento-10-dias',
-      'orcamento-15-dias',
-    ],
-  },
-  {
-    key: 'closing',
-    title: 'Encerramento',
-    description: 'Conversões concluídas e contatos fora da operação ativa.',
-    icon: 'i-lucide-handshake',
-    stages: ['clientes-fechados', 'arquivado'],
+    stages: budgetTrail,
   },
 ];
 
-const trailColumns = computed(() => {
-  const stages = orderedFollowUpStages([
-    ...FOLLOW_UP_STAGE_ORDER,
-    ...queueJobs.value.map(currentStage),
-  ]);
-  const groupedStages = new Set(
-    trailColumnDefinitions.flatMap(column => column.stages)
-  );
-  const additionalStages = stages.filter(stage => !groupedStages.has(stage));
+const legacyStagesHiddenFromFilter = new Set([
+  'contato-instantaneo',
+  'orcamento-instantaneo',
+  'clientes-fechados',
+]);
 
-  return [
-    ...trailColumnDefinitions,
+const selectedTrailView = computed(
+  () =>
+    trailViews.find(view => view.key === selectedView.value) || trailViews[0]
+);
+
+const trailViewForJob = job => (jobHasBudgetTrail(job) ? 'budget' : 'contact');
+
+const stageOptions = computed(() => {
+  const values = new Set([
+    ...selectedTrailView.value.stages,
+    ...queueJobs.value
+      .filter(job => trailViewForJob(job) === selectedView.value)
+      .map(displayStageFor)
+      .filter(stage => stage && !legacyStagesHiddenFromFilter.has(stage)),
+  ]);
+  return orderedFollowUpStages([...values]);
+});
+
+const trailColumns = computed(() => {
+  const configuredStages = selectedTrailView.value.stages;
+  const additionalStages = orderedFollowUpStages(
+    queueJobs.value
+      .filter(job => trailViewForJob(job) === selectedView.value)
+      .map(displayStageFor)
+      .filter(
+        stage =>
+          stage &&
+          !configuredStages.includes(stage) &&
+          !legacyStagesHiddenFromFilter.has(stage)
+      )
+  );
+  const columns = [
+    selectedTrailView.value,
     ...(additionalStages.length
       ? [
           {
@@ -396,7 +358,8 @@ const trailColumns = computed(() => {
           },
         ]
       : []),
-  ].map(column => ({
+  ];
+  return columns.map(column => ({
     ...column,
     stageKeys: column.stages,
   }));
@@ -406,47 +369,27 @@ const activeJobs = computed(() =>
   queueJobs.value.filter(job => !isHistoricalJob(job))
 );
 
-const bucketFor = job => kanbanBucketFor(job, now.value, responseMeta.value);
-
 const viewCount = view => {
-  if (view === 'stages') return activeJobs.value.length;
-  if (view === 'active') return activeJobs.value.length;
-  if (view === 'all') return queueJobs.value.length;
-  return queueJobs.value.filter(job => bucketFor(job) === view).length;
+  return queueJobs.value.filter(job => trailViewForJob(job) === view).length;
 };
 
-const viewOptions = computed(() => [
-  { key: 'stages', title: 'Etapas' },
-  { key: 'all', title: 'Todos' },
-  { key: 'active', title: 'Ativos' },
-  ...kanbanColumns.map(({ key, title }) => ({ key, title })),
-]);
+const viewOptions = computed(() => trailViews);
 
-const visibleColumns = computed(() =>
-  ['stages', 'all'].includes(selectedView.value)
-    ? trailColumns.value
-    : kanbanColumns.filter(column => {
-        if (selectedView.value === 'active') return column.key !== 'history';
-        return selectedView.value === column.key;
-      })
-);
+const visibleColumns = computed(() => trailColumns.value);
 
 const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
   return queueJobs.value.filter(job => {
-    const bucket = bucketFor(job);
-    const matchesView = ['stages', 'active'].includes(selectedView.value)
-      ? !isHistoricalJob(job)
-      : selectedView.value === 'all' || bucket === selectedView.value;
+    const matchesView = trailViewForJob(job) === selectedView.value;
     const matchesStage =
       selectedStage.value === 'all' ||
-      currentStage(job) === selectedStage.value;
+      displayStageFor(job) === selectedStage.value;
     const content = [
       job.customer_name,
       job.phone,
       currentStage(job),
       nextStageFor(job),
-      labelInfo(currentStage(job)).title,
+      labelInfo(displayStageFor(job)).title,
       labelInfo(nextStageFor(job)).title,
     ]
       .filter(Boolean)
@@ -456,14 +399,39 @@ const filteredJobs = computed(() => {
   });
 });
 
+const nextFollowUpTimestamp = job => {
+  const target = effectiveDispatchAt(
+    job?.scheduled_at,
+    now.value,
+    dispatchWindow(job)
+  );
+  return Number.isFinite(target) ? target : Number.MAX_SAFE_INTEGER;
+};
+
+const orderedFilteredJobs = computed(() =>
+  [...filteredJobs.value].sort((left, right) => {
+    const targetDifference =
+      nextFollowUpTimestamp(left) - nextFollowUpTimestamp(right);
+    if (targetDifference !== 0) return targetDifference;
+    return labelInfo(currentStage(left)).title.localeCompare(
+      labelInfo(currentStage(right)).title,
+      'pt-BR'
+    );
+  })
+);
+
+watch(selectedView, () => {
+  selectedStage.value = 'all';
+});
+
 const jobsForColumn = columnKey => {
   const groupedColumn = trailColumns.value.find(
     column => column.key === columnKey
   );
-  const jobsInColumn = filteredJobs.value.filter(job =>
+  const jobsInColumn = orderedFilteredJobs.value.filter(job =>
     groupedColumn?.stageKeys
-      ? groupedColumn.stageKeys.includes(currentStage(job))
-      : bucketFor(job) === columnKey
+      ? groupedColumn.stageKeys.includes(displayStageFor(job))
+      : false
   );
 
   if (!groupedColumn) return jobsInColumn;
@@ -471,11 +439,15 @@ const jobsForColumn = columnKey => {
   const stageOrder = new Map(
     groupedColumn.stageKeys.map((stage, index) => [stage, index])
   );
-  return [...jobsInColumn].sort(
-    (left, right) =>
-      (stageOrder.get(currentStage(left)) ?? Number.MAX_SAFE_INTEGER) -
-      (stageOrder.get(currentStage(right)) ?? Number.MAX_SAFE_INTEGER)
-  );
+  return [...jobsInColumn].sort((left, right) => {
+    const targetDifference =
+      nextFollowUpTimestamp(left) - nextFollowUpTimestamp(right);
+    if (targetDifference !== 0) return targetDifference;
+    return (
+      (stageOrder.get(displayStageFor(left)) ?? Number.MAX_SAFE_INTEGER) -
+      (stageOrder.get(displayStageFor(right)) ?? Number.MAX_SAFE_INTEGER)
+    );
+  });
 };
 
 const dueCount = computed(
@@ -506,7 +478,7 @@ const stageTrailText = (job, stage) => {
   const entry = dispatchEntryFor(job, stage);
   if (entry?.at) return `disparada em ${formatDate(entry.at)}`;
   if (entry) return 'disparada';
-  if (currentStage(job) === stage) return 'atual';
+  if (displayStageFor(job) === stage) return 'atual';
   if (nextStageFor(job) === stage) return 'próxima';
   return '';
 };
@@ -872,10 +844,7 @@ onUnmounted(() => {
 
         <div v-else class="rotta-queue">
           <div
-            class="rotta-board"
-            :class="{
-              'rotta-board--trails': ['stages', 'all'].includes(selectedView),
-            }"
+            class="rotta-board rotta-board--trails"
             aria-label="Quadro de follow-ups"
           >
             <article
@@ -953,10 +922,10 @@ onUnmounted(() => {
                     <span
                       class="rotta-label-pill"
                       :style="{
-                        '--label-color': labelInfo(currentStage(job)).color,
+                        '--label-color': labelInfo(displayStageFor(job)).color,
                       }"
                     >
-                      {{ labelInfo(currentStage(job)).title }}
+                      {{ labelInfo(displayStageFor(job)).title }}
                     </span>
                     <span
                       v-if="nextStageFor(job)"
@@ -1127,7 +1096,7 @@ onUnmounted(() => {
                       <span>
                         {{
                           deliveryEvidence(job)?.message_id
-                            ? `${labelInfo(currentStage(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
+                            ? `${labelInfo(displayStageFor(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
                             : normaliseHistory(job).length
                               ? 'Etapas disparadas registradas pelo worker'
                               : job.pending_enrollment
@@ -1141,7 +1110,8 @@ onUnmounted(() => {
                         v-for="stage in trailFor(job)"
                         :key="`${job.job_id}-board-${stage}`"
                         :class="{
-                          'rotta-stage--current': currentStage(job) === stage,
+                          'rotta-stage--current':
+                            displayStageFor(job) === stage,
                           'rotta-stage--next': nextStageFor(job) === stage,
                           'rotta-stage--sent': isStageDispatched(job, stage),
                         }"
@@ -1177,7 +1147,7 @@ onUnmounted(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="job in filteredJobs" :key="job.job_id">
+                  <tr v-for="job in orderedFilteredJobs" :key="job.job_id">
                     <td>
                       <button
                         class="rotta-client"
@@ -1219,10 +1189,11 @@ onUnmounted(() => {
                       <span
                         class="rotta-label-pill"
                         :style="{
-                          '--label-color': labelInfo(currentStage(job)).color,
+                          '--label-color': labelInfo(displayStageFor(job))
+                            .color,
                         }"
                       >
-                        {{ labelInfo(currentStage(job)).title }}
+                        {{ labelInfo(displayStageFor(job)).title }}
                       </span>
                     </td>
                     <td class="text-n-slate-11">
@@ -1239,7 +1210,7 @@ onUnmounted(() => {
                         <strong>Disparo concluído</strong>
                         <small
                           >Etiqueta:
-                          {{ labelInfo(currentStage(job)).title }}</small
+                          {{ labelInfo(displayStageFor(job)).title }}</small
                         >
                       </div>
                       <div v-else class="rotta-schedule">
@@ -1274,7 +1245,7 @@ onUnmounted(() => {
                         v-if="deliveryEvidence(job)?.message_id"
                         class="rotta-delivery-evidence"
                       >
-                        {{ labelInfo(currentStage(job)).title }} ·
+                        {{ labelInfo(displayStageFor(job)).title }} ·
                         {{ evidenceConfirmationText(job) }}
                       </small>
                     </td>
@@ -1319,7 +1290,7 @@ onUnmounted(() => {
                     </td>
                   </tr>
                   <tr
-                    v-for="job in filteredJobs"
+                    v-for="job in orderedFilteredJobs"
                     v-show="isHistoryExpanded(job)"
                     :key="`${job.job_id}-history`"
                     class="rotta-history-row"
@@ -1334,7 +1305,7 @@ onUnmounted(() => {
                           <span>
                             {{
                               deliveryEvidence(job)?.message_id
-                                ? `${labelInfo(currentStage(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
+                                ? `${labelInfo(displayStageFor(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
                                 : normaliseHistory(job).length
                                   ? 'Etapas disparadas registradas pelo worker'
                                   : 'Aguardando o histórico de disparos do worker'
@@ -1347,7 +1318,7 @@ onUnmounted(() => {
                             :key="`${job.job_id}-${stage}`"
                             :class="{
                               'rotta-stage--current':
-                                currentStage(job) === stage,
+                                displayStageFor(job) === stage,
                               'rotta-stage--next': nextStageFor(job) === stage,
                               'rotta-stage--sent': isStageDispatched(
                                 job,
@@ -1372,7 +1343,7 @@ onUnmounted(() => {
 
           <div class="rotta-queue__mobile">
             <article
-              v-for="job in filteredJobs"
+              v-for="job in orderedFilteredJobs"
               :key="job.job_id"
               class="rotta-job-card"
             >
@@ -1395,7 +1366,7 @@ onUnmounted(() => {
                   v-if="deliveryEvidence(job)?.message_id"
                   class="rotta-delivery-evidence"
                 >
-                  {{ labelInfo(currentStage(job)).title }} ·
+                  {{ labelInfo(displayStageFor(job)).title }} ·
                   {{ evidenceConfirmationText(job) }}
                 </small>
               </div>
@@ -1426,7 +1397,7 @@ onUnmounted(() => {
                   <span>
                     {{
                       deliveryEvidence(job)?.message_id
-                        ? `${labelInfo(currentStage(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
+                        ? `${labelInfo(displayStageFor(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
                         : normaliseHistory(job).length
                           ? 'Etapas disparadas registradas pelo worker'
                           : 'Aguardando o histórico de disparos do worker'
@@ -1438,7 +1409,7 @@ onUnmounted(() => {
                     v-for="stage in trailFor(job)"
                     :key="`${job.job_id}-mobile-${stage}`"
                     :class="{
-                      'rotta-stage--current': currentStage(job) === stage,
+                      'rotta-stage--current': displayStageFor(job) === stage,
                       'rotta-stage--next': nextStageFor(job) === stage,
                       'rotta-stage--sent': isStageDispatched(job, stage),
                     }"
@@ -1455,10 +1426,10 @@ onUnmounted(() => {
                 <span
                   class="rotta-label-pill"
                   :style="{
-                    '--label-color': labelInfo(currentStage(job)).color,
+                    '--label-color': labelInfo(displayStageFor(job)).color,
                   }"
                 >
-                  {{ labelInfo(currentStage(job)).title }}
+                  {{ labelInfo(displayStageFor(job)).title }}
                 </span>
                 <span class="text-n-slate-11">
                   →
@@ -1474,7 +1445,8 @@ onUnmounted(() => {
                 >
                   <strong>Disparo concluído</strong>
                   <small
-                    >Etiqueta: {{ labelInfo(currentStage(job)).title }}</small
+                    >Etiqueta:
+                    {{ labelInfo(displayStageFor(job)).title }}</small
                   >
                 </span>
                 <span v-else class="rotta-schedule">
@@ -1676,7 +1648,7 @@ onUnmounted(() => {
 }
 
 .rotta-board--trails {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 
 .rotta-board-column {

@@ -257,6 +257,33 @@ export default {
       }),
     },
     {
+      path: frontendURL('accounts/:accountId/unread/conversations'),
+      name: 'conversation_unread',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: () => ({
+        conversationType: 'unread',
+        conversationStatus: 'all',
+      }),
+    },
+    {
+      path: frontendURL(
+        'accounts/:accountId/unread/conversations/:conversationId'
+      ),
+      name: 'conversation_through_unread',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: ConversationView,
+      props: route => ({
+        conversationId: route.params.conversationId,
+        conversationType: 'unread',
+        conversationStatus: 'all',
+      }),
+    },
+    {
       path: frontendURL('accounts/:accountId/archived/conversations'),
       name: 'archived_conversations',
       meta: {

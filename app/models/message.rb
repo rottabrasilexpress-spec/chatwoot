@@ -447,6 +447,11 @@ class Message < ApplicationRecord
   end
 
   def reopen_resolved_conversation
+    # Rotta treats Uazapi resolutions as archives. Keep them archived so a
+    # later WhatsApp message increments Arquivados instead of moving the chat
+    # back to Todos. Other Chatwoot API inboxes keep their native behavior.
+    return if content_attributes&.[]('rotta_uazapi')
+
     # mark resolved bot conversation as pending to be reopened by bot processor service
     if conversation.inbox.active_bot?
       conversation.pending!

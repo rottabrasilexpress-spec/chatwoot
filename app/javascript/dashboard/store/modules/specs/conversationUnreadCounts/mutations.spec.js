@@ -6,6 +6,7 @@ describe('#mutations', () => {
     it('normalizes unread count payload', () => {
       const state = {
         allCount: 0,
+        archivedCount: 0,
         inboxes: {},
         labels: {},
         teams: {},
@@ -41,6 +42,7 @@ describe('#mutations', () => {
 
       expect(state).toEqual({
         allCount: 3,
+        archivedCount: 0,
         inboxes: { 1: 2 },
         labels: { 4: 5 },
         teams: { 6: 7 },
@@ -54,6 +56,7 @@ describe('#mutations', () => {
     it('clears counts when payload is empty', () => {
       const state = {
         allCount: 2,
+        archivedCount: 0,
         inboxes: { 1: 2 },
         labels: { 4: 5 },
         teams: { 6: 7 },
@@ -67,6 +70,7 @@ describe('#mutations', () => {
 
       expect(state).toEqual({
         allCount: 0,
+        archivedCount: 0,
         inboxes: {},
         labels: {},
         teams: {},
@@ -80,6 +84,7 @@ describe('#mutations', () => {
     it('normalizes invalid aggregate counts to zero', () => {
       const state = {
         allCount: 2,
+        archivedCount: 0,
         inboxes: {},
         labels: {},
         teams: {},
@@ -97,6 +102,7 @@ describe('#mutations', () => {
       });
 
       expect(state.allCount).toBe(0);
+      expect(state.archivedCount).toBe(0);
       expect(state.mentionsCount).toBe(0);
       expect(state.participatingCount).toBe(0);
       expect(state.unattendedCount).toBe(0);
