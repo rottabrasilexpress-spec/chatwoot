@@ -18,6 +18,10 @@ class Webhooks::UazapiController < ActionController::API
       return process_contacts_event(payload)
     end
 
+    if call_event?(event)
+      return process_call_event(payload)
+    end
+
     if incoming_message_event?(event)
       return process_incoming_message(payload)
     end
@@ -64,7 +68,7 @@ class Webhooks::UazapiController < ActionController::API
   def extract_event(payload)
     route_event = params[:event].to_s.split('/').first
     known_events = %w[
-      connection history message messages messages_update newsletter_messages call
+      connection history message messages messages_update newsletter_messages call calls
       contacts contact presence groups labels chats chat_labels blocks sender
     ]
     return route_event.downcase if known_events.include?(route_event.downcase)
@@ -78,6 +82,15 @@ class Webhooks::UazapiController < ActionController::API
 
   def contacts_event?(event)
     event.match?(/\Acontacts?(?:[._-].*)?\z/)
+  end
+
+  def call_event?(event)
+    %w[call calls].include?(event)
+  end
+
+  def process_call_event(payload)
+    result = RottaUazapiCallEventService.perform(account_id: ACCOUNT_ID, payload: payload)
+    render json: result
   end
 
   def incoming_message_event?(event)

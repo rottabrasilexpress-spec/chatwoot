@@ -122,6 +122,78 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(response.parsed_body).to include('ok' => true, 'ignored' => 'mensagem duplicada')
     end
 
+    it 'creates a realtime voice call message from a Uazapi call event' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      payload = {
+        event: 'call',
+        instance: 'rotta',
+        data: {
+          calls: [{
+            id: 'uazapi-call-1',
+            chatid: '5511999999999@s.whatsapp.net',
+            from: '5511999999999@s.whatsapp.net',
+            direction: 'inbound',
+            status: 'RINGING',
+            timestamp: Time.current.to_i
+          }]
+        }
+      }
+
+      expect do
+        post_uazapi(payload)
+      end.to change { conversation.messages.voice_calls.count }.from(0).to(1)
+         .and change(Call, :count).by(1)
+
+      call = Call.find_by!(provider: :whatsapp, provider_call_id: 'uazapi-call-1')
+      expect(call).to have_attributes(direction: 'incoming', status: 'ringing', message_id: be_present)
+      expect(response.parsed_body).to include('ok' => true, 'event' => 'call', 'provider_call_ids' => ['uazapi-call-1'])
+      expect(conversation.messages.voice_calls.last.call).to eq(call)
+    end
+
+    it 'updates a voice call in place and deduplicates webhook retries' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      base = {
+        event: 'call',
+        data: {
+          call: {
+            id: 'uazapi-call-2',
+            chatid: '5511999999999@s.whatsapp.net',
+            from: '5511999999999@s.whatsapp.net',
+            direction: 'inbound'
+          }
+        }
+      }
+
+      post_uazapi(base.merge(data: { call: base[:data][:call].merge(status: 'RINGING') }))
+      expect do
+        post_uazapi(base.merge(data: { call: base[:data][:call].merge(status: 'ANSWERED') }))
+        post_uazapi(base.merge(data: { call: base[:data][:call].merge(status: 'TERMINATED', duration: 12) }))
+      end.to change { conversation.messages.voice_calls.count }.by(0)
+
+      call = Call.find_by!(provider_call_id: 'uazapi-call-2')
+      expect(call.reload).to have_attributes(status: 'completed', duration_seconds: 12)
+      expect(call.message.content_attributes.dig('data', 'status')).to eq('completed')
+      expect(response.parsed_body).to include('ok' => true, 'provider_call_ids' => ['uazapi-call-2'])
+    end
+
     it 'accepts the event in the dynamic Uazapi webhook URL' do
       api_channel = create(:channel_api, account: account)
       api_inbox = create(:inbox, channel: api_channel, account: account)
