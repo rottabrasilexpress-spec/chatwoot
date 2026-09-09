@@ -155,7 +155,9 @@ export default {
     },
     getMessages() {
       const messages = this.currentChat.messages || [];
-      if (this.isAWhatsAppChannel) {
+      // UAZAPI/Rotta conversations use Chatwoot's API inbox type. They can
+      // receive a blank persistence stub before the renderable WhatsApp echo.
+      if (this.isAWhatsAppChannel || this.isAPIInbox) {
         return filterDuplicateSourceMessages(messages);
       }
       return messages;
