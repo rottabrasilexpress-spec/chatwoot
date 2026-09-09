@@ -1,4 +1,3 @@
-import ContactAPI from '../../../../api/contacts';
 import {
   actions,
   getters,
@@ -7,49 +6,33 @@ import {
   SIDEBAR_LABEL_DEFINITIONS,
 } from '../../labels';
 
-vi.mock('../../../../api/contacts', () => ({
-  default: {
-    get: vi.fn(),
-  },
-}));
-
 const buildState = records => ({
   records,
   sidebarLabelCounts: {},
 });
 
 describe('labels sidebar counts', () => {
-  beforeEach(() => {
-    ContactAPI.get.mockReset();
-  });
-
-  it('loads total contact counts for the three Rotta sidebar labels', async () => {
+  it('loads conversation-derived contact counts for the three Rotta sidebar labels', async () => {
     const records = [
-      { id: 1, title: 'Kelvin', show_on_sidebar: false },
-      { id: 2, title: 'caio-atencao', show_on_sidebar: true },
-      { id: 3, title: 'Clientes Fechados', show_on_sidebar: false },
+      { id: 1, title: 'Kelvin', contacts_count: 11, show_on_sidebar: false },
+      {
+        id: 2,
+        title: 'caio-atencao',
+        contacts_count: 7,
+        show_on_sidebar: true,
+      },
+      {
+        id: 3,
+        title: 'Clientes Fechados',
+        contacts_count: 4,
+        show_on_sidebar: false,
+      },
     ];
     const moduleState = buildState(records);
     const commit = vi.fn();
 
-    ContactAPI.get.mockImplementation((_page, _sort, label) =>
-      Promise.resolve({
-        data: {
-          meta: {
-            count: { Kelvin: 11, 'caio-atencao': 7, 'Clientes Fechados': 4 }[
-              label
-            ],
-          },
-        },
-      })
-    );
-
     await actions.getSidebarCounts({ state: moduleState, commit });
 
-    expect(ContactAPI.get).toHaveBeenCalledTimes(3);
-    expect(ContactAPI.get).toHaveBeenCalledWith(1, 'name', 'Kelvin');
-    expect(ContactAPI.get).toHaveBeenCalledWith(1, 'name', 'caio-atencao');
-    expect(ContactAPI.get).toHaveBeenCalledWith(1, 'name', 'Clientes Fechados');
     expect(commit).toHaveBeenCalledWith(SIDEBAR_LABEL_COUNTS_MUTATION, {
       budget: 11,
       caioAttention: 7,
@@ -57,14 +40,14 @@ describe('labels sidebar counts', () => {
     });
   });
 
-  it('does not request a missing special label and keeps count lookup reactive', async () => {
-    const moduleState = buildState([{ id: 1, title: 'Kelvin' }]);
+  it('does not count a missing special label and keeps the missing count at zero', async () => {
+    const moduleState = buildState([
+      { id: 1, title: 'Kelvin', contacts_count: 3 },
+    ]);
     const commit = vi.fn();
-    ContactAPI.get.mockResolvedValue({ data: { meta: { count: 3 } } });
 
     await actions.getSidebarCounts({ state: moduleState, commit });
 
-    expect(ContactAPI.get).toHaveBeenCalledTimes(1);
     expect(commit).toHaveBeenCalledWith(SIDEBAR_LABEL_COUNTS_MUTATION, {
       budget: 3,
     });

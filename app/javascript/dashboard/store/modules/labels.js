@@ -1,7 +1,6 @@
 import * as MutationHelpers from 'shared/helpers/vuex/mutationHelpers';
 import types from '../mutation-types';
 import LabelsAPI from '../../api/labels';
-import ContactAPI from '../../api/contacts';
 import AnalyticsHelper from '../../helper/AnalyticsHelper';
 import { LABEL_EVENTS } from '../../helper/AnalyticsHelper/events';
 
@@ -135,20 +134,14 @@ export const actions = {
 
     if (!labelsToCount.length) return;
 
-    const responses = await Promise.all(
-      labelsToCount.map(async ({ definition, label }) => {
-        try {
-          const response = await ContactAPI.get(1, 'name', label.title);
-          return [definition.key, normalizeCount(response.data?.meta?.count)];
-        } catch (error) {
-          return null;
-        }
-      })
-    );
-
     if (requestId !== sidebarCountsRequestId) return;
 
-    const counts = Object.fromEntries(responses.filter(Boolean));
+    const counts = Object.fromEntries(
+      labelsToCount.map(({ definition, label }) => [
+        definition.key,
+        normalizeCount(label.contacts_count),
+      ])
+    );
     if (Object.keys(counts).length) {
       commit(SIDEBAR_LABEL_COUNTS_MUTATION, counts);
     }

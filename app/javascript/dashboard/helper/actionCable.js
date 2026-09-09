@@ -158,6 +158,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       Object.keys(changedAttributes).some(key => labelChangeKeys.includes(key));
 
     if (hasLabelChange) {
+      this.app.$store.dispatch('labels/get');
       emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, data);
     }
   };
