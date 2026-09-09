@@ -1300,6 +1300,12 @@ RSpec.describe Conversation do
     let!(:budget_stage) { create(:label, account: account, title: 'orcamento-feito') }
     let!(:archived_label) { create(:label, account: account, title: 'arquivado') }
 
+    around do |example|
+      with_modified_env ROTTABRASIL_CHATWOOT_ACCOUNT_ID: account.id.to_s do
+        example.run
+      end
+    end
+
     it 'keeps only the archived label when archiving a conversation' do
       conversation.update!(label_list: [contact_stage.title, budget_stage.title, archived_label.title])
 
@@ -1333,6 +1339,46 @@ RSpec.describe Conversation do
       conversation.update!(label_list: [])
 
       expect(conversation.reload).to be_open
+    end
+
+    it 'reopens pending and snoozed conversations into Todos' do
+      pending_conversation = create(:conversation, account: account, status: :pending)
+      snoozed_conversation = create(
+        :conversation,
+        account: account,
+        status: :snoozed,
+        snoozed_until: 1.day.from_now
+      )
+
+      [pending_conversation, snoozed_conversation].each do |candidate|
+        candidate.update!(label_list: [archived_label.title])
+        candidate.update!(label_list: [])
+      end
+
+      expect(pending_conversation.reload).to be_open
+      expect(snoozed_conversation.reload).to be_open
+      expect(snoozed_conversation.snoozed_until).to be_nil
+    end
+
+    it 'does not apply the Rotta lifecycle to another account' do
+      other_account = create(:account)
+      other_conversation = create(
+        :conversation,
+        account: other_account,
+        status: :open,
+        label_list: [contact_stage.title]
+      )
+
+      other_conversation.update!(
+        label_list: [contact_stage.title, archived_label.title]
+      )
+
+      expect(other_conversation.reload.label_list).to contain_exactly(
+        contact_stage.title,
+        archived_label.title
+      )
+      expect(other_conversation).to be_open
+      expect(other_conversation.additional_attributes['rotta_archived_at']).to be_nil
     end
   end
 end

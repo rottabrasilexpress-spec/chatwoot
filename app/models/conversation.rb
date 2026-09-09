@@ -306,7 +306,7 @@ class Conversation < ApplicationRecord
   end
 
   def normalize_rotta_archived_labels
-    return unless will_save_change_to_label_list?
+    return unless rotta_account? && will_save_change_to_label_list?
 
     archived_label = Array(label_list).find do |label|
       rotta_archived_label_present?([label])
@@ -315,7 +315,7 @@ class Conversation < ApplicationRecord
   end
 
   def track_rotta_archived_at
-    return unless will_save_change_to_label_list?
+    return unless rotta_account? && will_save_change_to_label_list?
 
     previous_labels, current_labels =
       changes_to_save['label_list'] || changes_to_save[:label_list]
@@ -336,7 +336,7 @@ class Conversation < ApplicationRecord
   end
 
   def archive_conversation_when_label_added
-    return unless will_save_change_to_label_list?
+    return unless rotta_account? && will_save_change_to_label_list?
 
     _previous_labels, current_labels =
       changes_to_save['label_list'] || changes_to_save[:label_list]
@@ -346,21 +346,17 @@ class Conversation < ApplicationRecord
   end
 
   def restore_conversation_when_archived_label_removed
-    return unless will_save_change_to_label_list?
+    return unless rotta_account? && will_save_change_to_label_list?
 
     previous_labels, current_labels =
       changes_to_save['label_list'] || changes_to_save[:label_list]
     return unless rotta_archived_label_present?(previous_labels)
     return if rotta_archived_label_present?(current_labels)
 
-    previous_status = additional_attributes&.[]('rotta_archived_previous_status')
-    self.status = if previous_status.present? &&
-                      previous_status != 'resolved' &&
-                      self.class.statuses.key?(previous_status)
-                    previous_status
-                  else
-                    :open
-                  end
+    # Todos is the active queue. Always reopen here so pending and snoozed
+    # conversations do not disappear into a secondary status after unarchive.
+    self.status = :open
+    self.snoozed_until = nil
 
     attributes = (additional_attributes || {}).deep_dup
     attributes.delete('rotta_archived_previous_status')
@@ -385,9 +381,15 @@ class Conversation < ApplicationRecord
   end
 
   def rotta_archived_label_present?(labels)
+    return false unless rotta_account?
+
     Array(labels).any? do |label|
       ROTTA_ARCHIVED_LABEL_KEYS.include?(rotta_archived_label_key(label))
     end
+  end
+
+  def rotta_account?
+    account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   end
 
   def rotta_archived_label_key(label)
