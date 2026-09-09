@@ -146,7 +146,7 @@ class Conversation < ApplicationRecord
   has_many :automation_rule_pending_executions, dependent: :delete_all
 
   before_save :ensure_snooze_until_reset
-  before_save :normalize_rotta_archived_labels
+  before_save :normalize_rotta_archived_labels, prepend: true
   before_save :track_rotta_archived_at
   before_save :archive_conversation_when_label_added
   before_save :restore_conversation_when_archived_label_removed

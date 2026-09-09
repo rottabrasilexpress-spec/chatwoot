@@ -285,8 +285,9 @@ describe('#actions', () => {
         message_type: 1,
         conversation_id: 1,
       };
-      actions.addMessage({ commit }, message);
+      actions.addMessage({ commit, dispatch }, message);
       expect(commit.mock.calls).toEqual([[types.ADD_MESSAGE, message]]);
+      expect(dispatch).toHaveBeenCalledWith('markMessagesRead', { id: 1 });
     });
   });
 

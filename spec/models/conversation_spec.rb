@@ -1301,8 +1301,14 @@ RSpec.describe Conversation do
     let!(:archived_label) { create(:label, account: account, title: 'arquivado') }
 
     around do |example|
-      with_modified_env ROTTABRASIL_CHATWOOT_ACCOUNT_ID: account.id.to_s do
-        example.run
+      original_account_id = ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', nil)
+      ENV['ROTTABRASIL_CHATWOOT_ACCOUNT_ID'] = account.id.to_s
+      example.run
+    ensure
+      if original_account_id
+        ENV['ROTTABRASIL_CHATWOOT_ACCOUNT_ID'] = original_account_id
+      else
+        ENV.delete('ROTTABRASIL_CHATWOOT_ACCOUNT_ID')
       end
     end
 

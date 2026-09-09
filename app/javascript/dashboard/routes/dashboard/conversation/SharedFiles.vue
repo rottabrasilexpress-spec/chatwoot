@@ -39,7 +39,7 @@ const selectedAttachment = ref(null);
 const isDropActive = ref(false);
 const saveState = ref('idle');
 
-const dropHint = 'Arraste anexos recebidos aqui para salvá-los';
+const dropHint = 'Arraste anexos recebidos aqui para baixá-los com segurança';
 const saveErrorMessage = 'Não foi possível salvar o anexo recebido.';
 
 const saveStateMessage = computed(() => {
