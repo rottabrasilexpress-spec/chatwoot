@@ -227,7 +227,9 @@ export const mutations = {
       };
     } else {
       chat.messages.push(message);
-      chat.timestamp = message.created_at;
+      const isActivityMessage =
+        message.message_type === 2 || message.message_type === 'activity';
+      if (!isActivityMessage) chat.timestamp = message.created_at;
       const { conversation: { unread_count: unreadCount = 0 } = {} } = message;
       chat.unread_count = unreadCount;
       if (selectedChatId === conversationId) {

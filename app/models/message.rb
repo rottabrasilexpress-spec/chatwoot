@@ -471,6 +471,11 @@ class Message < ApplicationRecord
   end
 
   def set_conversation_activity
+    # Activity bubbles (labels, assignments, priority, status) are audit trail
+    # entries, not customer messages. They must not promote a conversation in
+    # the inbox ordered by the last real message.
+    return if activity?
+
     # rubocop:disable Rails/SkipsModelValidations
     conversation.update_columns(last_activity_at: created_at, updated_at: Time.current)
     # rubocop:enable Rails/SkipsModelValidations

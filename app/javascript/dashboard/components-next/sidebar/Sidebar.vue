@@ -339,13 +339,6 @@ const menuItems = computed(() => {
           to: accountScopedRoute('conversation_awaiting_reply'),
         },
         {
-          name: 'Priority',
-          label: 'ACOMPANHE',
-          icon: 'i-lucide-flag',
-          activeOn: ['conversation_priority', 'conversation_through_priority'],
-          to: accountScopedRoute('conversation_priority'),
-        },
-        {
           name: 'Archived',
           label: 'Arquivados',
           icon: 'i-lucide-archive',
@@ -478,12 +471,6 @@ const menuItems = computed(() => {
           to: accountScopedRoute('labels_list'),
         },
         {
-          name: 'Settings Automation',
-          label: t('SIDEBAR.AUTOMATION'),
-          icon: 'i-lucide-repeat',
-          to: accountScopedRoute('automation_list'),
-        },
-        {
           name: 'Settings Integrations',
           label: t('SIDEBAR.INTEGRATIONS'),
           icon: 'i-lucide-blocks',
@@ -504,12 +491,6 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.AUDIT_LOGS'),
           icon: 'i-lucide-briefcase',
           to: accountScopedRoute('auditlogs_list'),
-        },
-        {
-          name: 'Settings Custom Roles',
-          label: t('SIDEBAR.CUSTOM_ROLES'),
-          icon: 'i-lucide-shield-plus',
-          to: accountScopedRoute('custom_roles_list'),
         },
         {
           name: 'Settings Billing',

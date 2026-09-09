@@ -122,6 +122,92 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(response.parsed_body).to include('ok' => true, 'ignored' => 'mensagem duplicada')
     end
 
+    it 'persists an outgoing API reply when Uazapi echoes a message sent by the instance' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+
+      payload = {
+        event: 'messages',
+        data: {
+          message: {
+            messageId: 'uazapi-outgoing-ai-1',
+            chatid: '5511999999999@s.whatsapp.net',
+            fromMe: true,
+            wasSentByApi: true,
+            type: 'text',
+            text: 'Resposta enviada pela IA'
+          }
+        }
+      }
+
+      expect do
+        post_uazapi(payload)
+      end.to change { conversation.messages.outgoing.where(source_id: 'uazapi-outgoing-ai-1').count }.from(0).to(1)
+
+      message = conversation.messages.find_by!(source_id: 'uazapi-outgoing-ai-1')
+      expect(message).to have_attributes(
+        content: 'Resposta enviada pela IA',
+        status: 'delivered',
+        sender: nil
+      )
+      expect(message.content_attributes['external_echo']).to be(true)
+      expect(response.parsed_body).to include('ok' => true, 'message_ids' => [message.id])
+    end
+
+    it 'correlates a Chatwoot-originated echo by track_id instead of duplicating it' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      chatwoot_message = create(
+        :message,
+        account: account,
+        inbox: api_inbox,
+        conversation: conversation,
+        message_type: :outgoing,
+        sender: create(:user, account: account),
+        source_id: nil,
+        content: 'Resposta já criada no Chatwoot'
+      )
+
+      payload = {
+        event: 'messages',
+        data: {
+          message: {
+            messageId: 'uazapi-chatwoot-echo-1',
+            chatid: '5511999999999@s.whatsapp.net',
+            fromMe: true,
+            wasSentByApi: true,
+            track_source: 'chatwoot',
+            track_id: "message-#{chatwoot_message.id}",
+            type: 'text',
+            text: chatwoot_message.content
+          }
+        }
+      }
+
+      expect do
+        post_uazapi(payload)
+      end.not_to change { conversation.messages.outgoing.count }
+
+      expect(chatwoot_message.reload.source_id).to eq('uazapi-chatwoot-echo-1')
+      expect(response.parsed_body).to include('ok' => true, 'message_ids' => [chatwoot_message.id])
+    end
+
     it 'creates a realtime voice call message from a Uazapi call event' do
       api_channel = create(:channel_api, account: account)
       api_inbox = create(:inbox, channel: api_channel, account: account)

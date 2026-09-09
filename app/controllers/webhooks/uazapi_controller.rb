@@ -100,7 +100,8 @@ class Webhooks::UazapiController < ActionController::API
   def process_incoming_message(payload)
     incoming = extract_message_payload(payload)
     return render json: { ok: true, ignored: 'mensagem ausente' } unless incoming
-    return render json: { ok: true, ignored: 'mensagem enviada pela própria instância' } if from_me?(incoming)
+
+    return process_outgoing_echo(payload, incoming) if from_me?(incoming)
 
     provider_id = message_provider_id(incoming)
     if provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: provider_id).exists?
@@ -131,6 +132,71 @@ class Webhooks::UazapiController < ActionController::API
 
     RottaUazapiContactAvatarSyncJob.perform_later(conversation.account_id, conversation.contact_id)
     render json: { ok: true, message_ids: [message.id], source_id: provider_id }
+  end
+
+  def process_outgoing_echo(payload, incoming)
+    provider_id = message_provider_id(incoming)
+    return render json: { ok: true, ignored: 'id da mensagem ausente' } if provider_id.blank?
+
+    existing_message = find_existing_echo_message(payload, provider_id)
+    if existing_message
+      existing_message.update!(source_id: provider_id) if existing_message.source_id.blank?
+      return render json: { ok: true, message_ids: [existing_message.id], source_id: provider_id }
+    end
+
+    conversation = find_conversation(incoming)
+    return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
+
+    content = incoming_message_content(incoming)
+    return render json: { ok: true, ignored: 'conteúdo não suportado' } if content.blank?
+
+    message = conversation.with_lock do
+      # The webhook and SendReplyJob can finish at the same time. Recheck while
+      # holding the conversation lock so a retry cannot create a second bubble.
+      existing = find_existing_echo_message(payload, provider_id)
+      next existing if existing
+
+      conversation.messages.create!(
+        account_id: conversation.account_id,
+        inbox_id: conversation.inbox_id,
+        message_type: :outgoing,
+        status: :delivered,
+        private: false,
+        sender: nil,
+        source_id: provider_id,
+        content: content,
+        content_attributes: outgoing_echo_attributes(payload, incoming)
+      )
+    end
+
+    render json: { ok: true, message_ids: [message.id], source_id: provider_id }
+  end
+
+  def find_existing_echo_message(payload, provider_id)
+    source_ids = [provider_id, "uazapi:#{provider_id}"].uniq
+    existing = Message.where(account_id: ACCOUNT_ID, message_type: %i[outgoing template], source_id: source_ids)
+                      .order(created_at: :desc).first
+    return existing if existing
+
+    track_id = value_for_keys(payload, %w[track_id trackId])&.to_s
+    return unless track_id&.match?(/\Amessage-\d+\z/)
+
+    Message.where(account_id: ACCOUNT_ID, message_type: %i[outgoing template], id: track_id.delete_prefix('message-')).first
+  end
+
+  def outgoing_echo_attributes(payload, incoming)
+    attributes = {
+      'external_echo' => true,
+      'uazapi_from_me' => true,
+      'uazapi_message_type' => value_for_keys(incoming, %w[type messageType]),
+      'uazapi_was_sent_by_api' => value_for_keys(incoming, %w[wasSentByApi was_sent_by_api]),
+      'uazapi_track_source' => value_for_keys(payload, %w[track_source trackSource]),
+      'uazapi_track_id' => value_for_keys(payload, %w[track_id trackId])
+    }.compact
+
+    quoted_id = value_for_keys(incoming, %w[quoted quotedId quoted_id replyid reply_id])
+    attributes['in_reply_to_external_id'] = quoted_id if quoted_id.present?
+    attributes
   end
 
   def process_contacts_event(payload)

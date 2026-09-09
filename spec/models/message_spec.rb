@@ -443,6 +443,15 @@ RSpec.describe Message do
       expect(message.created_at).to eq message.conversation.last_activity_at
     end
 
+    it 'does not update conversation last_activity_at for activity messages' do
+      original_activity_at = message.conversation.last_activity_at
+      message.message_type = :activity
+
+      message.save!
+
+      expect(message.conversation.reload.last_activity_at).to eq(original_activity_at)
+    end
+
     it 'updates contact last_activity_at when created' do
       expect { message.save! }.to(change { message.sender.last_activity_at })
     end

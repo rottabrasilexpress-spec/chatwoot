@@ -32,8 +32,6 @@ const emit = defineEmits([
 
 const { accountScopedRoute } = useAccount();
 const rottaCopy = {
-  accompanyTitle: 'Abrir ACOMPANHE',
-  accompanyLabel: 'ACOMPANHE',
   archivedTitle: 'Abrir arquivados',
   archivedLabel: 'Arquivados',
   markAllRead: 'Marcar tudo como lido',
@@ -88,14 +86,6 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
           v-if="showRottaShortcuts"
           class="flex items-center gap-1 ml-1 shrink-0"
         >
-          <RouterLink
-            :to="accountScopedRoute('conversation_priority')"
-            class="inline-flex items-center gap-1 px-2 h-7 rounded-lg text-xxs font-medium text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
-            :title="rottaCopy.accompanyTitle"
-          >
-            <span class="i-lucide-star size-3.5 text-n-amber-10" />
-            <span class="hidden md:inline">{{ rottaCopy.accompanyLabel }}</span>
-          </RouterLink>
           <RouterLink
             :to="accountScopedRoute('archived_conversations')"
             class="inline-flex items-center gap-1 px-2 h-7 rounded-lg text-xxs font-medium text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"

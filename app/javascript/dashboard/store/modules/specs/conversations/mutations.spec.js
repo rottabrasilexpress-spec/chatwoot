@@ -208,6 +208,30 @@ describe('#mutations', () => {
       ]);
       expect(emitter.emit).not.toHaveBeenCalled();
     });
+
+    it('keeps the conversation timestamp when adding an activity message', () => {
+      const state = {
+        allConversations: [
+          {
+            id: 1,
+            messages: [],
+            timestamp: 1602256198,
+          },
+        ],
+        selectedChatId: -1,
+      };
+
+      mutations[types.ADD_MESSAGE](state, {
+        conversation_id: 1,
+        message_type: 2,
+        content: 'Kelvin adicionou uma etiqueta',
+        created_at: 1602256298,
+      });
+
+      expect(state.allConversations[0].messages).toHaveLength(1);
+      expect(state.allConversations[0].timestamp).toBe(1602256198);
+      expect(emitter.emit).not.toHaveBeenCalled();
+    });
   });
 
   describe('#CHANGE_CONVERSATION_STATUS', () => {

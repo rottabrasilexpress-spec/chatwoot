@@ -20,7 +20,6 @@ import {
   ICON_MESSAGE_CIRCLE,
   ICON_MESSAGE_QUOTE,
   ICON_PHONE,
-  ICON_REPEAT,
   ICON_SMILE,
   ICON_SQUARE_USER,
   ICON_TAGS,
@@ -190,13 +189,6 @@ const GO_TO_COMMANDS = [
     section: SECTION_SETTINGS,
     icon: ICON_CODE,
     routeName: 'attributes_list',
-  },
-  {
-    id: 'open_automation_settings',
-    title: 'COMMAND_BAR.COMMANDS.GO_TO_SETTINGS_AUTOMATION',
-    section: SECTION_SETTINGS,
-    icon: ICON_REPEAT,
-    routeName: 'automation_list',
   },
   {
     id: 'open_macro_settings',

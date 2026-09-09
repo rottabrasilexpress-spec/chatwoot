@@ -257,29 +257,6 @@ export default {
       }),
     },
     {
-      path: frontendURL('accounts/:accountId/priority/conversations'),
-      name: 'conversation_priority',
-      meta: {
-        permissions: CONVERSATION_PERMISSIONS,
-      },
-      component: ConversationView,
-      props: () => ({ conversationType: 'priority' }),
-    },
-    {
-      path: frontendURL(
-        'accounts/:accountId/priority/conversations/:conversationId'
-      ),
-      name: 'conversation_through_priority',
-      meta: {
-        permissions: CONVERSATION_PERMISSIONS,
-      },
-      component: ConversationView,
-      props: route => ({
-        conversationId: route.params.conversationId,
-        conversationType: 'priority',
-      }),
-    },
-    {
       path: frontendURL('accounts/:accountId/archived/conversations'),
       name: 'archived_conversations',
       meta: {

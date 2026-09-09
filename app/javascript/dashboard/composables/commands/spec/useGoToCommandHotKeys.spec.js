@@ -56,10 +56,6 @@ const ROUTE_META = {
     featureFlag: MOCK_FEATURE_FLAGS.INTEGRATIONS,
     permissions: ['administrator'],
   },
-  automation_list: {
-    featureFlag: MOCK_FEATURE_FLAGS.AUTOMATIONS,
-    permissions: ['administrator'],
-  },
   auditlogs_list: {
     featureFlag: MOCK_FEATURE_FLAGS.AUDIT_LOGS,
     permissions: ['administrator'],
@@ -263,11 +259,11 @@ describe('useGoToCommandHotKeys', () => {
     });
   });
 
-  it('should return commands for all enabled features', () => {
+  it('should return commands for enabled features except removed pages', () => {
     const { goToCommandHotKeys } = useGoToCommandHotKeys();
     const ids = goToCommandHotKeys.value.map(cmd => cmd.id);
     expect(ids).toContain('goto_contacts_dashboard');
-    expect(ids).toContain('open_automation_settings');
+    expect(ids).not.toContain('open_automation_settings');
   });
 
   it('should not return commands for disabled features', () => {
