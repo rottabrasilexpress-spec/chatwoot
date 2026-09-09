@@ -1,7 +1,11 @@
 # frozen_string_literal: true
 
+require 'digest'
+
 class RottaUazapiMessageMediaSyncJob < ApplicationJob
   include FileTypeHelper
+
+  class MediaSyncError < StandardError; end
 
   queue_as :uazapi_sync
 
@@ -13,7 +17,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
   def perform(account_id, message_id, provider_message_id, media_url = nil, media_type = nil)
     message = find_message(account_id, message_id)
     return unless message
-    return if attachment_already_synced?(message, provider_message_id)
+    return if attachment_already_synced?(message, provider_message_id, media_url)
 
     synchronize_media(message, provider_message_id, media_url, media_type)
   rescue StandardError => e
@@ -21,6 +25,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
       "[RottaMediaSync] message=#{message_id} account=#{account_id} " \
       "class=#{e.class.name} error=#{e.message.to_s.first(200)}"
     )
+    raise
   end
 
   private
@@ -33,7 +38,8 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
     media = { 'fileURL' => media_url, 'mimetype' => media_type }
     media = fetch_provider_media(provider_message_id) if media['fileURL'].blank?
     file_url = media_value(media, %w[fileURL file_url url mediaUrl media_url])
-    return unless valid_http_url?(file_url)
+    raise MediaSyncError, 'provider did not return a media URL' if file_url.blank?
+    raise MediaSyncError, 'provider returned an invalid media URL' unless valid_http_url?(file_url)
 
     SafeFetch.fetch(
       file_url,
@@ -42,17 +48,25 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
       allowed_content_types: ACCEPTABLE_CONTENT_TYPES
     ) do |downloaded_file|
       message.with_lock do
-        next if attachment_already_synced?(message, provider_message_id)
+        next if attachment_already_synced?(message, provider_message_id, file_url)
 
-        persist_attachment(message, provider_message_id, media, downloaded_file)
+        persist_attachment(message, provider_message_id, file_url, media, downloaded_file)
       end
     end
   end
 
-  def attachment_already_synced?(message, provider_message_id)
-    return false if provider_message_id.blank?
+  def attachment_already_synced?(message, provider_message_id, media_url)
+    if provider_message_id.present?
+      return message.attachments.exists?(
+        ["meta ->> 'uazapi_message_id' = ?", provider_message_id.to_s]
+      )
+    end
 
-    message.attachments.exists?(["meta ->> 'uazapi_message_id' = ?", provider_message_id.to_s])
+    return false if media_url.blank?
+
+    message.attachments.exists?(
+      ["meta ->> 'uazapi_media_key' = ?", media_identity(nil, media_url)]
+    )
   end
 
   def fetch_provider_media(provider_message_id)
@@ -74,13 +88,14 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
     payload.is_a?(Hash) ? payload.stringify_keys : {}
   end
 
-  def persist_attachment(message, provider_message_id, media, downloaded_file)
+  def persist_attachment(message, provider_message_id, media_url, media, downloaded_file)
     content_type = downloaded_file.content_type.presence || media_value(media, %w[mimetype mimeType content_type])
     attachment = message.attachments.build(
       account_id: message.account_id,
       file_type: attachment_file_type(content_type, media_value(media, %w[type messageType])),
       meta: {
         'uazapi_message_id' => provider_message_id.to_s,
+        'uazapi_media_key' => media_identity(provider_message_id, media_url),
         'uazapi_content_type' => content_type.to_s
       }
     )
@@ -115,6 +130,12 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
   def safe_filename(filename, provider_message_id)
     normalized = File.basename(filename.to_s).gsub(/[^\p{Alnum}._-]/, '_').presence
     (normalized || "uazapi-#{provider_message_id}")[0, 255]
+  end
+
+  def media_identity(provider_message_id, media_url)
+    return provider_message_id.to_s if provider_message_id.present?
+
+    "url:#{Digest::SHA256.hexdigest(media_url.to_s)}"
   end
 
   def valid_http_url?(value)

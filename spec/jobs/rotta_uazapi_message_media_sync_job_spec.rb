@@ -60,4 +60,29 @@ RSpec.describe RottaUazapiMessageMediaSyncJob, type: :job do
     expect(message.reload.attachments.where("meta ->> 'uazapi_message_id' = ?", provider_id).count).to eq(1)
     expect(a_request(:get, media_url)).to have_been_made.once
   end
+
+  it 'deduplicates a direct media URL when the provider omits its message ID' do
+    media_url = 'https://example.com/uazapi-image-without-id.png'
+    stub_request(:get, media_url).to_return(
+      status: 200,
+      body: Rails.root.join('spec/assets/avatar.png').binread,
+      headers: { 'Content-Type' => 'image/png' }
+    )
+
+    2.times { described_class.perform_now(account.id, message.id, nil, media_url, 'image') }
+
+    expect(message.reload.attachments.count).to eq(1)
+    expect(a_request(:get, media_url)).to have_been_made.once
+  end
+
+  it 'raises after a transient provider failure so the queue can retry' do
+    provider_id = 'uazapi-media-retry-1'
+    stub_request(:post, 'https://transportadoras.uazapi.com/message/download')
+      .with(body: hash_including('id' => provider_id))
+      .to_return(status: 503, body: '{}', headers: { 'Content-Type' => 'application/json' })
+
+    expect do
+      described_class.perform_now(account.id, message.id, provider_id, nil, 'image')
+    end.to raise_error(RottaUazapiMessageMediaSyncJob::MediaSyncError)
+  end
 end

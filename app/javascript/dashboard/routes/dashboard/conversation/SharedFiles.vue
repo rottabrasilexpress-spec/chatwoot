@@ -49,11 +49,6 @@ const saveStateMessage = computed(() => {
   return dropHint;
 });
 
-const fileExtension = fileName => {
-  const extension = fileName?.split('.').pop();
-  return extension && extension !== fileName ? extension : undefined;
-};
-
 const findAttachment = id =>
   allAttachments.value.find(attachment => String(attachment.id) === String(id));
 
@@ -64,9 +59,7 @@ const getDroppedAttachments = event => {
     return attachment?.data_url ? [{ type: 'conversation', attachment }] : [];
   }
 
-  return Array.from(event.dataTransfer?.files || [])
-    .filter(file => file.size > 0)
-    .map(file => ({ type: 'file', file }));
+  return [];
 };
 
 const saveDroppedAttachment = async droppedAttachment => {
@@ -77,19 +70,6 @@ const saveDroppedAttachment = async droppedAttachment => {
       extension,
     } = droppedAttachment.attachment;
     await downloadFile({ url, type, extension });
-    return;
-  }
-
-  const { file } = droppedAttachment;
-  const url = URL.createObjectURL(file);
-  try {
-    await downloadFile({
-      url,
-      type: file.type,
-      extension: fileExtension(file.name),
-    });
-  } finally {
-    URL.revokeObjectURL(url);
   }
 };
 
@@ -113,8 +93,8 @@ const onDrop = async event => {
 
   saveState.value = 'saving';
   try {
-    // This action only downloads existing attachments or dropped local files.
-    // It intentionally does not dispatch a message or mutate conversation data.
+    // This action only downloads an existing Chatwoot attachment. It never
+    // accepts local files and never dispatches a message or mutates data.
     await Promise.all(droppedAttachments.map(saveDroppedAttachment));
     saveState.value = 'success';
   } catch (error) {

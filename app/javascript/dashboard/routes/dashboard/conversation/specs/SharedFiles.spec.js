@@ -93,11 +93,7 @@ describe('SharedFiles', () => {
     expect(wrapper.find('[aria-live="polite"]').text()).toContain('salvo');
   });
 
-  it('saves non-empty files dropped from the operating system without dispatching a message', async () => {
-    const originalCreateObjectURL = URL.createObjectURL;
-    const originalRevokeObjectURL = URL.revokeObjectURL;
-    URL.createObjectURL = vi.fn(() => 'blob:attachment');
-    URL.revokeObjectURL = vi.fn();
+  it('rejects local files and only accepts existing conversation attachments', async () => {
     const file = new File(['content'], 'invoice.pdf', {
       type: 'application/pdf',
     });
@@ -108,16 +104,13 @@ describe('SharedFiles', () => {
       .trigger('drop', { dataTransfer: { files: [file], getData: () => '' } });
     await flushPromises();
 
-    expect(mocks.downloadFile).toHaveBeenCalledWith({
-      url: 'blob:attachment',
-      type: 'application/pdf',
-      extension: 'pdf',
-    });
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:attachment');
-    expect(wrapper.find('[aria-live="polite"]').text()).toContain('salvo');
-
-    URL.createObjectURL = originalCreateObjectURL;
-    URL.revokeObjectURL = originalRevokeObjectURL;
+    expect(mocks.downloadFile).not.toHaveBeenCalled();
+    expect(mocks.alert).toHaveBeenCalledWith(
+      'Não foi possível salvar o anexo recebido.'
+    );
+    expect(wrapper.find('[aria-live="polite"]').text()).toContain(
+      'Não foi possível'
+    );
   });
 
   it('reports an invalid drop and does not touch the conversation', async () => {

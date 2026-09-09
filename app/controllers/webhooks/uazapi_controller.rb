@@ -249,10 +249,6 @@ class Webhooks::UazapiController < ActionController::API
     return process_outgoing_echo(payload, incoming) if from_me?(incoming)
 
     provider_id = message_provider_id(incoming)
-    if provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: provider_id).exists?
-      return render json: { ok: true, ignored: 'mensagem duplicada', source_id: provider_id }
-    end
-
     conversation = find_conversation(incoming)
     return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
     associate_uazapi_delivery(conversation)
@@ -267,17 +263,25 @@ class Webhooks::UazapiController < ActionController::API
     quoted_id = value_for_keys(incoming, %w[quoted quotedId quoted_id replyid reply_id])
     attributes['in_reply_to_external_id'] = quoted_id if quoted_id.present?
 
-    message = Messages::MessageBuilder.new(
-      nil,
-      conversation,
-      ActionController::Parameters.new(
-        content: content,
-        message_type: 'incoming',
-        private: false,
-        source_id: provider_id,
-        content_attributes: attributes
-      )
-    ).perform
+    message = with_uazapi_provider_lock(provider_id) do
+      if provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: provider_id).exists?
+        :duplicate
+      else
+        Messages::MessageBuilder.new(
+          nil,
+          conversation,
+          ActionController::Parameters.new(
+            content: content,
+            message_type: 'incoming',
+            private: false,
+            source_id: provider_id,
+            content_attributes: attributes
+          )
+        ).perform
+      end
+    end
+
+    return render json: { ok: true, ignored: 'mensagem duplicada', source_id: provider_id } if message == :duplicate
 
     if incoming_media?(incoming, provider_id)
       RottaUazapiMessageMediaSyncJob.perform_later(
@@ -331,6 +335,19 @@ class Webhooks::UazapiController < ActionController::API
     end
 
     render json: { ok: true, message_ids: [message.id], source_id: provider_id }
+  end
+
+  def with_uazapi_provider_lock(provider_id)
+    return yield if provider_id.blank?
+
+    lock_key = "rotta-uazapi-incoming:#{ACCOUNT_ID}:#{provider_id}"
+    ApplicationRecord.transaction do
+      sql = ApplicationRecord.sanitize_sql_array(
+        ['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key]
+      )
+      ApplicationRecord.connection.execute(sql)
+      yield
+    end
   end
 
   def find_existing_echo_message(payload, provider_id)
@@ -406,6 +423,19 @@ class Webhooks::UazapiController < ActionController::API
     return "[#{type}]" if type.present?
 
     incoming_media_url(message).present? ? '[arquivo]' : nil
+  end
+
+  def with_uazapi_provider_lock(provider_id)
+    return yield if provider_id.blank?
+
+    lock_key = "rotta-uazapi-incoming:#{ACCOUNT_ID}:#{provider_id}"
+    ApplicationRecord.transaction do
+      sql = ApplicationRecord.sanitize_sql_array(
+        ['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key]
+      )
+      ApplicationRecord.connection.execute(sql)
+      yield
+    end
   end
 
   def incoming_media?(message, provider_id)
