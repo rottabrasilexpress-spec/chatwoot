@@ -425,19 +425,6 @@ class Webhooks::UazapiController < ActionController::API
     incoming_media_url(message).present? ? '[arquivo]' : nil
   end
 
-  def with_uazapi_provider_lock(provider_id)
-    return yield if provider_id.blank?
-
-    lock_key = "rotta-uazapi-incoming:#{ACCOUNT_ID}:#{provider_id}"
-    ApplicationRecord.transaction do
-      sql = ApplicationRecord.sanitize_sql_array(
-        ['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key]
-      )
-      ApplicationRecord.connection.execute(sql)
-      yield
-    end
-  end
-
   def incoming_media?(message, provider_id)
     return false if provider_id.blank? && incoming_media_url(message).blank?
 

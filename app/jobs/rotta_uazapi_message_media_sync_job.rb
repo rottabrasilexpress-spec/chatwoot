@@ -61,7 +61,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
     return false if media_url.blank?
 
     message.attachments.exists?(
-      ["meta ->> 'uazapi_media_key' = ?", media_identity(nil, media_url)]
+      ["meta ->> 'uazapi_media_key' = ?", media_identity(media_url)]
     )
   end
 
@@ -97,7 +97,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
       file_type: attachment_file_type(content_type, media_value(media, %w[type messageType])),
       meta: {
         'uazapi_message_id' => provider_message_id.to_s,
-        'uazapi_media_key' => media_identity(provider_message_id, media_url),
+        'uazapi_media_key' => media_identity(media_url),
         'uazapi_content_type' => content_type.to_s
       }
     )
@@ -134,9 +134,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
     (normalized || "uazapi-#{provider_message_id}")[0, 255]
   end
 
-  def media_identity(provider_message_id, media_url)
-    return provider_message_id.to_s if provider_message_id.present?
-
+  def media_identity(media_url)
     "url:#{Digest::SHA256.hexdigest(media_url.to_s)}"
   end
 
