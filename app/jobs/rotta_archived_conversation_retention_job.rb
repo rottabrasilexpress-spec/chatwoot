@@ -26,7 +26,8 @@ class RottaArchivedConversationRetentionJob < ApplicationJob
       account_id: rotta_account_id,
       status: :resolved
     )
-    archived = archived_label_scope(resolved_rotta_conversations)
+    archived_conversations = archived_label_scope(resolved_rotta_conversations)
+    archived = archived_conversations
                .where("additional_attributes->>'rotta_archived_at' <= ?", cutoff.iso8601)
 
     # Existing conversations without the Rotta timestamp (created before this
@@ -34,7 +35,7 @@ class RottaArchivedConversationRetentionJob < ApplicationJob
     # resolved Rotta conversations that predate the timestamp rule, so a newly
     # archived conversation cannot be deleted just because its old activity is
     # outside the retention window.
-    stale_conversations = resolved_rotta_conversations.where(
+    stale_conversations = archived_conversations.where(
       "additional_attributes->>'rotta_archived_at' IS NULL"
     ).where('last_activity_at < ?', cutoff)
 
