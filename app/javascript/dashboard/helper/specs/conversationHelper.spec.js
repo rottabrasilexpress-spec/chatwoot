@@ -36,6 +36,15 @@ describe('conversationHelper', () => {
       ];
       expect(filterDuplicateSourceMessages(input)).toEqual(expected);
     });
+
+    it('keeps the renderable message when a duplicate source_id has an empty stub', () => {
+      const input = [
+        { id: 10, source_id: 'wa_echo', content: '' },
+        { id: 11, source_id: 'wa_echo', content: 'Resposta da IA' },
+      ];
+
+      expect(filterDuplicateSourceMessages(input)).toEqual([input[1]]);
+    });
   });
 
   describe('#readMessages', () => {

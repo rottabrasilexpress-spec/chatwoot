@@ -22,23 +22,47 @@ const getLastNonActivityMessage = (messageInStore, messageFromAPI) => {
  * @returns {Array} An array of messages without duplicates.
  */
 export const filterDuplicateSourceMessages = (messages = []) => {
-  const messagesWithoutDuplicates = [];
-  // We cannot use Map or any short hand method as it returns the last message with the duplicate ID
-  // We should return the message with smaller id when there is a duplicate
-  messages.forEach(m1 => {
-    if (m1.source_id) {
-      const index = messagesWithoutDuplicates.findIndex(
-        m2 => m1.source_id === m2.source_id
-      );
+  const selectedBySourceId = new Map();
+  const messagesWithoutSourceId = [];
 
-      if (index < 0) {
-        messagesWithoutDuplicates.push(m1);
-      }
-    } else {
-      messagesWithoutDuplicates.push(m1);
+  const renderabilityScore = message => {
+    let score = 0;
+    if (message.content?.trim()) score += 2;
+    if (message.attachments?.length) score += 1;
+    if (Object.keys(message.content_attributes || {}).length) score += 1;
+    return score;
+  };
+
+  const shouldReplace = (candidate, current) => {
+    const candidateScore = renderabilityScore(candidate);
+    const currentScore = renderabilityScore(current);
+    if (candidateScore !== currentScore) return candidateScore > currentScore;
+
+    const candidateId = Number(candidate.id);
+    const currentId = Number(current.id);
+    return Number.isFinite(candidateId) && Number.isFinite(currentId)
+      ? candidateId < currentId
+      : false;
+  };
+
+  messages.forEach(message => {
+    if (!message.source_id) {
+      messagesWithoutSourceId.push(message);
+      return;
+    }
+
+    const current = selectedBySourceId.get(message.source_id);
+    if (!current || shouldReplace(message, current)) {
+      selectedBySourceId.set(message.source_id, message);
     }
   });
-  return messagesWithoutDuplicates;
+
+  const selectedMessages = new Set([
+    ...messagesWithoutSourceId,
+    ...selectedBySourceId.values(),
+  ]);
+
+  return messages.filter(message => selectedMessages.has(message));
 };
 
 /**
