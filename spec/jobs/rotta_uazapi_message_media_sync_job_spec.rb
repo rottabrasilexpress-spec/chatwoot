@@ -75,6 +75,21 @@ RSpec.describe RottaUazapiMessageMediaSyncJob, type: :job do
     expect(a_request(:get, media_url)).to have_been_made.once
   end
 
+  it 'deduplicates the same URL when a provider ID appears on a later retry' do
+    media_url = 'https://example.com/uazapi-image-id-backfill.png'
+    stub_request(:get, media_url).to_return(
+      status: 200,
+      body: Rails.root.join('spec/assets/avatar.png').binread,
+      headers: { 'Content-Type' => 'image/png' }
+    )
+
+    described_class.perform_now(account.id, message.id, nil, media_url, 'image')
+    described_class.perform_now(account.id, message.id, 'uazapi-media-id-backfill-1', media_url, 'image')
+
+    expect(message.reload.attachments.count).to eq(1)
+    expect(a_request(:get, media_url)).to have_been_made.once
+  end
+
   it 'raises after a transient provider failure so the queue can retry' do
     provider_id = 'uazapi-media-retry-1'
     stub_request(:post, 'https://transportadoras.uazapi.com/message/download')

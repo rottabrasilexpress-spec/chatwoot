@@ -56,16 +56,18 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
   end
 
   def attachment_already_synced?(message, provider_message_id, media_url)
-    if provider_message_id.present?
-      return message.attachments.exists?(
-        ["meta ->> 'uazapi_message_id' = ?", provider_message_id.to_s]
-      )
-    end
+    return true if provider_message_id.present? && attachment_matches_provider_id?(message, provider_message_id)
 
     return false if media_url.blank?
 
     message.attachments.exists?(
       ["meta ->> 'uazapi_media_key' = ?", media_identity(nil, media_url)]
+    )
+  end
+
+  def attachment_matches_provider_id?(message, provider_message_id)
+    message.attachments.exists?(
+      ["meta ->> 'uazapi_message_id' = ?", provider_message_id.to_s]
     )
   end
 
