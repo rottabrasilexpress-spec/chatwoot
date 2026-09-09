@@ -21,10 +21,10 @@ class CreateUazapiWebhookDeliveries < ActiveRecord::Migration[7.0]
       t.timestamps
     end
 
-    add_index :uazapi_webhook_deliveries, [:account_id, :received_at]
-    add_index :uazapi_webhook_deliveries, [:account_id, :status, :received_at]
-    add_index :uazapi_webhook_deliveries, [:account_id, :provider_message_id]
-    add_index :uazapi_webhook_deliveries, :correlation_id
-    add_index :uazapi_webhook_deliveries, :conversation_id
+    add_index :uazapi_webhook_deliveries, [:account_id, :received_at], name: 'idx_uazapi_deliveries_account_received'
+    add_index :uazapi_webhook_deliveries, [:account_id, :status, :received_at], name: 'idx_uazapi_deliveries_account_status_received'
+    add_index :uazapi_webhook_deliveries, [:account_id, :provider_message_id], name: 'idx_uazapi_deliveries_account_provider'
+    add_index :uazapi_webhook_deliveries, :correlation_id, name: 'idx_uazapi_deliveries_correlation'
+    add_index :uazapi_webhook_deliveries, :conversation_id, name: 'idx_uazapi_deliveries_conversation'
   end
 end
