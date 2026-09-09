@@ -64,11 +64,13 @@ export const actions = {
         conversation_id: conversationId,
         labels: response.data.payload,
       });
+      return true;
     } catch (error) {
       commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
         isUpdating: false,
         isError: true,
       });
+      return false;
     }
   },
   setBulkConversationLabels({ commit }, conversations) {

@@ -6,6 +6,23 @@ import { useMapGetter } from 'dashboard/composables/store.js';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
 import wootConstants from 'dashboard/constants/globals';
 
+export const mergeConversationLabels = (
+  conversation,
+  { add = [], remove = [] } = {}
+) => {
+  const currentLabels = Array.isArray(conversation?.labels)
+    ? conversation.labels.map(label =>
+        typeof label === 'string' ? label : label?.title
+      )
+    : [];
+  const labelsToAdd = Array.isArray(add) ? add : [add];
+  const labelsToRemove = new Set(Array.isArray(remove) ? remove : [remove]);
+
+  return [
+    ...new Set([...currentLabels, ...labelsToAdd].filter(Boolean)),
+  ].filter(label => !labelsToRemove.has(label));
+};
+
 export function useBulkActions() {
   const store = useStore();
   const { t } = useI18n();
@@ -56,6 +73,21 @@ export function useBulkActions() {
     return selectedConversations.value.includes(id);
   }
 
+  async function updateConversationLabelsLocally(ids, change) {
+    const conversationIds = Array.isArray(ids) ? ids : [ids];
+    await Promise.all(
+      conversationIds.map(async conversationId => {
+        const conversation = store.getters.getConversationById(conversationId);
+        if (!conversation) return;
+
+        await store.dispatch('updateConversation', {
+          ...conversation,
+          labels: mergeConversationLabels(conversation, change),
+        });
+      })
+    );
+  }
+
   // Same method used in context menu, conversationId being passed from there.
   async function onAssignAgent(agent, conversationId = null) {
     try {
@@ -92,9 +124,13 @@ export function useBulkActions() {
           add: newLabels,
         },
       });
-      // Requery the active server-side view so label-based views update
-      // immediately after a label moves a conversation between trails.
-      await store.dispatch('fetchAllConversations', { force: true });
+      // Apply the server-confirmed label change in place. A full list requery
+      // can return the same conversations in a different order, making a
+      // contact jump to the top even though no message was sent.
+      await updateConversationLabelsLocally(
+        conversationId || selectedConversations.value,
+        { add: newLabels }
+      );
       store.dispatch('bulkActions/clearSelectedConversationIds');
       if (conversationId) {
         useAlert(
@@ -121,7 +157,10 @@ export function useBulkActions() {
           remove: labelsToRemove,
         },
       });
-      await store.dispatch('fetchAllConversations', { force: true });
+      await updateConversationLabelsLocally(
+        conversationId || selectedConversations.value,
+        { remove: labelsToRemove }
+      );
 
       // Context-menu remove should not disturb an existing bulk selection.
       if (conversationId) {

@@ -93,6 +93,12 @@ const settingsLabelsPath = computed(
 const selectedCountLabel = computed(
   () => `${savedLabels.value.length} selecionada(s)`
 );
+const selectedLabels = computed(() =>
+  savedLabels.value.map(
+    title =>
+      accountLabels.value.find(label => label.title === title) || { title }
+  )
+);
 
 const defaultLabelRank = title => {
   const rank = DEFAULT_LABEL_ORDER.indexOf(title);
@@ -204,8 +210,25 @@ onMounted(loadLabelOrder);
 <template>
   <div
     v-on-clickaway="close"
-    class="relative flex items-center rotta-labels-shortcut"
+    class="relative flex items-center min-w-0 gap-1 rotta-labels-shortcut"
   >
+    <div
+      v-if="selectedLabels.length"
+      class="rotta-labels-visible"
+      :aria-label="$t('CONVERSATION.CARD.SHOW_LABELS')"
+    >
+      <span
+        v-for="label in selectedLabels"
+        :key="label.title"
+        class="rotta-label-visible"
+        :style="{
+          '--label-color': labelColor(label),
+        }"
+        :title="labelTitle(label)"
+      >
+        {{ labelTitle(label) }}
+      </span>
+    </div>
     <Button
       v-tooltip="'Etiquetas'"
       size="sm"
@@ -328,6 +351,33 @@ onMounted(loadLabelOrder);
   overflow: hidden;
 }
 
+.rotta-labels-visible {
+  display: flex;
+  min-width: 0;
+  max-width: min(32rem, 48vw);
+  align-items: center;
+  gap: 0.3rem;
+  overflow: hidden;
+}
+
+.rotta-label-visible {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 12rem;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  overflow: hidden;
+  color: var(--color-n-slate-12, #0f172a);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--label-color) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--label-color) 48%, transparent);
+  border-radius: 999px;
+}
+
 .rotta-labels-shortcut--priority {
   color: #c026d3;
   outline: 1px solid rgb(192 38 211 / 45%);
@@ -440,6 +490,10 @@ onMounted(loadLabelOrder);
 }
 
 @media (max-width: 640px) {
+  .rotta-labels-visible {
+    max-width: calc(100vw - 8rem);
+  }
+
   .rotta-labels-menu {
     position: fixed;
     inset-inline: 0.5rem;

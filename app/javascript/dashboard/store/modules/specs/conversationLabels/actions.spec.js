@@ -59,6 +59,16 @@ describe('#actions', () => {
       ]);
     });
 
+    it('returns success only after the server confirms the update', async () => {
+      axios.post.mockResolvedValue({
+        data: { payload: ['on-hold'] },
+      });
+
+      await expect(
+        actions.update({ commit }, { conversationId: '1', labels: ['on-hold'] })
+      ).resolves.toBe(true);
+    });
+
     it('sends correct actions if API is error', async () => {
       axios.post.mockRejectedValue({ message: 'Incorrect header' });
       await actions.update(
@@ -72,6 +82,14 @@ describe('#actions', () => {
           { isUpdating: false, isError: true },
         ],
       ]);
+    });
+
+    it('returns false when the server rejects the update', async () => {
+      axios.post.mockRejectedValue({ message: 'Incorrect header' });
+
+      await expect(
+        actions.update({ commit }, { conversationId: '1', labels: ['on-hold'] })
+      ).resolves.toBe(false);
     });
   });
 

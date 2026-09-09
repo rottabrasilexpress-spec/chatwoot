@@ -839,15 +839,18 @@ onUnmounted(() => {
                   tabindex="0"
                   role="button"
                   :aria-expanded="isHistoryExpanded(job)"
-                  :aria-label="`Abrir trilha de ${job.customer_name || 'cliente'}`"
+                  :aria-label="`Mostrar detalhes de ${job.customer_name || 'cliente'}. Duplo clique para abrir a conversa.`"
                   @click="toggleJobHistory(job)"
+                  @dblclick.stop="openConversation(job)"
                   @keydown.enter="toggleJobHistory(job)"
+                  @keydown.space.prevent="toggleJobHistory(job)"
                 >
                   <div class="rotta-board-card__topline">
                     <button
                       class="rotta-client rotta-client--board"
                       type="button"
-                      @click.stop="openConversation(job)"
+                      @click.stop="toggleJobHistory(job)"
+                      @dblclick.stop="openConversation(job)"
                     >
                       <strong>{{
                         job.customer_name || 'Cliente sem nome'
@@ -880,7 +883,10 @@ onUnmounted(() => {
                     </span>
                   </div>
 
-                  <div class="rotta-board-card__schedule">
+                  <div
+                    v-if="isHistoryExpanded(job)"
+                    class="rotta-board-card__schedule"
+                  >
                     <div class="rotta-board-card__schedule-main">
                       <Icon
                         icon="i-lucide-clock-3"
@@ -914,7 +920,15 @@ onUnmounted(() => {
                     </div>
                   </div>
 
-                  <div class="rotta-board-card__footer">
+                  <div v-else class="rotta-board-card__compact-meta">
+                    <span>{{ scheduleText(job) }}</span>
+                    <span>{{ statusText(job.status, job) }}</span>
+                  </div>
+
+                  <div
+                    v-if="isHistoryExpanded(job)"
+                    class="rotta-board-card__footer"
+                  >
                     <button
                       type="button"
                       class="rotta-history-toggle rotta-history-toggle--icon"
@@ -949,7 +963,7 @@ onUnmounted(() => {
                   </div>
 
                   <div
-                    v-if="!isHistoricalJob(job)"
+                    v-if="isHistoryExpanded(job) && !isHistoricalJob(job)"
                     class="rotta-board-card__actions"
                     @click.stop
                   >
@@ -1301,22 +1315,18 @@ onUnmounted(() => {
                   {{ evidenceConfirmationText(job) }}
                 </small>
               </div>
-                <button
-                  type="button"
-                  class="rotta-history-toggle rotta-history-toggle--mobile rotta-history-toggle--icon"
-                  :aria-expanded="isHistoryExpanded(job)"
-                  :aria-label="
-                    isHistoryExpanded(job)
-                      ? 'Ocultar trilha'
-                      : 'Mostrar trilha'
-                  "
-                  :title="
-                    isHistoryExpanded(job)
-                      ? 'Ocultar trilha'
-                      : 'Mostrar trilha'
-                  "
-                  @click.stop="toggleJobHistory(job)"
-                >
+              <button
+                type="button"
+                class="rotta-history-toggle rotta-history-toggle--mobile rotta-history-toggle--icon"
+                :aria-expanded="isHistoryExpanded(job)"
+                :aria-label="
+                  isHistoryExpanded(job) ? 'Ocultar trilha' : 'Mostrar trilha'
+                "
+                :title="
+                  isHistoryExpanded(job) ? 'Ocultar trilha' : 'Mostrar trilha'
+                "
+                @click.stop="toggleJobHistory(job)"
+              >
                 <Icon
                   :icon="
                     isHistoryExpanded(job)
@@ -1325,7 +1335,7 @@ onUnmounted(() => {
                   "
                   class="size-3.5"
                 />
-                </button>
+              </button>
               <div v-if="isHistoryExpanded(job)" class="rotta-history">
                 <div class="rotta-history__heading">
                   <strong>Trilha do cliente</strong>
@@ -1683,13 +1693,15 @@ onUnmounted(() => {
 .rotta-board-card__labels,
 .rotta-board-card__footer,
 .rotta-board-card__schedule-main,
-.rotta-board-card__schedule-meta {
+.rotta-board-card__schedule-meta,
+.rotta-board-card__compact-meta {
   display: flex;
   align-items: center;
 }
 
 .rotta-board-card__topline,
-.rotta-board-card__footer {
+.rotta-board-card__footer,
+.rotta-board-card__compact-meta {
   justify-content: space-between;
   gap: 0.5rem;
 }
@@ -1711,6 +1723,18 @@ onUnmounted(() => {
   max-width: 100%;
   @apply text-n-slate-11;
   font-size: 0.7rem;
+}
+
+.rotta-board-card__compact-meta {
+  @apply text-n-slate-11;
+  font-size: 0.67rem;
+}
+
+.rotta-board-card__compact-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rotta-board-card__schedule {

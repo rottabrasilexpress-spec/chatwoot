@@ -1,5 +1,6 @@
 import { useConversationLabels } from '../useConversationLabels';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
+import { emitter } from 'shared/helpers/mitt';
 
 vi.mock('dashboard/composables/store');
 
@@ -48,6 +49,7 @@ describe('useConversationLabels', () => {
   });
 
   it('should update labels correctly', async () => {
+    store.dispatch.mockResolvedValue(true);
     const { onUpdateLabels } = useConversationLabels();
     await onUpdateLabels(['Label 1', 'Label 3']);
 
@@ -55,6 +57,26 @@ describe('useConversationLabels', () => {
       conversationId: 1,
       labels: ['Label 1', 'Label 3'],
     });
+  });
+
+  it('announces label additions and removals after a successful update', async () => {
+    store.dispatch.mockResolvedValue(true);
+    store.getters['conversationLabels/getConversationLabels'].mockReturnValue([
+      'Label 1',
+      'Label 2',
+    ]);
+    const alerts = [];
+    const collectAlert = ({ message }) => alerts.push(message);
+    emitter.on('newToastMessage', collectAlert);
+
+    const { onUpdateLabels } = useConversationLabels();
+    await onUpdateLabels(['Label 1', 'Label 3']);
+
+    emitter.off('newToastMessage', collectAlert);
+    expect(alerts).toEqual([
+      'Etiqueta "Label 3" adicionada à conversa.',
+      'Etiqueta "Label 2" removida da conversa.',
+    ]);
   });
 
   it('uses labels from the selected conversation until the cache is hydrated', () => {

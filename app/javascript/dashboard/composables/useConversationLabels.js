@@ -1,5 +1,6 @@
 import { computed } from 'vue';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
+import { useAlert } from 'dashboard/composables';
 
 /**
  * Composable for managing conversation labels
@@ -8,6 +9,12 @@ import { useStore, useStoreGetters } from 'dashboard/composables/store';
 export function useConversationLabels() {
   const store = useStore();
   const getters = useStoreGetters();
+
+  const normalizeLabels = value => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.labels)) return value.labels;
+    return [];
+  };
 
   /**
    * The currently selected chat
@@ -37,13 +44,14 @@ export function useConversationLabels() {
     ](conversationId.value);
 
     if (hasStoredLabels) {
-      return store.getters['conversationLabels/getConversationLabels'](
-        conversationId.value
+      return normalizeLabels(
+        store.getters['conversationLabels/getConversationLabels'](
+          conversationId.value
+        )
       );
     }
 
-    const conversationLabels = currentChat.value?.labels;
-    return Array.isArray(conversationLabels) ? conversationLabels : [];
+    return normalizeLabels(currentChat.value?.labels);
   });
 
   /**
@@ -70,10 +78,29 @@ export function useConversationLabels() {
    * @returns {Promise<void>}
    */
   const onUpdateLabels = async selectedLabels => {
-    await store.dispatch('conversationLabels/update', {
+    const previousLabels = savedLabels.value;
+    const updated = await store.dispatch('conversationLabels/update', {
       conversationId: conversationId.value,
       labels: selectedLabels,
     });
+
+    if (!updated) return false;
+
+    const addedLabels = selectedLabels.filter(
+      label => !previousLabels.includes(label)
+    );
+    const removedLabels = previousLabels.filter(
+      label => !selectedLabels.includes(label)
+    );
+
+    addedLabels.forEach(label =>
+      useAlert(`Etiqueta "${label}" adicionada à conversa.`)
+    );
+    removedLabels.forEach(label =>
+      useAlert(`Etiqueta "${label}" removida da conversa.`)
+    );
+
+    return true;
   };
 
   /**
@@ -84,7 +111,7 @@ export function useConversationLabels() {
   const addLabelToConversation = value => {
     const result = activeLabels.value.map(item => item.title);
     result.push(value.title);
-    onUpdateLabels(result);
+    return onUpdateLabels(result);
   };
 
   /**
@@ -95,7 +122,7 @@ export function useConversationLabels() {
     const result = activeLabels.value
       .map(label => label.title)
       .filter(label => label !== value);
-    onUpdateLabels(result);
+    return onUpdateLabels(result);
   };
 
   return {
