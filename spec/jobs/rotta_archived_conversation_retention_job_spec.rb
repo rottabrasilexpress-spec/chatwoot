@@ -51,6 +51,28 @@ RSpec.describe RottaArchivedConversationRetentionJob, type: :job do
       additional_attributes: { 'rotta_archived_at' => (cutoff + 1.day).iso8601 },
       last_activity_at: cutoff + 1.day
     )
+    newly_archived_with_old_activity = create(
+      :conversation,
+      account: rotta_account,
+      status: :resolved,
+      label_list: ['arquivado'],
+      last_activity_at: cutoff - 1.day
+    )
+    newly_archived_with_old_activity.update_columns(
+      additional_attributes: { 'rotta_archived_at' => Time.current.iso8601 },
+      last_activity_at: cutoff - 1.day
+    )
+    old_numbered_archived = create(
+      :conversation,
+      account: rotta_account,
+      status: :resolved,
+      label_list: ['[1] arquivado'],
+      last_activity_at: cutoff + 1.day
+    )
+    old_numbered_archived.update_columns(
+      additional_attributes: { 'rotta_archived_at' => (cutoff - 1.day).iso8601 },
+      last_activity_at: cutoff + 1.day
+    )
     old_open = create(
       :conversation,
       account: rotta_account,
@@ -75,6 +97,8 @@ RSpec.describe RottaArchivedConversationRetentionJob, type: :job do
     expect { old_archived.reload }.to raise_error(ActiveRecord::RecordNotFound)
     expect { old_resolved.reload }.to raise_error(ActiveRecord::RecordNotFound)
     expect(recent_archived.reload).to be_present
+    expect(newly_archived_with_old_activity.reload).to be_present
+    expect { old_numbered_archived.reload }.to raise_error(ActiveRecord::RecordNotFound)
     expect(old_open.reload).to be_present
     expect(old_other_account.reload).to be_present
   end

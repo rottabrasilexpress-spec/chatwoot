@@ -31,20 +31,20 @@ class RottaArchivedConversationRetentionJob < ApplicationJob
 
     # Existing conversations without the Rotta timestamp (created before this
     # rule) are covered by their last interaction. Restrict this fallback to
-    # resolved Rotta conversations so this housekeeping job cannot remove
-    # another account's data or an active conversation.
-    stale_conversations = resolved_rotta_conversations.where('last_activity_at < ?', cutoff)
+    # resolved Rotta conversations that predate the timestamp rule, so a newly
+    # archived conversation cannot be deleted just because its old activity is
+    # outside the retention window.
+    stale_conversations = resolved_rotta_conversations.where(
+      "additional_attributes->>'rotta_archived_at' IS NULL"
+    ).where('last_activity_at < ?', cutoff)
 
     archived.or(stale_conversations).distinct
   end
 
   def archived_label_scope(scope)
     scope.where(
-      'cached_label_list = :label OR cached_label_list LIKE :prefix OR cached_label_list LIKE :suffix OR cached_label_list LIKE :middle',
-      label: 'arquivado',
-      prefix: 'arquivado,%',
-      suffix: '%,arquivado',
-      middle: '%,arquivado,%'
+      'cached_label_list ~* :pattern',
+      pattern: '(^|,)(\\[[0-9]+\\] |[0-9]+-)?arquivados?(,|$)'
     )
   end
 
