@@ -48,6 +48,7 @@ Correção 25, Completude 20, Verificação 20, Coerência integrada 15, Utilida
 | 1 | diagnóstico iniciado | `0e68ca8` | M1/M2 pendentes | — |
 | 2 | diagnóstico concluído | `9bb6617` | M1 live + M2 estático: cascade de navegação completa e reconciliação stale identificados | — |
 | 3 | correção integrada | `313ba77` | M3/M4/M5: SPA, fetch paralelo, fail-closed/dedupe, `active_labels`, bundle publicado | pendente AAA |
+| 4 | correção pós-revisão | pendente | M6 devolveu 88/100; regressões fortalecidas, contrato Ruby criado e Vitest focalizado passou 17/17 | pendente AAA |
 
 ## Evidência de diagnóstico e correção
 
@@ -80,3 +81,12 @@ Correção 25, Completude 20, Verificação 20, Coerência integrada 15, Utilida
 - M4 — concluída: correção mínima integrada nos arquivos Vue/helper/controller definidos.
 - M5 — concluída com ressalva documentada: build, lint, helper e validação live aprovados; Vitest/Ruby indisponíveis no ambiente.
 - M6 — pendente: revisão AAA independente do snapshot integrado.
+
+## M6 e rodada de correção
+
+- Revisão independente M6 do snapshot `313ba77`: `88/100`, sem falhas críticas; Correção `23/25`, Completude `17/20`, Verificação `16/20`, Coerência `14/15`, Utilidade `9/10`, Acabamento `9/10`. O gate não passou porque Completude e Verificação ficaram abaixo de `90`.
+- Correções aplicadas nesta rodada: `ConversationView.spec.js` agora valida ordem de montagem, dispatch do deep link quando ausente e não-dispatch quando a conversa já está disponível; `followUpHelpers.spec.js` confirma que etapas históricas diferentes permanecem visíveis; o helper documenta que a deduplicação é projeção do quadro e não altera o histórico de mensagens; criado `spec/controllers/api/v1/accounts/rotta_follow_up_controller_spec.rb` para o contrato de `active_labels`.
+- Vitest focalizado executado com configuração temporária que aponta o setup para o worktree correto: `2` arquivos, `17/17` testes aprovados. A configuração temporária foi removida e não faz parte do produto.
+- ESLint focalizado: `0` erros e `14` avisos preexistentes do template Vue; Prettier focalizado aprovado.
+- Ruby/RSpec continua pendente de execução: `ruby`, WSL com distribuição e daemon Docker indisponíveis. O spec foi criado, mas não é contabilizado como aprovado.
+- A deduplicação continua restrita a `reconciledJobs` do quadro operacional; o endpoint administrativo e o histórico de mensagens não são modificados. A regressão cobre a permanência de etapas distintas.

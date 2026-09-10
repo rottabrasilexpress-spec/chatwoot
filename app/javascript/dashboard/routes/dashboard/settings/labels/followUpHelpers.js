@@ -182,6 +182,9 @@ export const isStaleHistoricalJob = job => {
 };
 
 export const deduplicateFollowUpJobs = jobs => {
+  // This is intentionally a board-level projection: the admin response and
+  // conversation message history remain untouched. The operational board has
+  // one row per conversation and stage, while different stages stay visible.
   const seen = new Set();
 
   return (Array.isArray(jobs) ? jobs : []).filter((job, index) => {

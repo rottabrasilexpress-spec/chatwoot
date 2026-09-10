@@ -76,6 +76,25 @@ describe('follow-up helpers', () => {
     ).toHaveLength(2);
   });
 
+  it('keeps different historical events when they belong to different stages', () => {
+    const jobs = [
+      {
+        conversation_id: 42,
+        current_label: 'Primeiro contato',
+        status: 'sent_history',
+        active_labels: ['Primeiro contato'],
+      },
+      {
+        conversation_id: 42,
+        current_label: 'Segundo contato',
+        status: 'sent_history',
+        active_labels: ['Segundo contato'],
+      },
+    ];
+
+    expect(deduplicateFollowUpJobs(jobs)).toEqual(jobs);
+  });
+
   it('prefers delay metadata from the API and falls back to the published label schedule', () => {
     expect(delayHoursFor({ source_label: 'primeiro-contato' })).toEqual({
       hours: CONFIGURED_DELAY_HOURS['primeiro-contato'],
