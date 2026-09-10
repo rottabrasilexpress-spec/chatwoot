@@ -76,6 +76,26 @@ describe('labels sidebar counts', () => {
     });
   });
 
+  it('clears every count when the label catalog is empty', async () => {
+    const moduleState = {
+      records: [],
+      sidebarLabelCounts: {
+        budget: 1,
+        caioAttention: 1,
+        closedClients: 1,
+      },
+    };
+    const commit = vi.fn();
+
+    await actions.getSidebarCounts({ state: moduleState, commit });
+
+    expect(commit).toHaveBeenCalledWith(SIDEBAR_LABEL_COUNTS_MUTATION, {
+      budget: 0,
+      caioAttention: 0,
+      closedClients: 0,
+    });
+  });
+
   it('resolves labels case-insensitively and ignores accents and separators', () => {
     const records = [
       { id: 1, title: 'Kélvin' },

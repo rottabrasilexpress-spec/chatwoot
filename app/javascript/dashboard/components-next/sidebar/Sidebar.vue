@@ -240,7 +240,7 @@ const closedClientsLabelTitle = computed(() =>
 );
 
 const refreshSidebarLabelCounts = () => {
-  if (!accountId.value || !allLabels.value.length) return;
+  if (!accountId.value) return;
   store.dispatch('labels/getSidebarCounts');
 };
 
