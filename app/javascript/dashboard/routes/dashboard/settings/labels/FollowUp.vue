@@ -1,6 +1,7 @@
 <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import rottaFollowUpAPI from 'dashboard/api/rottaFollowUp';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
@@ -26,10 +27,12 @@ import {
   isArchivedStage,
   isHistoricalJob,
   isStaleHistoricalJob,
+  deduplicateFollowUpJobs,
   orderedFollowUpStages,
 } from './followUpHelpers';
 
 const TIMEZONE = 'America/Sao_Paulo';
+const router = useRouter();
 
 const labelMeta = {
   'primeiro-contato': { title: 'Primeiro contato', color: '#16a34a' },
@@ -78,6 +81,7 @@ let fastRefreshTimers = [];
 let refreshRequested = false;
 let isMounted = false;
 let loadQueue;
+let openingConversationKey = '';
 
 const REALTIME_REFRESH_DEBOUNCE_MS = 400;
 const REALTIME_SETTLE_REFRESH_MS = 1200;
@@ -260,7 +264,7 @@ const timezoneTitle = computed(() =>
 const dispatchWindow = job => dispatchWindowFor(job, responseMeta.value);
 
 const reconciledJobs = computed(() =>
-  jobs.value.filter(job => !isStaleHistoricalJob(job))
+  deduplicateFollowUpJobs(jobs.value.filter(job => !isStaleHistoricalJob(job)))
 );
 
 const queueJobs = computed(() => {
@@ -720,7 +724,21 @@ const openConversation = job => {
   const accountId = job.account_id;
   const conversationId = job.conversation_id;
   if (!accountId || !conversationId) return;
-  window.location.href = `/app/accounts/${accountId}/conversations/${conversationId}`;
+
+  const conversationKey = `${accountId}:${conversationId}`;
+  if (openingConversationKey === conversationKey) return;
+  openingConversationKey = conversationKey;
+
+  router
+    .push({
+      name: 'inbox_conversation',
+      params: { accountId, conversation_id: conversationId },
+    })
+    .finally(() => {
+      if (openingConversationKey === conversationKey) {
+        openingConversationKey = '';
+      }
+    });
 };
 
 onMounted(async () => {

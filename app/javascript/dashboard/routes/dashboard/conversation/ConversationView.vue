@@ -131,6 +131,10 @@ export default {
   mounted() {
     this.$store.dispatch('agents/get');
     this.$store.dispatch('portals/index');
+    // Deep links from Follow-up can mount before ChatList finishes its first
+    // page. Fetch the requested conversation in parallel instead of waiting
+    // for ChatList's conversationLoad event.
+    this.fetchConversationIfUnavailable();
     this.initialize();
     this.$watch('$store.state.route', () => this.initialize());
     this.$watch('chatList.length', () => {

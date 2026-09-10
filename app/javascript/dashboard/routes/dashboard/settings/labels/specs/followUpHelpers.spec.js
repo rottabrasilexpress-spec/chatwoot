@@ -5,6 +5,7 @@ import {
   effectiveDispatchAt,
   isHistoricalJob,
   isStaleHistoricalJob,
+  deduplicateFollowUpJobs,
   isWithinDispatchWindow,
   kanbanBucketFor,
   delayHoursFor,
@@ -58,7 +59,21 @@ describe('follow-up helpers', () => {
         status: 'sent_history',
         current_label: 'primeiro-contato',
       })
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it('counts the same conversation and stage only once', () => {
+    expect(
+      deduplicateFollowUpJobs([
+        { job_id: 'one', conversation_id: 42, current_label: 'kelvin' },
+        { job_id: 'two', conversation_id: 42, current_label: 'kelvin' },
+        {
+          job_id: 'three',
+          conversation_id: 42,
+          current_label: 'primeiro-contato',
+        },
+      ])
+    ).toHaveLength(2);
   });
 
   it('prefers delay metadata from the API and falls back to the published label schedule', () => {

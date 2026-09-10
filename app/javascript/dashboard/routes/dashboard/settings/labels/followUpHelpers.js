@@ -165,10 +165,12 @@ export const currentStageFor = job =>
 
 // The admin endpoint keeps dispatch history for auditability and also returns
 // the labels currently present on the Chatwoot conversation. A historical row
-// is stale when its old stage is no longer one of those active labels. Keep
-// rows without active_labels for backwards compatibility with older payloads.
+// is stale when its old stage is no longer one of those active labels. Missing
+// active_labels is treated as stale: without that confirmation the UI cannot
+// safely count the row as a current follow-up.
 export const isStaleHistoricalJob = job => {
-  if (!isHistoricalJob(job) || !Array.isArray(job?.active_labels)) return false;
+  if (!isHistoricalJob(job)) return false;
+  if (!Array.isArray(job?.active_labels)) return true;
 
   const currentStage = canonicalFollowUpStage(currentStageFor(job));
   return (
@@ -177,6 +179,23 @@ export const isStaleHistoricalJob = job => {
       label => canonicalFollowUpStage(label) === currentStage
     )
   );
+};
+
+export const deduplicateFollowUpJobs = jobs => {
+  const seen = new Set();
+
+  return (Array.isArray(jobs) ? jobs : []).filter((job, index) => {
+    const conversationId = job?.conversation_id;
+    const stage = canonicalFollowUpStage(currentStageFor(job));
+    const key =
+      conversationId && stage
+        ? `${conversationId}:${stage}`
+        : `unkeyed:${job?.job_id || job?.id || index}`;
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 const firstPresent = values =>

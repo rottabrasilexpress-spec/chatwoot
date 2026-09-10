@@ -104,7 +104,9 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     body['jobs'] = jobs.map do |job|
       conversation = conversations[job['conversation_id'].to_s]
       evidence = find_delivery_evidence(conversation, job) if conversation
-      evidence ? job.merge('delivery_evidence' => evidence) : job
+      active_labels = conversation ? conversation.label_list : []
+      enriched_job = job.merge('active_labels' => active_labels)
+      evidence ? enriched_job.merge('delivery_evidence' => evidence) : enriched_job
     end
     body
   end
