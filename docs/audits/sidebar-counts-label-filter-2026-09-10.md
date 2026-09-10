@@ -2,7 +2,7 @@
 
 Data: 2026-09-10  
 Branch: `rotta-custom-v1`  
-Commits de implementação: `b03b787`, `80db589`
+Commits de implementação: `b03b787`, `80db589`, `93bb13a`, `37bcc47`
 
 ## Escopo
 
@@ -38,4 +38,16 @@ O seletor de etiquetas foi adicionado a `ChatListHeader.vue`. A lista vem de `la
 
 - O catálogo do filtro continuou carregando as etiquetas disponíveis após o deploy final.
 - A seleção de `orcamento-feito` confirmou a navegação pelo seletor e o filtro de etiqueta existente, sem alteração de dados.
-- O vídeo/áudio correto do bug visual continua pendente: o único MP4 encontrado foi identificado como clipe não relacionado, sem Chatwoot e sem fala. A análise dessa parte exige o reenvio do arquivo correto ou seu caminho local.
+- Na data do C15, o vídeo correto ainda estava pendente; essa pendência foi encerrada no C16 com a análise do arquivo correto e a correção visual correspondente.
+
+## Revalidação C16 — apresentação visual do filtro por etiquetas — 10/09/2026
+
+- O vídeo correto foi analisado em `C:\Users\User\AppData\Local\Packages\Microsoft.ScreenSketch_8wekyb3d8bbwe\TempState\Recordings\20260910-1638-49.5863089.mp4`: duração `79,3 s`, inspeção visual em intervalos de 5 s e transcrição integral do áudio em português. A filtragem funcionava, mas o seletor superior exibia slugs (`segundo-contato`, `kelvin`) enquanto o painel da conversa exibia nomes amigáveis e cores.
+- Causa confirmada: `ChatList.vue` montava as opções com o título técnico e descartava a cor; `FilterSelect.vue` não renderizava cor; `RottaLabelsShortcut.vue` mantinha uma apresentação local separada.
+- Correção: `rottaLabelPresentation.js` centraliza nome/cor; o filtro e o painel usam a mesma apresentação; `FilterSelect` exibe ponto colorido no gatilho e em cada opção. O `value` técnico continua sendo o slug para preservar as rotas `/label/:label` e o contrato do backend.
+- Regressão: o teste focalizado foi primeiro executado em estado RED pela ausência do helper e depois passou GREEN (`1/1`) com `segundo-contato` → `Segundo contato` e `kelvin` → `Kelvin`, mantendo os valores técnicos.
+- Build/lint: Vite transformou `5.078` módulos; lint semântico dos seis arquivos alterados ficou com `0` erros e somente os dois avisos dinâmicos i18n já conhecidos. O lint completo continua limitado pelos erros de CRLF globais do checkout Windows.
+- Publicação: `93bb13a fix(rotta): match label filter presentation` foi seguido por `37bcc47 build(rotta): include generated vite assets`, que adicionou somente os 14 artefatos Vite referenciados pelo manifesto e ignorados pelo padrão `public/vite*`. Ambos foram enviados para `origin/rotta-custom-v1`.
+- Deploy: o primeiro deploy revelou `404` dos novos assets após um reload limpo; a correção de empacotamento foi publicada e o segundo deploy concluiu com sucesso. O serviço passou por uma breve janela de inicialização e voltou saudável.
+- Chatwoot real: após reload limpo, o menu exibiu `Segundo contato`, `Kelvin`, `Orçamento 10 dias` e demais nomes amigáveis, sem slugs visíveis; o DOM confirmou pontos coloridos nas opções. `Segundo contato` abriu `/app/accounts/1/label/segundo-contato` com ponto laranja no gatilho; `Kelvin` abriu `/app/accounts/1/label/kelvin` com ponto roxo; a visão foi restaurada para `/app/accounts/1/dashboard`.
+- Segurança: nenhum WhatsApp Web foi utilizado, nenhuma mensagem foi enviada e nenhuma etiqueta, conversa, contato, fluxo n8n ou integração UAZAPI foi alterada durante a validação.
