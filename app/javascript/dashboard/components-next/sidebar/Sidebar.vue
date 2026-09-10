@@ -27,6 +27,7 @@ import {
   SIDEBAR_LABEL_DEFINITIONS,
   findSidebarLabel,
 } from '../../store/modules/labels';
+import { buildConversationPrefetchViews } from './rottaPrefetch';
 
 const props = defineProps({
   isMobileSidebarOpen: {
@@ -89,8 +90,8 @@ const hasDataImport = computed(() => {
   );
 });
 
-const fetchConversationUnreadCounts = ([currentAccountId]) => {
-  if (!currentAccountId) return;
+const fetchConversationUnreadCounts = ([currentAccountId, isEnabled]) => {
+  if (!currentAccountId || !isEnabled) return;
 
   store.dispatch('conversationUnreadCounts/get');
 };
@@ -246,7 +247,10 @@ const refreshSidebarLabelCounts = () => {
 
 useEmitter('fetch_conversation_stats', refreshSidebarLabelCounts);
 useEmitter('fetch_conversation_stats', () => {
-  fetchConversationUnreadCounts([accountId.value]);
+  fetchConversationUnreadCounts([
+    accountId.value,
+    hasConversationUnreadCounts.value,
+  ]);
 });
 useEmitter(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, refreshSidebarLabelCounts);
 useEmitter(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED, refreshSidebarLabelCounts);
@@ -298,29 +302,19 @@ const prefetchConversationViews = () => {
     page: 1,
   };
 
-  const views = [
+  const sidebarLabelTitles = SIDEBAR_LABEL_DEFINITIONS.map(
+    definition => findSidebarLabel(allLabels.value, definition)?.title
+  )
+    .filter(Boolean)
+    .filter((title, index, titles) => titles.indexOf(title) === index);
+
+  const views = buildConversationPrefetchViews({
     common,
-    {
-      ...common,
-      conversationType: wootConstants.CONVERSATION_TYPE.UNREAD,
-    },
-    { ...common, conversationType: wootConstants.CONVERSATION_TYPE.PRIORITY },
-    {
-      ...common,
-      status: wootConstants.STATUS_TYPE.ALL,
-      conversationType: wootConstants.CONVERSATION_TYPE.ARCHIVED,
-      labels: ['arquivado'],
-    },
-    ...[
-      ...labels.value.map(label => label.title),
-      ...SIDEBAR_LABEL_DEFINITIONS.map(
-        definition => findSidebarLabel(allLabels.value, definition)?.title
-      ),
-    ]
-      .filter(Boolean)
-      .filter((title, index, titles) => titles.indexOf(title) === index)
-      .map(title => ({ ...common, labels: [title] })),
-  ];
+    unreadConversationType: wootConstants.CONVERSATION_TYPE.UNREAD,
+    priorityConversationType: wootConstants.CONVERSATION_TYPE.PRIORITY,
+    archivedConversationType: wootConstants.CONVERSATION_TYPE.ARCHIVED,
+    sidebarLabelTitles,
+  });
 
   store.dispatch('prefetchConversationViews', views);
 };
