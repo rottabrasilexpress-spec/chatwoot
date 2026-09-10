@@ -1830,6 +1830,7 @@ onUnmounted(() => {
 }
 
 .rotta-board-card__compact-meta {
+  min-width: 0;
   @apply text-n-slate-11;
   font-size: 0.67rem;
 }
@@ -1850,7 +1851,12 @@ onUnmounted(() => {
 }
 
 .rotta-board-card__compact-status {
-  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 48%;
+  overflow: hidden;
+  flex: 0 1 auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rotta-board-card__schedule {
