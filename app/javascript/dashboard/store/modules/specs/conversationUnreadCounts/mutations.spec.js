@@ -2,6 +2,16 @@ import types from '../../../mutation-types';
 import { mutations } from '../../conversationUnreadCounts';
 
 describe('#mutations', () => {
+  describe('#SET_ALL_CONVERSATION_UNREAD_COUNT', () => {
+    it('normalizes the fallback aggregate count', () => {
+      const state = { allCount: 0 };
+
+      mutations[types.SET_ALL_CONVERSATION_UNREAD_COUNT](state, '352');
+
+      expect(state.allCount).toBe(352);
+    });
+  });
+
   describe('#SET_CONVERSATION_UNREAD_COUNTS', () => {
     it('normalizes unread count payload', () => {
       const state = {

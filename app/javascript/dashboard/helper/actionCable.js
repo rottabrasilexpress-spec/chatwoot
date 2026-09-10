@@ -119,6 +119,7 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onConversationRead = data => {
     this.app.$store.dispatch('updateConversation', data);
+    this.fetchConversationStats();
   };
 
   // eslint-disable-next-line class-methods-use-this
@@ -135,6 +136,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       lastActivityAt,
       conversationId,
     });
+    this.fetchConversationStats();
   };
 
   // eslint-disable-next-line class-methods-use-this

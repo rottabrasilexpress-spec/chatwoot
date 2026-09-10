@@ -1,4 +1,5 @@
 import ConversationAPI from '../../api/conversations';
+import ConversationMetaAPI from '../../api/inbox/conversation';
 import types from '../mutation-types';
 
 export const state = {
@@ -77,7 +78,21 @@ export const actions = {
       const response = await ConversationAPI.getUnreadCounts();
       commit(types.SET_CONVERSATION_UNREAD_COUNTS, response.data.payload);
     } catch (error) {
-      // Ignore errors so the sidebar can continue rendering without badges.
+      if (error?.response?.status !== 403) return;
+
+      try {
+        const response = await ConversationMetaAPI.meta({
+          assigneeType: 'all',
+          status: 'all',
+          conversationType: 'unread',
+        });
+        commit(
+          types.SET_ALL_CONVERSATION_UNREAD_COUNT,
+          response.data?.meta?.all_count
+        );
+      } catch (_fallbackError) {
+        // Ignore fallback errors so the sidebar can continue rendering.
+      }
     }
   },
   clear({ commit }) {
@@ -86,6 +101,10 @@ export const actions = {
 };
 
 export const mutations = {
+  [types.SET_ALL_CONVERSATION_UNREAD_COUNT]($state, count) {
+    $state.allCount = normalizeCount(count);
+  },
+
   [types.SET_CONVERSATION_UNREAD_COUNTS]($state, payload = {}) {
     $state.allCount = normalizeCount(payload.all_count);
     $state.archivedCount = normalizeCount(payload.archived_count);

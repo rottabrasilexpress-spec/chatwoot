@@ -44,6 +44,33 @@ describe('#actions', () => {
 
       expect(commit).not.toHaveBeenCalled();
     });
+
+    it('falls back to the unread conversation meta count when the feature is unavailable', async () => {
+      axios.get
+        .mockRejectedValueOnce({ response: { status: 403 } })
+        .mockResolvedValueOnce({ data: { meta: { all_count: 352 } } });
+
+      await actions.get({ commit });
+
+      expect(axios.get).toHaveBeenNthCalledWith(
+        2,
+        '/api/v1/conversations/meta',
+        {
+          params: {
+            inbox_id: undefined,
+            status: 'all',
+            assignee_type: 'all',
+            labels: undefined,
+            team_id: undefined,
+            conversation_type: 'unread',
+          },
+        }
+      );
+      expect(commit).toHaveBeenCalledWith(
+        types.SET_ALL_CONVERSATION_UNREAD_COUNT,
+        352
+      );
+    });
   });
 
   describe('#clear', () => {

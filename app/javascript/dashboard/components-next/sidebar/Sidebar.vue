@@ -89,13 +89,8 @@ const hasDataImport = computed(() => {
   );
 });
 
-const fetchConversationUnreadCounts = ([currentAccountId, isEnabled]) => {
+const fetchConversationUnreadCounts = ([currentAccountId]) => {
   if (!currentAccountId) return;
-
-  if (!isEnabled) {
-    store.dispatch('conversationUnreadCounts/clear');
-    return;
-  }
 
   store.dispatch('conversationUnreadCounts/get');
 };
@@ -250,6 +245,9 @@ const refreshSidebarLabelCounts = () => {
 };
 
 useEmitter('fetch_conversation_stats', refreshSidebarLabelCounts);
+useEmitter('fetch_conversation_stats', () => {
+  fetchConversationUnreadCounts([accountId.value]);
+});
 useEmitter(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, refreshSidebarLabelCounts);
 useEmitter(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED, refreshSidebarLabelCounts);
 
