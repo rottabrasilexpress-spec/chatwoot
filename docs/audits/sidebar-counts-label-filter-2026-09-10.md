@@ -2,7 +2,7 @@
 
 Data: 2026-09-10  
 Branch: `rotta-custom-v1`  
-Commits de implementação: `b03b787`, `80db589`, `93bb13a`, `37bcc47`
+Commits de implementação: `b03b787`, `80db589`, `93bb13a`, `37bcc47`, `054c96a`, `bae01b8`
 
 ## Escopo
 
@@ -51,3 +51,15 @@ O seletor de etiquetas foi adicionado a `ChatListHeader.vue`. A lista vem de `la
 - Deploy: o primeiro deploy revelou `404` dos novos assets após um reload limpo; a correção de empacotamento foi publicada e o segundo deploy concluiu com sucesso. O serviço passou por uma breve janela de inicialização e voltou saudável.
 - Chatwoot real: após reload limpo, o menu exibiu `Segundo contato`, `Kelvin`, `Orçamento 10 dias` e demais nomes amigáveis, sem slugs visíveis; o DOM confirmou pontos coloridos nas opções. `Segundo contato` abriu `/app/accounts/1/label/segundo-contato` com ponto laranja no gatilho; `Kelvin` abriu `/app/accounts/1/label/kelvin` com ponto roxo; a visão foi restaurada para `/app/accounts/1/dashboard`.
 - Segurança: nenhum WhatsApp Web foi utilizado, nenhuma mensagem foi enviada e nenhuma etiqueta, conversa, contato, fluxo n8n ou integração UAZAPI foi alterada durante a validação.
+
+## Revalidação C17 — desempenho do carregamento inicial e publicação final — 10/09/2026
+
+- Diagnóstico de rede antes da otimização: `22` requisições de conversas no primeiro carregamento; `18` prefetches de etiquetas não reaproveitáveis porque omitiam `per_page=50`, além de chamadas auxiliares duplicadas. O endpoint de contagem de não lidas retornava `403` porque o recurso não está habilitado nesta conta.
+- Correção: `Sidebar.vue` passou a ignorar a consulta de não lidas quando o recurso está desabilitado e a pré-carga usa `rottaPrefetch.js` para deduplicar somente as visões auxiliares visíveis, todas com `per_page=50`.
+- Incidente de empacotamento encontrado no primeiro deploy: o manifesto referenciava `dashboard-C5hjGupC.css`, mas o asset ignorado não estava no commit. O `404` removia as regras Flex/Tailwind e fazia o sentinel de paginação carregar páginas continuamente. O asset foi publicado isoladamente em `bae01b8` e o redeploy ficou saudável.
+- Após o redeploy: CSS respondeu `200`; o primeiro carregamento fez `7` requisições de conversas (`1` principal + `6` auxiliares), todas com `per_page=50`, sem novas páginas após 5 segundos. Uma rolagem real até o fim acionou somente a página `2`, confirmando a paginação sob demanda.
+- O filtro real exibiu nomes amigáveis e pontos nas cores corretas; `Segundo contato` abriu `/app/accounts/1/label/segundo-contato` com o nome e o ponto laranja no gatilho.
+- Follow-up permaneceu íntegro após a publicação: `Na fila 0`, `5 histórico(s) no painel`, Primeiro contato `3`, Segundo contato `0`, Terceiro contato `2`, Quarto contato `0`; o telefone de teste da Barbeta não apareceu e a conversa terminou com `0` etiquetas selecionadas.
+- Validação de código: ESLint focalizado sem erros; build Vite com `5.079` módulos; teste isolado de `rottaPrefetch.spec.js` passou `1/1`. A suíte Vitest padrão continua bloqueada pela instalação compartilhada (pnpm 11 contra a exigência do repositório e resolução ausente de `fake-indexeddb`).
+- Console do Chatwoot ficou sem erros/avisos. O único `404` restante foi o probe Enterprise opcional `/enterprise/api/v1/accounts/1/limits`, sem impacto no fluxo comunitário.
+- Segurança: nenhum WhatsApp Web foi utilizado, nenhuma mensagem foi enviada e nenhuma integração n8n/UAZAPI foi executada; somente etiquetas temporárias da conversa Barbeta foram adicionadas/removidas e o estado final foi conferido como limpo.

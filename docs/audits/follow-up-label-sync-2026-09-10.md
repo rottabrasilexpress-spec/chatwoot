@@ -48,3 +48,12 @@ Tiago continuar em `Primeiro contato` e Liliane em `Terceiro contato` correspond
 - ESLint direcionado: sem erros de regra; permaneceu apenas um warning preexistente de chave dinâmica i18n.
 - Ruby local não está instalado neste ambiente.
 - Vitest foi impedido pela instalação compartilhada de dependências apontando para um caminho ausente de `fake-indexeddb`; o código e os testes foram mantidos no repositório para execução no pipeline/deploy.
+
+## Revalidação C17 — regressão live após otimização do sidebar — 10/09/2026
+
+- A conversa de teste `1764`/Barbeta foi exercitada com Kelvin, Segundo contato e Terceiro contato. Adicionar/remover Segundo contato refletiu no Follow-up sem duplicação; Terceiro contato apareceu uma vez e foi removido; Kelvin alterou o contador ORÇAMENTOS, mas não criou etapa indevida no Follow-up.
+- Estado final observado no painel: `Na fila 0`, `5 histórico(s) no painel`, Primeiro contato `3`, Segundo contato `0`, Terceiro contato `2`, Quarto contato `0`. Tiago/Kelvin/Liliane permaneceram nos históricos existentes; nenhum histórico funcional foi reclassificado.
+- A conversa Barbeta terminou sem etiquetas (`0 selecionada(s)`) e o telefone `5521995232583` não aparece no Follow-up.
+- O carregamento inicial agora pede a primeira página com `per_page=50`; após a correção do asset CSS, somente a página 2 foi requisitada quando houve rolagem real até o fim. Sem rolagem, não houve páginas adicionais após a estabilização.
+- A otimização de `Sidebar.vue`/`rottaPrefetch.js` reduziu o primeiro carregamento de `22` requisições de conversas para `7` úteis (`1` principal + `6` auxiliares), eliminando prefetches sem `per_page=50` e a chamada de unread-count desabilitada.
+- Código e asset publicados em `054c96a` e `bae01b8`; o deploy final no Easypanel voltou saudável. Nenhum WhatsApp Web foi usado e nenhuma mensagem foi enviada.
