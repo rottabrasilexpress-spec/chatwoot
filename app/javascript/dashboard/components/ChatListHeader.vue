@@ -5,6 +5,7 @@ import { formatNumber } from '@chatwoot/utils';
 import ConversationBasicFilter from './widgets/conversation/ConversationBasicFilter.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
+import FilterSelect from 'dashboard/components-next/filter/inputs/FilterSelect.vue';
 import { useAccount } from 'dashboard/composables/useAccount';
 
 const props = defineProps({
@@ -16,6 +17,9 @@ const props = defineProps({
   conversationStats: { type: Object, required: true },
   isListLoading: { type: Boolean, required: true },
   searchQuery: { type: String, default: '' },
+  labelFilterOptions: { type: Array, default: () => [] },
+  activeLabelFilter: { type: String, default: '' },
+  showLabelFilter: { type: Boolean, default: false },
   showRottaShortcuts: { type: Boolean, default: false },
   isMarkingAllAsRead: { type: Boolean, default: false },
 });
@@ -26,6 +30,7 @@ const emit = defineEmits([
   'resetFilters',
   'basicFilterChange',
   'filtersModal',
+  'labelFilterChange',
   'updateSearchQuery',
   'markAllAsRead',
 ]);
@@ -160,7 +165,13 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
             @click="emit('deleteFolders')"
           />
         </template>
-        <div v-else class="relative">
+        <FilterSelect
+          v-if="showLabelFilter"
+          :model-value="activeLabelFilter"
+          :options="labelFilterOptions"
+          @update:model-value="emit('labelFilterChange', $event)"
+        />
+        <div v-if="!hasActiveFolders" class="relative">
           <NextButton
             id="toggleConversationFilterButton"
             v-tooltip.right="$t('FILTER.TOOLTIP_LABEL')"

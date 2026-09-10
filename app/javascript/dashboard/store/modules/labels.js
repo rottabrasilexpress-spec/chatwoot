@@ -127,24 +127,17 @@ export const actions = {
   }) {
     sidebarCountsRequestId += 1;
     const requestId = sidebarCountsRequestId;
-    const labelsToCount = SIDEBAR_LABEL_DEFINITIONS.map(definition => ({
-      definition,
-      label: findSidebarLabel(moduleState.records, definition),
-    })).filter(({ label }) => label);
-
-    if (!labelsToCount.length) return;
-
     if (requestId !== sidebarCountsRequestId) return;
 
     const counts = Object.fromEntries(
-      labelsToCount.map(({ definition, label }) => [
+      SIDEBAR_LABEL_DEFINITIONS.map(definition => [
         definition.key,
-        normalizeCount(label.contacts_count),
+        normalizeCount(
+          findSidebarLabel(moduleState.records, definition)?.contacts_count
+        ),
       ])
     );
-    if (Object.keys(counts).length) {
-      commit(SIDEBAR_LABEL_COUNTS_MUTATION, counts);
-    }
+    commit(SIDEBAR_LABEL_COUNTS_MUTATION, counts);
   },
 
   create: async function createLabels({ commit }, cannedObj) {
@@ -201,10 +194,7 @@ export const mutations = {
   [types.EDIT_LABEL]: MutationHelpers.update,
   [types.DELETE_LABEL]: MutationHelpers.destroy,
   [SIDEBAR_LABEL_COUNTS_MUTATION](_state, counts) {
-    _state.sidebarLabelCounts = {
-      ..._state.sidebarLabelCounts,
-      ...counts,
-    };
+    _state.sidebarLabelCounts = counts;
   },
 };
 

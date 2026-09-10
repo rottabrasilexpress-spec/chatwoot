@@ -50,8 +50,30 @@ describe('labels sidebar counts', () => {
 
     expect(commit).toHaveBeenCalledWith(SIDEBAR_LABEL_COUNTS_MUTATION, {
       budget: 3,
+      caioAttention: 0,
+      closedClients: 0,
     });
     expect(getters.getSidebarLabelCount(moduleState)('budget')).toBe(0);
+  });
+
+  it('clears stale counts when a label disappears between refreshes', async () => {
+    const moduleState = {
+      records: [{ id: 1, title: 'Kelvin', contacts_count: 0 }],
+      sidebarLabelCounts: {
+        budget: 1,
+        caioAttention: 1,
+        closedClients: 1,
+      },
+    };
+    const commit = vi.fn();
+
+    await actions.getSidebarCounts({ state: moduleState, commit });
+
+    expect(commit).toHaveBeenCalledWith(SIDEBAR_LABEL_COUNTS_MUTATION, {
+      budget: 0,
+      caioAttention: 0,
+      closedClients: 0,
+    });
   });
 
   it('resolves labels case-insensitively and ignores accents and separators', () => {

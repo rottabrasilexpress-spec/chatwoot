@@ -459,6 +459,27 @@ const showRottaConversationShortcuts = computed(() => {
   );
 });
 
+const labelFilterOptions = computed(() => [
+  {
+    value: '',
+    label: 'Filtrar por etiqueta',
+    icon: 'i-lucide-tags',
+  },
+  ...labels.value
+    .filter(label => label.title)
+    .map(label => ({ value: label.title, label: label.title })),
+]);
+
+const showLabelFilter = computed(() => {
+  return (
+    !hasAppliedFiltersOrActiveFolders.value &&
+    !props.conversationInbox &&
+    !props.teamId &&
+    !props.foldersId &&
+    !props.conversationType
+  );
+});
+
 const showEndOfListMessage = computed(() => {
   return !!(
     conversationList.value.length &&
@@ -719,6 +740,20 @@ function onBasicFilterChange(value, type) {
     activeSortBy.value = value;
   }
   resetAndFetchData();
+}
+
+function onLabelFilterChange(labelTitle) {
+  const accountId = route.params.accountId;
+
+  if (!labelTitle) {
+    router.push({ name: 'home', params: { accountId } });
+    return;
+  }
+
+  router.push({
+    name: 'label_conversations',
+    params: { accountId, label: labelTitle },
+  });
 }
 
 function openLastSavedItemInFolder() {
@@ -1141,6 +1176,9 @@ watch(conversationSearchQuery, searchQuery => {
       :conversation-stats="conversationStats"
       :is-list-loading="chatListLoading && !conversationList.length"
       :search-query="conversationSearchQuery"
+      :label-filter-options="labelFilterOptions"
+      :active-label-filter="activeLabelTitle"
+      :show-label-filter="showLabelFilter"
       :show-rotta-shortcuts="showRottaConversationShortcuts"
       :is-marking-all-as-read="isMarkingAllAsRead"
       @add-folders="onClickOpenAddFoldersModal"
@@ -1148,6 +1186,7 @@ watch(conversationSearchQuery, searchQuery => {
       @filters-modal="onToggleAdvanceFiltersModal"
       @reset-filters="resetAndFetchData"
       @basic-filter-change="onBasicFilterChange"
+      @label-filter-change="onLabelFilterChange"
       @update-search-query="conversationSearchQuery = $event"
       @mark-all-as-read="markAllVisibleAsRead"
     />
