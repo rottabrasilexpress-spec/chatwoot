@@ -105,11 +105,21 @@ const toggleDropdown = toggle => {
           sm
           slate
           :variant
-          :icon="iconToRender"
-          :trailing-icon="selectedOption.icon ? false : true"
+          :icon="selectedOption.color ? '' : iconToRender"
+          :trailing-icon="
+            selectedOption.color ? true : selectedOption.icon ? false : true
+          "
           :label="label || (hideLabel ? null : selectedOption.label)"
           @click="toggleDropdown(toggle)"
-        />
+        >
+          <template v-if="selectedOption.color" #icon>
+            <span
+              class="filter-select-color-dot flex-shrink-0 rounded-full size-2"
+              :style="{ backgroundColor: selectedOption.color }"
+              aria-hidden="true"
+            />
+          </template>
+        </Button>
       </slot>
     </template>
     <DropdownBody
@@ -138,9 +148,17 @@ const toggleDropdown = toggle => {
           <DropdownItem
             v-else
             :label="option.label"
-            :icon="option.icon"
+            :icon="option.color ? '' : option.icon"
             @click="updateSelected(option.value)"
-          />
+          >
+            <template v-if="option.color" #icon>
+              <span
+                class="filter-select-option-color-dot flex-shrink-0 rounded-full size-1.5"
+                :style="{ backgroundColor: option.color }"
+                aria-hidden="true"
+              />
+            </template>
+          </DropdownItem>
         </template>
         <DropdownItem v-if="!searchResults.length" disabled>
           {{

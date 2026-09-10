@@ -7,42 +7,12 @@ import { useConversationLabels } from 'dashboard/composables/useConversationLabe
 import { useStore } from 'dashboard/composables/store';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import {
+  getLabelPresentationColor,
+  getLabelPresentationTitle,
+} from 'dashboard/helper/rottaLabelPresentation';
 
 const LABEL_ORDER_STORAGE_KEY = 'rotta-label-order';
-
-const LABEL_META = {
-  'primeiro-contato': { title: 'Primeiro contato', color: '#16a34a' },
-  'segundo-contato': { title: 'Segundo contato', color: '#f59e0b' },
-  'terceiro-contato': { title: 'Terceiro contato', color: '#3b82f6' },
-  'ultimo-contato': { title: 'Último contato ❌', color: '#dc2626' },
-  'orcamento-feito': { title: 'Orçamento feito ✅', color: '#16a34a' },
-  'orcamento-tentativa-2': {
-    title: 'Orçamento tentativa 2',
-    color: '#f59e0b',
-  },
-  'orcamento-tentativa-3': {
-    title: 'Orçamento tentativa 3',
-    color: '#3b82f6',
-  },
-  'orcamento-tentativa-4': {
-    title: 'Orçamento tentativa 4 ❌',
-    color: '#dc2626',
-  },
-  'orcamento-5-dias': { title: 'Orçamento 5 dias', color: '#06b6d4' },
-  'orcamento-10-dias': { title: 'Orçamento 10 dias', color: '#4f46e5' },
-  'orcamento-15-dias': { title: 'Orçamento 15 dias', color: '#7c3aed' },
-  'contato-instantaneo': {
-    title: 'Contato instantâneo 🫶',
-    color: '#e11d48',
-  },
-  'orcamento-instantaneo': {
-    title: 'Orçamento instantâneo 💰',
-    color: '#f97316',
-  },
-  'clientes-fechados': { title: 'Clientes fechados 🤝', color: '#059669' },
-  'kelvin-caio': { title: 'KELVIN / CAIO', color: '#c026d3' },
-  arquivado: { title: 'Arquivado', color: '#991b1b' },
-};
 
 const DEFAULT_LABEL_ORDER = [
   'primeiro-contato',
@@ -105,17 +75,6 @@ const defaultLabelRank = title => {
   return rank >= 0 ? rank : DEFAULT_LABEL_ORDER.length + 1;
 };
 
-const labelTitle = label => {
-  const title = typeof label === 'string' ? label : label?.title;
-  const fallback = String(title || 'outra etiqueta')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, character => character.toUpperCase());
-  return LABEL_META[title]?.title || fallback;
-};
-
-const labelColor = label =>
-  label?.color || LABEL_META[label?.title]?.color || '#64748b';
-
 const labelCount = label => Number(label?.contacts_count || 0);
 
 const orderedLabels = computed(() => {
@@ -132,7 +91,10 @@ const orderedLabels = computed(() => {
       : defaultLabelRank(second.title);
 
     if (firstRank !== secondRank) return firstRank - secondRank;
-    return labelTitle(first).localeCompare(labelTitle(second), 'pt-BR');
+    return getLabelPresentationTitle(first).localeCompare(
+      getLabelPresentationTitle(second),
+      'pt-BR'
+    );
   });
 });
 
@@ -141,7 +103,7 @@ const filteredLabels = computed(() => {
   if (!query) return orderedLabels.value;
 
   return orderedLabels.value.filter(label =>
-    `${label.title} ${labelTitle(label)}`
+    `${label.title} ${getLabelPresentationTitle(label)}`
       .toLocaleLowerCase('pt-BR')
       .includes(query)
   );
@@ -222,11 +184,11 @@ onMounted(loadLabelOrder);
         :key="label.title"
         class="rotta-label-visible"
         :style="{
-          '--label-color': labelColor(label),
+          '--label-color': getLabelPresentationColor(label),
         }"
-        :title="labelTitle(label)"
+        :title="getLabelPresentationTitle(label)"
       >
-        {{ labelTitle(label) }}
+        {{ getLabelPresentationTitle(label) }}
       </span>
     </div>
     <Button
@@ -294,11 +256,16 @@ onMounted(loadLabelOrder);
           >
             <span
               class="rotta-label-dot"
-              :style="{ backgroundColor: labelColor(label) }"
+              :style="{
+                backgroundColor: getLabelPresentationColor(label),
+              }"
               aria-hidden="true"
             />
-            <span class="rotta-label-name" :title="labelTitle(label)">
-              {{ labelTitle(label) }}
+            <span
+              class="rotta-label-name"
+              :title="getLabelPresentationTitle(label)"
+            >
+              {{ getLabelPresentationTitle(label) }}
             </span>
             <span
               class="rotta-label-count"

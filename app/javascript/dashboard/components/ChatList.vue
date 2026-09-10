@@ -44,6 +44,7 @@ import filterQueryGenerator from '../helper/filterQueryGenerator.js';
 import languages from 'dashboard/components/widgets/conversation/advancedFilterItems/languages';
 import countries from 'shared/constants/countries';
 import { generateValuesForEditCustomViews } from 'dashboard/helper/customViewsHelper';
+import { getLabelFilterOptions } from 'dashboard/helper/rottaLabelPresentation';
 import { conversationListPageURL } from '../helper/URLHelper';
 import ConversationApi from 'dashboard/api/inbox/conversation';
 import {
@@ -459,16 +460,9 @@ const showRottaConversationShortcuts = computed(() => {
   );
 });
 
-const labelFilterOptions = computed(() => [
-  {
-    value: '',
-    label: 'Filtrar por etiqueta',
-    icon: 'i-lucide-tags',
-  },
-  ...labels.value
-    .filter(label => label.title)
-    .map(label => ({ value: label.title, label: label.title })),
-]);
+const labelFilterOptions = computed(() =>
+  getLabelFilterOptions(labels.value)
+);
 
 const showLabelFilter = computed(() => {
   return (
