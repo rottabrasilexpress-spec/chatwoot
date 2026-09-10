@@ -15,7 +15,7 @@ Escopo: somente sincronização das etiquetas de follow-up e carregamento inicia
 
 Workflow: `Rotta Chatwoot — Follow-up Contextual v1`  
 ID: `utaNsnFUZYBYDf5S`  
-Versão publicada após o ajuste: `46cb69ec-061e-408d-b1c8-420120759ed6`
+Versão publicada após o ajuste: `e0c0ef67-d609-40ef-93bb-fc287a7d6b38` (a versão intermediária `46cb69ec-061e-408d-b1c8-420120759ed6` foi substituída após a validação final).
 
 - Ao remover uma etiqueta de trilha, jobs ativos da conversa são cancelados.
 - Ao trocar de etapa, jobs ativos de outras etapas são cancelados.
@@ -23,6 +23,7 @@ Versão publicada após o ajuste: `46cb69ec-061e-408d-b1c8-420120759ed6`
 - Uma reconciliação administrativa sem envio foi executada para limpar duplicatas já existentes.
 - O histórico do painel passa a exibir uma única entrada por telefone e etapa; o histórico interno permanece preservado.
 - O worker e o nó de envio Uazapi não foram executados durante a auditoria.
+- Correção final de execução: `activeJobStatuses` foi inicializado antes da construção das expressões SQL que o utilizam; a versão final foi publicada sem warnings para que os eventos futuros de adição/remoção de etiqueta não encontrem a constante em estado temporal inválido.
 
 ### Chatwoot
 
