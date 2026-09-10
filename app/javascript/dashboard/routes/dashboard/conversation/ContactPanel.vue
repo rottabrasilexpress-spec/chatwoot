@@ -37,6 +37,16 @@ const props = defineProps({
   },
 });
 
+const HIDDEN_CONTACT_SIDEBAR_ITEMS = [
+  'conversation_actions',
+  'macros',
+  'conversation_info',
+  'contact_attributes',
+  'contact_notes',
+  'previous_conversation',
+  'conversation_participants',
+];
+
 const {
   updateUISettings,
   isContactSidebarItemOpen,
@@ -153,7 +163,10 @@ onMounted(() => {
       >
         <template #item="{ element }">
           <div
-            v-if="element.name === 'conversation_actions'"
+            v-if="
+              !HIDDEN_CONTACT_SIDEBAR_ITEMS.includes(element.name) &&
+              element.name === 'conversation_actions'
+            "
             class="conversation--actions"
           >
             <AccordionItem
@@ -170,7 +183,10 @@ onMounted(() => {
             </AccordionItem>
           </div>
           <div
-            v-else-if="element.name === 'conversation_participants'"
+            v-else-if="
+              !HIDDEN_CONTACT_SIDEBAR_ITEMS.includes(element.name) &&
+              element.name === 'conversation_participants'
+            "
             class="conversation--actions"
           >
             <AccordionItem
@@ -187,7 +203,12 @@ onMounted(() => {
               />
             </AccordionItem>
           </div>
-          <div v-else-if="element.name === 'conversation_info'">
+          <div
+            v-else-if="
+              !HIDDEN_CONTACT_SIDEBAR_ITEMS.includes(element.name) &&
+              element.name === 'conversation_info'
+            "
+          >
             <AccordionItem
               :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONVERSATION_INFO')"
               :is-open="isContactSidebarItemOpen('is_conv_details_open')"
@@ -202,7 +223,12 @@ onMounted(() => {
               />
             </AccordionItem>
           </div>
-          <div v-else-if="element.name === 'contact_attributes'">
+          <div
+            v-else-if="
+              !HIDDEN_CONTACT_SIDEBAR_ITEMS.includes(element.name) &&
+              element.name === 'contact_attributes'
+            "
+          >
             <AccordionItem
               :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONTACT_ATTRIBUTES')"
               :is-open="isContactSidebarItemOpen('is_contact_attributes_open')"
@@ -222,7 +248,12 @@ onMounted(() => {
               />
             </AccordionItem>
           </div>
-          <div v-else-if="element.name === 'previous_conversation'">
+          <div
+            v-else-if="
+              !HIDDEN_CONTACT_SIDEBAR_ITEMS.includes(element.name) &&
+              element.name === 'previous_conversation'
+            "
+          >
             <AccordionItem
               v-if="contact.id"
               :title="
@@ -241,7 +272,10 @@ onMounted(() => {
             </AccordionItem>
           </div>
           <woot-feature-toggle
-            v-else-if="element.name === 'macros'"
+            v-else-if="
+              !HIDDEN_CONTACT_SIDEBAR_ITEMS.includes(element.name) &&
+              element.name === 'macros'
+            "
             feature-key="macros"
           >
             <AccordionItem
@@ -288,7 +322,12 @@ onMounted(() => {
               <ShopifyOrdersList :contact-id="contactId" />
             </AccordionItem>
           </div>
-          <div v-else-if="element.name === 'contact_notes'">
+          <div
+            v-else-if="
+              !HIDDEN_CONTACT_SIDEBAR_ITEMS.includes(element.name) &&
+              element.name === 'contact_notes'
+            "
+          >
             <AccordionItem
               :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONTACT_NOTES')"
               :is-open="isContactSidebarItemOpen('is_contact_notes_open')"

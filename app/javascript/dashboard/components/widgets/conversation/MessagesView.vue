@@ -99,6 +99,7 @@ export default {
       newMessagesCount: 0,
       pendingScrollTop: 0,
       scrollFrameId: null,
+      historyLoadPromise: null,
     };
   },
 
@@ -294,9 +295,15 @@ export default {
       this.hasNewMessages = false;
       this.newMessagesCount = 0;
       this.resetReplyEditorHeight();
+      this.$nextTick(() => this.loadAllPreviousMessages());
     },
     'currentChat.messages.length'(newLength, oldLength) {
       this.handleLiveMessageBatch(newLength, oldLength);
+    },
+    'currentChat.dataFetched'(dataFetched) {
+      if (dataFetched) {
+        this.$nextTick(() => this.loadAllPreviousMessages());
+      }
     },
   },
 
@@ -313,6 +320,7 @@ export default {
     this.addScrollListener();
     this.fetchAllAttachmentsFromCurrentChat();
     this.fetchSuggestions();
+    this.$nextTick(() => this.loadAllPreviousMessages());
   },
 
   unmounted() {
@@ -476,6 +484,78 @@ export default {
       this.scrollTopBeforeLoad = this.conversationPanel.scrollTop;
     },
 
+    /* eslint-disable no-await-in-loop */
+    async loadAllPreviousMessages() {
+      if (
+        this.historyLoadPromise ||
+        this.isLoadingPrevious ||
+        !this.conversationPanel ||
+        !this.currentChat?.id ||
+        this.currentChat.dataFetched !== true ||
+        this.currentChat.allMessagesLoaded
+      ) {
+        return;
+      }
+
+      const conversationId = this.currentChat.id;
+      const loadHistory = async () => {
+        this.isLoadingPrevious = true;
+        let hasMoreMessages = true;
+        let previousFirstMessageId = null;
+
+        try {
+          while (hasMoreMessages && this.currentChat?.id === conversationId) {
+            const firstMessageId = this.currentChat.messages?.[0]?.id;
+            if (!firstMessageId || firstMessageId === previousFirstMessageId) {
+              break;
+            }
+
+            previousFirstMessageId = firstMessageId;
+            const messageCountBefore = this.currentChat.messages.length;
+            this.setScrollParams();
+            hasMoreMessages = await this.$store.dispatch(
+              'fetchPreviousMessages',
+              {
+                conversationId,
+                before: firstMessageId,
+              }
+            );
+            await new Promise(resolve => {
+              this.$nextTick(resolve);
+            });
+
+            if (this.conversationPanel) {
+              const heightDifference =
+                this.conversationPanel.scrollHeight - this.heightBeforeLoad;
+              this.conversationPanel.scrollTop =
+                this.scrollTopBeforeLoad + heightDifference;
+              this.setScrollParams();
+            }
+
+            if (
+              hasMoreMessages !== true ||
+              this.currentChat.messages.length <= messageCountBefore
+            ) {
+              break;
+            }
+          }
+        } finally {
+          this.isLoadingPrevious = false;
+        }
+      };
+
+      this.historyLoadPromise = loadHistory();
+      try {
+        await this.historyLoadPromise;
+      } finally {
+        this.historyLoadPromise = null;
+        if (this.currentChat?.id !== conversationId) {
+          this.$nextTick(() => this.loadAllPreviousMessages());
+        }
+      }
+    },
+    /* eslint-enable no-await-in-loop */
+
     async fetchPreviousMessages(scrollTop = 0) {
       const shouldLoadMoreMessages =
         this.currentChat.dataFetched === true &&
@@ -504,6 +584,7 @@ export default {
           // Ignore Error
         } finally {
           this.isLoadingPrevious = false;
+          this.$nextTick(() => this.loadAllPreviousMessages());
         }
       }
     },
