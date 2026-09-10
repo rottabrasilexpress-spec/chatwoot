@@ -2,7 +2,7 @@
 
 Data: 2026-09-10  
 Branch: `rotta-custom-v1`  
-Commit de implementação: `b03b787`
+Commits de implementação: `b03b787`, `80db589`
 
 ## Escopo
 
@@ -14,17 +14,17 @@ Commit de implementação: `b03b787`
 
 O estado Vuex de contagens era atualizado apenas com as etiquetas encontradas e a mutação fazia merge com o mapa anterior. Assim, um valor antigo sobrevivia quando uma etiqueta era removida ou zerada.
 
-`labels/getSidebarCounts` agora sempre publica as três chaves (`budget`, `caioAttention`, `closedClients`), normalizando ausências para zero. `SET_SIDEBAR_LABEL_COUNTS` substitui o mapa completo, eliminando valores stale.
+`labels/getSidebarCounts` agora sempre publica as três chaves (`budget`, `caioAttention`, `closedClients`), normalizando ausências para zero. `SET_SIDEBAR_LABEL_COUNTS` substitui o mapa completo, eliminando valores stale. A Sidebar também dispara essa ação quando o catálogo chega vazio, inclusive na troca de conta.
 
 O seletor de etiquetas foi adicionado a `ChatListHeader.vue`. A lista vem de `labels/getLabels`; a seleção usa a rota existente `/label/:label`, que já envia `labels` para `ConversationFinder`. A opção `Filtrar por etiqueta` retorna a `/dashboard`.
 
 ## Evidências
 
 - Regressão antes do fix: com contagem anterior de `1`, a ação publicava somente `{ budget: 0 }`; `caioAttention` e `closedClients` ficavam sem atualização.
-- Após o fix: teste focalizado `sidebarLabelCounts.spec.js` passou `4/4`.
+- Após o fix: teste focalizado `sidebarLabelCounts.spec.js` passou `5/5`, incluindo catálogo vazio.
 - Build Vite: `5.077` módulos transformados, concluído.
-- GitHub: `b03b787` enviado para `origin/rotta-custom-v1`.
-- Easypanel: deploy `fix(rotta): clear sidebar counts and add label filter` concluiu com `Compose implantado`; o serviço voltou saudável.
+- GitHub: `b03b787` e `80db589` enviados para `origin/rotta-custom-v1`.
+- Easypanel: os deploys `fix(rotta): clear sidebar counts and add label filter` e `fix(rotta): reset sidebar counts for empty labels` concluíram com `Compose implantado`; o serviço voltou saudável.
 - Chatwoot real: após reload, `ORÇAMENTOS` e `Caio Atenção` não exibiram badges fantasmas. O botão `Filtrar por etiqueta` abriu o catálogo completo; `kelvin` e `primeiro-contato` produziram as rotas esperadas; limpar retornou para `/app/accounts/1/dashboard`.
 
 ## Limitações e segurança
