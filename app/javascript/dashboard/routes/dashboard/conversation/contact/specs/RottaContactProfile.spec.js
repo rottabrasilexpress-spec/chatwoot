@@ -2,43 +2,48 @@ import { mount } from '@vue/test-utils';
 
 import RottaContactProfile from '../RottaContactProfile.vue';
 
+const dispatch = vi.fn();
+
 vi.mock('dashboard/composables/store', () => ({
-  useMapGetter: () => ({ value: [] }),
+  useStore: () => ({ dispatch }),
 }));
 
 vi.mock('dashboard/composables', () => ({
   useAlert: vi.fn(),
 }));
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: key => key }),
+vi.mock('dashboard/routes/dashboard/conversation/SharedFiles.vue', () => ({
+  default: { template: '<div data-testid="shared-files" />' },
 }));
-
-vi.mock('@chatwoot/utils', () => ({
-  downloadFile: vi.fn(),
-}));
-
-vi.mock(
-  'dashboard/components/widgets/conversation/components/GalleryView.vue',
-  () => ({
-    default: { template: '<div data-testid="gallery" />' },
-  })
-);
 
 describe('RottaContactProfile', () => {
-  it('renders the shared attachments area without operational profile fields', () => {
+  it('restores operational fields from the contact without replacing attachments', () => {
     const wrapper = mount(RottaContactProfile, {
-      global: {
-        stubs: {
-          SharedFiles: { template: '<div data-testid="shared-files" />' },
+      props: {
+        contact: {
+          id: 1862,
+          custom_attributes: {
+            rotta_move_profile: {
+              origin: 'Brasília',
+              destination: 'Salvador-Bahia',
+              move_date: 'Entre 20 e 30 dias',
+              items: 'Relação de bens no DOCX anexado',
+            },
+          },
         },
       },
     });
 
-    expect(wrapper.text()).toContain('Anexos');
-    expect(wrapper.find('[data-testid="shared-files"]').exists()).toBe(true);
-    expect(wrapper.find('form').exists()).toBe(false);
-    expect(wrapper.find('input').exists()).toBe(false);
-    expect(wrapper.find('textarea').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Perfil da mudança');
+    expect(
+      wrapper.find('input[placeholder="Cidade/UF de origem"]').element.value
+    ).toBe('Brasília');
+    expect(
+      wrapper.find('input[placeholder="Cidade/UF de destino"]').element.value
+    ).toBe('Salvador-Bahia');
+    expect(wrapper.find('input[placeholder*="20 a 30"]').element.value).toBe(
+      'Entre 20 e 30 dias'
+    );
+    expect(wrapper.text()).not.toContain('Anexos');
   });
 });
