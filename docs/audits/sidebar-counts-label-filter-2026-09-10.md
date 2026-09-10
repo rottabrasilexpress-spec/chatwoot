@@ -30,7 +30,7 @@ O seletor de etiquetas foi adicionado a `ChatListHeader.vue`. A lista vem de `la
 
 ## Limitações e segurança
 
-- O vídeo citado para o bug visual das etiquetas não está nos anexos acessíveis desta sessão; somente imagens foram localizadas. Nenhuma alteração visual/auditiva foi inferida.
+- O único MP4 localizado nos temporários não é o vídeo solicitado: tem 3 segundos, 368x368, mostra somente uma animação do logotipo do ChatGPT e sua trilha AAC está em silêncio (`-91 dB`), sem interface Chatwoot, etiquetas ou explicação audível. Nenhuma alteração visual/auditiva foi inferida.
 - ESLint direcionado ficou limitado pelo CRLF global do checkout Windows e avisos i18n dinâmicos preexistentes; `git diff --check` passou e o build confirmou a compilação.
 - Nenhuma mensagem foi enviada pela UAZAPI/WhatsApp e nenhuma aba WhatsApp foi utilizada.
 
@@ -38,4 +38,4 @@ O seletor de etiquetas foi adicionado a `ChatListHeader.vue`. A lista vem de `la
 
 - O catálogo do filtro continuou carregando as etiquetas disponíveis após o deploy final.
 - A seleção de `orcamento-feito` confirmou a navegação pelo seletor e o filtro de etiqueta existente, sem alteração de dados.
-- O vídeo/áudio do bug visual ainda não está acessível nesta sessão; a análise dessa parte continua pendente até o reenvio do arquivo.
+- O vídeo/áudio correto do bug visual continua pendente: o único MP4 encontrado foi identificado como clipe não relacionado, sem Chatwoot e sem fala. A análise dessa parte exige o reenvio do arquivo correto ou seu caminho local.
