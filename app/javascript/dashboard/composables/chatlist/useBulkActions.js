@@ -150,7 +150,7 @@ export function useBulkActions() {
         conversationId || selectedConversations.value,
         { add: labelsToAssign }
       );
-      await store.dispatch('labels/get');
+      await store.dispatch('labels/get', { forceNetwork: true });
       store.dispatch('bulkActions/clearSelectedConversationIds');
       if (conversationId) {
         useAlert(
@@ -185,6 +185,7 @@ export function useBulkActions() {
         conversationId || selectedConversations.value,
         { remove: labelsToRemove }
       );
+      await store.dispatch('labels/get', { forceNetwork: true });
 
       // Context-menu remove should not disturb an existing bulk selection.
       if (conversationId) {

@@ -400,7 +400,9 @@ describe('ActionCableConnector - Copilot Tests', () => {
         'updateConversation',
         conversation
       );
-      expect(mockDispatch).toHaveBeenCalledWith('labels/get');
+      expect(mockDispatch).toHaveBeenCalledWith('labels/get', {
+        forceNetwork: true,
+      });
       expect(emitter.emit).toHaveBeenCalledWith(
         BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH,
         conversation

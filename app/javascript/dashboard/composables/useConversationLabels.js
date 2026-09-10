@@ -104,7 +104,7 @@ export function useConversationLabels() {
 
     if (!updated) return false;
 
-    await store.dispatch('labels/get');
+    await store.dispatch('labels/get', { forceNetwork: true });
 
     const addedLabels = normalizedSelectedLabels.filter(
       label => !previousLabels.includes(label)

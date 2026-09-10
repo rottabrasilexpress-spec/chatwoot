@@ -57,6 +57,9 @@ describe('useConversationLabels', () => {
       conversationId: 1,
       labels: ['Label 1', 'Label 3'],
     });
+    expect(store.dispatch).toHaveBeenCalledWith('labels/get', {
+      forceNetwork: true,
+    });
   });
 
   it('announces label additions and removals after a successful update', async () => {

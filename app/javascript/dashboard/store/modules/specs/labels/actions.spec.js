@@ -30,6 +30,15 @@ describe('#actions', () => {
         [types.default.SET_LABEL_UI_FLAG, { isFetching: false }],
       ]);
     });
+
+    it('bypasses the local cache when a realtime label change requires fresh counts', async () => {
+      axios.get.mockResolvedValue({ data: { payload: labelsList } });
+
+      await actions.get({ commit }, { forceNetwork: true });
+
+      expect(axios.get).toHaveBeenCalledWith('/api/v1/labels');
+    });
+
     it('sends correct actions if API is error', async () => {
       axios.get.mockRejectedValue({ message: 'Incorrect header' });
       await actions.get({ commit });

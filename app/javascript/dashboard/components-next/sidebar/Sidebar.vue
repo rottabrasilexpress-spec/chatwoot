@@ -256,7 +256,7 @@ useEmitter(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED, refreshSidebarLabelCounts);
 let sidebarLabelCountsRefreshTimer;
 
 onMounted(() => {
-  store.dispatch('labels/get');
+  store.dispatch('labels/get', { forceNetwork: true });
   store.dispatch('notifications/unReadCount');
   store.dispatch('attributes/get');
   sidebarLabelCountsRefreshTimer = setInterval(
