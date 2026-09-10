@@ -22,6 +22,7 @@ import {
   followUpTrailForJob,
   followUpTrailForStage,
   effectiveDispatchAt,
+  compactDispatchText,
   isArchivedStage,
   isHistoricalJob,
   orderedFollowUpStages,
@@ -231,7 +232,7 @@ const evidenceStatusText = job => {
   const status = String(deliveryEvidence(job)?.status || '').toLowerCase();
   if (status === 'read') return 'Lido no WhatsApp';
   if (status === 'delivered') return 'Entregue no WhatsApp';
-  if (status === 'sent') return 'Enviado no Chatwoot';
+  if (status === 'sent') return 'Enviado';
   return 'Mensagem criada no Chatwoot';
 };
 
@@ -967,8 +968,21 @@ onUnmounted(() => {
                   </div>
 
                   <div v-else class="rotta-board-card__compact-meta">
-                    <span>{{ scheduleText(job) }}</span>
-                    <span>{{ statusText(job.status, job) }}</span>
+                    <span
+                      class="rotta-board-card__compact-schedule"
+                      :title="scheduleText(job)"
+                    >
+                      <Icon icon="i-lucide-clock-3" class="size-3.5" />
+                      <span>{{
+                        compactDispatchText(job, now, responseMeta)
+                      }}</span>
+                    </span>
+                    <span
+                      class="rotta-board-card__compact-status"
+                      :class="statusClass(job.status, job)"
+                    >
+                      {{ statusText(job.status, job) }}
+                    </span>
                   </div>
 
                   <div
@@ -1820,11 +1834,23 @@ onUnmounted(() => {
   font-size: 0.67rem;
 }
 
-.rotta-board-card__compact-meta span {
+.rotta-board-card__compact-schedule {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  gap: 0.25rem;
+}
+
+.rotta-board-card__compact-schedule > span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.rotta-board-card__compact-status {
+  flex: 0 0 auto;
 }
 
 .rotta-board-card__schedule {

@@ -388,6 +388,7 @@ const menuItems = computed(() => {
           name: 'Unread',
           label: 'Não lidas',
           icon: 'i-lucide-mail-open',
+          badgeCount: allUnreadCount.value,
           activeOn: ['conversation_unread', 'conversation_through_unread'],
           to: accountScopedRoute('conversation_unread'),
         },

@@ -349,6 +349,50 @@ export const effectiveDispatchAt = (
   return scheduled;
 };
 
+const compactDateTime = (date, timezone = TIMEZONE) => {
+  if (!Number.isFinite(new Date(date).getTime())) return '';
+
+  const parts = dateTimeParts(date, timezone);
+  if (!parts.year) return '';
+
+  return [
+    `${String(parts.day).padStart(2, '0')}/${String(parts.month).padStart(2, '0')}`,
+    `${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}`,
+  ].join(' ');
+};
+
+export const compactDispatchText = (
+  job,
+  now = Date.now(),
+  responseMeta = {}
+) => {
+  const timezone =
+    job?.timezone || responseMeta.timezone || DEFAULT_DISPATCH_WINDOW.timezone;
+  const evidence = job?.delivery_evidence;
+
+  if (evidence?.message_id) {
+    const sentAt = evidence.created_at
+      ? compactDateTime(evidence.created_at, timezone)
+      : '';
+    return sentAt ? `Enviado ${sentAt}` : 'Enviado';
+  }
+
+  if (job?.pending_enrollment) {
+    return job.status === 'sync_failed'
+      ? 'Disparo pendente'
+      : 'Disparo sincronizando…';
+  }
+
+  const target = effectiveDispatchAt(
+    job?.scheduled_at,
+    now,
+    dispatchWindowFor(job, responseMeta)
+  );
+  if (!Number.isFinite(target)) return 'Disparo sem horário';
+
+  return `Disparo ${compactDateTime(target, timezone)}`;
+};
+
 export const countdownPartsFor = (target, now = Date.now()) => {
   const difference = target - now;
   if (!Number.isFinite(target))

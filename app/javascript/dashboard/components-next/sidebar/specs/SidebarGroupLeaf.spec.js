@@ -52,6 +52,16 @@ describe('SidebarGroupLeaf', () => {
     );
   });
 
+  it('updates the unread badge when the count changes', async () => {
+    const wrapper = mountLeaf({ badgeCount: 1 });
+
+    await wrapper.setProps({ badgeCount: 2 });
+
+    expect(wrapper.find('[data-test-id="sidebar-unread-badge"]').text()).toBe(
+      '2'
+    );
+  });
+
   it('caps large unread counts', () => {
     const wrapper = mountLeaf({ badgeCount: 120 });
 

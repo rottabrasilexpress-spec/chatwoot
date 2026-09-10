@@ -342,7 +342,7 @@ describe('ActionCableConnector - Copilot Tests', () => {
 
       expect(mockDispatch).toHaveBeenCalledTimes(1);
 
-      vi.advanceTimersByTime(4999);
+      vi.advanceTimersByTime(999);
       expect(mockDispatch).toHaveBeenCalledTimes(1);
 
       vi.advanceTimersByTime(1);
@@ -361,7 +361,7 @@ describe('ActionCableConnector - Copilot Tests', () => {
         data: { account_id: 1 },
       });
 
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(500);
       actionCable.onReceived({
         event: 'conversation.unread_count_changed',
         data: { account_id: 1 },

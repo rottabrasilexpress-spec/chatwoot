@@ -13,6 +13,7 @@ import {
   followUpTrailForJob,
   followUpTrailForStage,
   isArchivedStage,
+  compactDispatchText,
   orderedTrailStages,
   orderedFollowUpStages,
 } from '../followUpHelpers';
@@ -49,6 +50,29 @@ describe('follow-up helpers', () => {
       'Faltam 1 hora e 31 minutos'
     );
     vi.useRealTimers();
+  });
+
+  it('keeps the minimized card dispatch time short and explicit', () => {
+    expect(
+      compactDispatchText(
+        { scheduled_at: '2026-09-09T23:00:00Z' },
+        Date.parse('2026-09-09T12:00:00Z'),
+        WINDOW
+      )
+    ).toBe('Disparo 09/09 20:00');
+
+    expect(
+      compactDispatchText(
+        {
+          delivery_evidence: {
+            message_id: 'message-1',
+            created_at: '2026-09-09T23:00:00Z',
+          },
+        },
+        Date.parse('2026-09-09T12:00:00Z'),
+        WINDOW
+      )
+    ).toBe('Enviado 09/09 20:00');
   });
 
   it('moves a scheduled dispatch to the next allowed window', () => {

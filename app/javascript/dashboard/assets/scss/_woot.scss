@@ -44,6 +44,57 @@ body {
   @apply h-full w-full;
 }
 
+// Keep visible scrollbars consistent across the dashboard. The conversation
+// panel uses the same orange thumb; applying the token here keeps lists,
+// settings, follow-up boards and secondary panels aligned with it.
+html,
+body,
+#app,
+#app *:not(.no-scrollbar) {
+  scrollbar-color: #f57611 transparent;
+  scrollbar-width: thin;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#app::-webkit-scrollbar,
+#app *:not(.no-scrollbar)::-webkit-scrollbar {
+  width: 0.55rem;
+  height: 0.55rem;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+#app::-webkit-scrollbar-track,
+#app *:not(.no-scrollbar)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+#app::-webkit-scrollbar-thumb,
+#app *:not(.no-scrollbar)::-webkit-scrollbar-thumb {
+  background: #f57611;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+#app::-webkit-scrollbar-thumb:hover,
+#app *:not(.no-scrollbar)::-webkit-scrollbar-thumb:hover {
+  background: #dc650d;
+  background-clip: padding-box;
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+#app::-webkit-scrollbar-corner,
+#app *:not(.no-scrollbar)::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .custom-dashed-border {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect x='0' y='0' width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23E2E3E7' stroke-width='2' stroke-dasharray='6, 8' stroke-dashoffset='0' stroke-linecap='round'/%3E%3C/svg%3E");
   background-position: center;
