@@ -47,6 +47,7 @@ describe('#ConversationAPI', () => {
         labels: [],
         teamId: 1,
         updatedWithin: 20,
+        perPage: 50,
       });
       expect(axiosMock.get).toHaveBeenCalledWith('/api/v1/conversations', {
         params: {
@@ -57,6 +58,7 @@ describe('#ConversationAPI', () => {
           page: 1,
           labels: [],
           updated_within: 20,
+          per_page: 50,
         },
       });
     });

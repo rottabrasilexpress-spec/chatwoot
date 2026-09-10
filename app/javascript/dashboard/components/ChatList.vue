@@ -104,6 +104,7 @@ const conversationSearchQuery = ref('');
 const isMarkingAllAsRead = ref(false);
 const remoteSearchResults = ref(null);
 const isSearchingConversations = ref(false);
+const conversationsPerPage = 50;
 let conversationSearchTimer = null;
 const advancedFilterTypes = ref(
   advancedFilterOptions.map(filter => ({
@@ -245,7 +246,6 @@ const activeLabelTitle = computed(() => {
 });
 
 const conversationListPagination = computed(() => {
-  const conversationsPerPage = 25;
   const hasChatsOnView =
     chatsOnView.value &&
     Array.isArray(chatsOnView.value) &&
@@ -284,6 +284,7 @@ const conversationFilters = computed(() => {
     labels: activeLabelTitle.value ? [activeLabelTitle.value] : undefined,
     teamId: props.teamId || undefined,
     conversationType: props.conversationType || undefined,
+    perPage: conversationsPerPage,
   };
 });
 

@@ -298,6 +298,20 @@ describe ConversationFinder do
         result = conversation_finder.perform
         expect(result[:conversations].length).to be 25
       end
+
+      it 'honors an explicit page size up to the safe maximum' do
+        create_list(:conversation, 50, account: account, inbox: inbox, assignee: user_1)
+        result = described_class.new(user_1, params.merge(per_page: 50)).perform
+
+        expect(result[:conversations].length).to be 50
+      end
+
+      it 'caps an explicit page size at 100' do
+        create_list(:conversation, 110, account: account, inbox: inbox, assignee: user_1)
+        result = described_class.new(user_1, params.merge(per_page: 200)).perform
+
+        expect(result[:conversations].length).to be 100
+      end
     end
 
     context 'with perform_meta_only' do

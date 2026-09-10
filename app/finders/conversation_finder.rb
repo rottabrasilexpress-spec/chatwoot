@@ -257,7 +257,11 @@ class ConversationFinder
     if params[:updated_within].present?
       @conversations.where('conversations.updated_at > ?', Time.zone.now - params[:updated_within].to_i.seconds)
     else
-      @conversations.page(current_page).per(ENV.fetch('CONVERSATION_RESULTS_PER_PAGE', '25').to_i)
+      requested_per_page = params[:per_page].to_i
+      default_per_page = ENV.fetch('CONVERSATION_RESULTS_PER_PAGE', '25').to_i
+      per_page = requested_per_page.positive? ? [requested_per_page, 100].min : default_per_page
+
+      @conversations.page(current_page).per(per_page)
     end
   end
 end

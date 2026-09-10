@@ -17,6 +17,7 @@ class ConversationApi extends ApiClient {
     sortBy,
     updatedWithin,
     q,
+    perPage,
   }) {
     const params = {
       inbox_id: inboxId,
@@ -31,6 +32,7 @@ class ConversationApi extends ApiClient {
     };
 
     if (q) params.q = q;
+    if (perPage) params.per_page = perPage;
 
     return axios.get(this.url, { params });
   }
