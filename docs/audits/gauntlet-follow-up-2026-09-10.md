@@ -46,3 +46,37 @@ Correção 25, Completude 20, Verificação 20, Coerência integrada 15, Utilida
 | Rodada | Estado | Hash | Evidência | Nota |
 |---|---|---|---|---|
 | 1 | diagnóstico iniciado | `0e68ca8` | M1/M2 pendentes | — |
+| 2 | diagnóstico concluído | `9bb6617` | M1 live + M2 estático: cascade de navegação completa e reconciliação stale identificados | — |
+| 3 | correção integrada | `313ba77` | M3/M4/M5: SPA, fetch paralelo, fail-closed/dedupe, `active_labels`, bundle publicado | pendente AAA |
+
+## Evidência de diagnóstico e correção
+
+- M1 reproduziu o atraso no Chatwoot real sem usar WhatsApp Web, enviar mensagens ou executar n8n/UAZAPI. O baseline medido para o duplo clique ficou em aproximadamente `8,5 s` ou mais e incluía navegação completa do documento, detalhe da conversa, mensagens paginadas, etiquetas, anexos e `update_last_seen`.
+- M2 confirmou dois caminhos independentes: a abertura do Follow-up usava `window.location.href`, iniciando reload completo; a `ConversationView` aguardava a conclusão da lista antes de solicitar a conversa profunda. O painel também aceitava histórico sem confirmação das etiquetas ativas e não eliminava duplicatas por conversa/etapa.
+- Correção mínima em `9bb6617`: `router.push` com guarda contra duplo clique, `fetchConversationIfUnavailable()` no início da montagem, deduplicação por conversa/etapa, reconciliação fail-closed e enriquecimento backend com `active_labels`.
+- `8ef1e47` e `313ba77`: manifesto e assets Vite publicados para servir o bundle corrigido no overlay de produção.
+
+## Verificação técnica
+
+- `corepack pnpm exec vite build`: aprovado; `5.079` módulos transformados, build concluído em aproximadamente `1m16s`.
+- ESLint focalizado: sem erros; permaneceram `14` avisos preexistentes de fechamento de bracket no template de `FollowUp.vue`.
+- Regressão direta do helper: aprovada (`helper regression: PASS`).
+- Vitest focalizado não chegou à coleta por limitação do ambiente: o runner falha ao resolver `fake-indexeddb@6.0.0/.../auto/index.mjs`, embora o pacote exista e a importação direta funcione. A limitação foi registrada; não foi mascarada como aprovação.
+- Ruby não está instalado no ambiente, portanto a checagem `ruby -c` do controller não pôde ser executada.
+
+## Verificação live pós-deploy
+
+- Easypanel concluiu o deploy em `2026-09-10 22:19:56 GMT`, recriando Rails, Sidekiq e Sidekiq UAZAPI sem erro fatal. O bundle ativo passou a ser `dashboard-B9LgK-tZ.js`.
+- Primeiro duplo clique pós-deploy: rota em `3184 ms` (`3,184 s`). A conversa `1143` abriu e o histórico completo apareceu após a estabilização.
+- Repetição independente: rota em `3161 ms`, conteúdo visível em `3205 ms`, `0` requests de documento e `7` requests relacionadas à conversa; não houve reload completo nem navegação duplicada.
+- O teste live confirmou a tela de etiqueta `Kelvin` e `Caio Atenção` sem conversa ativa residual após reconciliação (`Não há conversas ativas neste grupo.`). Não houve envio de WhatsApp nem alteração de mensagens.
+- O histórico completo continuou sendo carregado até o primeiro registro, preservando o requisito funcional anterior; a otimização aplicada foi no caminho de abertura e na reconciliação do Follow-up.
+
+## Estado das microtarefas
+
+- M1 — concluída: reprodução e medição no Chatwoot real.
+- M2 — concluída: auditoria estática independente pelo agente Anscombe; relatório sem edição.
+- M3 — concluída com ressalva: regressão criada, mas o Vitest ficou bloqueado na coleta pelo ambiente compartilhado; helper direto e build aprovados.
+- M4 — concluída: correção mínima integrada nos arquivos Vue/helper/controller definidos.
+- M5 — concluída com ressalva documentada: build, lint, helper e validação live aprovados; Vitest/Ruby indisponíveis no ambiente.
+- M6 — pendente: revisão AAA independente do snapshot integrado.
