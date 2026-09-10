@@ -48,7 +48,8 @@ Correção 25, Completude 20, Verificação 20, Coerência integrada 15, Utilida
 | 1 | diagnóstico iniciado | `0e68ca8` | M1/M2 pendentes | — |
 | 2 | diagnóstico concluído | `9bb6617` | M1 live + M2 estático: cascade de navegação completa e reconciliação stale identificados | — |
 | 3 | correção integrada | `313ba77` | M3/M4/M5: SPA, fetch paralelo, fail-closed/dedupe, `active_labels`, bundle publicado | pendente AAA |
-| 4 | correção pós-revisão | pendente | M6 devolveu 88/100; regressões fortalecidas, contrato Ruby criado e Vitest focalizado passou 17/17 | pendente AAA |
+| 4 | correção pós-revisão | `dc9f99e` | M6 devolveu 88/100; regressões fortalecidas, contrato Ruby criado e Vitest focalizado passou 17/17 | — |
+| 5 | AAA aprovado | `dc9f99e` | segunda revisão independente: 96/100, todos critérios ≥90, zero falhas críticas | aprovado |
 
 ## Evidência de diagnóstico e correção
 
@@ -90,3 +91,11 @@ Correção 25, Completude 20, Verificação 20, Coerência integrada 15, Utilida
 - ESLint focalizado: `0` erros e `14` avisos preexistentes do template Vue; Prettier focalizado aprovado.
 - Ruby/RSpec continua pendente de execução: `ruby`, WSL com distribuição e daemon Docker indisponíveis. O spec foi criado, mas não é contabilizado como aprovado.
 - A deduplicação continua restrita a `reconciledJobs` do quadro operacional; o endpoint administrativo e o histórico de mensagens não são modificados. A regressão cobre a permanência de etapas distintas.
+
+## M6 final — gate AAA aprovado
+
+- Segunda revisão independente no snapshot publicado `dc9f99e`: **96/100 — AAA aprovado**.
+- Correção `24/25`; Completude `19/20`; Verificação `19/20`; Coerência integrada `15/15`; Utilidade `10/10`; Acabamento `9/10`.
+- Todos os critérios ficaram em pelo menos `90`; não foram encontradas falhas críticas. O revisor confirmou que `HEAD` e `origin/rotta-custom-v1` apontam para `dc9f99e` e que o manifesto possui `240` referências locais sem asset ausente.
+- Riscos residuais não bloqueantes: Ruby/RSpec/RuboCop não executados por falta de ambiente Ruby; não há teste direto isolado da guarda de `openConversation`; uma janela estreita ainda pode repetir uma busca de conversa, sem reload/document request duplicado na validação live.
+- Decisão: manter o runtime publicado em `313ba77`, manter os testes/documentação em `dc9f99e`, sem novo deploy funcional; o bundle ativo já contém a correção aprovada.
