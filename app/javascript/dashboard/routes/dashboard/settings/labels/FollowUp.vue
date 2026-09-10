@@ -25,6 +25,7 @@ import {
   compactDispatchText,
   isArchivedStage,
   isHistoricalJob,
+  isStaleHistoricalJob,
   orderedFollowUpStages,
 } from './followUpHelpers';
 
@@ -56,7 +57,6 @@ const labelMeta = {
 };
 
 const jobs = ref([]);
-const counts = ref({});
 const apiLabels = ref({});
 const responseMeta = ref({});
 const isLoading = ref(false);
@@ -259,15 +259,31 @@ const timezoneTitle = computed(() =>
 
 const dispatchWindow = job => dispatchWindowFor(job, responseMeta.value);
 
+const reconciledJobs = computed(() =>
+  jobs.value.filter(job => !isStaleHistoricalJob(job))
+);
+
 const queueJobs = computed(() => {
   const returnedKeys = new Set(
-    jobs.value.map(job => `${job.conversation_id}:${currentStage(job)}`)
+    reconciledJobs.value.map(
+      job => `${job.conversation_id}:${currentStage(job)}`
+    )
   );
   const waiting = pendingJobs.value.filter(
     job => !returnedKeys.has(`${job.conversation_id}:${currentStage(job)}`)
   );
-  return [...waiting, ...jobs.value];
+  return [...waiting, ...reconciledJobs.value];
 });
+
+const counts = computed(() =>
+  queueJobs.value.reduce((result, job) => {
+    const stage = displayStageFor(job);
+    if (stage && !isArchivedStage(stage)) {
+      result[stage] = (result[stage] || 0) + 1;
+    }
+    return result;
+  }, {})
+);
 
 const trailViews = [
   {
@@ -638,7 +654,6 @@ loadQueue = async () => {
     expandedJobs.value = new Set(
       [...expandedJobs.value].filter(jobId => availableJobIds.has(jobId))
     );
-    counts.value = body.counts || {};
     apiLabels.value = body.labels || {};
     timezone.value = body.timezone || TIMEZONE;
     responseMeta.value = {
@@ -647,7 +662,9 @@ loadQueue = async () => {
       timezone: body.timezone || body.meta?.timezone || TIMEZONE,
     };
     const returnedKeys = new Set(
-      jobs.value.map(job => `${job.conversation_id}:${currentStage(job)}`)
+      reconciledJobs.value.map(
+        job => `${job.conversation_id}:${currentStage(job)}`
+      )
     );
     pendingEnrollments.value = pendingEnrollments.value.filter(
       item =>

@@ -4,6 +4,7 @@ import {
   dispatchWindowFor,
   effectiveDispatchAt,
   isHistoricalJob,
+  isStaleHistoricalJob,
   isWithinDispatchWindow,
   kanbanBucketFor,
   delayHoursFor,
@@ -28,6 +29,36 @@ describe('follow-up helpers', () => {
   it('keeps historical jobs out of the active kanban', () => {
     expect(isHistoricalJob({ status: 'sent_history' })).toBe(true);
     expect(kanbanBucketFor({ status: 'history_only' })).toBe('history');
+  });
+
+  it('does not expose historical jobs whose current Chatwoot label is gone', () => {
+    expect(
+      isStaleHistoricalJob({
+        status: 'sent_history',
+        current_label: 'primeiro-contato',
+        active_labels: [],
+      })
+    ).toBe(true);
+    expect(
+      isStaleHistoricalJob({
+        status: 'sent_history',
+        current_label: 'primeiro-contato',
+        active_labels: ['primeiro-contato'],
+      })
+    ).toBe(false);
+    expect(
+      isStaleHistoricalJob({
+        status: 'pending',
+        current_label: 'primeiro-contato',
+        active_labels: [],
+      })
+    ).toBe(false);
+    expect(
+      isStaleHistoricalJob({
+        status: 'sent_history',
+        current_label: 'primeiro-contato',
+      })
+    ).toBe(false);
   });
 
   it('prefers delay metadata from the API and falls back to the published label schedule', () => {
