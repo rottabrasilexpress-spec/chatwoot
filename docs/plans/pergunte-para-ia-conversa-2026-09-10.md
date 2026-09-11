@@ -1,7 +1,7 @@
 # Planejamento — Pergunte para IA dentro da conversa
 
 Data: 10/09/2026  
-Status: implementação em validação; publicação pendente da revisão/deploy do Chatwoot
+Status: workflow n8n publicado; deploy/migration do Chatwoot e teste real pendentes
 Escopo: Chatwoot Rotta, conversa isolada, agentes autorizados e integração OpenRouter/n8n
 
 ## Evidência do vídeo e do áudio
@@ -347,3 +347,9 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 3. Confirmar a rota e a migration no ambiente implantado.
 4. Fazer teste real autorizado na conversa Kelvin, sem enviar mensagem externa durante a validação inicial.
 5. Registrar resultado, horário, versão e rollback no Obsidian.
+
+### Publicação n8n — 11/09/2026
+
+- Workflow publicado/ativado: `7FQSbjNn4dfywyc6`.
+- Versão ativa: `5e70ddac-d788-4739-afbf-5da34afe157b`.
+- O Chatwoot chama o endpoint server-side configurado no job; o teste real só será executado após confirmar que o commit `c3535dd` chegou ao ambiente e a migration foi aplicada.
