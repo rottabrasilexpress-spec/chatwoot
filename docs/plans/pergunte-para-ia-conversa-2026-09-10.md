@@ -288,3 +288,24 @@ Se o requisito evoluir para “compartilhar somente com Caio”, acrescentar `co
 - Respostas fora de ordem não substituem mensagens mais novas.
 - O botão não altera `replyType`, `isPrivate`, rascunho, anexos ou envio público.
 - O workflow n8n de Follow-up permanece inalterado e ativo durante todos os testes da nova função.
+
+## Aprovação do escopo — 10/09/2026
+
+Decisões confirmadas pelo usuário antes do início da implementação:
+
+- Modelo exato: `deepseek/deepseek-v4-flash-0731`.
+- Contexto: a IA pode consultar todo o histórico da conversa, distinguindo falas do cliente, falas humanas, datas, mudanças de itens, valores e decisões. O prompt deve produzir respostas de assistente operacional, com fatos, cronologia e incertezas explícitas.
+- Compartilhamento: agentes autorizados à conversa podem ver a mesma thread e a memória compartilhada.
+- Autonomia: a IA poderá executar ações solicitadas, incluindo etiquetas e envio de mensagens, por ferramentas controladas e auditáveis.
+- Entrada: somente texto; áudios não serão interpretados na primeira versão.
+- Memória: Redis com retenção de 30 dias.
+- Interface: terceiro modo `Pergunte para IA` junto a `Responder` e `Mensagem Privada`, com texto auxiliar explicativo.
+- Transporte: workflow n8n separado do Follow-up.
+- Teste: primeiro dados sintéticos; depois teste real autorizado com Kelvin.
+- Auditoria: registrar o agente que perguntou, comandos, ações executadas, resultados e respostas compartilhadas.
+
+### Ajuste de segurança decorrente da autonomia
+
+“Pode alterar tudo” será implementado como autonomia limitada ao escopo da conversa e às ferramentas explicitamente disponibilizadas. Cada ação terá validação de autorização, confirmação de alvo, idempotência, resultado estruturado e trilha de auditoria. A IA não receberá acesso SQL arbitrário, credenciais ou uma ferramenta genérica de execução.
+
+Para ações de alto impacto — envio de mensagem externa, resolução/arquivamento e exclusões — a primeira versão exibirá a ação proposta e exigirá confirmação no painel, salvo nova autorização explícita para modo sem confirmação. Etiquetas, leitura e alterações reversíveis poderão ser executadas diretamente.
