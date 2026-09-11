@@ -104,6 +104,7 @@ const translateValue = computed(() => {
     <div
       v-if="showConversationAi"
       ref="wootEditorConversationAiMode"
+      data-conversation-ai-toggle
       class="flex items-center gap-1 px-2 z-20 text-n-violet-9"
       :title="$t('CONVERSATION.REPLYBOX.CONVERSATION_AI_HELPER')"
       @click.stop="$emit('openConversationAi')"
