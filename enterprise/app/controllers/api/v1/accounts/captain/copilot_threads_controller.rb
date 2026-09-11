@@ -104,7 +104,8 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   end
 
   def conversation_ai?
-    copilot_thread_params[:request_type] == 'conversation_ai'
+    copilot_thread_params[:request_type] == 'conversation_ai' ||
+      (copilot_thread_params[:conversation_id].present? && copilot_thread_params[:assistant_id].blank?)
   end
 
   def copilot_threads_scope
