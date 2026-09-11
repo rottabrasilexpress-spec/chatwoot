@@ -375,3 +375,13 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - Build Vite, ESLint focalizado e `git diff --check` aprovados. Ruby/RSpec não executáveis neste Windows por ausência de Ruby/Bundler; a execução Ruby no ambiente live foi comprovada pelo fluxo `200`.
 - Commits publicados: `31f7a82` e `59058e4`, branch `rotta-custom-v1`. Registro correspondente atualizado no Obsidian, checkpoint C30.
 - Limite residual: a matriz cobre os caminhos funcionais e de maior risco reproduzíveis, não todas as combinações imagináveis de produção. Deve-se manter como hardening a autenticação/assinatura dedicada do webhook n8n, se ainda não estiver configurada.
+
+## Auditoria explícita das ações e regressão live — 11/09/2026
+
+- Ações do modo `Pergunte para IA` agora geram `Enterprise::AuditLog` transacional com ação, agente, conversa, `request_id`, IP, estado anterior/posterior e resultado sanitizado. Se o registro de auditoria falhar, a transação da ação falha junto.
+- Foi adicionado teste request-side para ação autenticada e rejeição não autenticada em `spec/enterprise/controllers/api/v1/accounts/captain/conversation_ai_controller_spec.rb`. Ruby/RSpec não rodou localmente por ausência de Ruby/Bundler.
+- Commit `cdcbe18` publicado na `rotta-custom-v1`; Easypanel mostrou o deploy `feat(chatwoot): audit conversation ai actions` concluído.
+- Smoke live pós-deploy: rota de ação com operação inválida retornou `422` sem mutação; consulta interna Kelvin retornou POST `200` e GET `200`, com `deepseek/deepseek-v4-flash-0731`, resposta `12/09/2026` e nenhuma ação executada.
+- O workflow n8n foi conferido na interface atual como publicado. A execução `575772` terminou com sucesso em `7,466 s`; o canvas/log mostrou o modelo DeepSeek, memória Redis nomeada para 30 dias, cinco ferramentas e a resposta persistida.
+- Após o restart, o Chatwoot exibiu uma desconexão transitória; o botão `Atualizar` reconectou o canal, carregou todas as conversas automaticamente e o indicador permaneceu estável por 10 s. Nenhuma mensagem pública foi enviada.
+- Pendência de hardening: ainda falta evidência direta da configuração de autenticação/assinatura dedicada do nó webhook n8n. Não declarar o objetivo totalmente encerrado até confirmar ou implementar essa proteção.
