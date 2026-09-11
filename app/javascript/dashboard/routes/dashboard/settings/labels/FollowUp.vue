@@ -2440,4 +2440,18 @@ onUnmounted(() => {
     text-align: left;
   }
 }
+
+@media (max-width: 320px) {
+  .rotta-view-tabs button {
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.5rem 0.35rem;
+    font-size: 0.78rem;
+  }
+
+  .rotta-view-tabs button span {
+    min-width: 1.25rem;
+    padding-inline: 0.3rem;
+  }
+}
 </style>
