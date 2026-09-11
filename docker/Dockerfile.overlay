@@ -39,6 +39,7 @@ COPY app/services/auto_assignment/agent_assignment_service.rb /app/app/services/
 COPY app/services/conversations/assignment_service.rb /app/app/services/conversations/assignment_service.rb
 COPY app/models/conversation.rb /app/app/models/conversation.rb
 COPY app/models/message.rb /app/app/models/message.rb
+COPY app/models/copilot_message.rb /app/app/models/copilot_message.rb
 COPY app/models/message_star.rb /app/app/models/message_star.rb
 COPY app/models/uazapi_webhook_delivery.rb /app/app/models/uazapi_webhook_delivery.rb
 COPY app/models/account.rb /app/app/models/account.rb
