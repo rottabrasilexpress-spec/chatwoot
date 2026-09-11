@@ -32,12 +32,13 @@ const currentChat = useMapGetter('getSelectedChat');
 const lastPublicMessage = useMapGetter('getLastEmailInSelectedChat');
 
 const currentConversationId = computed(() => {
+  const routeMatch = window.location.pathname.match(/\/conversations\/(\d+)/);
+  if (routeMatch?.[1]) return routeMatch[1];
+
   const conversation = currentChat.value;
   if (conversation?.display_id) return conversation.display_id;
   if (conversation?.id) return conversation.id;
-
-  const routeMatch = window.location.pathname.match(/\/conversations\/(\d+)/);
-  return routeMatch?.[1] || null;
+  return null;
 });
 
 const canSuggestReply = computed(

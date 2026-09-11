@@ -101,7 +101,8 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     display_id = copilot_thread_params[:conversation_id]
     raise ActiveRecord::RecordNotFound, 'Conversation not found' if display_id.blank?
 
-    conversation = Current.account.conversations.find_by(display_id: display_id)
+    conversation = Current.account.conversations.find_by(display_id: display_id) ||
+                   Current.account.conversations.find_by(id: display_id)
     raise ActiveRecord::RecordNotFound, 'Conversation not found' if conversation.blank?
 
     authorize conversation, :show?
@@ -121,7 +122,8 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     if permitted_params[:conversation_id].present?
       conversation = if permitted_params[:request_type] == 'conversation_ai'
                        display_id = permitted_params[:conversation_id]
-                       found_conversation = Current.account.conversations.find_by(display_id: display_id)
+                       found_conversation = Current.account.conversations.find_by(display_id: display_id) ||
+                                             Current.account.conversations.find_by(id: display_id)
                        raise ActiveRecord::RecordNotFound if found_conversation.blank?
 
                        authorize found_conversation, :show?
