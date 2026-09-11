@@ -1,6 +1,7 @@
 class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::BaseController
   include Captain::Copilot::ConversationAccess
 
+  around_action :trace_conversation_ai_errors, only: :create
   before_action :mark_conversation_ai_probe, only: :create
   before_action :ensure_message, only: :create
   before_action :ensure_accessible_conversation, only: :create
@@ -51,6 +52,15 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   end
 
   private
+
+  def trace_conversation_ai_errors
+    yield
+  rescue StandardError => e
+    Rails.logger.error("[ConversationAiProbe] around #{e.class}: #{e.message}\n#{e.backtrace.first(12).join("\n")}")
+    return render json: { error: e.message, error_class: e.class.name }, status: :internal_server_error if conversation_ai?
+
+    raise
+  end
 
   def build_copilot_response(copilot_message)
     if conversation_ai? || Current.account.usage_limits[:captain][:responses][:current_available].positive?
