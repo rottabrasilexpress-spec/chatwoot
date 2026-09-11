@@ -40,6 +40,7 @@ const isSmallScreen = computed(
 );
 
 const selectedCopilotThreadId = ref(null);
+let conversationAiRefreshPromise = null;
 const messages = computed(() =>
   store.getters['copilotMessages/getMessagesByThreadId'](
     selectedCopilotThreadId.value
@@ -137,11 +138,47 @@ const handleReset = async () => {
 
 watch([() => currentChat.value?.id, isConversationAiMode], handleReset);
 
+const wait = timeout =>
+  new Promise(resolve => {
+    setTimeout(resolve, timeout);
+  });
+
+const refreshConversationAiMessages = async (
+  threadId,
+  assistantCountBeforeRequest
+) => {
+  if (conversationAiRefreshPromise) return conversationAiRefreshPromise;
+
+  conversationAiRefreshPromise = (async () => {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      // This bounded polling is the fallback when ActionCable is disconnected.
+      // eslint-disable-next-line no-await-in-loop
+      await store.dispatch('copilotMessages/get', threadId);
+      const assistantCount = messages.value.filter(
+        message => message.message_type === 'assistant'
+      ).length;
+
+      if (assistantCount > assistantCountBeforeRequest) return;
+      if (attempt < 19) {
+        // eslint-disable-next-line no-await-in-loop
+        await wait(2000);
+      }
+    }
+  })().finally(() => {
+    conversationAiRefreshPromise = null;
+  });
+
+  return conversationAiRefreshPromise;
+};
+
 const sendMessage = async payload => {
   const message = typeof payload === 'string' ? payload : payload.message;
   const requestType =
     typeof payload === 'string' ? undefined : payload.requestType;
   const assistantId = activeAssistant.value?.id;
+  const assistantCountBeforeRequest = messages.value.filter(
+    item => item.message_type === 'assistant'
+  ).length;
 
   try {
     if (selectedCopilotThreadId.value) {
@@ -151,6 +188,12 @@ const sendMessage = async payload => {
         threadId: selectedCopilotThreadId.value,
         message,
       });
+      if (isConversationAiMode.value) {
+        refreshConversationAiMessages(
+          selectedCopilotThreadId.value,
+          assistantCountBeforeRequest
+        );
+      }
     } else {
       const conversationId = currentChat.value?.id;
       const response = await store.dispatch('copilotThreads/create', {
@@ -162,6 +205,13 @@ const sendMessage = async payload => {
       });
       if (currentChat.value?.id === conversationId) {
         selectedCopilotThreadId.value = response.id;
+        if (isConversationAiMode.value) {
+          await store.dispatch('copilotMessages/get', response.id);
+          refreshConversationAiMessages(
+            response.id,
+            assistantCountBeforeRequest
+          );
+        }
       }
     }
   } catch (error) {
