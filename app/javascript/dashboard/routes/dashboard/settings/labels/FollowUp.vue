@@ -2423,7 +2423,8 @@ onUnmounted(() => {
   .rotta-view-tabs {
     margin-inline: -0.25rem;
     padding-inline: 0.25rem;
-    grid-template-columns: repeat(2, minmax(11rem, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: visible;
   }
 
   .rotta-board-card__actions :deep(button) {
