@@ -2383,6 +2383,18 @@ onUnmounted(() => {
   .rotta-schedule {
     white-space: normal;
   }
+
+  .rotta-view-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: visible;
+  }
+
+  .rotta-view-tabs button {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.2;
+  }
 }
 
 /* The kanban is the single operational surface; the legacy table markup is

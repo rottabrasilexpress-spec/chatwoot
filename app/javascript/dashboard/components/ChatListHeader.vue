@@ -65,7 +65,9 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
       'border-b border-n-strong': hasAppliedFiltersOrActiveFolders,
     }"
   >
-    <div class="flex items-center justify-between gap-2 min-w-0">
+    <div
+      class="flex items-center justify-between gap-2 min-w-0 rotta-chat-list-header"
+    >
       <div class="flex items-center min-w-0">
         <h1
           class="text-base font-medium truncate text-n-slate-12"
@@ -243,5 +245,23 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
 :global(.rotta-conversation-search input::-webkit-search-cancel-button) {
   display: none;
   appearance: none;
+}
+
+@media (max-width: 479px) {
+  .rotta-chat-list-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .rotta-chat-list-header > :first-child {
+    flex: 0 0 10rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .rotta-chat-list-header > :last-child {
+    flex: 0 0 100%;
+    justify-content: flex-start;
+  }
 }
 </style>
