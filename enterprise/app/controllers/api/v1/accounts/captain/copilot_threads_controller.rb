@@ -14,6 +14,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   end
 
   def create
+    Rails.logger.info("[ConversationAiProbe] create start request_type=#{params[:request_type]} conversation_id=#{params[:conversation_id]}")
     ActiveRecord::Base.transaction do
       @copilot_thread = if conversation_ai?
                           conversation = conversation_for_ai
@@ -31,14 +32,20 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
                             assistant: assistant
                           )
                         end
+      Rails.logger.info("[ConversationAiProbe] thread ready id=#{@copilot_thread.id} conversation_id=#{@copilot_thread.conversation_id}")
 
       copilot_message = @copilot_thread.copilot_messages.create!(
         message_type: :user,
         message: user_message_payload
       )
+      Rails.logger.info("[ConversationAiProbe] message ready id=#{copilot_message.id}")
 
       build_copilot_response(copilot_message)
+      Rails.logger.info('[ConversationAiProbe] response enqueued')
     end
+  rescue StandardError => e
+    Rails.logger.error("[ConversationAiProbe] #{e.class}: #{e.message}\n#{e.backtrace.first(12).join("\n")}")
+    raise
   end
 
   private
