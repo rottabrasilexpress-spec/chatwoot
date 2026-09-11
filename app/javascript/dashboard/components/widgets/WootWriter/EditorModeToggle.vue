@@ -104,7 +104,12 @@ const selectMode = mode => {
       type="button"
       data-reply-mode
       class="flex items-center gap-1 px-2 z-20 border-0 bg-transparent"
+      :class="{
+        'bg-n-solid-1 shadow-sm ring-1 ring-n-brand/20 font-semibold text-n-slate-12':
+          !isPrivate && !conversationAiActive,
+      }"
       :disabled="disabled || isReplyRestricted"
+      :data-active="!isPrivate && !conversationAiActive"
       :aria-pressed="!isPrivate && !conversationAiActive"
       @click.stop="selectMode(REPLY_EDITOR_MODES.REPLY)"
     >
@@ -115,7 +120,12 @@ const selectMode = mode => {
       type="button"
       data-private-note-mode
       class="flex items-center gap-1 px-2 z-20 border-0 bg-transparent"
+      :class="{
+        'bg-n-solid-1 shadow-sm ring-1 ring-n-brand/20 font-semibold text-n-slate-12':
+          isPrivate && !conversationAiActive,
+      }"
       :disabled="disabled || isReplyRestricted"
+      :data-active="isPrivate && !conversationAiActive"
       :aria-pressed="isPrivate && !conversationAiActive"
       @click.stop="selectMode(REPLY_EDITOR_MODES.NOTE)"
     >
@@ -127,7 +137,12 @@ const selectMode = mode => {
       type="button"
       data-conversation-ai-toggle
       class="flex items-center gap-1 px-2 z-20 text-n-violet-9 border-0 bg-transparent"
+      :class="{
+        'bg-n-violet-2 shadow-sm ring-1 ring-n-violet-7 font-semibold text-n-violet-11':
+          conversationAiActive,
+      }"
       :disabled="disabled || isReplyRestricted"
+      :data-active="conversationAiActive"
       :aria-pressed="conversationAiActive"
       :title="$t('CONVERSATION.REPLYBOX.CONVERSATION_AI_HELPER')"
       @click.stop="$emit('openConversationAi')"

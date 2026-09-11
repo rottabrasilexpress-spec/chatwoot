@@ -75,7 +75,7 @@ const defaultLabelRank = title => {
   return rank >= 0 ? rank : DEFAULT_LABEL_ORDER.length + 1;
 };
 
-const labelCount = label => Number(label?.contacts_count || 0);
+const labelCount = label => Number(label?.conversations_count || 0);
 
 const orderedLabels = computed(() => {
   const manualRanks = new Map(

@@ -133,7 +133,7 @@ export const actions = {
       SIDEBAR_LABEL_DEFINITIONS.map(definition => [
         definition.key,
         normalizeCount(
-          findSidebarLabel(moduleState.records, definition)?.contacts_count
+          findSidebarLabel(moduleState.records, definition)?.conversations_count
         ),
       ])
     );

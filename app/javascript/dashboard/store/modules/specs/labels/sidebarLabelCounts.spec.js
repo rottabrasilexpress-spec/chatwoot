@@ -12,19 +12,27 @@ const buildState = records => ({
 });
 
 describe('labels sidebar counts', () => {
-  it('loads conversation-derived contact counts for the three Rotta sidebar labels', async () => {
+  it('loads active conversation counts for the three Rotta sidebar labels', async () => {
     const records = [
-      { id: 1, title: 'Kelvin', contacts_count: 11, show_on_sidebar: false },
+      {
+        id: 1,
+        title: 'Kelvin',
+        contacts_count: 99,
+        conversations_count: 11,
+        show_on_sidebar: false,
+      },
       {
         id: 2,
         title: 'caio-atencao',
-        contacts_count: 7,
+        contacts_count: 99,
+        conversations_count: 7,
         show_on_sidebar: true,
       },
       {
         id: 3,
         title: 'Clientes Fechados',
-        contacts_count: 4,
+        contacts_count: 99,
+        conversations_count: 4,
         show_on_sidebar: false,
       },
     ];
@@ -40,16 +48,16 @@ describe('labels sidebar counts', () => {
     });
   });
 
-  it('does not count a missing special label and keeps the missing count at zero', async () => {
+  it('ignores contact-only counts when a label has no active conversations', async () => {
     const moduleState = buildState([
-      { id: 1, title: 'Kelvin', contacts_count: 3 },
+      { id: 1, title: 'Kelvin', contacts_count: 3, conversations_count: 0 },
     ]);
     const commit = vi.fn();
 
     await actions.getSidebarCounts({ state: moduleState, commit });
 
     expect(commit).toHaveBeenCalledWith(SIDEBAR_LABEL_COUNTS_MUTATION, {
-      budget: 3,
+      budget: 0,
       caioAttention: 0,
       closedClients: 0,
     });
@@ -58,7 +66,7 @@ describe('labels sidebar counts', () => {
 
   it('clears stale counts when a label disappears between refreshes', async () => {
     const moduleState = {
-      records: [{ id: 1, title: 'Kelvin', contacts_count: 0 }],
+      records: [{ id: 1, title: 'Kelvin', conversations_count: 0 }],
       sidebarLabelCounts: {
         budget: 1,
         caioAttention: 1,

@@ -27,6 +27,7 @@ import {
   isArchivedStage,
   isHistoricalJob,
   isStaleHistoricalJob,
+  activeFollowUpStageCount,
   deduplicateFollowUpJobs,
   orderedFollowUpStages,
 } from './followUpHelpers';
@@ -375,6 +376,10 @@ const activeJobs = computed(() =>
   queueJobs.value.filter(
     job => !isHistoricalJob(job) && Boolean(trailViewForJob(job))
   )
+);
+
+const activeStageCount = computed(() =>
+  activeFollowUpStageCount(activeJobs.value)
 );
 
 const viewCount = view => {
@@ -804,7 +809,7 @@ onUnmounted(() => {
           </article>
           <article class="rotta-summary-card">
             <span>Etapas ativas</span>
-            <strong>{{ stageOptions.length }}</strong>
+            <strong>{{ activeStageCount }}</strong>
             <small>trilhas com clientes</small>
           </article>
         </div>

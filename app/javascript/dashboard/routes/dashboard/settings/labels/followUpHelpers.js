@@ -163,6 +163,15 @@ export const isHistoricalJob = job => HISTORICAL_STATUSES.has(job?.status);
 export const currentStageFor = job =>
   job?.current_label || job?.source_label || '';
 
+export const activeFollowUpStageCount = jobs => {
+  const activeStages = (Array.isArray(jobs) ? jobs : [])
+    .filter(job => !isHistoricalJob(job) && followUpTrailForJob(job))
+    .map(job => canonicalFollowUpStage(currentStageFor(job)))
+    .filter(stage => stage && !isArchivedStage(stage));
+
+  return new Set(activeStages).size;
+};
+
 // The admin endpoint keeps dispatch history for auditability and also returns
 // the labels currently present on the Chatwoot conversation. A historical row
 // is stale when its old stage is no longer one of those active labels. Missing

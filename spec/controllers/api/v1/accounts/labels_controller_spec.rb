@@ -25,6 +25,20 @@ RSpec.describe 'Label API', type: :request do
         expect(response).to have_http_status(:success)
         expect(response.body).to include(label.title)
       end
+
+      it 'returns the active conversation count used by the label filter' do
+        conversation.label_list.add(label.title)
+        conversation.save!
+
+        get "/api/v1/accounts/#{account.id}/labels",
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        payload = response.parsed_body.fetch('payload')
+        returned_label = payload.find { |item| item['id'] == label.id }
+
+        expect(returned_label['conversations_count']).to eq(1)
+      end
     end
   end
 

@@ -6,5 +6,6 @@ json.payload do
     json.color label.color
     json.show_on_sidebar label.show_on_sidebar
     json.contacts_count label.contacts_count
+    json.conversations_count label.conversations_count
   end
 end

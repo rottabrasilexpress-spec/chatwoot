@@ -5,6 +5,20 @@ RSpec.describe Label do
     it { is_expected.to belong_to(:account) }
   end
 
+  describe '#conversations_count' do
+    it 'counts only non-resolved conversations tagged with the label' do
+      label = create(:label)
+      active = create(:conversation, account: label.account, status: :open)
+      resolved = create(:conversation, account: label.account, status: :resolved)
+      active.label_list.add(label.title)
+      active.save!
+      resolved.label_list.add(label.title)
+      resolved.save!
+
+      expect(label.conversations_count).to eq(1)
+    end
+  end
+
   describe 'title validations' do
     it 'would not let you start title without numbers or letters' do
       label = FactoryBot.build(:label, title: '_12')

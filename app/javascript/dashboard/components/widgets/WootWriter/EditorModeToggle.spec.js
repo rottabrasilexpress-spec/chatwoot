@@ -30,4 +30,34 @@ describe('EditorModeToggle', () => {
     expect(wrapper.emitted('openConversationAi')).toHaveLength(1);
     expect(wrapper.emitted('setReplyMode')).toHaveLength(2);
   });
+
+  it('exposes an explicit visual active state for each mode', () => {
+    const noteWrapper = mount(EditorModeToggle, {
+      props: {
+        mode: REPLY_EDITOR_MODES.NOTE,
+        showConversationAi: true,
+      },
+    });
+
+    expect(noteWrapper.get('[data-reply-mode]').attributes('data-active')).toBe(
+      'false'
+    );
+    expect(
+      noteWrapper.get('[data-private-note-mode]').attributes('data-active')
+    ).toBe('true');
+    expect(
+      noteWrapper.get('[data-conversation-ai-toggle]').attributes('data-active')
+    ).toBe('false');
+
+    const aiWrapper = mount(EditorModeToggle, {
+      props: {
+        showConversationAi: true,
+        conversationAiActive: true,
+      },
+    });
+
+    expect(
+      aiWrapper.get('[data-conversation-ai-toggle]').attributes('data-active')
+    ).toBe('true');
+  });
 });

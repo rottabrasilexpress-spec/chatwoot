@@ -14,6 +14,7 @@ import {
   BUDGET_TRAIL_STAGES,
   followUpTrailForJob,
   followUpTrailForStage,
+  activeFollowUpStageCount,
   isArchivedStage,
   compactDispatchText,
   orderedTrailStages,
@@ -27,6 +28,18 @@ const WINDOW = {
 };
 
 describe('follow-up helpers', () => {
+  it('counts only stages with current active follow-up jobs', () => {
+    expect(activeFollowUpStageCount([])).toBe(0);
+    expect(
+      activeFollowUpStageCount([
+        { status: 'pending', current_label: 'primeiro-contato' },
+        { status: 'pending', current_label: 'primeiro-contato' },
+        { status: 'pending', current_label: 'segundo-contato' },
+        { status: 'sent_history', current_label: 'terceiro-contato' },
+      ])
+    ).toBe(2);
+  });
+
   it('keeps historical jobs out of the active kanban', () => {
     expect(isHistoricalJob({ status: 'sent_history' })).toBe(true);
     expect(kanbanBucketFor({ status: 'history_only' })).toBe('history');
