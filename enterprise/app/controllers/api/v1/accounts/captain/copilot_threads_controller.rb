@@ -1,8 +1,6 @@
 class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::BaseController
   include Captain::Copilot::ConversationAccess
 
-  around_action :trace_conversation_ai_errors, only: :create
-  before_action :mark_conversation_ai_probe, only: :create
   before_action :ensure_message, only: :create
   before_action :ensure_accessible_conversation, only: :create
 
@@ -15,7 +13,6 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   end
 
   def create
-    Rails.logger.info("[ConversationAiProbe] create start request_type=#{params[:request_type]} conversation_id=#{params[:conversation_id]}")
     ActiveRecord::Base.transaction do
       @copilot_thread = if conversation_ai?
                           conversation = conversation_for_ai
@@ -33,34 +30,16 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
                             assistant: assistant
                           )
                         end
-      Rails.logger.info("[ConversationAiProbe] thread ready id=#{@copilot_thread.id} conversation_id=#{@copilot_thread.conversation_id}")
-
       copilot_message = @copilot_thread.copilot_messages.create!(
         message_type: :user,
         message: user_message_payload
       )
-      Rails.logger.info("[ConversationAiProbe] message ready id=#{copilot_message.id}")
 
       build_copilot_response(copilot_message)
-      Rails.logger.info('[ConversationAiProbe] response enqueued')
     end
-  rescue StandardError => e
-    Rails.logger.error("[ConversationAiProbe] #{e.class}: #{e.message}\n#{e.backtrace.first(12).join("\n")}")
-    return render json: { error: e.message, error_class: e.class.name, backtrace: e.backtrace.first(10) }, status: :internal_server_error if conversation_ai?
-
-    raise
   end
 
   private
-
-  def trace_conversation_ai_errors
-    yield
-  rescue StandardError => e
-    Rails.logger.error("[ConversationAiProbe] around #{e.class}: #{e.message}\n#{e.backtrace.first(12).join("\n")}")
-    return render json: { error: e.message, error_class: e.class.name, backtrace: e.backtrace.first(10) }, status: :internal_server_error if conversation_ai?
-
-    raise
-  end
 
   def build_copilot_response(copilot_message)
     if conversation_ai? || Current.account.usage_limits[:captain][:responses][:current_available].positive?
@@ -117,12 +96,6 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     raise ActiveRecord::RecordNotFound, 'Conversation not found'
   end
 
-  def mark_conversation_ai_probe
-    return unless params[:request_type] == 'conversation_ai'
-
-    response.set_header('X-Rotta-Conversation-Ai-Code', 'e631735')
-  end
-
   def conversation_for_ai
     display_id = copilot_thread_params[:conversation_id]
     raise ActiveRecord::RecordNotFound, 'Conversation not found' if display_id.blank?
@@ -130,10 +103,6 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     conversation_scope = Conversation.where(account_id: Current.account.id)
     conversation = conversation_scope.find_by(display_id: display_id) ||
                    conversation_scope.find_by(id: display_id)
-    response.set_header(
-      'X-Rotta-Conversation-Ai-Lookup',
-      "account=#{Current.account.id};display=#{display_id};found=#{conversation.present?}"
-    )
     raise ActiveRecord::RecordNotFound, 'Conversation not found' if conversation.blank?
 
     authorize conversation, :show?

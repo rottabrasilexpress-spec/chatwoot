@@ -167,9 +167,7 @@ const refreshConversationAiMessages = async (
         // eslint-disable-next-line no-await-in-loop
         await store.dispatch('copilotMessages/get', threadId);
       } catch (error) {
-        useAlert(
-          `Pergunte para IA — atualização da thread ${threadId}: ${error.message}`
-        );
+        useAlert(error.message);
         return;
       }
       const assistantCount = messages.value.filter(
@@ -197,7 +195,6 @@ const sendMessage = async payload => {
   const assistantCountBeforeRequest = messages.value.filter(
     item => item.message_type === 'assistant'
   ).length;
-  let conversationAiStage = 'envio';
 
   try {
     if (selectedCopilotThreadId.value) {
@@ -225,7 +222,6 @@ const sendMessage = async payload => {
       if (currentConversationId.value === conversationId) {
         selectedCopilotThreadId.value = response.id;
         if (isConversationAiMode.value) {
-          conversationAiStage = `carregamento da thread ${response.id}`;
           await store.dispatch('copilotMessages/get', response.id);
           refreshConversationAiMessages(
             response.id,
@@ -235,11 +231,7 @@ const sendMessage = async payload => {
       }
     }
   } catch (error) {
-    useAlert(
-      isConversationAiMode.value
-        ? `Pergunte para IA — ${conversationAiStage}: ${error.message}`
-        : error.message
-    );
+    useAlert(error.message);
   }
 };
 
