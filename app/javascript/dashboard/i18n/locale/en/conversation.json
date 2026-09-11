@@ -278,6 +278,10 @@
       "CLICK_HERE": "Click here to update",
       "WHATSAPP_TEMPLATES": "Whatsapp Templates"
     },
+    "COPILOT": {
+      "CONVERSATION_AI_TITLE": "Pergunte para IA",
+      "CONVERSATION_AI_DESCRIPTION": "Assistente interno compartilhado para consultar a cronologia da conversa e executar comandos autorizados."
+    },
     "REPLYBOX": {
       "REPLY": "Reply",
       "PRIVATE_NOTE": "Private Note",
@@ -594,9 +598,7 @@
     "MULTIPLE": "{user} and {count} others are typing"
   },
   "COPILOT": {
-    "TRY_THESE_PROMPTS": "Try these prompts",
-    "CONVERSATION_AI_TITLE": "Pergunte para IA",
-    "CONVERSATION_AI_DESCRIPTION": "Assistente interno compartilhado para consultar a cronologia da conversa e executar comandos autorizados."
+    "TRY_THESE_PROMPTS": "Try these prompts"
   },
   "GALLERY_VIEW": {
     "ERROR_DOWNLOADING": "Unable to download attachment. Please try again"

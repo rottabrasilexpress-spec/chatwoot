@@ -19,7 +19,7 @@
 class CopilotThread < ApplicationRecord
   belongs_to :user
   belongs_to :account
-  belongs_to :assistant, class_name: 'Captain::Assistant'
+  belongs_to :assistant, class_name: 'Captain::Assistant', optional: true
   belongs_to :conversation, optional: true
   has_many :copilot_messages, dependent: :destroy_async
 

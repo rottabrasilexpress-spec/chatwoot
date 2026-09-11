@@ -25,7 +25,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
                           ) do |thread|
                             thread.title = copilot_thread_params[:message]
                             thread.user = Current.user
-                            thread.assistant = assistant
+                            thread.assistant = assistant unless conversation_ai?
                           end
                         else
                           Current.account.copilot_threads.create!(

@@ -141,11 +141,12 @@ const sendMessage = async payload => {
   const message = typeof payload === 'string' ? payload : payload.message;
   const requestType =
     typeof payload === 'string' ? undefined : payload.requestType;
+  const assistantId = activeAssistant.value?.id;
 
   try {
     if (selectedCopilotThreadId.value) {
       await store.dispatch('copilotMessages/create', {
-        assistant_id: activeAssistant.value.id,
+        ...(assistantId && { assistant_id: assistantId }),
         conversation_id: currentChat.value?.id,
         threadId: selectedCopilotThreadId.value,
         message,
@@ -153,7 +154,7 @@ const sendMessage = async payload => {
     } else {
       const conversationId = currentChat.value?.id;
       const response = await store.dispatch('copilotThreads/create', {
-        assistant_id: activeAssistant.value.id,
+        ...(assistantId && { assistant_id: assistantId }),
         conversation_id: conversationId,
         message,
         ...(isConversationAiMode.value && { request_type: 'conversation_ai' }),

@@ -113,6 +113,9 @@ const handleSidebarAction = action => {
 };
 
 const hasAssistants = computed(() => props.assistants.length > 0);
+const canUseConversationAiInput = computed(
+  () => hasAssistants.value || props.conversationAiMode
+);
 const hasMessages = computed(() => props.messages.length > 0);
 const copilotButtons = computed(() => {
   if (hasMessages.value) {
@@ -180,7 +183,7 @@ watch(
       </div>
       <CopilotEmptyState
         v-else
-        :has-assistants="hasAssistants"
+        :has-assistants="canUseConversationAiInput"
         :can-suggest-reply="canSuggestReply"
         @use-suggestion="sendMessage"
       />
@@ -197,7 +200,7 @@ watch(
         <div v-else />
       </div>
       <CopilotInput
-        v-if="hasAssistants"
+        v-if="canUseConversationAiInput"
         class="mb-1 w-full"
         @send="sendMessage"
       />
