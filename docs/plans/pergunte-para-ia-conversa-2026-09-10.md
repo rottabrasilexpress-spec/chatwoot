@@ -353,3 +353,10 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - Workflow publicado/ativado: `7FQSbjNn4dfywyc6`.
 - Versão ativa: `5e70ddac-d788-4739-afbf-5da34afe157b`.
 - O Chatwoot chama o endpoint server-side configurado no job; o teste real só será executado após confirmar que o commit `c3535dd` chegou ao ambiente e a migration foi aplicada.
+
+### Verificação de produção n8n — 11/09/2026
+
+- O endpoint publicado respondeu com sucesso a um caso sintético de cronologia: `3` móveis no início, acréscimo de `2`, resposta final `5`.
+- A resposta confirmou o assistente e o modelo aprovados; nenhuma ferramenta ou ação externa foi executada nesse teste.
+- Verificação HTTP do Chatwoot ainda mostra o bundle anterior `dashboard-B9LgK-tZ.js` e SHA `b34f5b71...`; portanto, o deploy da branch `rotta-custom-v1` ainda não foi refletido no ambiente live.
+- O teste real Kelvin e a confirmação da migration permanecem bloqueados até o deploy do Chatwoot no Easypanel.
