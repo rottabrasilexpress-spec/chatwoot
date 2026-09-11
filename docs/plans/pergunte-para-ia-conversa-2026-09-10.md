@@ -426,3 +426,25 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - n8n `Rotta Chatwoot — Pergunte para IA v1` permanece ativo na versão `38222668-e540-4669-9f1e-612c8456ee95`. Redis foi alterado para TTL de `6.048.000` segundos (70 dias), chave por conta/conversa e janela 50; a descrição do workflow também foi corrigida para 70 dias. O modelo segue `deepseek/deepseek-v4-flash-0731`.
 - Execução E2E n8n `578201`: `success`, modo webhook, aproximadamente 2,8 s; nós Webhook, Redis (carregamento e gravação), DeepSeek, agente e resposta executaram sem erro. A resposta foi persistida no painel interno do Chatwoot.
 - O workflow de Follow-up não foi alterado. O arquivo `.audit-antonio/relacao-de-bens.docx` permaneceu fora do Git. O commit `0912875` foi enviado para `origin/rotta-custom-v1`.
+
+## Checkpoint C36 — revisão AAA, compatibilidade e publicação de chunks — 11/09/2026
+
+- A primeira revisão AAA independente rejeitou a nota com 78,1 por três riscos: migration não idempotente quando o schema já contém a coluna, jobs antigos com `conversation_id` e testes pouco discriminantes. Nenhuma conclusão foi mantida sem investigar esses pontos.
+- Correções publicadas no commit `662f424`: migration de `copilot_threads.conversation_id` idempotente para coluna/índice; `ConversationAi::ResponseJob` continua aceitando o argumento legado `conversation_id` sem voltar a usá-lo para localizar a conversa; teste de contrato para jobs legados; teste de polling que força resposta já pronta na segunda conversa e exige polling independente da primeira; teste de resposta obsoleta na mesma thread.
+- Suíte focada após as correções: 45/45 testes, ESLint focalizado sem erros e `git diff --check` aprovado. Ruby/RSpec continua indisponível localmente por ausência de Ruby/Bundler; isso permanece declarado, não mascarado.
+- O smoke pós-deploy encontrou um 404 real de asset: o manifesto Vite referenciava 12 chunks que estavam ignorados pelo Git. Os 12 arquivos referenciados foram publicados no commit `8633a0e`, sem alteração de lógica.
+- Segundo deploy concluído e estabilizado: raiz HTTP 200, manifesto Vite HTTP 200 e todos os 12 chunks referenciados pelo manifesto responderam HTTP 200. Reload visual do Chatwoot carregou histórico e `Pergunte para IA`; não houve log novo de erro no navegador desde o reload.
+- O teste E2E n8n permanece `578201=success`, com Redis TTL de 70 dias, modelo `deepseek/deepseek-v4-flash-0731` e resposta interna persistida. Nenhuma mensagem pública, ferramenta de mutação ou WhatsApp Web foi usado.
+- O workflow de Follow-up permaneceu inalterado. O arquivo `.audit-antonio/relacao-de-bens.docx` permaneceu fora do Git. O arquivo temporário de configuração Vitest foi removido após os testes.
+
+## Checkpoint C37 — correlação da resposta, schema e validação final pós-deploy — 11/09/2026
+
+- A segunda revisão AAA independente rejeitou a nota 81,0 por apontar risco de resposta cruzada, migration sem FK/schema completo, teste de job apenas contratual e ausência de verificação automatizada dos assets.
+- O commit `5c2798f` passou a enviar `request_id` e `copilot_thread_id` junto ao contexto. O job valida `request_id`, `copilot_thread_id`, `conversation_id` e `account_id` no envelope retornado pelo n8n antes de persistir qualquer resposta; envelope ausente ou divergente cai no caminho de falha interno.
+- A migration `20260911000000_add_conversation_id_to_copilot_threads` continua idempotente, agora com FK para `conversations`. O `db/schema.rb` foi alinhado para a versão `2026_09_11_000000` e passou a incluir as tabelas posteriores `message_stars` e `uazapi_webhook_deliveries`, evitando um schema:load incompleto.
+- Foi adicionado `npm run verify:manifest-assets`, que verificou localmente 240 assets referenciados pelo manifesto Vite. O script também fica disponível para a etapa de CI/deploy.
+- Testes repetidos após a correção: Vitest focado 45/45, ESLint focalizado sem erros, `node --check` do verificador de assets e `git diff --check` aprovados. Ruby/RSpec continua indisponível neste Windows por ausência de Ruby/Bundler; não foi mascarado.
+- O workflow n8n foi atualizado e publicado na versão ativa `2b2006b8-b6a7-48fe-9953-2dbae586a236`. A resposta agora devolve os quatro identificadores de correlação; Redis permanece com TTL de 6.048.000 segundos (70 dias), janela 50 e modelo `deepseek/deepseek-v4-flash-0731`.
+- Deploy Chatwoot do commit `5c2798f` estabilizado: raiz, manifesto e rota da conversa responderam HTTP 200; verificação externa encontrou 240/240 assets referenciados com HTTP 200.
+- Teste visual/E2E interno pós-deploy na conversa `#2294`: a pergunta “Teste pós-deploy de correlação” retornou “vínculo confirmado.” no painel interno, sem ferramenta, mutação ou mensagem pública. A execução n8n `578744` terminou `success` em aproximadamente 1,9 s, com Redis carregado e salvo; nenhum WhatsApp Web foi usado.
+- O workflow de Follow-up não foi alterado. O arquivo `.audit-antonio/relacao-de-bens.docx` continuou fora do Git e o arquivo temporário Vitest foi removido antes do commit.
