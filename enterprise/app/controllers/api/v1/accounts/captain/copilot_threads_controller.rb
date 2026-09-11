@@ -30,12 +30,12 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
                             assistant: assistant
                           )
                         end
-      copilot_message = @copilot_thread.copilot_messages.create!(
+      @copilot_message = @copilot_thread.copilot_messages.create!(
         message_type: :user,
         message: user_message_payload
       )
 
-      build_copilot_response(copilot_message)
+      build_copilot_response(@copilot_message)
     end
   end
 
