@@ -385,3 +385,14 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - O workflow n8n foi conferido na interface atual como publicado. A execução `575772` terminou com sucesso em `7,466 s`; o canvas/log mostrou o modelo DeepSeek, memória Redis nomeada para 30 dias, cinco ferramentas e a resposta persistida.
 - Após o restart, o Chatwoot exibiu uma desconexão transitória; o botão `Atualizar` reconectou o canal, carregou todas as conversas automaticamente e o indicador permaneceu estável por 10 s. Nenhuma mensagem pública foi enviada.
 - Pendência de hardening: ainda falta evidência direta da configuração de autenticação/assinatura dedicada do nó webhook n8n. Não declarar o objetivo totalmente encerrado até confirmar ou implementar essa proteção.
+
+## Correção do contrato de ações e teste pós-deploy — 11/09/2026
+
+- O primeiro smoke test autenticado revelou uma colisão do campo JSON `action` com o parâmetro reservado `action` do Rails (nome do método `actions`); por isso operações válidas eram rejeitadas como “Ação não permitida”.
+- O controlador foi corrigido para ler `action` diretamente dos parâmetros do corpo da requisição, preservando o contrato do n8n. O fallback `operation` foi mantido para compatibilidade futura.
+- Commit publicado no GitHub: `023d44a` (`fix(chatwoot): preserve conversation ai action payload`), branch `rotta-custom-v1`; deploy aceito e concluído no Easypanel.
+- Teste live seguro após o deploy: `set_status: open` retornou `200` com resultado `open`, sem alterar o estado efetivo; `remove_label: audit-probe` retornou `200` com `labels: []`, sem mutação.
+- Consulta posterior da conversa Kelvin `#2143` confirmou `status: open` e `labels: []`; não foi enviada mensagem pública nem usado o WhatsApp Web.
+- Durante o restart houve indisponibilidade transitória do domínio; o serviço voltou, a raiz retornou `HTTP 200` e o dashboard carregou novamente a lista de conversas e o modo `Pergunte para IA`.
+- O endpoint administrativo `/audit_logs` respondeu `total_entries: 0` porque a feature de auditoria da conta está desabilitada para visualização; isso não invalida o `Enterprise::AuditLog.create!` dentro da transação da ação, mas deixa a consulta visual administrativa indisponível.
+- Limites mantidos: Ruby/RSpec continuam sem execução local por falta de Ruby/Bundler; permanece pendente a confirmação direta de autenticação/assinatura dedicada do webhook n8n.
