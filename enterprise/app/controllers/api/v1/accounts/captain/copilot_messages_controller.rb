@@ -44,6 +44,11 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
     conversation = @copilot_thread.conversation
     raise ActiveRecord::RecordNotFound if conversation.blank?
 
+    if @copilot_thread.conversation_id.present?
+      authorize conversation, :show?
+      return
+    end
+
     accessible_conversation = accessible_conversation(
       account: Current.account,
       user: Current.user,

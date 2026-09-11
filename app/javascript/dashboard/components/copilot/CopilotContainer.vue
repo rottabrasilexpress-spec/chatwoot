@@ -134,6 +134,7 @@ const handleReset = async () => {
   try {
     const threads = await store.dispatch('copilotThreads/get', {
       conversation_id: conversationId,
+      ...(isConversationAiMode.value && { request_type: 'conversation_ai' }),
     });
     const thread = threads?.[0];
     if (!thread || currentConversationId.value !== conversationId) return;

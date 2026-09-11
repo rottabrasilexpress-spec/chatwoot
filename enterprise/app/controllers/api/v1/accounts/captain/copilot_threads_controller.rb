@@ -15,11 +15,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   def create
     ActiveRecord::Base.transaction do
       @copilot_thread = if conversation_ai?
-                          conversation = accessible_conversation(
-                            account: Current.account,
-                            user: Current.user,
-                            display_id: copilot_thread_params[:conversation_id]
-                          )
+                          conversation = conversation_for_ai
                           Current.account.copilot_threads.find_or_create_by!(
                             conversation_id: conversation.id
                           ) do |thread|
@@ -67,7 +63,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   def enqueue_conversation_ai_response(copilot_message)
     ConversationAi::ResponseJob.perform_later(
       copilot_thread_id: @copilot_thread.id,
-      conversation_id: copilot_thread_params[:conversation_id],
+      conversation_id: @copilot_thread.conversation.display_id,
       user_id: Current.user.id,
       message: copilot_message.message['content']
     )
@@ -91,12 +87,25 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   def ensure_accessible_conversation
     return unless reply_suggestion? || conversation_ai?
 
-    conversation = accessible_conversation(
+    return conversation_for_ai if conversation_ai?
+    return if reply_suggestion? && accessible_conversation(
       account: Current.account,
       user: Current.user,
       display_id: copilot_thread_params[:conversation_id]
-    )
+    ).present?
+
+    raise ActiveRecord::RecordNotFound, 'Conversation not found'
+  end
+
+  def conversation_for_ai
+    display_id = copilot_thread_params[:conversation_id]
+    raise ActiveRecord::RecordNotFound, 'Conversation not found' if display_id.blank?
+
+    conversation = Current.account.conversations.find_by(display_id: display_id)
     raise ActiveRecord::RecordNotFound, 'Conversation not found' if conversation.blank?
+
+    authorize conversation, :show?
+    conversation
   end
 
   def reply_suggestion?
@@ -110,11 +119,20 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
 
   def copilot_threads_scope
     if permitted_params[:conversation_id].present?
-      conversation = accessible_conversation(
-        account: Current.account,
-        user: Current.user,
-        display_id: permitted_params[:conversation_id]
-      )
+      conversation = if permitted_params[:request_type] == 'conversation_ai'
+                       display_id = permitted_params[:conversation_id]
+                       found_conversation = Current.account.conversations.find_by(display_id: display_id)
+                       raise ActiveRecord::RecordNotFound if found_conversation.blank?
+
+                       authorize found_conversation, :show?
+                       found_conversation
+                     else
+                       accessible_conversation(
+                         account: Current.account,
+                         user: Current.user,
+                         display_id: permitted_params[:conversation_id]
+                       )
+                     end
       raise ActiveRecord::RecordNotFound if conversation.blank?
 
       Current.account.copilot_threads.where(conversation_id: conversation.id)
@@ -143,6 +161,6 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   end
 
   def permitted_params
-    params.permit(:page, :conversation_id)
+    params.permit(:page, :conversation_id, :request_type)
   end
 end
