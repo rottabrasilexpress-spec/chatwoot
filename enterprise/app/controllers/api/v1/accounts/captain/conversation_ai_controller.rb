@@ -16,18 +16,29 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
       "user_id=#{Current.user.id} action=#{action}"
     )
 
-    result = case action
-             when 'add_label'
-               update_labels(conversation, add: permitted_params[:label])
-             when 'remove_label'
-               update_labels(conversation, remove: permitted_params[:label])
-             when 'send_public_message'
-               create_message(conversation, content: permitted_params[:content], private: false)
-             when 'create_private_note'
-               create_message(conversation, content: permitted_params[:content], private: true)
-             when 'set_status'
-               update_status(conversation, permitted_params[:status])
-             end
+    before_state = conversation_state(conversation)
+    result = Current.account.transaction do
+      action_result = case action
+                      when 'add_label'
+                        update_labels(conversation, add: permitted_params[:label])
+                      when 'remove_label'
+                        update_labels(conversation, remove: permitted_params[:label])
+                      when 'send_public_message'
+                        create_message(conversation, content: permitted_params[:content], private: false)
+                      when 'create_private_note'
+                        create_message(conversation, content: permitted_params[:content], private: true)
+                      when 'set_status'
+                        update_status(conversation, permitted_params[:status])
+                      end
+
+      record_action_audit!(
+        conversation: conversation,
+        action: action,
+        before_state: before_state,
+        result: action_result
+      )
+      action_result
+    end
 
     render json: { ok: true, action: action, conversation_id: conversation.display_id, result: result }
   rescue ActiveRecord::RecordNotFound
@@ -71,6 +82,33 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
 
     conversation.update!(status: status)
     { status: conversation.status }
+  end
+
+  def conversation_state(conversation)
+    {
+      labels: conversation.label_list,
+      status: conversation.status
+    }
+  end
+
+  def record_action_audit!(conversation:, action:, before_state:, result:)
+    Enterprise::AuditLog.create!(
+      action: 'conversation_ai_action',
+      auditable: conversation,
+      associated: Current.account,
+      user: Current.user,
+      username: Current.user&.email,
+      request_uuid: request.request_id,
+      remote_address: request.remote_ip,
+      audited_changes: {
+        source: 'conversation_ai',
+        action: action,
+        conversation_display_id: conversation.display_id,
+        before: before_state,
+        after: conversation_state(conversation),
+        result: result
+      }.deep_stringify_keys
+    )
   end
 
   def permitted_params
