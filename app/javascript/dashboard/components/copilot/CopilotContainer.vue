@@ -163,8 +163,15 @@ const refreshConversationAiMessages = async (
   conversationAiRefreshPromise = (async () => {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       // This bounded polling is the fallback when ActionCable is disconnected.
-      // eslint-disable-next-line no-await-in-loop
-      await store.dispatch('copilotMessages/get', threadId);
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await store.dispatch('copilotMessages/get', threadId);
+      } catch (error) {
+        useAlert(
+          `Pergunte para IA — atualização da thread ${threadId}: ${error.message}`
+        );
+        return;
+      }
       const assistantCount = messages.value.filter(
         message => message.message_type === 'assistant'
       ).length;
@@ -190,6 +197,7 @@ const sendMessage = async payload => {
   const assistantCountBeforeRequest = messages.value.filter(
     item => item.message_type === 'assistant'
   ).length;
+  let conversationAiStage = 'envio';
 
   try {
     if (selectedCopilotThreadId.value) {
@@ -217,6 +225,7 @@ const sendMessage = async payload => {
       if (currentConversationId.value === conversationId) {
         selectedCopilotThreadId.value = response.id;
         if (isConversationAiMode.value) {
+          conversationAiStage = `carregamento da thread ${response.id}`;
           await store.dispatch('copilotMessages/get', response.id);
           refreshConversationAiMessages(
             response.id,
@@ -226,7 +235,11 @@ const sendMessage = async payload => {
       }
     }
   } catch (error) {
-    useAlert(error.message);
+    useAlert(
+      isConversationAiMode.value
+        ? `Pergunte para IA — ${conversationAiStage}: ${error.message}`
+        : error.message
+    );
   }
 };
 
