@@ -189,6 +189,50 @@ describe('CopilotContainer', () => {
     wrapper.unmount();
   });
 
+  it('derives the visibility floor when the thread response omits the message marker', async () => {
+    testState.uiSettings.value = {
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    };
+    testState.refs.getSelectedChat.value = { display_id: 2304 };
+    testState.dispatch.mockImplementation((action, payload) => {
+      if (action === 'copilotThreads/create') {
+        return Promise.resolve({ id: 56 });
+      }
+      if (action === 'copilotMessages/get') {
+        testState.messageCounts[Number(payload)] = 1;
+        testState.messageRecords = {
+          [Number(payload)]: [
+            { id: 12, message_type: 'assistant' },
+            {
+              id: 90,
+              message_type: 'user',
+              message: { content: 'Pergunta nova' },
+            },
+            { id: 91, message_type: 'assistant' },
+          ],
+        };
+      }
+      return Promise.resolve();
+    });
+
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+    copilot.vm.$emit('sendMessage', 'Pergunta nova');
+    await flushPromises();
+
+    expect(copilot.props('messages')).toEqual([
+      {
+        id: 90,
+        message_type: 'user',
+        message: { content: 'Pergunta nova' },
+      },
+      { id: 91, message_type: 'assistant' },
+    ]);
+
+    wrapper.unmount();
+  });
+
   it('ignores a thread created for a conversation that is no longer selected', async () => {
     let resolveRequest;
     testState.dispatch.mockImplementation(action => {

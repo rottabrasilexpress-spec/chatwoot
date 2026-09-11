@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useAlert } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
 import Copilot from 'dashboard/components-next/copilot/Copilot.vue';
@@ -56,7 +56,7 @@ const isSmallScreen = computed(
 
 const selectedCopilotThreadId = ref(null);
 const conversationAiRefreshPromises = new Map();
-const conversationAiMessageVisibilityFloor = new Map();
+const conversationAiMessageVisibilityFloor = reactive(new Map());
 
 const getMessagesForThread = threadId => {
   const allMessages =
@@ -69,6 +69,37 @@ const getMessagesForThread = threadId => {
   if (!visibilityFloor) return allMessages;
 
   return allMessages.filter(message => message.id >= visibilityFloor);
+};
+
+const ensureConversationAiMessageVisibilityFloor = (threadId, message) => {
+  if (!isConversationAiMode.value) return;
+
+  const normalizedThreadId = Number(threadId);
+  if (conversationAiMessageVisibilityFloor.has(normalizedThreadId)) return;
+
+  const requestMessage = message?.trim();
+  if (!requestMessage) return;
+
+  const matchingUserMessages = store.getters[
+    'copilotMessages/getMessagesByThreadId'
+  ](threadId).filter(record => {
+    if (record.message_type !== 'user') return false;
+    const content =
+      typeof record.message === 'string'
+        ? record.message
+        : record.message?.content;
+    return content === requestMessage;
+  });
+  const latestMatchingUserMessage = matchingUserMessages.sort(
+    (first, second) => second.id - first.id
+  )[0];
+
+  if (latestMatchingUserMessage?.id) {
+    conversationAiMessageVisibilityFloor.set(
+      normalizedThreadId,
+      latestMatchingUserMessage.id
+    );
+  }
 };
 
 const messages = computed(() =>
@@ -159,7 +190,8 @@ const CONVERSATION_AI_MAX_POLL_ATTEMPTS = 90;
 
 const refreshConversationAiMessages = async (
   threadId,
-  assistantCountBeforeRequest
+  assistantCountBeforeRequest,
+  requestMessage
 ) => {
   const existingPromise = conversationAiRefreshPromises.get(threadId);
   if (existingPromise) return existingPromise;
@@ -178,6 +210,7 @@ const refreshConversationAiMessages = async (
         useAlert(error.message);
         return;
       }
+      ensureConversationAiMessageVisibilityFloor(threadId, requestMessage);
       const assistantCount = getMessagesForThread(threadId).filter(
         message => message.message_type === 'assistant'
       ).length;
@@ -236,7 +269,8 @@ const sendMessage = async payload => {
         }
         refreshConversationAiMessages(
           selectedCopilotThreadId.value,
-          assistantCountBeforeRequest
+          assistantCountBeforeRequest,
+          message
         );
       }
     } else {
@@ -259,7 +293,8 @@ const sendMessage = async payload => {
           }
           refreshConversationAiMessages(
             response.id,
-            assistantCountBeforeRequest
+            assistantCountBeforeRequest,
+            message
           );
         }
       }
