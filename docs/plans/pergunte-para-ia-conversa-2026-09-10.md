@@ -580,3 +580,10 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 
 - A área de configurações confirmou `2 agentes`: `Caio Mazine` (`caio.mazine@outlook.com`) e `Kelvin` (`rottabrasilexpress@gmail.com`), ambos exibidos como `Administrador Verificado`.
 - Isso confirma que o agente Caio existe na conta e possui perfil administrativo, mas não substitui o teste de login/sessão como Caio. A auditoria live foi restaurada para a conversa `#1764`, sem alterações na lista de agentes.
+
+## Checkpoint C51 — prova específica da etiqueta ORÇAMENTOS/Kelvin — 11/09/2026
+
+- Baseline real na conversa `#1764`: `Kelvin` não selecionada e o sidebar mostrava `ORÇAMENTOS` sem contador; o Follow-up estava em `Na fila 1` e `Etapas ativas 1`.
+- Adição temporária de `Kelvin`: o chip apareceu, o sidebar mudou imediatamente para `ORÇAMENTOS 1`, o menu mostrou `Kelvin 1` e o filtro `/label/kelvin` carregou somente `~Barbeta`, com `Todas as conversas carregadas 🎉`.
+- Remoção temporária: o chip desapareceu, `ORÇAMENTOS` voltou sem contador e o menu voltou a `Kelvin 0`. O Follow-up retornou ao baseline (`Na fila 1`, `Etapas ativas 1`, somente Deia🌻); `Barbeta` não apareceu no Follow-up.
+- O teste foi totalmente revertido, sem mensagem, sem WhatsApp e sem etiqueta persistente. Essa rodada fecha a prova do caminho exato que originava os números fantasmas.
