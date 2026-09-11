@@ -114,6 +114,8 @@ const normalizeAssistantMessage = message => {
   const normalizedContent = content
     .split('Nenhuna')
     .join('Nenhuma')
+    .split('nenhuna')
+    .join('nenhuma')
     .split('cree-a')
     .join('crie-a');
   if (normalizedContent === content) return message;

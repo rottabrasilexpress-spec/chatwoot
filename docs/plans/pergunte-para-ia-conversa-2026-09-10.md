@@ -513,3 +513,9 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - As dez execuções mais recentes do workflow terminaram `success`, incluindo `580291`, `580293`, `580306`, `580310` e `580313`. A execução mais recente anterior (`580206`) também percorreu Webhook, Redis, DeepSeek, agente e resposta sem erro.
 - O estado final da conversa ficou aberto, sem etiqueta de teste, com o painel do Copiloto zerado após o último reload. Nenhuma mensagem pública, nota privada ou envio pelo WhatsApp foi realizado.
 - Observação de apresentação de baixa severidade: a resposta de ação ficou curta e correta quanto ao estado, mas o modelo ainda exibiu ocasionalmente a grafia “Nenhuna”. Isso não produz confirmação falsa nem altera o estado; permanece como refinamento textual, separado da correção funcional já validada.
+
+## Checkpoint C44 — normalização defensiva e preparação do último redeploy — 11/09/2026
+
+- A camada visual do Copiloto passou a normalizar somente mensagens do assistente antes da renderização: corrige `Nenhuna/nenhuna` para `Nenhuma/nenhuma` e `cree-a` para `crie-a`, sem modificar a pergunta original do agente nem o histórico do cliente.
+- Regressão local concluída: Vitest focalizado `8/8` e ESLint dos arquivos alterados passaram. O build Vite foi concluído com o bundle `dashboard-BsjbfJOB.js`; o manifesto referencia 13 chunks novos que serão publicados junto com o bundle para evitar 404 de asset.
+- O ajuste é apenas de apresentação e não altera ferramentas, etiquetas, Follow-up, WhatsApp, Redis, modelo ou regras de autorização. O arquivo `.audit-antonio/relacao-de-bens.docx` continua fora do Git.

@@ -255,7 +255,7 @@ describe('CopilotContainer', () => {
             {
               id: 92,
               message_type: 'assistant',
-              message: { content: 'Nenhuna etiqueta foi afetada.' },
+              message: { content: 'nenhuna etiqueta foi afetada.' },
             },
           ],
         };
@@ -278,7 +278,7 @@ describe('CopilotContainer', () => {
       {
         id: 92,
         message_type: 'assistant',
-        message: { content: 'Nenhuma etiqueta foi afetada.' },
+        message: { content: 'nenhuma etiqueta foi afetada.' },
       },
     ]);
 
