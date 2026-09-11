@@ -22,6 +22,7 @@ COPY db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb /ap
 COPY db/migrate/20260822000001_clear_rotta_conversation_teams.rb /app/db/migrate/20260822000001_clear_rotta_conversation_teams.rb
 COPY db/migrate/20260908000000_create_message_stars.rb /app/db/migrate/20260908000000_create_message_stars.rb
 COPY db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb /app/db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb
+COPY db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb /app/db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi_contact_avatar_sync_job.rb
@@ -51,3 +52,9 @@ COPY app/views/super_admin/devise/sessions/new.html.erb /app/app/views/super_adm
 COPY app/views/api/v1/accounts/labels/index.json.jbuilder /app/app/views/api/v1/accounts/labels/index.json.jbuilder
 COPY app/views/api/v1/models/_message.json.jbuilder /app/app/views/api/v1/models/_message.json.jbuilder
 COPY enterprise/app/models/enterprise/audit/conversation.rb /app/enterprise/app/models/enterprise/audit/conversation.rb
+COPY enterprise/app/models/copilot_thread.rb /app/enterprise/app/models/copilot_thread.rb
+COPY enterprise/app/controllers/api/v1/accounts/captain/copilot_threads_controller.rb /app/enterprise/app/controllers/api/v1/accounts/captain/copilot_threads_controller.rb
+COPY enterprise/app/controllers/api/v1/accounts/captain/copilot_messages_controller.rb /app/enterprise/app/controllers/api/v1/accounts/captain/copilot_messages_controller.rb
+COPY enterprise/app/controllers/api/v1/accounts/captain/conversation_ai_controller.rb /app/enterprise/app/controllers/api/v1/accounts/captain/conversation_ai_controller.rb
+COPY enterprise/app/jobs/conversation_ai/response_job.rb /app/enterprise/app/jobs/conversation_ai/response_job.rb
+COPY enterprise/app/services/conversation_ai/context_builder.rb /app/enterprise/app/services/conversation_ai/context_builder.rb
