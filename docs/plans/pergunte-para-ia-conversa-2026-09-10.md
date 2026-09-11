@@ -519,3 +519,11 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - A camada visual do Copiloto passou a normalizar somente mensagens do assistente antes da renderização: corrige `Nenhuna/nenhuna` para `Nenhuma/nenhuma` e `cree-a` para `crie-a`, sem modificar a pergunta original do agente nem o histórico do cliente.
 - Regressão local concluída: Vitest focalizado `8/8` e ESLint dos arquivos alterados passaram. O build Vite foi concluído com o bundle `dashboard-BsjbfJOB.js`; o manifesto referencia 13 chunks novos que serão publicados junto com o bundle para evitar 404 de asset.
 - O ajuste é apenas de apresentação e não altera ferramentas, etiquetas, Follow-up, WhatsApp, Redis, modelo ou regras de autorização. O arquivo `.audit-antonio/relacao-de-bens.docx` continua fora do Git.
+
+## Checkpoint C45 — redeploy e validação real concluída — 11/09/2026
+
+- O commit `dcc194e` foi publicado em `origin/rotta-custom-v1` e implantado no Easypanel. A raiz, o manifesto e o bundle `dashboard-BsjbfJOB.js` responderam HTTP 200; o bundle contém o marcador do Copiloto e o manifesto local validou 240 assets.
+- Na conversa real `#2304` (`Eliel Moreira`), o Copiloto iniciou vazio após reload. Adicionar `Primeiro Contato` criou o chip imediatamente e a resposta exibiu `Nenhuma`; remover a mesma etiqueta removeu o chip imediatamente e exibiu `nenhuma`, sem F5 e sem alterar outras etiquetas.
+- Após novo reload, o histórico público permaneceu intacto, o painel interno voltou a `Comece a usar o Copiloto`, e não havia etiqueta de teste. O console do navegador terminou com zero erros. As execuções n8n correspondentes `580471` e `580473` terminaram `success`; as 10 mais recentes consultadas também terminaram `success`.
+- O workflow n8n continua ativo na versão `56ad7cb9-250d-4282-9b7e-f2f2f83c596b`, usando `deepseek/deepseek-v4-flash-0731`, Redis de 70 dias e janela 50. Não houve mensagem pública, WhatsApp Web, nota privada, Follow-up ou alteração de status nesta rodada.
+- Limitações mantidas com transparência: a busca não encontrou o nome exato `Leal Moreira`; o alvo disponível foi Eliel. A sessão live está autenticada como Kelvin, não Caio; portanto a permissão específica do login Caio não foi revalidada nesta rodada. O arquivo `.audit-antonio/relacao-de-bens.docx` continua fora do Git.
