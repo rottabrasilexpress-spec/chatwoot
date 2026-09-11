@@ -190,3 +190,101 @@ O histórico deve ter limite de tokens e estratégia de resumo progressivo, pres
 ## Critério de aprovação da fase de planejamento
 
 O planejamento só será considerado aprovado quando as decisões acima estiverem fechadas, o contrato de isolamento estiver documentado, o workflow separado estiver desenhado sem publicação e o plano de rollback/testes tiver sido aceito. Até lá, não alterar o composer, o backend, o workflow de Follow-up nem enviar mensagens reais.
+
+## Blueprint técnico para a implementação aprovada
+
+### Ponto de entrada no composer
+
+- `EditorModeToggle.vue` hoje alterna somente `REPLY` e `NOTE`.
+- `ReplyTopPanel.vue` já possui o acesso do Captain e o evento `ask_copilot`, mas ele abre o Copilot amplo atual.
+- A implementação deverá adicionar uma ação visual específica `Pergunte para IA`, com estado próprio, sem reutilizar `isPrivate` e sem passar pelo método de envio de mensagem do `ReplyBox.vue`.
+- O estado do composer público e da mensagem privada deve permanecer intacto quando o painel de IA abrir ou fechar.
+
+### Contrato seguro entre Chatwoot e n8n
+
+O navegador não deve chamar diretamente o webhook n8n nem receber segredo. O desenho recomendado é:
+
+1. O navegador chama um endpoint account-scoped do Chatwoot com `conversation_id`, `thread_id` opcional, pergunta e um `request_id` idempotente.
+2. O backend aplica `Captain::Copilot::ConversationAccess` antes de ler qualquer mensagem ou criar a pergunta.
+3. O backend cria/recupera a thread compartilhada e registra a pergunta com autor e conversa.
+4. Um job interno prepara o contexto autorizado e chama o workflow n8n separado usando segredo server-to-server.
+5. O n8n recebe contexto já limitado à conversa, pergunta, identificador técnico e contrato de resposta; não recebe um `conversation_id` livre para pesquisar a conta.
+6. O n8n chama OpenRouter com `deepseek/deepseek-v4-flash-0731` e devolve somente resposta estruturada, sem executar ações.
+7. O backend valida que a resposta pertence ao mesmo `thread_id`/`conversation_id`, persiste a resposta e transmite a atualização por ActionCable.
+
+Contrato lógico de entrada do workflow separado:
+
+```json
+{
+  "request_id": "uuid",
+  "account_id": 1,
+  "conversation_id": 2143,
+  "thread_id": 123,
+  "agent_id": 7,
+  "question": "Qual é a lista atualizada de itens?",
+  "context": {
+    "contact": {},
+    "labels": [],
+    "attributes": {},
+    "messages": []
+  },
+  "context_policy": "conversation_only_v1"
+}
+```
+
+Contrato lógico de saída:
+
+```json
+{
+  "request_id": "uuid",
+  "conversation_id": 2143,
+  "thread_id": 123,
+  "status": "completed",
+  "answer": "...",
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "usage": { "input_tokens": 0, "output_tokens": 0 }
+}
+```
+
+Estados necessários: `queued`, `processing`, `completed`, `failed`, `cancelled`. O `request_id` precisa ser idempotente para retries não duplicarem respostas.
+
+### Isolamento do contexto
+
+- O backend monta o conjunto de mensagens a partir da conversa autorizada, em ordem cronológica, com limite de tamanho e resumo incremental.
+- Cada mensagem deve carregar origem e identificador apenas para auditoria interna; não usar IDs de outra conversa.
+- Conteúdo escrito pelo cliente é dado não confiável: o prompt deve tratá-lo como texto, nunca como instrução de sistema.
+- A função não deve habilitar `SearchConversations`, `SearchContacts`, `SearchArticles` ou ferramentas de alteração na primeira versão.
+- Se a pergunta pedir informações inexistentes, a IA deve responder “não informado” em vez de completar por inferência.
+- O contexto deve declarar explicitamente: “responda apenas com os dados desta conversa; não mencione nem procure outras conversas”.
+
+### Persistência e autorização da thread
+
+Modelo recomendado para a primeira versão compartilhada:
+
+- `copilot_threads.conversation_id` obrigatório para threads `conversation_ai`;
+- `copilot_threads.scope` com valor `conversation`;
+- índice único parcial por `account_id`, `conversation_id` e `assistant_id` para uma thread compartilhada;
+- autor da pergunta preservado em `copilot_messages`/metadados;
+- cada leitura e envio revalida acesso atual à conversa;
+- o acesso é derivado da permissão Chatwoot, sem confiar apenas no fato de o agente conhecer o `thread_id`.
+
+Se o requisito evoluir para “compartilhar somente com Caio”, acrescentar `copilot_thread_memberships` com agente, concedente, data e revogação. Não usar essa tabela como substituta da autorização de conversa.
+
+### Segurança, observabilidade e rollback
+
+- O webhook n8n separado deve aceitar somente chamadas autenticadas do backend e rejeitar origem de navegador.
+- Segredos ficam somente em credencial n8n/variáveis server-side; nunca em bundle Vue, logs ou Obsidian.
+- Logs devem registrar `request_id`, conta, conversa, thread, status e latência, mas não prompt ou conteúdo integral.
+- Rate limit por agente/conta e limite máximo de caracteres devem existir antes da chamada ao modelo.
+- Timeout, erro de modelo e JSON inválido devem gerar estado `failed` com retry explícito e mensagem amigável.
+- Rollback deve ser: desligar o workflow separado, ocultar o botão por feature flag e reverter a migration/API sem tocar mensagens públicas nem o workflow de Follow-up.
+
+### Critérios técnicos de aceite
+
+- O cliente nunca recebe a pergunta ou a resposta pela API de mensagens, UAZAPI ou canal WhatsApp.
+- Duas conversas abertas em abas diferentes nunca compartilham `thread_id` ou contexto.
+- Um agente sem acesso recebe erro de autorização antes da leitura do histórico.
+- A mesma thread mostra pergunta/resposta para agentes autorizados e atribui o autor correto.
+- Respostas fora de ordem não substituem mensagens mais novas.
+- O botão não altera `replyType`, `isPrivate`, rascunho, anexos ou envio público.
+- O workflow n8n de Follow-up permanece inalterado e ativo durante todos os testes da nova função.
