@@ -150,7 +150,12 @@ describe('CopilotContainer', () => {
         const threadId = Number(payload);
         const calls = (messageGetCalls.get(threadId) || 0) + 1;
         messageGetCalls.set(threadId, calls);
-        // The second conversation receives its answer on its second fetch.
+        // The second conversation already has an answer when the first poll
+        // continues. The first thread must still be polled independently.
+        if (threadId === 101 && calls === 1) {
+          testState.messageCounts[threadId] = 1;
+        }
+        // The first conversation receives its answer on its second fetch.
         if (threadId === 100 && calls >= 2) {
           testState.messageCounts[threadId] = 1;
         }
@@ -174,6 +179,7 @@ describe('CopilotContainer', () => {
     await flushPromises();
 
     expect(messageGetCalls.get(100)).toBeGreaterThanOrEqual(2);
+    expect(messageGetCalls.get(101)).toBeGreaterThanOrEqual(1);
 
     wrapper.unmount();
     vi.useRealTimers();

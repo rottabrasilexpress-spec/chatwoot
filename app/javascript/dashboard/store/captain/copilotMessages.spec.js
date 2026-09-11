@@ -67,4 +67,48 @@ describe('copilotMessages store', () => {
       makeMessage(1, 101, 'resposta do chat 101'),
     ]);
   });
+
+  it('ignores an older GET response for the same conversation thread', async () => {
+    let resolveStale;
+    let resolveFresh;
+    CopilotMessagesAPI.get
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveStale = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveFresh = resolve;
+          })
+      );
+
+    const store = makeStore();
+    const staleRequest = store.dispatch('copilotMessages/get', 303);
+    const freshRequest = store.dispatch('copilotMessages/get', 303);
+
+    resolveFresh({
+      data: {
+        payload: [makeMessage(3, 303, 'resposta mais nova')],
+        meta: { total_count: 1, page: 1 },
+      },
+    });
+    await freshRequest;
+
+    resolveStale({
+      data: {
+        payload: [makeMessage(4, 303, 'resposta obsoleta')],
+        meta: { total_count: 1, page: 1 },
+      },
+    });
+    await staleRequest;
+
+    expect(
+      store.state.copilotMessages.records.filter(
+        record => record.copilot_thread.id === 303
+      )
+    ).toEqual([makeMessage(3, 303, 'resposta mais nova')]);
+  });
 });

@@ -24,4 +24,10 @@ RSpec.describe ConversationAi::ResponseJob, type: :job do
 
     expect { job.send(:webhook_headers) }.to raise_error(KeyError)
   end
+
+  it 'keeps accepting legacy queued jobs with conversation_id' do
+    expect(described_class.instance_method(:perform).parameters).to include(
+      [:key, :conversation_id]
+    )
+  end
 end

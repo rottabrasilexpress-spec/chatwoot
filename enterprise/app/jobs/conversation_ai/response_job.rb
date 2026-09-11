@@ -1,7 +1,7 @@
 class ConversationAi::ResponseJob < ApplicationJob
   queue_as :default
 
-  def perform(copilot_thread_id:, user_id:, message:)
+  def perform(copilot_thread_id:, user_id:, message:, conversation_id: nil)
     thread = CopilotThread.includes(:account, :conversation).find(copilot_thread_id)
     conversation = thread.conversation
     raise ActiveRecord::RecordNotFound,
