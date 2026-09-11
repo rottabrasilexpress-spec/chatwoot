@@ -60,7 +60,13 @@ RSpec.describe ConversationAi::ResponseJob, type: :job do
 
     allow(SecureRandom).to receive(:uuid).and_return('req-123')
     allow(CopilotThread).to receive(:includes).with(:account, :conversation).and_return(relation)
-    allow(ConversationAi::ContextBuilder).to receive(:new).and_return(
+    expect(ConversationAi::ContextBuilder).to receive(:new).with(
+      conversation: conversation,
+      user: user,
+      question: 'teste',
+      request_id: 'req-123',
+      copilot_thread_id: 44
+    ).and_return(
       instance_double(ConversationAi::ContextBuilder, payload: { request_id: 'req-123' })
     )
     allow(HTTParty).to receive(:post).and_return(response)
@@ -90,5 +96,52 @@ RSpec.describe ConversationAi::ResponseJob, type: :job do
         conversation: conversation
       )
     end.to raise_error(/vínculo inválido/)
+  end
+
+  it 'does not persist a cross-conversation answer when the full job runs' do
+    user = instance_double(User)
+    users = instance_double(ActiveRecord::Relation, find: user)
+    account = instance_double(Account, users: users)
+    conversation = instance_double(Conversation, display_id: 2165, account_id: 1)
+    messages = instance_double(ActiveRecord::Associations::CollectionProxy)
+    thread = instance_double(
+      CopilotThread,
+      id: 44,
+      account: account,
+      conversation: conversation,
+      copilot_messages: messages
+    )
+    relation = instance_double(ActiveRecord::Relation, find: thread)
+    response = instance_double(
+      HTTParty::Response,
+      code: 200,
+      success?: true,
+      parsed_response: {
+        'answer' => 'Resposta cruzada que não pode ser persistida',
+        'request_id' => 'other-request',
+        'copilot_thread_id' => 44,
+        'conversation_id' => 2165,
+        'account_id' => 1
+      }
+    )
+
+    allow(SecureRandom).to receive(:uuid).and_return('req-123')
+    allow(CopilotThread).to receive(:includes).with(:account, :conversation).and_return(relation)
+    allow(ConversationAi::ContextBuilder).to receive(:new).and_return(
+      instance_double(ConversationAi::ContextBuilder, payload: { request_id: 'req-123' })
+    )
+    allow(HTTParty).to receive(:post).and_return(response)
+    allow(messages).to receive(:create!)
+
+    job.perform(copilot_thread_id: 44, user_id: 17, message: 'teste')
+
+    expect(messages).to have_received(:create!).with(
+      message_type: :assistant,
+      message: { content: I18n.t('captain.conversation_ai.failed') }
+    )
+    expect(messages).not_to have_received(:create!).with(
+      message_type: :assistant,
+      message: hash_including(content: 'Resposta cruzada que não pode ser persistida')
+    )
   end
 end

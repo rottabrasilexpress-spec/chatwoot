@@ -448,3 +448,12 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - Deploy Chatwoot do commit `5c2798f` estabilizado: raiz, manifesto e rota da conversa responderam HTTP 200; verificação externa encontrou 240/240 assets referenciados com HTTP 200.
 - Teste visual/E2E interno pós-deploy na conversa `#2294`: a pergunta “Teste pós-deploy de correlação” retornou “vínculo confirmado.” no painel interno, sem ferramenta, mutação ou mensagem pública. A execução n8n `578744` terminou `success` em aproximadamente 1,9 s, com Redis carregado e salvo; nenhum WhatsApp Web foi usado.
 - O workflow de Follow-up não foi alterado. O arquivo `.audit-antonio/relacao-de-bens.docx` continuou fora do Git e o arquivo temporário Vitest foi removido antes do commit.
+
+## Checkpoint C38 — reforço de testes do job e documentação do modelo — 11/09/2026
+
+- Após a terceira revisão AAA (93,5; sem falha crítica), foram fechadas as lacunas de evidência no código: o teste de sucesso verifica todos os identificadores enviados ao `ContextBuilder`, e o teste negativo executa o `ResponseJob` inteiro com envelope cruzado e comprova que somente a resposta amigável de falha é persistida.
+- O comentário de schema de `CopilotThread` agora documenta `conversation_id` e o índice único por conta/conversa.
+- Regressão repetida após o reforço: Vitest focado 45/45, ESLint focalizado sem erros, `node --check` e `npm run verify:manifest-assets` com 240 assets verificados; o arquivo temporário de configuração foi removido.
+- Ruby/RSpec/RuboCop continuam sem execução neste Windows por ausência de Ruby/Bundler. O limite permanece explicitamente registrado; não foi declarado como aprovado.
+- As mudanças deste checkpoint são testes/comentários, sem alteração de lógica de produção nem novo deploy; o runtime publicado continua sendo o commit `5c2798f`, documentado no C37 e validado visualmente/E2E.
+- O workflow de Follow-up e o arquivo `.audit-antonio/relacao-de-bens.docx` permaneceram fora do escopo/Git.

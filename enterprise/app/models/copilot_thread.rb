@@ -8,11 +8,13 @@
 #  updated_at   :datetime         not null
 #  account_id   :bigint           not null
 #  assistant_id :integer
+#  conversation_id :integer
 #  user_id      :bigint           not null
 #
 # Indexes
 #
 #  index_copilot_threads_on_account_id    (account_id)
+#  index_copilot_threads_on_account_id_and_conversation_id (account_id,conversation_id) UNIQUE
 #  index_copilot_threads_on_assistant_id  (assistant_id)
 #  index_copilot_threads_on_user_id       (user_id)
 #
