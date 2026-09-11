@@ -46,7 +46,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     end
   rescue StandardError => e
     Rails.logger.error("[ConversationAiProbe] #{e.class}: #{e.message}\n#{e.backtrace.first(12).join("\n")}")
-    return render json: { error: e.message, error_class: e.class.name }, status: :internal_server_error if conversation_ai?
+    return render json: { error: e.message, error_class: e.class.name, backtrace: e.backtrace.first(10) }, status: :internal_server_error if conversation_ai?
 
     raise
   end
@@ -57,7 +57,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     yield
   rescue StandardError => e
     Rails.logger.error("[ConversationAiProbe] around #{e.class}: #{e.message}\n#{e.backtrace.first(12).join("\n")}")
-    return render json: { error: e.message, error_class: e.class.name }, status: :internal_server_error if conversation_ai?
+    return render json: { error: e.message, error_class: e.class.name, backtrace: e.backtrace.first(10) }, status: :internal_server_error if conversation_ai?
 
     raise
   end
