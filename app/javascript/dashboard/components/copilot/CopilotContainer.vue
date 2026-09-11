@@ -51,6 +51,13 @@ const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
 
+const captainTasksEnabled = computed(() =>
+  isFeatureEnabledonAccount.value(
+    currentAccountId.value,
+    FEATURE_FLAGS.CAPTAIN_TASKS
+  )
+);
+
 const selectedAssistantId = ref(null);
 
 const activeAssistant = computed(() => {
@@ -92,15 +99,16 @@ const setAssistant = async assistant => {
 };
 
 const shouldShowCopilotPanel = computed(() => {
-  if (!isEnterprise) {
-    return false;
-  }
   const isCaptainEnabled = isFeatureEnabledonAccount.value(
     currentAccountId.value,
     FEATURE_FLAGS.CAPTAIN
   );
   const { is_copilot_panel_open: isCopilotPanelOpen } = uiSettings.value;
-  return isCaptainEnabled && isCopilotPanelOpen && !uiFlags.value.fetchingList;
+  const canUseCopilotPanel =
+    isEnterprise || isCaptainEnabled || captainTasksEnabled.value;
+  return (
+    canUseCopilotPanel && isCopilotPanelOpen && !uiFlags.value.fetchingList
+  );
 });
 
 const isConversationAiMode = computed(
@@ -161,7 +169,7 @@ const sendMessage = async payload => {
 };
 
 onMounted(() => {
-  if (isEnterprise) {
+  if (isEnterprise || captainTasksEnabled.value) {
     store.dispatch('captainAssistants/get');
   }
 });
