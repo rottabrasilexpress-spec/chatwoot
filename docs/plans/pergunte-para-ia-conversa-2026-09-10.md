@@ -396,3 +396,10 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - Durante o restart houve indisponibilidade transitória do domínio; o serviço voltou, a raiz retornou `HTTP 200` e o dashboard carregou novamente a lista de conversas e o modo `Pergunte para IA`.
 - O endpoint administrativo `/audit_logs` respondeu `total_entries: 0` porque a feature de auditoria da conta está desabilitada para visualização; isso não invalida o `Enterprise::AuditLog.create!` dentro da transação da ação, mas deixa a consulta visual administrativa indisponível.
 - Limites mantidos: Ruby/RSpec continuam sem execução local por falta de Ruby/Bundler; permanece pendente a confirmação direta de autenticação/assinatura dedicada do webhook n8n.
+
+## Auditoria MCP do workflow e execução sintética final — 11/09/2026
+
+- A consulta direta ao workflow `7FQSbjNn4dfywyc6` confirmou `active: true`, versão `5e70ddac-d788-4739-afbf-5da34afe157b`, 10 nós, modelo `deepseek/deepseek-v4-flash-0731`, Redis TTL `2592000` segundos, janela 50 e cinco ferramentas Chatwoot.
+- A execução manual sintética `577598` terminou `success` em aproximadamente 13,6 s e respondeu `Fluxo ativo. Nenhuma ação foi executada.`; não houve ferramenta de mutação, mensagem pública ou WhatsApp.
+- A auditoria também confirmou que o nó `Webhook Conversation AI` está configurado com `allowedOrigins` do Chatwoot, mas com “No credentials required”. CORS não substitui autenticação: o hardening de assinatura/segredo dedicado permanece aberto.
+- Não foi reutilizada nenhuma credencial existente de API como autenticação de entrada do webhook. Isso evitaria expor/compartilhar segredo incorreto e exigiria criar um segredo específico, configurar n8n e enviar o mesmo segredo server-side pelo Chatwoot.
