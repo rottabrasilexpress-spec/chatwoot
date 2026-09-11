@@ -360,3 +360,18 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - A resposta confirmou o assistente e o modelo aprovados; nenhuma ferramenta ou ação externa foi executada nesse teste.
 - Verificação HTTP do Chatwoot ainda mostra o bundle anterior `dashboard-B9LgK-tZ.js` e SHA `b34f5b71...`; portanto, o deploy da branch `rotta-custom-v1` ainda não foi refletido no ambiente live.
 - O teste real Kelvin e a confirmação da migration permanecem bloqueados até o deploy do Chatwoot no Easypanel.
+
+## Validação E2E final pós-deploy — 11/09/2026
+
+- O deploy foi concluído no Easypanel e a aplicação pública voltou a `HTTP 200`.
+- Foi corrigida a publicação do bundle: o manifesto referenciava `dashboard-CSkKUU6u.js`, que foi versionado no commit `59058e4`. A tela deixou de ficar em branco e carregou histórico, lista de conversas, modo `Pergunte para IA` e texto auxiliar.
+- A investigação encontrou e corrigiu as causas do `404/422/500`: arquivos Enterprise ausentes no overlay Docker, modelo Enterprise de mensagem ausente e view que assumia `assistant` não nulo.
+- Diagnósticos temporários foram removidos do backend e do frontend. O bundle público foi consultado e retornou `200`, sem `ConversationAiProbe`, `X-Rotta-Conversation-Ai` ou `conversationAiStage`.
+- Teste real na conversa Kelvin `#2143`, pela chamada autenticada usada pelo Chatwoot: `POST /api/v1/accounts/1/captain/copilot_threads` retornou `200`; a leitura assíncrona de mensagens retornou `200`.
+- A resposta final persistida usou `deepseek/deepseek-v4-flash-0731`, consultou o histórico completo, confirmou a data `12/09/2026`, distinguiu a mensagem de teste de 08/09 e informou as pendências. O pedido sem ação não executou ferramenta externa.
+- O fluxo separado permanece com Redis por conversa, TTL de 30 dias (`2.592.000 s`), janela de 50 mensagens e ferramentas controladas. O workflow de Follow-up não foi alterado nesta rodada.
+- Cenários de maior risco cobertos: autorização e isolamento por conversa, resolução de identificador, thread sem assistente, autoria, contexto/histórico, job assíncrono, persistência, modelo, memória, polling, comando sem ação, carregamento visual e remoção de diagnósticos.
+- A validação não enviou mensagem pública nem usou o WhatsApp Web. Os testes criaram somente mensagens internas do Copilot na thread `3` do Kelvin.
+- Build Vite, ESLint focalizado e `git diff --check` aprovados. Ruby/RSpec não executáveis neste Windows por ausência de Ruby/Bundler; a execução Ruby no ambiente live foi comprovada pelo fluxo `200`.
+- Commits publicados: `31f7a82` e `59058e4`, branch `rotta-custom-v1`. Registro correspondente atualizado no Obsidian, checkpoint C30.
+- Limite residual: a matriz cobre os caminhos funcionais e de maior risco reproduzíveis, não todas as combinações imagináveis de produção. Deve-se manter como hardening a autenticação/assinatura dedicada do webhook n8n, se ainda não estiver configurada.
