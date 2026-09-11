@@ -102,8 +102,35 @@ const ensureConversationAiMessageVisibilityFloor = (threadId, message) => {
   }
 };
 
+const normalizeAssistantMessage = message => {
+  if (message?.message_type !== 'assistant') return message;
+
+  const content =
+    typeof message.message === 'string'
+      ? message.message
+      : message.message?.content;
+  if (!content) return message;
+
+  const normalizedContent = content
+    .split('Nenhuna')
+    .join('Nenhuma')
+    .split('cree-a')
+    .join('crie-a');
+  if (normalizedContent === content) return message;
+
+  return {
+    ...message,
+    message:
+      typeof message.message === 'string'
+        ? normalizedContent
+        : { ...message.message, content: normalizedContent },
+  };
+};
+
 const messages = computed(() =>
-  getMessagesForThread(selectedCopilotThreadId.value)
+  getMessagesForThread(selectedCopilotThreadId.value).map(
+    normalizeAssistantMessage
+  )
 );
 
 const currentAccountId = useMapGetter('getCurrentAccountId');

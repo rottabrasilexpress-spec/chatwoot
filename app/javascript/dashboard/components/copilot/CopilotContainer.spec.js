@@ -233,6 +233,58 @@ describe('CopilotContainer', () => {
     wrapper.unmount();
   });
 
+  it('normalizes known assistant typos without changing user messages', async () => {
+    testState.uiSettings.value = {
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    };
+    testState.refs.getSelectedChat.value = { display_id: 2304 };
+    testState.dispatch.mockImplementation((action, payload) => {
+      if (action === 'copilotThreads/create') {
+        return Promise.resolve({ id: 57 });
+      }
+      if (action === 'copilotMessages/get') {
+        testState.messageRecords = {
+          [Number(payload)]: [
+            { id: 90, message_type: 'user', message: 'Pergunta' },
+            {
+              id: 91,
+              message_type: 'assistant',
+              message: { content: 'Nenhuma etiqueta foi encontrada; cree-a.' },
+            },
+            {
+              id: 92,
+              message_type: 'assistant',
+              message: { content: 'Nenhuna etiqueta foi afetada.' },
+            },
+          ],
+        };
+      }
+      return Promise.resolve();
+    });
+
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+    copilot.vm.$emit('sendMessage', 'Pergunta');
+    await flushPromises();
+
+    expect(copilot.props('messages')).toEqual([
+      { id: 90, message_type: 'user', message: 'Pergunta' },
+      {
+        id: 91,
+        message_type: 'assistant',
+        message: { content: 'Nenhuma etiqueta foi encontrada; crie-a.' },
+      },
+      {
+        id: 92,
+        message_type: 'assistant',
+        message: { content: 'Nenhuma etiqueta foi afetada.' },
+      },
+    ]);
+
+    wrapper.unmount();
+  });
+
   it('ignores a thread created for a conversation that is no longer selected', async () => {
     let resolveRequest;
     testState.dispatch.mockImplementation(action => {
