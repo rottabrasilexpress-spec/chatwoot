@@ -18,7 +18,9 @@ RSpec.describe ConversationAi::ContextBuilder do
     payload = described_class.new(
       conversation: conversation,
       user: user,
-      question: 'Quantos móveis foram acrescentados?'
+      question: 'Quantos móveis foram acrescentados?',
+      request_id: 'req-123',
+      copilot_thread_id: 44
     ).payload
 
     expect(payload).to include(
@@ -26,6 +28,8 @@ RSpec.describe ConversationAi::ContextBuilder do
       conversation_id: 2165,
       session_key: 'chatwoot:conversation-ai:1:2165',
       question: 'Quantos móveis foram acrescentados?',
+      request_id: 'req-123',
+      copilot_thread_id: 44,
       agent: { id: 17, name: 'Caio', email: 'caio@example.com' }
     )
     expect(payload[:prompt]).to include('Support Agent:', 'User:', 'O valor foi R$ 500.', 'Tenho mais dois móveis.')

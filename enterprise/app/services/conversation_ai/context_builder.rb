@@ -1,10 +1,12 @@
 class ConversationAi::ContextBuilder
   SESSION_PREFIX = 'chatwoot:conversation-ai'.freeze
 
-  def initialize(conversation:, user:, question:)
+  def initialize(conversation:, user:, question:, request_id: nil, copilot_thread_id: nil)
     @conversation = conversation
     @user = user
     @question = question.to_s.strip
+    @request_id = request_id
+    @copilot_thread_id = copilot_thread_id
   end
 
   def payload
@@ -13,6 +15,8 @@ class ConversationAi::ContextBuilder
       conversation_id: @conversation.display_id.to_i,
       session_key: session_key,
       question: @question,
+      request_id: @request_id,
+      copilot_thread_id: @copilot_thread_id,
       agent: agent_payload,
       prompt: prompt
     }

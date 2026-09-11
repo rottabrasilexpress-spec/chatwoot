@@ -6,5 +6,6 @@ class AddConversationIdToCopilotThreads < ActiveRecord::Migration[7.0]
       [:account_id, :conversation_id],
       unique: true
     )
+    add_foreign_key :copilot_threads, :conversations unless foreign_key_exists?(:copilot_threads, :conversations)
   end
 end

@@ -30,4 +30,65 @@ RSpec.describe ConversationAi::ResponseJob, type: :job do
       [:key, :conversation_id]
     )
   end
+
+  it 'persists an answer only when the webhook envelope belongs to the thread' do
+    user = instance_double(User)
+    users = instance_double(ActiveRecord::Relation, find: user)
+    account = instance_double(Account, users: users)
+    conversation = instance_double(Conversation, display_id: 2165, account_id: 1)
+    messages = instance_double(ActiveRecord::Associations::CollectionProxy)
+    thread = instance_double(
+      CopilotThread,
+      id: 44,
+      account: account,
+      conversation: conversation,
+      copilot_messages: messages
+    )
+    relation = instance_double(ActiveRecord::Relation, find: thread)
+    response = instance_double(
+      HTTParty::Response,
+      code: 200,
+      success?: true,
+      parsed_response: {
+        'answer' => 'Resposta vinculada',
+        'request_id' => 'req-123',
+        'copilot_thread_id' => 44,
+        'conversation_id' => 2165,
+        'account_id' => 1
+      }
+    )
+
+    allow(SecureRandom).to receive(:uuid).and_return('req-123')
+    allow(CopilotThread).to receive(:includes).with(:account, :conversation).and_return(relation)
+    allow(ConversationAi::ContextBuilder).to receive(:new).and_return(
+      instance_double(ConversationAi::ContextBuilder, payload: { request_id: 'req-123' })
+    )
+    allow(HTTParty).to receive(:post).and_return(response)
+    expect(messages).to receive(:create!).with(
+      message_type: :assistant,
+      message: hash_including(content: 'Resposta vinculada')
+    )
+
+    job.perform(copilot_thread_id: 44, user_id: 17, message: 'teste')
+  end
+
+  it 'rejects a response correlated to another conversation' do
+    thread = instance_double(CopilotThread, id: 44)
+    conversation = instance_double(Conversation, display_id: 2165, account_id: 1)
+
+    expect do
+      job.send(
+        :validate_response_metadata!,
+        {
+          'request_id' => 'other-request',
+          'copilot_thread_id' => 44,
+          'conversation_id' => 2165,
+          'account_id' => 1
+        },
+        request_id: 'req-123',
+        copilot_thread: thread,
+        conversation: conversation
+      )
+    end.to raise_error(/vínculo inválido/)
+  end
 end

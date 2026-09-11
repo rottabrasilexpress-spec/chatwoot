@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_11_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1575,6 +1575,45 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
     t.index ["account_id", "url"], name: "index_webhooks_on_account_id_and_url", unique: true
   end
 
+  create_table "message_stars", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "message_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_message_stars_on_account_id"
+    t.index ["account_id", "user_id", "created_at"], name: "index_message_stars_on_account_id_and_user_id_and_created_at"
+    t.index ["message_id", "user_id"], name: "index_message_stars_on_message_id_and_user_id", unique: true
+    t.index ["message_id"], name: "index_message_stars_on_message_id"
+    t.index ["user_id"], name: "index_message_stars_on_user_id"
+  end
+
+  create_table "uazapi_webhook_deliveries", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "event", null: false
+    t.string "provider_message_id"
+    t.string "track_id"
+    t.bigint "conversation_id"
+    t.string "status", default: "received", null: false
+    t.integer "attempts", default: 1, null: false
+    t.datetime "received_at", null: false
+    t.datetime "processed_at"
+    t.integer "duration_ms"
+    t.integer "response_status"
+    t.string "error_class"
+    t.string "error_message"
+    t.string "payload_digest", null: false
+    t.string "correlation_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "provider_message_id"], name: "idx_uazapi_deliveries_account_provider"
+    t.index ["account_id", "received_at"], name: "idx_uazapi_deliveries_account_received"
+    t.index ["account_id", "status", "received_at"], name: "idx_uazapi_deliveries_account_status_received"
+    t.index ["conversation_id"], name: "idx_uazapi_deliveries_conversation"
+    t.index ["correlation_id"], name: "idx_uazapi_deliveries_correlation"
+  end
+
   create_table "working_hours", force: :cascade do |t|
     t.bigint "inbox_id"
     t.bigint "account_id"
@@ -1597,7 +1636,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
   add_foreign_key "campaign_recipients", "campaigns", on_delete: :cascade
   add_foreign_key "campaign_recipients", "contacts", on_delete: :cascade
   add_foreign_key "campaign_recipients", "inboxes", on_delete: :cascade
+  add_foreign_key "copilot_threads", "conversations"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "message_stars", "accounts"
+  add_foreign_key "message_stars", "messages"
+  add_foreign_key "message_stars", "users"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
