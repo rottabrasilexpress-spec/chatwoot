@@ -5,8 +5,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   before_action :ensure_accessible_conversation, only: :create
 
   def index
-    @copilot_threads = Current.account.copilot_threads
-                              .where(user_id: Current.user.id)
+    @copilot_threads = copilot_threads_scope
                               .includes(:user, :assistant)
                               .order(created_at: :desc)
                               .page(permitted_params[:page] || 1)
@@ -15,15 +14,30 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
 
   def create
     ActiveRecord::Base.transaction do
-      @copilot_thread = Current.account.copilot_threads.create!(
-        title: copilot_thread_params[:message],
-        user: Current.user,
-        assistant: assistant
-      )
+      @copilot_thread = if conversation_ai?
+                          conversation = accessible_conversation(
+                            account: Current.account,
+                            user: Current.user,
+                            display_id: copilot_thread_params[:conversation_id]
+                          )
+                          Current.account.copilot_threads.find_or_create_by!(
+                            conversation_id: conversation.id
+                          ) do |thread|
+                            thread.title = copilot_thread_params[:message]
+                            thread.user = Current.user
+                            thread.assistant = assistant
+                          end
+                        else
+                          Current.account.copilot_threads.create!(
+                            title: copilot_thread_params[:message],
+                            user: Current.user,
+                            assistant: assistant
+                          )
+                        end
 
       copilot_message = @copilot_thread.copilot_messages.create!(
         message_type: :user,
-        message: { content: copilot_thread_params[:message] }
+        message: user_message_payload
       )
 
       build_copilot_response(copilot_message)
@@ -33,7 +47,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   private
 
   def build_copilot_response(copilot_message)
-    if Current.account.usage_limits[:captain][:responses][:current_available].positive?
+    if conversation_ai? || Current.account.usage_limits[:captain][:responses][:current_available].positive?
       enqueue_copilot_response(copilot_message)
     else
       copilot_message.copilot_thread.copilot_messages.create!(
@@ -44,9 +58,19 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   end
 
   def enqueue_copilot_response(copilot_message)
+    return enqueue_conversation_ai_response(copilot_message) if conversation_ai?
     return enqueue_reply_suggestion if reply_suggestion?
 
     copilot_message.enqueue_response_job(copilot_thread_params[:conversation_id], Current.user.id)
+  end
+
+  def enqueue_conversation_ai_response(copilot_message)
+    ConversationAi::ResponseJob.perform_later(
+      copilot_thread_id: @copilot_thread.id,
+      conversation_id: copilot_thread_params[:conversation_id],
+      user_id: Current.user.id,
+      message: copilot_message.message['content']
+    )
   end
 
   def enqueue_reply_suggestion
@@ -59,11 +83,13 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   end
 
   def ensure_message
-    return render_could_not_create_error(I18n.t('captain.copilot_message_required')) if copilot_thread_params[:message].blank?
+    return render_could_not_create_error(
+      I18n.t('captain.copilot_message_required')
+    ) if copilot_thread_params[:message].blank?
   end
 
   def ensure_accessible_conversation
-    return unless reply_suggestion?
+    return unless reply_suggestion? || conversation_ai?
 
     conversation = accessible_conversation(
       account: Current.account,
@@ -77,8 +103,38 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     copilot_thread_params[:request_type] == 'reply_suggestion'
   end
 
+  def conversation_ai?
+    copilot_thread_params[:request_type] == 'conversation_ai'
+  end
+
+  def copilot_threads_scope
+    if permitted_params[:conversation_id].present?
+      conversation = accessible_conversation(
+        account: Current.account,
+        user: Current.user,
+        display_id: permitted_params[:conversation_id]
+      )
+      raise ActiveRecord::RecordNotFound if conversation.blank?
+
+      Current.account.copilot_threads.where(conversation_id: conversation.id)
+    else
+      Current.account.copilot_threads.where(user_id: Current.user.id)
+    end
+  end
+
   def assistant
     Current.account.captain_assistants.find(copilot_thread_params[:assistant_id])
+  end
+
+  def user_message_payload
+    return { content: copilot_thread_params[:message] } unless conversation_ai?
+
+    {
+      content: copilot_thread_params[:message],
+      author_id: Current.user.id,
+      author_name: Current.user.name,
+      author_email: Current.user.email
+    }
   end
 
   def copilot_thread_params
@@ -86,6 +142,6 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   end
 
   def permitted_params
-    params.permit(:page)
+    params.permit(:page, :conversation_id)
   end
 end

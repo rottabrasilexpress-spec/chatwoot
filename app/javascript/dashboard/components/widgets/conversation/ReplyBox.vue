@@ -95,6 +95,7 @@ export default {
       fetchSignatureFlagFromUISettings,
       setQuotedReplyFlagForInbox,
       fetchQuotedReplyFlagFromUISettings,
+      updateUISettings,
     } = useUISettings();
 
     const replyEditor = useTemplateRef('replyEditor');
@@ -114,6 +115,12 @@ export default {
       copilot,
       shortcutKey,
       macroExecution,
+      openConversationAi: () =>
+        updateUISettings({
+          is_contact_sidebar_open: false,
+          is_copilot_panel_open: true,
+          is_conversation_ai_open: true,
+        }),
     };
   },
   data() {
@@ -1352,7 +1359,9 @@ export default {
       :characters-remaining="charactersRemaining"
       :editor-content="message"
       :has-content="hasMeaningfulEditorContent"
+      :conversation-ai-active="uiSettings?.is_conversation_ai_open"
       @set-reply-mode="setReplyMode"
+      @open-conversation-ai="openConversationAi"
       @toggle-editor-size="toggleEditorSize"
       @toggle-copilot="copilot.toggleEditor"
       @execute-copilot-action="executeCopilotAction"

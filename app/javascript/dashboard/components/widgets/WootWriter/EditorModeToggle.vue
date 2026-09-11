@@ -16,15 +16,27 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showConversationAi: {
+    type: Boolean,
+    default: false,
+  },
+  conversationAiActive: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-defineEmits(['toggleMode']);
+defineEmits(['toggleMode', 'openConversationAi']);
 
 const wootEditorReplyMode = useTemplateRef('wootEditorReplyMode');
 const wootEditorPrivateMode = useTemplateRef('wootEditorPrivateMode');
+const wootEditorConversationAiMode = useTemplateRef(
+  'wootEditorConversationAiMode'
+);
 
 const replyModeSize = useElementSize(wootEditorReplyMode);
 const privateModeSize = useElementSize(wootEditorPrivateMode);
+const conversationAiModeSize = useElementSize(wootEditorConversationAiMode);
 
 /**
  * Computed boolean indicating if the editor is in private note mode
@@ -41,17 +53,19 @@ const isPrivate = computed(() => {
   return props.mode === REPLY_EDITOR_MODES.NOTE;
 });
 
+const activeModeSize = computed(() => {
+  if (props.conversationAiActive) return conversationAiModeSize.width.value;
+  if (isPrivate.value) return privateModeSize.width.value;
+  return replyModeSize.width.value;
+});
+
 /**
  * Computes the width of the sliding background chip in pixels
  * Includes 16px of padding in the calculation
  * @type {ComputedRef<string>}
  */
 const width = computed(() => {
-  const widthToUse = isPrivate.value
-    ? privateModeSize.width.value
-    : replyModeSize.width.value;
-
-  const widthWithPadding = widthToUse + 16;
+  const widthWithPadding = activeModeSize.value + 16;
   return `${widthWithPadding}px`;
 });
 
@@ -61,7 +75,12 @@ const width = computed(() => {
  * @type {ComputedRef<string>}
  */
 const translateValue = computed(() => {
-  const xTranslate = isPrivate.value ? replyModeSize.width.value + 16 : 0;
+  let xTranslate = 0;
+  if (props.conversationAiActive) {
+    xTranslate = replyModeSize.width.value + privateModeSize.width.value + 32;
+  } else if (isPrivate.value) {
+    xTranslate = replyModeSize.width.value + 16;
+  }
 
   return `${xTranslate}px`;
 });
@@ -81,6 +100,15 @@ const translateValue = computed(() => {
     </div>
     <div ref="wootEditorPrivateMode" class="flex items-center gap-1 px-2 z-20">
       {{ $t('CONVERSATION.REPLYBOX.PRIVATE_NOTE') }}
+    </div>
+    <div
+      v-if="showConversationAi"
+      ref="wootEditorConversationAiMode"
+      class="flex items-center gap-1 px-2 z-20 text-n-violet-9"
+      :title="$t('CONVERSATION.REPLYBOX.CONVERSATION_AI_HELPER')"
+      @click.stop="$emit('openConversationAi')"
+    >
+      {{ $t('CONVERSATION.REPLYBOX.CONVERSATION_AI') }}
     </div>
     <div
       class="absolute shadow-sm rounded-full h-6 w-[var(--chip-width)] ease-in-out translate-x-[var(--translate-x)] rtl:translate-x-[var(--rtl-translate-x)] bg-n-solid-1"

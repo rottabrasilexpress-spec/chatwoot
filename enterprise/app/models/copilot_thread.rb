@@ -20,6 +20,7 @@ class CopilotThread < ApplicationRecord
   belongs_to :user
   belongs_to :account
   belongs_to :assistant, class_name: 'Captain::Assistant'
+  belongs_to :conversation, optional: true
   has_many :copilot_messages, dependent: :destroy_async
 
   validates :title, presence: true
@@ -30,7 +31,8 @@ class CopilotThread < ApplicationRecord
       title: title,
       created_at: created_at.to_i,
       user: user.push_event_data,
-      account_id: account_id
+      account_id: account_id,
+      conversation_id: conversation&.display_id
     }
   end
 

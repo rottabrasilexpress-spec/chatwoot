@@ -96,6 +96,7 @@ Rails.application.routes.draw do
             resources :copilot_threads, only: [:index, :create] do
               resources :copilot_messages, only: [:index, :create]
             end
+            post 'conversation_ai/actions', to: 'conversation_ai#actions'
             resources :custom_tools do
               post :test, on: :collection
             end

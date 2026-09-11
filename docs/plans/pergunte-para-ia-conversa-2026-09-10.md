@@ -1,7 +1,7 @@
 # Planejamento — Pergunte para IA dentro da conversa
 
 Data: 10/09/2026  
-Status: planejamento; nenhuma publicação ou alteração funcional feita  
+Status: implementação em validação; publicação pendente da revisão/deploy do Chatwoot
 Escopo: Chatwoot Rotta, conversa isolada, agentes autorizados e integração OpenRouter/n8n
 
 ## Evidência do vídeo e do áudio
@@ -309,3 +309,41 @@ Decisões confirmadas pelo usuário antes do início da implementação:
 “Pode alterar tudo” será implementado como autonomia limitada ao escopo da conversa e às ferramentas explicitamente disponibilizadas. Cada ação terá validação de autorização, confirmação de alvo, idempotência, resultado estruturado e trilha de auditoria. A IA não receberá acesso SQL arbitrário, credenciais ou uma ferramenta genérica de execução.
 
 Para ações de alto impacto — envio de mensagem externa, resolução/arquivamento e exclusões — a primeira versão exibirá a ação proposta e exigirá confirmação no painel, salvo nova autorização explícita para modo sem confirmação. Etiquetas, leitura e alterações reversíveis poderão ser executadas diretamente.
+
+## Implementação iniciada — 11/09/2026
+
+### Entregas realizadas na branch
+
+- Criada a opção `Pergunte para IA` ao lado de `Responder` e `Mensagem Privada`, com descrição auxiliar e painel interno separado.
+- Criada thread compartilhada por conversa, com autorização derivada do acesso normal do agente à conversa e autor preservado nas mensagens.
+- Criado o contexto completo textual da conversa, incluindo mensagens públicas, notas privadas, etiquetas, contato e identificação do agente.
+- Criado job server-side para chamar o webhook separado, persistir a resposta e publicar falha amigável sem enviar nada ao cliente por padrão.
+- Criadas ações n8n controladas para etiqueta, remoção de etiqueta, mensagem pública explícita, nota privada explícita e status permitido.
+- A associação persistida usa o `conversations.id`; a interface e o contrato externo continuam usando o `display_id` do Chatwoot.
+
+### Workflow n8n separado
+
+- Nome: `Rotta Chatwoot — Pergunte para IA v1`.
+- Modelo: `deepseek/deepseek-v4-flash-0731`.
+- Memória: Redis, chave por conta/conversa, TTL de 30 dias e janela de 50 mensagens de memória.
+- Streaming desativado para reduzir variabilidade na primeira versão e devolver resposta JSON completa.
+- Workflow de Follow-up existente não foi alterado.
+
+### Evidências de teste já obtidas
+
+- Execução sintética 575076: resposta factual sobre quantidade de móveis e reconhecimento de dado final ausente.
+- Execução sintética 575077: memória compartilhada recuperou a pergunta/resposta anterior na mesma conversa.
+- Execução sintética 575079: comando explícito de adicionar etiqueta acionou somente a ferramenta de etiqueta, com resultado auditável e sem efeito externo real.
+- Validação n8n: workflow válido com 10 nós e sem avisos de configuração.
+- ESLint focado nos arquivos Vue/JS alterados: aprovado.
+- `git diff --check`: aprovado; os avisos restantes são apenas conversão de final de linha do checkout Windows.
+- Vitest do `CopilotContainer`: bloqueado antes da coleta por dependência local `fake-indexeddb/auto` apontando para o checkout compartilhado; não houve falha de caso de teste. Será repetido no ambiente de CI/deploy.
+- Testes Ruby/RSpec: não executáveis neste Windows porque Ruby/Bundler não estão instalados; a revisão estática foi feita e deve ser confirmada no CI do deploy.
+
+### Próximos checkpoints obrigatórios
+
+1. Publicar o commit no GitHub e aguardar o deploy do Chatwoot.
+2. Publicar/ativar o workflow n8n separado.
+3. Confirmar a rota e a migration no ambiente implantado.
+4. Fazer teste real autorizado na conversa Kelvin, sem enviar mensagem externa durante a validação inicial.
+5. Registrar resultado, horário, versão e rollback no Obsidian.

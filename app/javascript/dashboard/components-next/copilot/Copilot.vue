@@ -35,6 +35,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  conversationAiMode: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['sendMessage', 'reset', 'setAssistant']);
@@ -84,6 +88,8 @@ const groupedMessages = computed(() => {
 });
 
 const isLastMessageFromAssistant = computed(() => {
+  if (groupedMessages.value.length === 0) return false;
+
   return (
     groupedMessages.value[groupedMessages.value.length - 1].message_type ===
     'assistant'
@@ -96,6 +102,7 @@ const closeCopilotPanel = () => {
   updateUISettings({
     is_copilot_panel_open: false,
     is_contact_sidebar_open: false,
+    is_conversation_ai_open: false,
   });
 };
 
@@ -131,11 +138,21 @@ watch(
 <template>
   <div class="flex flex-col h-full text-sm leading-6 tracking-tight w-full">
     <SidebarActionsHeader
-      :title="$t('CAPTAIN.COPILOT.TITLE')"
+      :title="
+        conversationAiMode
+          ? $t('CONVERSATION.COPILOT.CONVERSATION_AI_TITLE')
+          : $t('CAPTAIN.COPILOT.TITLE')
+      "
       :buttons="copilotButtons"
       @click="handleSidebarAction"
       @close="closeCopilotPanel"
     />
+    <p
+      v-if="conversationAiMode"
+      class="px-4 py-2 text-xs leading-5 text-n-slate-10 border-b border-n-weak"
+    >
+      {{ $t('CONVERSATION.COPILOT.CONVERSATION_AI_DESCRIPTION') }}
+    </p>
     <div
       ref="chatContainer"
       class="flex-1 flex px-4 py-4 overflow-y-auto items-start"

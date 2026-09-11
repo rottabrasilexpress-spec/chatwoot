@@ -57,8 +57,17 @@ export default {
       type: Boolean,
       default: false,
     },
+    conversationAiActive: {
+      type: Boolean,
+      default: false,
+    },
   },
-  emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
+  emits: [
+    'setReplyMode',
+    'toggleEditorSize',
+    'executeCopilotAction',
+    'openConversationAi',
+  ],
   setup(props, { emit }) {
     const setReplyMode = mode => {
       emit('setReplyMode', mode);
@@ -69,6 +78,9 @@ export default {
     };
     const handleNoteClick = () => {
       setReplyMode(REPLY_EDITOR_MODES.NOTE);
+    };
+    const handleConversationAiClick = () => {
+      emit('openConversationAi');
     };
     const handleModeToggle = () => {
       const newMode =
@@ -118,6 +130,7 @@ export default {
       handleModeToggle,
       handleReplyClick,
       handleNoteClick,
+      handleConversationAiClick,
       REPLY_EDITOR_MODES,
       captainTasksEnabled,
       handleCopilotAction,
@@ -158,7 +171,10 @@ export default {
       :mode="mode"
       :disabled="disabled"
       :is-reply-restricted="isReplyRestricted"
+      :show-conversation-ai="captainTasksEnabled"
+      :conversation-ai-active="conversationAiActive"
       @toggle-mode="handleModeToggle"
+      @open-conversation-ai="handleConversationAiClick"
     />
     <div class="flex items-center mx-4 my-0">
       <div v-if="isMessageLengthReachingThreshold" class="text-xs">

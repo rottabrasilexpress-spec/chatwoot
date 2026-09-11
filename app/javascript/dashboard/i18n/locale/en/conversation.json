@@ -281,6 +281,8 @@
     "REPLYBOX": {
       "REPLY": "Reply",
       "PRIVATE_NOTE": "Private Note",
+      "CONVERSATION_AI": "Pergunte para IA",
+      "CONVERSATION_AI_HELPER": "Consulta o histórico completo desta conversa e a memória compartilhada da equipe.",
       "SEND": "Send",
       "CREATE": "Add Note",
       "INSERT_READ_MORE": "Read more",
@@ -592,7 +594,9 @@
     "MULTIPLE": "{user} and {count} others are typing"
   },
   "COPILOT": {
-    "TRY_THESE_PROMPTS": "Try these prompts"
+    "TRY_THESE_PROMPTS": "Try these prompts",
+    "CONVERSATION_AI_TITLE": "Pergunte para IA",
+    "CONVERSATION_AI_DESCRIPTION": "Assistente interno compartilhado para consultar a cronologia da conversa e executar comandos autorizados."
   },
   "GALLERY_VIEW": {
     "ERROR_DOWNLOADING": "Unable to download attachment. Please try again"

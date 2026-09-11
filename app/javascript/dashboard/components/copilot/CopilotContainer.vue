@@ -79,6 +79,7 @@ const closeCopilotPanel = () => {
     updateUISettings({
       is_contact_sidebar_open: false,
       is_copilot_panel_open: false,
+      is_conversation_ai_open: false,
     });
   }
 };
@@ -102,11 +103,31 @@ const shouldShowCopilotPanel = computed(() => {
   return isCaptainEnabled && isCopilotPanelOpen && !uiFlags.value.fetchingList;
 });
 
-const handleReset = () => {
+const isConversationAiMode = computed(
+  () => uiSettings.value?.is_conversation_ai_open === true
+);
+
+const handleReset = async () => {
   selectedCopilotThreadId.value = null;
+
+  const conversationId = currentChat.value?.id;
+  if (!isConversationAiMode.value || !conversationId) return;
+
+  try {
+    const threads = await store.dispatch('copilotThreads/get', {
+      conversation_id: conversationId,
+    });
+    const thread = threads?.[0];
+    if (!thread || currentChat.value?.id !== conversationId) return;
+
+    selectedCopilotThreadId.value = thread.id;
+    await store.dispatch('copilotMessages/get', thread.id);
+  } catch (error) {
+    useAlert(error.message);
+  }
 };
 
-watch(() => currentChat.value?.id, handleReset);
+watch([() => currentChat.value?.id, isConversationAiMode], handleReset);
 
 const sendMessage = async payload => {
   const message = typeof payload === 'string' ? payload : payload.message;
@@ -127,6 +148,7 @@ const sendMessage = async payload => {
         assistant_id: activeAssistant.value.id,
         conversation_id: conversationId,
         message,
+        ...(isConversationAiMode.value && { request_type: 'conversation_ai' }),
         ...(requestType && { request_type: requestType }),
       });
       if (currentChat.value?.id === conversationId) {
@@ -164,6 +186,7 @@ onMounted(() => {
       :assistants="assistants"
       :active-assistant="activeAssistant"
       :can-suggest-reply="canSuggestReply"
+      :conversation-ai-mode="isConversationAiMode"
       @set-assistant="setAssistant"
       @send-message="sendMessage"
       @reset="handleReset"
