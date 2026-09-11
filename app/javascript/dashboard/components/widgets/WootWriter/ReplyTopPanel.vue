@@ -173,7 +173,7 @@ export default {
       :is-reply-restricted="isReplyRestricted"
       :show-conversation-ai="captainTasksEnabled"
       :conversation-ai-active="conversationAiActive"
-      @toggle-mode="handleModeToggle"
+      @set-reply-mode="setReplyMode"
       @open-conversation-ai="handleConversationAiClick"
     />
     <div class="flex items-center mx-4 my-0">

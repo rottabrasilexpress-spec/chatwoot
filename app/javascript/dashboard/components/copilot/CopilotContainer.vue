@@ -42,6 +42,10 @@ const currentConversationId = computed(() => {
   return null;
 });
 
+const isConversationAiMode = computed(
+  () => uiSettings.value?.is_conversation_ai_open === true
+);
+
 const canSuggestReply = computed(
   () => lastPublicMessage.value?.message_type === MESSAGE_TYPE.INCOMING
 );
@@ -52,10 +56,23 @@ const isSmallScreen = computed(
 
 const selectedCopilotThreadId = ref(null);
 const conversationAiRefreshPromises = new Map();
+const conversationAiMessageVisibilityFloor = new Map();
+
+const getMessagesForThread = threadId => {
+  const allMessages =
+    store.getters['copilotMessages/getMessagesByThreadId'](threadId);
+  if (!isConversationAiMode.value) return allMessages;
+
+  const visibilityFloor = conversationAiMessageVisibilityFloor.get(
+    Number(threadId)
+  );
+  if (!visibilityFloor) return allMessages;
+
+  return allMessages.filter(message => message.id >= visibilityFloor);
+};
+
 const messages = computed(() =>
-  store.getters['copilotMessages/getMessagesByThreadId'](
-    selectedCopilotThreadId.value
-  )
+  getMessagesForThread(selectedCopilotThreadId.value)
 );
 
 const currentAccountId = useMapGetter('getCurrentAccountId');
@@ -123,29 +140,9 @@ const shouldShowCopilotPanel = computed(() => {
   );
 });
 
-const isConversationAiMode = computed(
-  () => uiSettings.value?.is_conversation_ai_open === true
-);
-
-const handleReset = async () => {
+const handleReset = () => {
   selectedCopilotThreadId.value = null;
-
-  const conversationId = currentConversationId.value;
-  if (!isConversationAiMode.value || !conversationId) return;
-
-  try {
-    const threads = await store.dispatch('copilotThreads/get', {
-      conversation_id: conversationId,
-      ...(isConversationAiMode.value && { request_type: 'conversation_ai' }),
-    });
-    const thread = threads?.[0];
-    if (!thread || currentConversationId.value !== conversationId) return;
-
-    selectedCopilotThreadId.value = thread.id;
-    await store.dispatch('copilotMessages/get', thread.id);
-  } catch (error) {
-    useAlert(error.message);
-  }
+  conversationAiMessageVisibilityFloor.clear();
 };
 
 watch([currentConversationId, isConversationAiMode], handleReset, {
@@ -181,13 +178,16 @@ const refreshConversationAiMessages = async (
         useAlert(error.message);
         return;
       }
-      const assistantCount = store.getters[
-        'copilotMessages/getMessagesByThreadId'
-      ](threadId).filter(
+      const assistantCount = getMessagesForThread(threadId).filter(
         message => message.message_type === 'assistant'
       ).length;
 
-      if (assistantCount > assistantCountBeforeRequest) return;
+      if (assistantCount > assistantCountBeforeRequest) {
+        if (isConversationAiMode.value && currentConversationId.value) {
+          store.dispatch('getConversation', currentConversationId.value);
+        }
+        return;
+      }
       if (attempt < CONVERSATION_AI_MAX_POLL_ATTEMPTS - 1) {
         // eslint-disable-next-line no-await-in-loop
         await wait(CONVERSATION_AI_POLL_INTERVAL);
@@ -216,13 +216,24 @@ const sendMessage = async payload => {
 
   try {
     if (selectedCopilotThreadId.value) {
-      await store.dispatch('copilotMessages/create', {
+      const response = await store.dispatch('copilotMessages/create', {
         ...(assistantId && { assistant_id: assistantId }),
         conversation_id: currentConversationId.value,
         threadId: selectedCopilotThreadId.value,
         message,
       });
       if (isConversationAiMode.value) {
+        if (
+          response?.id &&
+          !conversationAiMessageVisibilityFloor.has(
+            Number(selectedCopilotThreadId.value)
+          )
+        ) {
+          conversationAiMessageVisibilityFloor.set(
+            Number(selectedCopilotThreadId.value),
+            response.id
+          );
+        }
         refreshConversationAiMessages(
           selectedCopilotThreadId.value,
           assistantCountBeforeRequest
@@ -240,7 +251,12 @@ const sendMessage = async payload => {
       if (currentConversationId.value === conversationId) {
         selectedCopilotThreadId.value = response.id;
         if (isConversationAiMode.value) {
-          await store.dispatch('copilotMessages/get', response.id);
+          if (response.copilot_message_id) {
+            conversationAiMessageVisibilityFloor.set(
+              Number(response.id),
+              response.copilot_message_id
+            );
+          }
           refreshConversationAiMessages(
             response.id,
             assistantCountBeforeRequest

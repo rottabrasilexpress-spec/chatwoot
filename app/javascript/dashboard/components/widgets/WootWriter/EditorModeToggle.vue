@@ -26,7 +26,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(['toggleMode', 'openConversationAi']);
+const emit = defineEmits(['setReplyMode', 'openConversationAi']);
 
 const wootEditorReplyMode = useTemplateRef('wootEditorReplyMode');
 const wootEditorPrivateMode = useTemplateRef('wootEditorPrivateMode');
@@ -84,34 +84,58 @@ const translateValue = computed(() => {
 
   return `${xTranslate}px`;
 });
+
+const selectMode = mode => {
+  emit('setReplyMode', mode);
+};
 </script>
 
 <template>
-  <button
+  <div
+    role="group"
+    :aria-disabled="disabled || isReplyRestricted"
     class="flex items-center w-auto h-8 p-1 transition-all border rounded-full bg-n-alpha-2 group relative duration-300 ease-in-out z-0 active:scale-[0.995] active:duration-75"
-    :disabled="disabled || isReplyRestricted"
     :class="{
       'cursor-not-allowed': disabled || isReplyRestricted,
     }"
-    @click="$emit('toggleMode')"
   >
-    <div ref="wootEditorReplyMode" class="flex items-center gap-1 px-2 z-20">
+    <button
+      ref="wootEditorReplyMode"
+      type="button"
+      data-reply-mode
+      class="flex items-center gap-1 px-2 z-20 border-0 bg-transparent"
+      :disabled="disabled || isReplyRestricted"
+      :aria-pressed="!isPrivate && !conversationAiActive"
+      @click.stop="selectMode(REPLY_EDITOR_MODES.REPLY)"
+    >
       {{ $t('CONVERSATION.REPLYBOX.REPLY') }}
-    </div>
-    <div ref="wootEditorPrivateMode" class="flex items-center gap-1 px-2 z-20">
+    </button>
+    <button
+      ref="wootEditorPrivateMode"
+      type="button"
+      data-private-note-mode
+      class="flex items-center gap-1 px-2 z-20 border-0 bg-transparent"
+      :disabled="disabled || isReplyRestricted"
+      :aria-pressed="isPrivate && !conversationAiActive"
+      @click.stop="selectMode(REPLY_EDITOR_MODES.NOTE)"
+    >
       {{ $t('CONVERSATION.REPLYBOX.PRIVATE_NOTE') }}
-    </div>
-    <div
+    </button>
+    <button
       v-if="showConversationAi"
       ref="wootEditorConversationAiMode"
+      type="button"
       data-conversation-ai-toggle
-      class="flex items-center gap-1 px-2 z-20 text-n-violet-9"
+      class="flex items-center gap-1 px-2 z-20 text-n-violet-9 border-0 bg-transparent"
+      :disabled="disabled || isReplyRestricted"
+      :aria-pressed="conversationAiActive"
       :title="$t('CONVERSATION.REPLYBOX.CONVERSATION_AI_HELPER')"
       @click.stop="$emit('openConversationAi')"
     >
       {{ $t('CONVERSATION.REPLYBOX.CONVERSATION_AI') }}
-    </div>
+    </button>
     <div
+      aria-hidden="true"
       class="absolute shadow-sm rounded-full h-6 w-[var(--chip-width)] ease-in-out translate-x-[var(--translate-x)] rtl:translate-x-[var(--rtl-translate-x)] bg-n-solid-1"
       :class="{
         'transition-all duration-300': !disabled && !isReplyRestricted,
@@ -122,5 +146,5 @@ const translateValue = computed(() => {
         '--rtl-translate-x': `calc(-1 * var(--translate-x))`,
       }"
     />
-  </button>
+  </div>
 </template>

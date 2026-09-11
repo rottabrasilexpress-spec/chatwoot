@@ -7,6 +7,7 @@ const testState = vi.hoisted(() => ({
   refs: {},
   uiSettings: null,
   messageCounts: {},
+  messageRecords: {},
 }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
@@ -43,6 +44,11 @@ vi.mock('dashboard/composables/store', async () => {
 
   const getMessagesForThreadId = threadId => {
     if (!threadId) return [];
+    if (
+      Object.prototype.hasOwnProperty.call(testState.messageRecords, threadId)
+    ) {
+      return testState.messageRecords[threadId];
+    }
     if (
       !Object.prototype.hasOwnProperty.call(testState.messageCounts, threadId)
     ) {
@@ -87,6 +93,7 @@ describe('CopilotContainer', () => {
     testState.dispatch.mockReset();
     testState.dispatch.mockResolvedValue(undefined);
     testState.messageCounts = {};
+    testState.messageRecords = {};
     testState.uiSettings.value = { is_copilot_panel_open: true };
     testState.refs.getSelectedChat.value = { id: 1 };
   });
@@ -110,7 +117,7 @@ describe('CopilotContainer', () => {
     expect(copilot.props('messages')).toEqual([]);
   });
 
-  it('loads the current conversation thread on initial mount', async () => {
+  it('starts with an empty conversation AI panel on initial mount', async () => {
     testState.uiSettings.value = {
       is_copilot_panel_open: true,
       is_conversation_ai_open: true,
@@ -129,14 +136,55 @@ describe('CopilotContainer', () => {
     const wrapper = mountComponent();
     await flushPromises();
 
-    expect(testState.dispatch).toHaveBeenCalledWith('copilotThreads/get', {
-      conversation_id: 2294,
-      request_type: 'conversation_ai',
-    });
-    expect(testState.dispatch).toHaveBeenCalledWith('copilotMessages/get', 55);
+    expect(testState.dispatch).not.toHaveBeenCalledWith(
+      'copilotThreads/get',
+      expect.anything()
+    );
+    expect(testState.dispatch).not.toHaveBeenCalledWith(
+      'copilotMessages/get',
+      expect.anything()
+    );
     expect(
       wrapper.findComponent({ name: 'Copilot' }).props('messages')
-    ).toEqual([{ id: 1, message_type: 'assistant' }]);
+    ).toEqual([]);
+
+    wrapper.unmount();
+  });
+
+  it('hides old messages when the reused conversation AI thread receives a new request', async () => {
+    testState.uiSettings.value = {
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    };
+    testState.refs.getSelectedChat.value = { display_id: 2304 };
+    testState.dispatch.mockImplementation((action, payload) => {
+      if (action === 'copilotThreads/create') {
+        return Promise.resolve({ id: 55, copilot_message_id: 90 });
+      }
+      if (action === 'copilotMessages/get') {
+        testState.messageCounts[Number(payload)] = 1;
+        testState.messageRecords = {
+          ...testState.messageRecords,
+          [Number(payload)]: [
+            { id: 12, message_type: 'assistant' },
+            { id: 90, message_type: 'user' },
+            { id: 91, message_type: 'assistant' },
+          ],
+        };
+      }
+      return Promise.resolve();
+    });
+
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+    copilot.vm.$emit('sendMessage', 'Pergunta nova');
+    await flushPromises();
+
+    expect(copilot.props('messages')).toEqual([
+      { id: 90, message_type: 'user' },
+      { id: 91, message_type: 'assistant' },
+    ]);
+    expect(testState.dispatch).toHaveBeenCalledWith('getConversation', 2304);
 
     wrapper.unmount();
   });
