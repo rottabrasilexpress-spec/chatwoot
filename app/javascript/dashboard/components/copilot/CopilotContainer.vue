@@ -148,7 +148,9 @@ const handleReset = async () => {
   }
 };
 
-watch([currentConversationId, isConversationAiMode], handleReset);
+watch([currentConversationId, isConversationAiMode], handleReset, {
+  immediate: true,
+});
 
 const wait = timeout =>
   new Promise(resolve => {

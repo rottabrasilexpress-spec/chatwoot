@@ -58,15 +58,28 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
     raise ArgumentError, 'Etiqueta é obrigatória.' if normalized.blank?
 
     if add
-      raise ArgumentError, 'Etiqueta não encontrada.' unless Current.account.labels.exists?(title: normalized)
+      label_title = account_label_title(normalized)
+      raise ArgumentError, 'Etiqueta não encontrada.' if label_title.blank?
 
-      labels = (labels + [normalized]).uniq
+      labels = (labels + [label_title]).uniq
     else
-      labels = labels.reject { |label| label.casecmp?(normalized) }
+      requested_label_key = label_key(normalized)
+      labels = labels.reject { |label| label_key(label) == requested_label_key }
     end
 
     conversation.update_labels(labels)
     { labels: conversation.label_list }
+  end
+
+  def account_label_title(value)
+    requested_label_key = label_key(value)
+    Current.account.labels.find do |label|
+      label_key(label.title) == requested_label_key
+    end&.title
+  end
+
+  def label_key(value)
+    I18n.transliterate(value.to_s).downcase.gsub(/[^a-z0-9]/, '')
   end
 
   def create_message(conversation, content:, private:)

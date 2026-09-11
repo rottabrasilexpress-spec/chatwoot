@@ -47,4 +47,32 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
 
     expect(response).to have_http_status(:unauthorized)
   end
+
+  it 'accepts a human-readable label name and removes the stored label slug' do
+    create(:label, account: account, title: 'caio-atencao')
+
+    post endpoint,
+         params: {
+           conversation_id: conversation.display_id,
+           action: 'add_label',
+           label: 'Caio Atenção'
+         },
+         headers: admin.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(conversation.reload.label_list).to include('caio-atencao')
+
+    post endpoint,
+         params: {
+           conversation_id: conversation.display_id,
+           action: 'remove_label',
+           label: 'Caio Atenção'
+         },
+         headers: admin.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(conversation.reload.label_list).not_to include('caio-atencao')
+  end
 end

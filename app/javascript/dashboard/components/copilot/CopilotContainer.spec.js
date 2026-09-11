@@ -110,6 +110,37 @@ describe('CopilotContainer', () => {
     expect(copilot.props('messages')).toEqual([]);
   });
 
+  it('loads the current conversation thread on initial mount', async () => {
+    testState.uiSettings.value = {
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    };
+    testState.refs.getSelectedChat.value = { display_id: 2294 };
+    testState.dispatch.mockImplementation((action, payload) => {
+      if (action === 'copilotThreads/get') {
+        return Promise.resolve([{ id: 55 }]);
+      }
+      if (action === 'copilotMessages/get') {
+        testState.messageCounts[Number(payload)] = 1;
+      }
+      return Promise.resolve();
+    });
+
+    const wrapper = mountComponent();
+    await flushPromises();
+
+    expect(testState.dispatch).toHaveBeenCalledWith('copilotThreads/get', {
+      conversation_id: 2294,
+      request_type: 'conversation_ai',
+    });
+    expect(testState.dispatch).toHaveBeenCalledWith('copilotMessages/get', 55);
+    expect(
+      wrapper.findComponent({ name: 'Copilot' }).props('messages')
+    ).toEqual([{ id: 1, message_type: 'assistant' }]);
+
+    wrapper.unmount();
+  });
+
   it('ignores a thread created for a conversation that is no longer selected', async () => {
     let resolveRequest;
     testState.dispatch.mockImplementation(action => {
