@@ -6,7 +6,10 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
     conversation = Current.account.conversations.find_by!(display_id: params[:conversation_id])
     authorize conversation, :show?
 
-    action = permitted_params[:action].to_s
+    # Rails reserves params[:action] for the controller method name (`actions`).
+    # Read the JSON body directly so the n8n contract can safely keep using
+    # `action: "..."` without being overwritten by the route metadata.
+    action = request.request_parameters['action'].presence || request.request_parameters[:action].presence || permitted_params[:operation].to_s
     unless ALLOWED_ACTIONS.include?(action)
       return render json: { ok: false, error: 'Ação não permitida.' }, status: :unprocessable_entity
     end
@@ -112,6 +115,6 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
   end
 
   def permitted_params
-    params.permit(:conversation_id, :action, :label, :content, :status)
+    params.permit(:conversation_id, :label, :content, :status, :operation)
   end
 end
