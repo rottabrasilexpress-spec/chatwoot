@@ -457,3 +457,13 @@ Para ações de alto impacto — envio de mensagem externa, resolução/arquivam
 - Ruby/RSpec/RuboCop continuam sem execução neste Windows por ausência de Ruby/Bundler. O limite permanece explicitamente registrado; não foi declarado como aprovado.
 - As mudanças deste checkpoint são testes/comentários, sem alteração de lógica de produção nem novo deploy; o runtime publicado continua sendo o commit `5c2798f`, documentado no C37 e validado visualmente/E2E.
 - O workflow de Follow-up e o arquivo `.audit-antonio/relacao-de-bens.docx` permaneceram fora do escopo/Git.
+
+## Checkpoint C39 — redeploy e validação pós-retomada — 11/09/2026
+
+- O branch `rotta-gauntlet-20260909`, no commit `3d79be7`, foi redeployado no Easypanel após a retomada do trabalho. O serviço voltou a responder HTTP 200; os logs confirmaram Rails/Ruby 3.4.4 em produção, Redis conectado e banco pronto.
+- A imagem de produção informa que os grupos `development` e `test` não são instalados. Por segurança, a imagem e os dados não foram alterados apenas para instalar RSpec; isso explica a limitação de teste Ruby sem representar falha do runtime.
+- Verificação externa pós-deploy: raiz, manifesto Vite e rota da conversa `#2294` responderam HTTP 200; todos os 240 assets referenciados pelo manifesto também responderam HTTP 200.
+- Reload visual no Chatwoot carregou o histórico e o painel `Pergunte para IA`. A pergunta interna “Teste final pós-deploy. Responda somente: deploy íntegro. Não execute ações.” retornou “deploy íntegro.” no painel interno, sem ferramenta, mutação ou mensagem pública.
+- A execução n8n `578908` terminou `success` em aproximadamente 2,3 s; o Redis carregou e salvou memória, o nó final foi o responder e a resposta foi `deploy íntegro.`. O workflow permanece ativo, com modelo `deepseek/deepseek-v4-flash-0731`, janela 50 e TTL de 70 dias.
+- Regressão local repetida: Vitest focado 45/45, ESLint focalizado, `node --check` e `npm run verify:manifest-assets` passaram. Ruby/RSpec/RuboCop continuam não executados neste Windows por ausência de Ruby/Bundler.
+- Não houve envio pelo WhatsApp Web, mensagem pública, alteração de Follow-up ou mudança no arquivo `.audit-antonio/relacao-de-bens.docx`. O registro foi sincronizado com o Obsidian e publicado no GitHub.
