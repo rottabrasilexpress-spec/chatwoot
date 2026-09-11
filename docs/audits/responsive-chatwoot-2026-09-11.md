@@ -44,3 +44,18 @@ Após o deploy, repetir a captura em `320x568`, `390x844`, `480x800`, `768x1024`
 - conversa, perfil, composer e navegação mantiverem o comportamento funcional anterior.
 
 Resultado: aprovado nos tamanhos testados. A alteração ficou restrita ao layout responsivo e aos assets necessários para servi-lo em produção; `.audit-antonio/` permaneceu fora do commit.
+
+## Checkpoint C53 — matriz ampliada e correção de largura persistida em tablet — 11/09/2026
+
+- A matriz ampliada encontrou um caso real em `768x1024`: uma largura de lista salva em `640px` fazia o cabeçalho terminar fora da viewport, embora o documento não denunciasse overflow. A correção ficou restrita a `ChatList.vue`: entre `768px` e `1023px`, a lista pode encolher (`flex-shrink: 1; min-width: 0`) sem alterar a largura salva nem a lógica da lista.
+- O commit `e891a24` foi enviado ao GitHub (`origin/rotta-custom-v1`) e implantado no Easypanel. O bundle live passou a servir `dashboard-DgU-tDL8.css`.
+- Dashboard live pós-deploy: `280x600`, `320x568`, `360x640`, `375x667`, `390x844`, `414x896`, `480x800`, `540x720`, `768x1024`, `800x600`, `1024x768`, `1280x800` e `1920x1080`. Em todos: cabeçalho presente, sem sobreposição, sem overflow do cabeçalho/documento, dentro da viewport e com conversas renderizadas.
+- A implantação teve uma indisponibilidade transitória durante a reinicialização; após a recuperação, a tela voltou a carregar e a conexão ao vivo ficou estabelecida. Um `502` capturado às `18:22:52 BRT` pertence à janela de startup; não houve novo erro nas validações posteriores dessa versão.
+
+## Checkpoint C54 — correção final da aba em 280px e validação final — 11/09/2026
+
+- A matriz do Follow-up encontrou em `280x600` um overflow interno de 4px na aba `Trilha de orçamento` (`scrollWidth 94` contra `clientWidth 90`). Foi corrigido somente o CSS de até `320px` em `FollowUp.vue`, empilhando label e contador e reduzindo o espaçamento interno; a lógica e os dados não foram tocados.
+- O commit `054835b` foi enviado ao GitHub e implantado no Easypanel. Build final: `5.079` módulos transformados; verificador do manifesto: `240` assets referenciados e nenhum ausente. O bundle live final serviu `dashboard-BZfb-w9n.css`.
+- Follow-up live pós-deploy: `280x600`, `320x568`, `360x640`, `375x667`, `390x844`, `414x896`, `480x800`, `540x720`, `768x1024`, `800x600`, `1024x768`, `1280x800` e `1920x1080`. Em todos, as duas abas ficaram dentro do contêiner, `scrollWidth == clientWidth`, sem overflow interno dos botões e sem overflow horizontal do documento.
+- Dashboard com o bundle final foi rechecado em `280x600`, `768x1024` e `1920x1080`: sem indisponibilidade, sobreposição ou overflow; a lista carregou conversas sem scroll inicial. A viewport temporária foi restaurada ao tamanho normal ao final.
+- O estado funcional permaneceu fora do escopo; `.audit-antonio/relacao-de-bens.docx` continuou não rastreado. O console reteve somente o `502` transitório da inicialização descrito no C53; a interface ficou estável nas verificações finais.
