@@ -62,7 +62,6 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   def enqueue_conversation_ai_response(copilot_message)
     ConversationAi::ResponseJob.perform_later(
       copilot_thread_id: @copilot_thread.id,
-      conversation_id: @copilot_thread.conversation.display_id,
       user_id: Current.user.id,
       message: copilot_message.message['content']
     )

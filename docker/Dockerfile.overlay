@@ -60,3 +60,5 @@ COPY enterprise/app/controllers/api/v1/accounts/captain/conversation_ai_controll
 COPY enterprise/app/jobs/conversation_ai/response_job.rb /app/enterprise/app/jobs/conversation_ai/response_job.rb
 COPY enterprise/app/services/conversation_ai/context_builder.rb /app/enterprise/app/services/conversation_ai/context_builder.rb
 COPY enterprise/app/views/api/v1/models/captain/_copilot_thread.json.jbuilder /app/enterprise/app/views/api/v1/models/captain/_copilot_thread.json.jbuilder
+COPY enterprise/app/views/api/v1/accounts/captain/copilot_threads/index.json.jbuilder /app/enterprise/app/views/api/v1/accounts/captain/copilot_threads/index.json.jbuilder
+COPY enterprise/app/views/api/v1/accounts/captain/copilot_messages/index.json.jbuilder /app/enterprise/app/views/api/v1/accounts/captain/copilot_messages/index.json.jbuilder

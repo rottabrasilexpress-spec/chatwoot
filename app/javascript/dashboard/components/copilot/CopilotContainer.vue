@@ -32,11 +32,12 @@ const currentChat = useMapGetter('getSelectedChat');
 const lastPublicMessage = useMapGetter('getLastEmailInSelectedChat');
 
 const currentConversationId = computed(() => {
+  const conversation = currentChat.value;
+  if (conversation?.display_id) return conversation.display_id;
+
   const routeMatch = window.location.pathname.match(/\/conversations\/(\d+)/);
   if (routeMatch?.[1]) return routeMatch[1];
 
-  const conversation = currentChat.value;
-  if (conversation?.display_id) return conversation.display_id;
   if (conversation?.id) return conversation.id;
   return null;
 });
@@ -50,7 +51,7 @@ const isSmallScreen = computed(
 );
 
 const selectedCopilotThreadId = ref(null);
-let conversationAiRefreshPromise = null;
+const conversationAiRefreshPromises = new Map();
 const messages = computed(() =>
   store.getters['copilotMessages/getMessagesByThreadId'](
     selectedCopilotThreadId.value
@@ -154,14 +155,22 @@ const wait = timeout =>
     setTimeout(resolve, timeout);
   });
 
+const CONVERSATION_AI_POLL_INTERVAL = 2000;
+const CONVERSATION_AI_MAX_POLL_ATTEMPTS = 90;
+
 const refreshConversationAiMessages = async (
   threadId,
   assistantCountBeforeRequest
 ) => {
-  if (conversationAiRefreshPromise) return conversationAiRefreshPromise;
+  const existingPromise = conversationAiRefreshPromises.get(threadId);
+  if (existingPromise) return existingPromise;
 
-  conversationAiRefreshPromise = (async () => {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
+  const refreshPromise = (async () => {
+    for (
+      let attempt = 0;
+      attempt < CONVERSATION_AI_MAX_POLL_ATTEMPTS;
+      attempt += 1
+    ) {
       // This bounded polling is the fallback when ActionCable is disconnected.
       try {
         // eslint-disable-next-line no-await-in-loop
@@ -170,21 +179,28 @@ const refreshConversationAiMessages = async (
         useAlert(error.message);
         return;
       }
-      const assistantCount = messages.value.filter(
+      const assistantCount = store.getters[
+        'copilotMessages/getMessagesByThreadId'
+      ](threadId).filter(
         message => message.message_type === 'assistant'
       ).length;
 
       if (assistantCount > assistantCountBeforeRequest) return;
-      if (attempt < 19) {
+      if (attempt < CONVERSATION_AI_MAX_POLL_ATTEMPTS - 1) {
         // eslint-disable-next-line no-await-in-loop
-        await wait(2000);
+        await wait(CONVERSATION_AI_POLL_INTERVAL);
       }
     }
-  })().finally(() => {
-    conversationAiRefreshPromise = null;
+  })();
+
+  conversationAiRefreshPromises.set(threadId, refreshPromise);
+  refreshPromise.finally(() => {
+    if (conversationAiRefreshPromises.get(threadId) === refreshPromise) {
+      conversationAiRefreshPromises.delete(threadId);
+    }
   });
 
-  return conversationAiRefreshPromise;
+  return refreshPromise;
 };
 
 const sendMessage = async payload => {

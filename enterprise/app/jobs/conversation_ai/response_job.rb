@@ -1,9 +1,12 @@
 class ConversationAi::ResponseJob < ApplicationJob
   queue_as :default
 
-  def perform(copilot_thread_id:, conversation_id:, user_id:, message:)
-    thread = CopilotThread.includes(:account).find(copilot_thread_id)
-    conversation = thread.account.conversations.find_by!(display_id: conversation_id)
+  def perform(copilot_thread_id:, user_id:, message:)
+    thread = CopilotThread.includes(:account, :conversation).find(copilot_thread_id)
+    conversation = thread.conversation
+    raise ActiveRecord::RecordNotFound,
+          'Conversation not found for Copilot thread' if conversation.blank?
+
     user = thread.account.users.find(user_id)
     payload = ConversationAi::ContextBuilder.new(
       conversation: conversation,

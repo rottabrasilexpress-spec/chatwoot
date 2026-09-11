@@ -26,7 +26,6 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
     if @copilot_thread.conversation_id.present?
       ConversationAi::ResponseJob.perform_later(
         copilot_thread_id: @copilot_thread.id,
-        conversation_id: conversation_id,
         user_id: Current.user.id,
         message: @copilot_message.message['content']
       )

@@ -920,7 +920,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_14_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "assistant_id"
+    t.integer "conversation_id"
     t.index ["account_id"], name: "index_copilot_threads_on_account_id"
+    t.index ["account_id", "conversation_id"], name: "index_copilot_threads_on_account_id_and_conversation_id", unique: true
     t.index ["assistant_id"], name: "index_copilot_threads_on_assistant_id"
     t.index ["user_id"], name: "index_copilot_threads_on_user_id"
   end

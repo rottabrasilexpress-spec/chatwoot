@@ -5,6 +5,8 @@ import CopilotContainer from './CopilotContainer.vue';
 const testState = vi.hoisted(() => ({
   dispatch: vi.fn(),
   refs: {},
+  uiSettings: null,
+  messageCounts: {},
 }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
@@ -13,9 +15,11 @@ vi.mock('dashboard/composables/useConfig', () => ({
 }));
 vi.mock('dashboard/composables/useUISettings', async () => {
   const { ref: createRef } = await import('vue');
+  const uiSettings = createRef({ is_copilot_panel_open: true });
+  testState.uiSettings = uiSettings;
   return {
     useUISettings: () => ({
-      uiSettings: createRef({ is_copilot_panel_open: true }),
+      uiSettings,
       updateUISettings: vi.fn(),
     }),
   };
@@ -37,13 +41,28 @@ vi.mock('dashboard/composables/store', async () => {
   };
   testState.refs = refs;
 
+  const getMessagesForThreadId = threadId => {
+    if (!threadId) return [];
+    if (
+      !Object.prototype.hasOwnProperty.call(testState.messageCounts, threadId)
+    ) {
+      return [{ id: threadId }];
+    }
+    return Array.from(
+      { length: testState.messageCounts[threadId] || 0 },
+      (_, index) => ({
+        id: index + 1,
+        message_type: 'assistant',
+      })
+    );
+  };
+
   return {
     useMapGetter: key => refs[key],
     useStore: () => ({
       dispatch: testState.dispatch,
       getters: {
-        'copilotMessages/getMessagesByThreadId': threadId =>
-          threadId ? [{ id: threadId }] : [],
+        'copilotMessages/getMessagesByThreadId': getMessagesForThreadId,
       },
     }),
   };
@@ -67,6 +86,8 @@ describe('CopilotContainer', () => {
   beforeEach(() => {
     testState.dispatch.mockReset();
     testState.dispatch.mockResolvedValue(undefined);
+    testState.messageCounts = {};
+    testState.uiSettings.value = { is_copilot_panel_open: true };
     testState.refs.getSelectedChat.value = { id: 1 };
   });
 
@@ -108,5 +129,53 @@ describe('CopilotContainer', () => {
     await flushPromises();
 
     expect(copilot.props('messages')).toEqual([]);
+  });
+
+  it('polls responses independently when two conversations are active', async () => {
+    vi.useFakeTimers();
+    testState.uiSettings.value = {
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    };
+
+    const messageGetCalls = new Map();
+    let nextThreadId = 99;
+    testState.dispatch.mockImplementation((action, payload) => {
+      if (action === 'copilotThreads/get') return Promise.resolve([]);
+      if (action === 'copilotThreads/create') {
+        nextThreadId += 1;
+        return Promise.resolve({ id: nextThreadId });
+      }
+      if (action === 'copilotMessages/get') {
+        const threadId = Number(payload);
+        const calls = (messageGetCalls.get(threadId) || 0) + 1;
+        messageGetCalls.set(threadId, calls);
+        // The second conversation receives its answer on its second fetch.
+        if (threadId === 100 && calls >= 2) {
+          testState.messageCounts[threadId] = 1;
+        }
+      }
+      return Promise.resolve();
+    });
+
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    copilot.vm.$emit('sendMessage', 'Pergunta do chat 1');
+    await flushPromises();
+
+    testState.refs.getSelectedChat.value = { id: 2 };
+    await nextTick();
+    await flushPromises();
+
+    copilot.vm.$emit('sendMessage', 'Pergunta do chat 2');
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(2200);
+    await flushPromises();
+
+    expect(messageGetCalls.get(100)).toBeGreaterThanOrEqual(2);
+
+    wrapper.unmount();
+    vi.useRealTimers();
   });
 });

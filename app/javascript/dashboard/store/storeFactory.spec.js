@@ -1,4 +1,5 @@
 import { setActivePinia, createPinia } from 'pinia';
+import { createStore as createVuexStore } from 'vuex';
 import { throwErrorMessage } from 'dashboard/store/utils/api';
 import * as MutationHelpers from 'shared/helpers/vuex/mutationHelpers';
 import {
@@ -195,6 +196,27 @@ describe('storeFactory', () => {
           fetchingList: false,
         });
         expect(result).toEqual(payload);
+      });
+
+      it('handles a Copilot list response with undefined meta', async () => {
+        const payload = [{ id: 1 }];
+        API.get.mockResolvedValue({ data: { payload, meta: undefined } });
+        throwErrorMessage.mockImplementationOnce(error => {
+          throw error;
+        });
+
+        const copilotThreads = createStore({
+          name: 'CopilotThreads',
+          API,
+          type: 'vuex',
+        });
+        const store = createVuexStore({
+          modules: { copilotThreads },
+        });
+
+        await expect(store.dispatch('copilotThreads/get')).resolves.toEqual(
+          payload
+        );
       });
 
       it('handles API error', async () => {
