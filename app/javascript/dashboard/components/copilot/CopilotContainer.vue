@@ -31,6 +31,15 @@ const inboxAssistant = useMapGetter('getCopilotAssistant');
 const currentChat = useMapGetter('getSelectedChat');
 const lastPublicMessage = useMapGetter('getLastEmailInSelectedChat');
 
+const currentConversationId = computed(() => {
+  const conversation = currentChat.value;
+  if (conversation?.display_id) return conversation.display_id;
+  if (conversation?.id) return conversation.id;
+
+  const routeMatch = window.location.pathname.match(/\/conversations\/(\d+)/);
+  return routeMatch?.[1] || null;
+});
+
 const canSuggestReply = computed(
   () => lastPublicMessage.value?.message_type === MESSAGE_TYPE.INCOMING
 );
@@ -119,7 +128,7 @@ const isConversationAiMode = computed(
 const handleReset = async () => {
   selectedCopilotThreadId.value = null;
 
-  const conversationId = currentChat.value?.id;
+  const conversationId = currentConversationId.value;
   if (!isConversationAiMode.value || !conversationId) return;
 
   try {
@@ -127,7 +136,7 @@ const handleReset = async () => {
       conversation_id: conversationId,
     });
     const thread = threads?.[0];
-    if (!thread || currentChat.value?.id !== conversationId) return;
+    if (!thread || currentConversationId.value !== conversationId) return;
 
     selectedCopilotThreadId.value = thread.id;
     await store.dispatch('copilotMessages/get', thread.id);
@@ -136,7 +145,7 @@ const handleReset = async () => {
   }
 };
 
-watch([() => currentChat.value?.id, isConversationAiMode], handleReset);
+watch([currentConversationId, isConversationAiMode], handleReset);
 
 const wait = timeout =>
   new Promise(resolve => {
@@ -184,7 +193,7 @@ const sendMessage = async payload => {
     if (selectedCopilotThreadId.value) {
       await store.dispatch('copilotMessages/create', {
         ...(assistantId && { assistant_id: assistantId }),
-        conversation_id: currentChat.value?.id,
+        conversation_id: currentConversationId.value,
         threadId: selectedCopilotThreadId.value,
         message,
       });
@@ -195,7 +204,7 @@ const sendMessage = async payload => {
         );
       }
     } else {
-      const conversationId = currentChat.value?.id;
+      const conversationId = currentConversationId.value;
       const response = await store.dispatch('copilotThreads/create', {
         ...(assistantId && { assistant_id: assistantId }),
         conversation_id: conversationId,
@@ -203,7 +212,7 @@ const sendMessage = async payload => {
         ...(isConversationAiMode.value && { request_type: 'conversation_ai' }),
         ...(requestType && { request_type: requestType }),
       });
-      if (currentChat.value?.id === conversationId) {
+      if (currentConversationId.value === conversationId) {
         selectedCopilotThreadId.value = response.id;
         if (isConversationAiMode.value) {
           await store.dispatch('copilotMessages/get', response.id);
