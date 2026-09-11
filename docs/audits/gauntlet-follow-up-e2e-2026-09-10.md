@@ -61,3 +61,14 @@ A conversa autorizada terminou arquivada, com a fila sem jobs ativos. As mensage
 - Não foram alteradas mensagens históricas nem outros contatos.
 - A única mudança funcional desta rodada no n8n foi corrigir credenciais e impedir continuação silenciosa em resposta não-2xx.
 - A preservação de etiqueta não pertencente ao follow-up foi comprovada na transição para `ultimo-contato`; a etapa final usa `arquivado` como estado terminal.
+
+## Checkpoint C23 — transição serializada, regressão UAZAPI e limpeza final — 10/09/2026
+
+- A ampliação da matriz encontrou uma falha real na troca de etapa: quando o webhook do Chatwoot entregava `current_value` como a string `"primeiro-contato, segundo-contato"`, o normalizador tratava a string inteira como uma única etiqueta. A execução `574918` permaneceu indevidamente em `primeiro-contato`.
+- Correção restrita publicada no nó `Normalizar Evento de Etiquetas`: listas serializadas em string agora são separadas por vírgula, com trim e descarte de vazios. O comportamento de strings simples foi preservado. A versão n8n ativa é `792140e0-e969-4d11-94f0-1bc687a40fd8`.
+- Regressão do mesmo formato: execução `574932` produziu `previous=[primeiro-contato]`, `current=[primeiro-contato, segundo-contato]`, `added=[segundo-contato]`, `stage=segundo-contato` e `queued=true`. A listagem `574933` mostrou somente um job ativo de Segundo contato para a conversa 2143.
+- Teste real pós-correção pela UAZAPI: `574940` executou envio HTTP 200, leitura de etiquetas Chatwoot HTTP 200, aplicação da próxima etiqueta HTTP 200 e finalização `sent`. O worker criou a próxima etapa de Terceiro contato sem duplicar a fila.
+- Teste de concorrência: oito eventos duplicados do mesmo payload foram disparados; a listagem confirmou uma única entrada ativa para a conversa/etapa, sem duplicidade operacional.
+- Validação visual: o Follow-up mostrou o histórico expandido das etapas Primeiro, Segundo, Terceiro e Quarto contato; o duplo clique abriu a conversa 2143 em aproximadamente `2128 ms`, sem navegação duplicada observada.
+- Limpeza controlada: a etiqueta temporária `terceiro-contato` foi removida somente do contato autorizado. O webhook real `574956` registrou `previous=[terceiro-contato]`, `current=[]`, `queued=false` e cancelou o job ativo. A listagem `574958` ficou apenas com históricos administrativos, sem job ativo; a UI confirmou `Na fila 0`, `Prontos agora 0` e `Nenhum follow-up nesta visão`.
+- Limite honesto: a matriz cobre os caminhos funcionais, integrações e concorrência reproduzíveis neste ambiente; não representa literalmente todas as combinações possíveis de produção, dispositivos ou indisponibilidades externas. Não foram tocados outros contatos e o WhatsApp Web permaneceu fora do teste.
