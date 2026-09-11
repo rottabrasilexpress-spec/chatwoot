@@ -115,6 +115,7 @@ export default {
       copilot,
       shortcutKey,
       macroExecution,
+      updateUISettings,
       openConversationAi: () =>
         updateUISettings({
           is_contact_sidebar_open: false,
@@ -1025,6 +1026,16 @@ export default {
       this.hideContentTemplatesModal();
     },
     setReplyMode(mode = REPLY_EDITOR_MODES.REPLY) {
+      if (
+        this.uiSettings?.is_copilot_panel_open ||
+        this.uiSettings?.is_conversation_ai_open
+      ) {
+        this.updateUISettings({
+          is_copilot_panel_open: false,
+          is_conversation_ai_open: false,
+        });
+      }
+
       // Clear attachments when switching between private note and reply modes
       // This is to prevent from breaking the upload rules
       if (this.attachedFiles.length > 0) this.attachedFiles = [];

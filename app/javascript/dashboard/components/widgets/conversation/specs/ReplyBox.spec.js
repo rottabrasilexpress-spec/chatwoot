@@ -40,12 +40,14 @@ const buildStore = ({
   drafts = {},
   inboxes,
   isMetaMessageSendingDisabled = false,
+  uiSettings = {},
 }) =>
   createStore({
     state: {
       chat: { ...REPLIABLE, ...chat },
       replyEditorMode: REPLY_EDITOR_MODES.REPLY,
       drafts: { ...drafts },
+      uiSettings: { ...uiSettings },
     },
     mutations: {
       selectChat: (s, c) => {
@@ -57,18 +59,23 @@ const buildStore = ({
       setDraft: (s, { key, message }) => {
         s.drafts = { ...s.drafts, [key]: message };
       },
+      setUISettings: (s, settings) => {
+        s.uiSettings = { ...settings };
+      },
     },
     actions: {
       'draftMessages/setReplyEditorMode': ({ commit }, { mode }) =>
         commit('setReplyEditorMode', mode),
       'draftMessages/set': ({ commit }, payload) => commit('setDraft', payload),
+      updateUISettings: ({ commit }, { uiSettings: settings }) =>
+        commit('setUISettings', settings),
     },
     getters: {
       getSelectedChat: s => s.chat,
       getCurrentUser: () => ({ id: 7, name: 'Agent', accounts: [] }),
       getCurrentAccountId: () => 1,
       getMessageSignature: () => '',
-      getUISettings: () => ({}),
+      getUISettings: s => s.uiSettings,
       getLastEmailInSelectedChat: () => null,
       'globalConfig/get': () => ({}),
       'globalConfig/isMetaMessageSendingDisabled': () =>
@@ -95,6 +102,7 @@ const mountWith = ({
   drafts,
   inboxes,
   isMetaMessageSendingDisabled,
+  uiSettings,
 }) => {
   const store = buildStore({
     inbox,
@@ -103,6 +111,7 @@ const mountWith = ({
     drafts,
     inboxes,
     isMetaMessageSendingDisabled,
+    uiSettings,
   });
   const wrapper = shallowMount(ReplyBox, {
     global: {
@@ -124,6 +133,41 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  it('closes conversation AI mode when switching back to reply or private note', async () => {
+    const { wrapper, store } = await mountWith({
+      uiSettings: {
+        is_copilot_panel_open: true,
+        is_conversation_ai_open: true,
+      },
+    });
+
+    wrapper
+      .findComponent({ name: 'ReplyTopPanel' })
+      .vm.$emit('setReplyMode', REPLY_EDITOR_MODES.REPLY);
+    await nextTick();
+
+    expect(store.state.uiSettings).toMatchObject({
+      is_copilot_panel_open: false,
+      is_conversation_ai_open: false,
+    });
+    expect(topPanel(wrapper).conversationAiActive).toBe(false);
+
+    store.commit('setUISettings', {
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    });
+    wrapper
+      .findComponent({ name: 'ReplyTopPanel' })
+      .vm.$emit('setReplyMode', REPLY_EDITOR_MODES.NOTE);
+    await nextTick();
+
+    expect(store.state.uiSettings).toMatchObject({
+      is_copilot_panel_open: false,
+      is_conversation_ai_open: false,
+    });
+    expect(topPanel(wrapper).conversationAiActive).toBe(false);
+  });
+
   describe('Instagram incident restriction', () => {
     it('opens in note mode and restores only the private-note draft', async () => {
       const { wrapper, store } = mountWith({
