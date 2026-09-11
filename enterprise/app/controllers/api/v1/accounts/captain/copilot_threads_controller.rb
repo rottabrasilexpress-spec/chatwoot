@@ -1,6 +1,7 @@
 class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::BaseController
   include Captain::Copilot::ConversationAccess
 
+  before_action :mark_conversation_ai_probe, only: :create
   before_action :ensure_message, only: :create
   before_action :ensure_accessible_conversation, only: :create
 
@@ -97,6 +98,12 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     raise ActiveRecord::RecordNotFound, 'Conversation not found'
   end
 
+  def mark_conversation_ai_probe
+    return unless params[:request_type] == 'conversation_ai'
+
+    response.set_header('X-Rotta-Conversation-Ai-Code', 'e631735')
+  end
+
   def conversation_for_ai
     display_id = copilot_thread_params[:conversation_id]
     raise ActiveRecord::RecordNotFound, 'Conversation not found' if display_id.blank?
@@ -104,6 +111,10 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     conversation_scope = Conversation.where(account_id: Current.account.id)
     conversation = conversation_scope.find_by(display_id: display_id) ||
                    conversation_scope.find_by(id: display_id)
+    response.set_header(
+      'X-Rotta-Conversation-Ai-Lookup',
+      "account=#{Current.account.id};display=#{display_id};found=#{conversation.present?}"
+    )
     raise ActiveRecord::RecordNotFound, 'Conversation not found' if conversation.blank?
 
     authorize conversation, :show?
