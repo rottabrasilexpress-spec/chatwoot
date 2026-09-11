@@ -11,10 +11,11 @@ class ConversationAi::ResponseJob < ApplicationJob
       question: message
     ).payload
 
+    request_body = payload.to_json
     response = HTTParty.post(
       webhook_url,
-      headers: { 'Accept' => 'application/json', 'Content-Type' => 'application/json' },
-      body: payload.to_json,
+      headers: webhook_headers,
+      body: request_body,
       timeout: 120
     )
 
@@ -47,5 +48,16 @@ class ConversationAi::ResponseJob < ApplicationJob
       'ROTTA_CONVERSATION_AI_WEBHOOK_URL',
       'https://saas.via-cargo.com/webhook/rotta-conversation-ai-v1'
     )
+  end
+
+  def webhook_headers
+    secret = ENV.fetch('ROTTA_CONVERSATION_AI_WEBHOOK_SECRET')
+    raise 'ROTTA_CONVERSATION_AI_WEBHOOK_SECRET não configurado' if secret.blank?
+
+    {
+      'Accept' => 'application/json',
+      'Content-Type' => 'application/json',
+      'X-Rotta-Conversation-AI-Secret' => secret
+    }
   end
 end
