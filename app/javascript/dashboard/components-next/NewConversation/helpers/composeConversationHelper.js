@@ -96,6 +96,12 @@ export const normalizePhoneForWhatsApp = input => {
   return trimmed;
 };
 
+export const normalizePhoneSearchQuery = input => {
+  const trimmed = String(input || '').trim();
+  if (!isPhoneLikeInput(trimmed)) return trimmed;
+  return trimmed.replace(/\D/g, '');
+};
+
 export const processContactableInboxes = inboxes => {
   return inboxes.map(inbox => ({
     ...inbox.inbox,

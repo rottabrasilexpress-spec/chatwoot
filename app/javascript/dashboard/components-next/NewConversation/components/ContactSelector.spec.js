@@ -83,6 +83,14 @@ describe('ContactSelector', () => {
     );
   });
 
+  it('normalizes formatted Brazilian numbers before searching contacts', async () => {
+    const wrapper = mountSelector();
+
+    await wrapper.get('[data-test="contact-input"]').setValue('11 9 6592-7865');
+
+    expect(wrapper.emitted('searchContacts')).toEqual([['11965927865']]);
+  });
+
   it('opens a known contact conversation through the Chatwoot action', async () => {
     const wrapper = mountSelector();
     const tagInput = wrapper.findComponent(TagInputStub);

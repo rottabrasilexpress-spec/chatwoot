@@ -5,6 +5,7 @@ import {
   INPUT_TYPES,
   isPhoneLikeInput,
 } from 'dashboard/components-next/taginput/helper/tagInputHelper.js';
+import { normalizePhoneSearchQuery } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
 
 import TagInput from 'dashboard/components-next/taginput/TagInput.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -151,7 +152,7 @@ const handleInput = value => {
   inputType.value = isPhoneLikeInput(value)
     ? INPUT_TYPES.TEL
     : INPUT_TYPES.EMAIL;
-  emit('searchContacts', value);
+  emit('searchContacts', normalizePhoneSearchQuery(value));
 };
 </script>
 
