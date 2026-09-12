@@ -111,18 +111,21 @@ module RottaCalculator
     end
 
     def extract_services(lines, inventory_source)
-      text = (lines + inventory_source.to_s.lines).join(' ')
+      service_lines = (lines + inventory_source.to_s.lines).map { |line| InventoryCatalog.normalize(line) }
+      text = service_lines.join(' ')
       normalized = InventoryCatalog.normalize(text)
-      explicit_assembly = explicitly_requested?(normalized, /montag/)
-      explicit_disassembly = explicitly_requested?(normalized, /desmont/)
+      assembly_line = service_lines.find { |line| line.match?(/(?<!des)montag/) }.to_s
+      disassembly_line = service_lines.find { |line| line.match?(/desmont/) }.to_s
+      explicit_assembly = explicitly_requested?(assembly_line, /(?<!des)montag/)
+      explicit_disassembly = explicitly_requested?(disassembly_line, /desmont/)
       {
         'helpers' => {
           'origin' => count_for(normalized, /(?:carga|origem).*?(\d+)\s*ajudantes?/),
           'destination' => count_for(normalized, /(?:descarga|destino).*?(\d+)\s*ajudantes?/) 
         },
         'assembly' => {
-          'origin_disassembly' => explicit_disassembly ? count_for(normalized, /desmont.*?(\d+)/, 1) : 0,
-          'destination_assembly' => explicit_assembly ? count_for(normalized, /montag.*?(\d+)/, 1) : 0,
+          'origin_disassembly' => explicit_disassembly ? count_for(disassembly_line, /desmont.*?(\d+)/, 1) : 0,
+          'destination_assembly' => explicit_assembly ? count_for(assembly_line, /(?<!des)montag.*?(\d+)/, 1) : 0,
           'requested' => explicit_assembly || explicit_disassembly,
           'manual_review' => (normalized.match?(/montag|desmont/) && !(explicit_assembly || explicit_disassembly))
         },
