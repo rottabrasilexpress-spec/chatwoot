@@ -239,6 +239,7 @@ const getInReplyToMessage = parentMessage => {
       </li>
       <Message
         v-bind="message"
+        :deleted-content-available="message.deletedContentAvailable"
         :is-email-inbox="isAnEmailChannel"
         :in-reply-to="getInReplyToMessage(message)"
         :group-with-next="shouldGroupWithNext(index, allMessages)"
