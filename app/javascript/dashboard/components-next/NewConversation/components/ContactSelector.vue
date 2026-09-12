@@ -215,6 +215,7 @@ const handleInput = value => {
         allow-create
         :type="inputType"
         class="flex-1 min-h-10 [&_input]:!min-h-10 [&_input]:!text-base"
+        :dropdown-class="['!max-w-lg', '!max-h-72']"
         :class="errorClass"
         focus-on-mount
         @input="handleInput"
@@ -229,10 +230,14 @@ const handleInput = value => {
             class="flex min-w-0 flex-1 flex-col items-start gap-0.5 py-1 text-left"
             data-test="contact-card"
           >
-            <span class="w-full truncate text-sm font-medium text-n-slate-12">
+            <span
+              class="w-full whitespace-normal break-words text-sm font-medium text-n-slate-12"
+            >
               {{ item.name }}
             </span>
-            <span class="w-full truncate text-xs text-n-slate-11">
+            <span
+              class="w-full whitespace-normal break-words text-xs text-n-slate-11"
+            >
               {{ item.phoneNumber }}
             </span>
           </div>
