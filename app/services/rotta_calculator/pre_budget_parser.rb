@@ -12,7 +12,7 @@ module RottaCalculator
       @reading_text = reading_text.to_s
       @freight = freight.to_h.stringify_keys
       @inventory = inventory.to_h.stringify_keys
-      @services = services.to_h.stringify_keys
+      @services = services.is_a?(Hash) ? services.stringify_keys : {}
     end
 
     def call
