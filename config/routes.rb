@@ -51,6 +51,9 @@ Rails.application.routes.draw do
         end
 
         scope module: :accounts do
+          resource :calculator, only: [] do
+            post :calculate
+          end
           namespace :actions do
             resource :contact_merge, only: [:create]
           end

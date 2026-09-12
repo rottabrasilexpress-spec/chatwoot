@@ -1139,10 +1139,12 @@
     },
     "INTEGRATIONS": {
       "TITLE": "Integrações planejadas",
-      "DESCRIPTION": "A interface já reserva os espaços para as próximas integrações, sem simular dados externos.",
+      "DESCRIPTION": "A rota e a proposta são consultadas em tempo real no backend seguro do Chatwoot.",
       "AI_TITLE": "IA de leitura e cálculo",
       "MAPS_TITLE": "Google Maps e rota",
-      "PENDING": "Preparado para a próxima etapa"
+      "PENDING": "Aguardando cálculo",
+      "READY": "Pronto para calcular",
+      "CONNECTED": "Integração respondendo"
     },
     "RESULT": {
       "TITLE": "Resultado da preparação",
@@ -1150,6 +1152,7 @@
       "ROUTE": "Rota",
       "PRICE": "Preço",
       "PRICE_PENDING": "Aguardando integração de cálculo",
+      "PRICE_NOT_CONFIGURED": "Tabela de preços não configurada",
       "SERVICES": "Serviços",
       "NO_SERVICES": "Nenhum serviço adicional",
       "PROPOSAL_TITLE": "Proposta para WhatsApp",
@@ -1160,10 +1163,14 @@
       "INVENTORY_EMPTY": "Nenhum inventário foi informado.",
       "ROUTE_PREVIEW_TITLE": "Prévia da rota",
       "ROUTE_PREVIEW_PENDING": "A rota será calculada quando a integração com o Google Maps estiver configurada.",
+      "ROUTE_PREVIEW_READY": "Distância e tempo retornados pelo Google Routes, sem cálculo de pedágio.",
       "DISTANCE": "Distância",
       "DURATION": "Tempo estimado",
       "TOLLS": "Pedágios",
-      "PENDING_VALUE": "Aguardando"
+      "PENDING_VALUE": "Aguardando",
+      "TOLL_DISABLED": "Desativado",
+      "CALCULATION_ERROR": "Não foi possível concluir o cálculo agora.",
+      "MAPS_BACKEND_ACTIVE": "Google Routes ativo no backend"
     },
     "ALERTS": {
       "VISIBILITY_UPDATED": "Visibilidade da Calculadora atualizada.",
@@ -1171,7 +1178,8 @@
       "PROPOSAL_COPIED": "Proposta copiada para a área de transferência.",
       "PROPOSAL_COPY_ERROR": "Não foi possível copiar a proposta.",
       "INVENTORY_COPIED": "Inventário copiado para a área de transferência.",
-      "INVENTORY_COPY_ERROR": "Não foi possível copiar o inventário."
+      "INVENTORY_COPY_ERROR": "Não foi possível copiar o inventário.",
+      "CALCULATION_ERROR": "Não foi possível concluir o cálculo agora."
     }
   }
 }

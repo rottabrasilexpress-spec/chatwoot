@@ -6,6 +6,7 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import { useAlert } from 'dashboard/composables';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
+import CalculatorAPI from 'dashboard/api/calculator';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -17,10 +18,10 @@ import {
   getRequestedCalculatorVisibility,
   shouldClaimCalculatorOwnership,
 } from './calculatorVisibility';
-import { buildCalculationResult, parseInventory } from './calculatorHelpers';
+import { parseInventory } from './calculatorHelpers';
 
 const { t } = useI18n();
-const { currentAccount, updateAccount } = useAccount();
+const { accountId, currentAccount, updateAccount } = useAccount();
 const currentUserId = useMapGetter('getCurrentUserID');
 
 const freight = reactive({
@@ -44,6 +45,8 @@ const services = reactive(
 const readingText = ref('');
 const inventoryText = ref('');
 const result = ref(null);
+const isCalculating = ref(false);
+const calculationError = ref('');
 const isShared = ref(false);
 const showVisibilityConfirmModal = ref(false);
 const pendingVisibility = ref(null);
@@ -138,15 +141,42 @@ const clearCalculator = () => {
     services[service.key] = false;
   });
   result.value = null;
+  calculationError.value = '';
   activeResultTab.value = 'proposal';
 };
 
-const calculate = () => {
-  result.value = buildCalculationResult({
-    freight,
-    services: selectedServices.value,
-    inventory: inventorySummary.value,
-  });
+const calculate = async () => {
+  if (isCalculating.value) return;
+
+  isCalculating.value = true;
+  calculationError.value = '';
+
+  try {
+    const { data } = await CalculatorAPI.calculate(accountId.value, {
+      reading_text: readingText.value,
+      freight: {
+        client_name: freight.clientName,
+        date: freight.date,
+        origin: freight.origin,
+        destination: freight.destination,
+      },
+      services: selectedServices.value,
+      inventory: {
+        text: inventoryText.value,
+        item_count: inventorySummary.value.itemCount,
+        volume_m3: inventorySummary.value.volumeM3,
+      },
+    });
+    result.value = data;
+    activeResultTab.value = 'proposal';
+  } catch (error) {
+    calculationError.value =
+      error.response?.data?.error || t('CALCULATOR.ALERTS.CALCULATION_ERROR');
+    result.value = null;
+    useAlert(calculationError.value);
+  } finally {
+    isCalculating.value = false;
+  }
 };
 
 const copyProposal = async () => {
@@ -260,10 +290,18 @@ onMounted(ensureCalculatorOwnership);
               :label="t('CALCULATOR.ACTIONS.CALCULATE')"
               color="blue"
               icon="i-lucide-calculator"
+              :is-loading="isCalculating"
               data-testid="calculator-calculate"
               @click="calculate"
             />
           </div>
+          <p
+            v-if="calculationError"
+            class="text-sm text-n-ruby-11"
+            data-testid="calculator-error"
+          >
+            {{ calculationError }}
+          </p>
         </section>
 
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -394,7 +432,11 @@ onMounted(ensureCalculatorOwnership);
                 {{ t('CALCULATOR.INTEGRATIONS.AI_TITLE') }}
               </p>
               <p class="mt-1 text-xs text-n-slate-11">
-                {{ t('CALCULATOR.INTEGRATIONS.PENDING') }}
+                {{
+                  result?.ai_status === 'complete'
+                    ? t('CALCULATOR.INTEGRATIONS.CONNECTED')
+                    : t('CALCULATOR.INTEGRATIONS.READY')
+                }}
               </p>
             </div>
             <div class="p-3 border rounded-lg border-n-weak bg-n-solid-1">
@@ -402,7 +444,11 @@ onMounted(ensureCalculatorOwnership);
                 {{ t('CALCULATOR.INTEGRATIONS.MAPS_TITLE') }}
               </p>
               <p class="mt-1 text-xs text-n-slate-11">
-                {{ t('CALCULATOR.INTEGRATIONS.PENDING') }}
+                {{
+                  result?.api_status === 'complete'
+                    ? t('CALCULATOR.INTEGRATIONS.CONNECTED')
+                    : t('CALCULATOR.INTEGRATIONS.READY')
+                }}
               </p>
             </div>
           </div>
@@ -435,7 +481,11 @@ onMounted(ensureCalculatorOwnership);
                 {{ t('CALCULATOR.RESULT.PRICE') }}
               </p>
               <p class="mt-1 text-sm font-semibold text-n-slate-12">
-                {{ t('CALCULATOR.RESULT.PRICE_PENDING') }}
+                {{
+                  result.price === null || result.price === undefined
+                    ? t('CALCULATOR.RESULT.PRICE_NOT_CONFIGURED')
+                    : `R$ ${Number(result.price).toFixed(2)}`
+                }}
               </p>
             </div>
             <div class="p-4 rounded-lg bg-n-solid-1">
@@ -444,7 +494,7 @@ onMounted(ensureCalculatorOwnership);
               </p>
               <p class="mt-1 text-sm font-semibold text-n-slate-12">
                 {{
-                  result.selectedServices.join(', ') ||
+                  result.selected_services?.join(', ') ||
                   t('CALCULATOR.RESULT.NO_SERVICES')
                 }}
               </p>
@@ -462,7 +512,7 @@ onMounted(ensureCalculatorOwnership);
                 </h3>
               </div>
               <p class="mt-2 text-sm text-n-slate-11">
-                {{ t('CALCULATOR.RESULT.ROUTE_PREVIEW_PENDING') }}
+                {{ t('CALCULATOR.RESULT.ROUTE_PREVIEW_READY') }}
               </p>
               <div class="grid grid-cols-3 gap-2 mt-4">
                 <div class="p-3 rounded-lg bg-n-solid-1">
@@ -470,7 +520,7 @@ onMounted(ensureCalculatorOwnership);
                     {{ t('CALCULATOR.RESULT.DISTANCE') }}
                   </p>
                   <p class="mt-1 text-sm font-semibold text-n-slate-12">
-                    {{ t('CALCULATOR.RESULT.PENDING_VALUE') }}
+                    {{ `${result.distance_km} km` }}
                   </p>
                 </div>
                 <div class="p-3 rounded-lg bg-n-solid-1">
@@ -478,7 +528,7 @@ onMounted(ensureCalculatorOwnership);
                     {{ t('CALCULATOR.RESULT.DURATION') }}
                   </p>
                   <p class="mt-1 text-sm font-semibold text-n-slate-12">
-                    {{ t('CALCULATOR.RESULT.PENDING_VALUE') }}
+                    {{ `${result.duration_minutes} min` }}
                   </p>
                 </div>
                 <div class="p-3 rounded-lg bg-n-solid-1">
@@ -486,7 +536,7 @@ onMounted(ensureCalculatorOwnership);
                     {{ t('CALCULATOR.RESULT.TOLLS') }}
                   </p>
                   <p class="mt-1 text-sm font-semibold text-n-slate-12">
-                    {{ t('CALCULATOR.RESULT.PENDING_VALUE') }}
+                    {{ t('CALCULATOR.RESULT.TOLL_DISABLED') }}
                   </p>
                 </div>
               </div>
@@ -503,7 +553,7 @@ onMounted(ensureCalculatorOwnership);
                 {{ t('CALCULATOR.INTEGRATIONS.MAPS_TITLE') }}
               </p>
               <p class="mt-1 text-xs text-n-slate-10">
-                {{ t('CALCULATOR.INTEGRATIONS.PENDING') }}
+                {{ t('CALCULATOR.INTEGRATIONS.MAPS_BACKEND_ACTIVE') }}
               </p>
             </div>
           </div>

@@ -1,0 +1,39 @@
+require 'rails_helper'
+
+RSpec.describe RottaCalculator::CalculateService do
+  let(:routes_client) { double('routes_client', call: { 'distance_km' => 12.3, 'duration_minutes' => 62 }) }
+  let(:ai_client) { double('ai_client') }
+
+  it 'passes factual calculator context to the AI and keeps tolls disabled' do
+    allow(ai_client).to receive(:call).and_return(
+      'proposal' => 'Proposta baseada nos dados informados.',
+      'summary' => 'Resumo factual.',
+      'missing_information' => [],
+      'extracted_data' => {},
+      'price' => nil,
+      'pricing_note' => 'Tabela ausente.'
+    )
+
+    result = described_class.new(
+      {
+        'reading_text' => 'Cliente informou origem e destino.',
+        'freight' => { 'origin' => 'São Paulo - SP', 'destination' => 'Salvador - BA' },
+        'services' => [{ 'label' => 'Montador', 'selected' => true }],
+        'inventory' => { 'item_count' => 1, 'volume_m3' => 0.2 }
+      },
+      routes_client: routes_client,
+      ai_client: ai_client
+    ).call
+
+    expect(result).to include(
+      'api_status' => 'complete',
+      'ai_status' => 'complete',
+      'toll_status' => 'disabled',
+      'price' => nil
+    )
+    expect(ai_client).to have_received(:call) do |context|
+      expect(context['toll']).to eq('enabled' => false, 'calculated' => false)
+      expect(context.to_json).not_to include('pedágio', 'tollAmount', 'extraComputations')
+    end
+  end
+end
