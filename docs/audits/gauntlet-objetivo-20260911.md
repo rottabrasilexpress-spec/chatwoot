@@ -167,3 +167,10 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 
 - ESLint dos componentes e helpers funcionais da implementação terminou com `0 errors` e 4 warnings não bloqueantes: dois `vue/no-root-v-if` e dois avisos de chaves i18n dinâmicas no tratamento de permissão/ditado.
 - A execução incluindo `NetworkNotification.vue` e `ReconnectService.js` acusou somente normalização CRLF (`prettier/prettier`, “Delete ␍”) nesses arquivos preexistentes. Eles não foram reformatados para evitar alteração não solicitada.
+
+## Checkpoint 16 — vídeo fornecido reprocessado e contexto confirmado — 12/09/2026
+
+- O vídeo `C:\Users\User\Downloads\Gravando 2026-09-10 174553.mp4` foi analisado localmente sem escrita na aplicação: duração `125,5 s`, áudio extraído temporariamente em mono/16 kHz e transcrição pt-BR aproximada feita com modelo local `faster-whisper` tiny.
+- A fala confirma o defeito histórico de etiquetas/Follow-up: contador que permanece em 1 apesar de três clientes, clientes que só aparecem depois de entrar na aba, etiquetas antigas/poluição no Follow-up e atualização que funciona de forma intermitente ao adicionar/remover `Kelvin` e `Primeiro contato`.
+- Quadros extraídos em quatro momentos mostram visualmente o dashboard/lista, uma conversa com o seletor de etiquetas, a área de Follow-up e a tela de etapas. Esse material confirma que a correção de contagem e sincronização é relevante ao contexto, embora não altere o escopo funcional dos quatro itens deste objetivo.
+- O áudio local teve erros de reconhecimento pontuais por usar o modelo pequeno; os fatos acima foram aceitos somente quando coincidiram com o vídeo e o relato do usuário. Nenhuma mensagem, etiqueta ou conversa foi criada/modificada durante o processamento.
