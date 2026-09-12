@@ -47,6 +47,21 @@ describe('#actions', () => {
     });
   });
 
+  describe('#getImmediately', () => {
+    it('fetches and commits metadata without waiting for debounce', async () => {
+      axios.get.mockResolvedValue({ data: { meta: { all_count: 0 } } });
+
+      await actions.getImmediately(
+        { commit },
+        { labels: ['kelvin'], status: 'all' }
+      );
+
+      expect(commit.mock.calls).toEqual([
+        [types.default.SET_CONV_TAB_META, { all_count: 0 }],
+      ]);
+    });
+  });
+
   describe('#set', () => {
     it('sends correct mutations', async () => {
       actions.set(

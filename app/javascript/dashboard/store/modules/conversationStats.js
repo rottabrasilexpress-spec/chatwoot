@@ -52,6 +52,7 @@ export const actions = {
   get: ({ commit, state: $state }, params) => {
     metaDebouncers[getMetaDebounceKey($state.allCount)](commit, params);
   },
+  getImmediately: ({ commit }, params) => fetchMetaData(commit, params),
   set({ commit }, meta) {
     commit(types.SET_CONV_TAB_META, meta);
   },

@@ -225,7 +225,7 @@ const conversationCustomAttributes = useFunctionGetter(
 );
 
 const activeAssigneeTabCount = computed(() => {
-  return conversationStats.value.all_count || 0;
+  return conversationStats.value.allCount || 0;
 });
 
 const labelRouteKey = value =>
@@ -244,6 +244,12 @@ const activeLabelTitle = computed(() => {
   );
 
   return matchingLabel?.title || props.label;
+});
+
+const activeLabelCount = computed(() => {
+  if (!props.label) return null;
+
+  return Number(conversationStats.value.allCount || 0);
 });
 
 const conversationListPagination = computed(() => {
@@ -460,9 +466,7 @@ const showRottaConversationShortcuts = computed(() => {
   );
 });
 
-const labelFilterOptions = computed(() =>
-  getLabelFilterOptions(labels.value)
-);
+const labelFilterOptions = computed(() => getLabelFilterOptions(labels.value));
 
 const showLabelFilter = computed(() => {
   return (
@@ -709,6 +713,12 @@ function resetAndFetchData() {
     return;
   }
   fetchConversations();
+}
+
+function refreshActiveLabelStats() {
+  if (!props.label || hasAppliedFiltersOrActiveFolders.value) return;
+
+  store.dispatch('conversationStats/getImmediately', conversationFilters.value);
 }
 
 function loadMoreConversations() {
@@ -1048,6 +1058,10 @@ const startResizingConversationList = event => {
 
 useEmitter('fetch_conversation_stats', () => {
   if (hasAppliedFiltersOrActiveFolders.value) return;
+  if (props.label) {
+    refreshActiveLabelStats();
+    return;
+  }
   store.dispatch('conversationStats/get', conversationFilters.value);
 });
 
@@ -1058,6 +1072,7 @@ onMounted(() => {
   store.dispatch('setChatStatusFilter', activeStatus.value);
   store.dispatch('setChatSortFilter', activeSortBy.value);
   resetAndFetchData();
+  refreshActiveLabelStats();
   if (hasActiveFolders.value) {
     store.dispatch('campaigns/get');
   }
@@ -1108,7 +1123,10 @@ watch(
 );
 watch(
   computed(() => props.label),
-  () => resetAndFetchData()
+  () => {
+    resetAndFetchData();
+    refreshActiveLabelStats();
+  }
 );
 watch(
   computed(() => props.conversationType),
@@ -1168,6 +1186,7 @@ watch(conversationSearchQuery, searchQuery => {
       :active-status="activeStatus"
       :is-on-expanded-layout="isOnExpandedLayout"
       :conversation-stats="conversationStats"
+      :active-label-count="activeLabelCount"
       :is-list-loading="chatListLoading && !conversationList.length"
       :search-query="conversationSearchQuery"
       :label-filter-options="labelFilterOptions"

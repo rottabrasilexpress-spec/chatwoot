@@ -19,6 +19,7 @@ const props = defineProps({
   searchQuery: { type: String, default: '' },
   labelFilterOptions: { type: Array, default: () => [] },
   activeLabelFilter: { type: String, default: '' },
+  activeLabelCount: { type: Number, default: null },
   showLabelFilter: { type: Boolean, default: false },
   showRottaShortcuts: { type: Boolean, default: false },
   isMarkingAllAsRead: { type: Boolean, default: false },
@@ -54,7 +55,10 @@ const hasAppliedFiltersOrActiveFolders = computed(() => {
   return props.hasAppliedFilters || props.hasActiveFolders;
 });
 
-const allCount = computed(() => props.conversationStats?.allCount || 0);
+const allCount = computed(() => {
+  if (props.activeLabelCount !== null) return props.activeLabelCount;
+  return props.conversationStats?.allCount || 0;
+});
 const formattedAllCount = computed(() => formatNumber(allCount.value));
 </script>
 

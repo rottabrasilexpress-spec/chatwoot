@@ -4,6 +4,7 @@ import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
+import { emitter } from 'shared/helpers/mitt';
 import wootConstants from 'dashboard/constants/globals';
 
 const ARCHIVED_LABEL_KEYS = new Set(['arquivado', 'arquivados']);
@@ -151,6 +152,7 @@ export function useBulkActions() {
         { add: labelsToAssign }
       );
       await store.dispatch('labels/get', { forceNetwork: true });
+      emitter.emit('fetch_conversation_stats');
       store.dispatch('bulkActions/clearSelectedConversationIds');
       if (conversationId) {
         useAlert(
@@ -186,6 +188,7 @@ export function useBulkActions() {
         { remove: labelsToRemove }
       );
       await store.dispatch('labels/get', { forceNetwork: true });
+      emitter.emit('fetch_conversation_stats');
 
       // Context-menu remove should not disturb an existing bulk selection.
       if (conversationId) {

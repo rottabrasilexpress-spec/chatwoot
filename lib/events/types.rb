@@ -37,7 +37,6 @@ module Events::Types
   CONVERSATION_TYPING_OFF = 'conversation.typing_off'
   CONVERSATION_MENTIONED = 'conversation.mentioned'
   CONVERSATION_ATTENTION_REQUESTED = 'conversation.attention_requested'
-  CONVERSATION_CAIO_ATTENTION_ADDED = 'conversation.caio_attention_added'
 
   # message events
   MESSAGE_CREATED = 'message.created'
