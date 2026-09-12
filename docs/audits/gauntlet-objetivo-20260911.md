@@ -286,3 +286,12 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Vitest focalizado após a prova: `3` arquivos, `22/22` testes aprovados. O estado da conversa foi restaurado; os alertas foram fechados, a etiqueta de teste removida e a busca limpa.
 - A sessão independente do Caio permanece aberta para eventual repetição; nenhuma credencial foi registrada em arquivo, GitHub ou Obsidian.
 - Linhas conectadas: [contexto no Obsidian](C:/Users/User/Documents/Obsidian/Meu%20Cofre/Meu%20Cofre/Projetos/Chatwoot%20Rotta/00%20-%20Contexto%20e%20estado.md) ↔ [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1).
+
+## Checkpoint 31 — retry do catálogo de etiquetas validado pós-deploy — 12/09/2026
+
+- A bateria live anterior reproduziu um caso de corrida: depois de remover `Caio Atenção` pelo Kelvin, a sessão do Kelvin atualizava, mas a sessão do Caio mantinha o total antigo até F5. A causa provável era a leitura do catálogo antes do commit da transação, seguida apenas de uma releitura do store ainda stale.
+- A correção publicada em `b243601f6` mantém a atualização imediata e agenda uma segunda busca de etiquetas `600 ms` depois do evento Action Cable. Foram adicionados testes para o retry; ESLint terminou sem erros e os testes focados relevantes terminaram em `23/23`.
+- O deploy foi concluído no Easypanel e o endpoint `/api` voltou a HTTP 200 com `queue_services: ok` e `data_services: ok`. No teste pós-deploy, a etiqueta foi adicionada e removida na conversa `#2143`; sem recarregar a página, o catálogo de etiquetas nas sessões de Kelvin e Caio convergiu de `2` para `1` após a remoção. O card de alerta também desapareceu na sessão do Caio.
+- A barra lateral exibiu `Caio Atenção 1` nas duas sessões; o menu de etiquetas confirmou o total compartilhado `1` depois da remoção. O estado funcional original foi restaurado e nenhum texto foi enviado ao WhatsApp.
+- Commit funcional e auditoria foram publicados em `origin/rotta-custom-v1`; os snapshots preexistentes permanecem fora do commit.
+- Linhas conectadas: [contexto no Obsidian](C:/Users/User/Documents/Obsidian/Meu%20Cofre/Meu%20Cofre/Projetos/Chatwoot%20Rotta/00%20-%20Contexto%20e%20estado.md) ↔ [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1).
