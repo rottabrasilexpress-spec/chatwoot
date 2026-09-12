@@ -69,3 +69,19 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - A configuração de criptografia foi adicionada ao ambiente de produção para habilitar a retenção interna sem expor os valores no repositório ou neste registro.
 - O menu contextual foi verificado no navegador autenticado como Kelvin: apresentou `Solicitar Atenção`, `Marcar como resolvida`, `Adiar`, `Arquivar conversa`, etiquetas, link e fixação; não apresentou `Reabrir`, `Deixar pendente` ou `Fechar conversa`.
 - Os testes Ruby continuam dependentes do runtime do container; localmente não há Ruby/Bundler disponíveis. O boot Rails remoto foi executado sem alteração de dados.
+
+## Checkpoint 4 — overlay backend e migração recuperável — 12/09/2026
+
+- O deploy `e0b997114` confirmou que o `Dockerfile.overlay` passou a copiar os arquivos backend de atenção, retenção, ditado, políticas, listener e controller para Rails/Sidekiq/Sidekiq UAZAPI.
+- Esse deploy revelou um erro real de migração: `t.references :message` criava o índice automaticamente e a migração tentava criá-lo novamente. O serviço chegou a responder 502 durante a inicialização.
+- A correção foi publicada no commit `1bc4c0096`: tabela e índices passaram a ser criados de forma recuperável, com reparo do índice parcialmente criado sem apagar dados de retenção.
+
+## Checkpoint 5 — deploy recuperado e teste live — 12/09/2026
+
+- Easypanel concluiu em verde o deploy `1bc4c0096` às `03:22:01 UTC`, recriando Rails, Sidekiq e Sidekiq UAZAPI; os logs terminaram com `Success`.
+- Health check live voltou a HTTP 200 em `/app/login`; o manifesto continua servindo `dashboard-Cm3m31nO.js` e `Messages-Bj9ACAIM.js`.
+- Após recarregar o Chatwoot autenticado como Kelvin, a lista carregou sem scroll inicial e terminou em “Todas as conversas carregadas”. O menu contextual manteve `Solicitar Atenção`, resolver, adiar, arquivar, etiquetas, link e fixação, sem reabrir/pendente/fechar.
+- O teste real de `Solicitar Atenção` retornou o aviso `Solicitação enviada para o agente Caio.`. Não houve mensagem pública nem envio ao WhatsApp.
+- O filtro `Caio Atenção` abriu uma conversa real e mostrou os chips `caio-atencao` e `clientes-fechados`, confirmando que a rota e a etiqueta existem.
+- Pendência separada de contadores: a rota `ORÇAMENTOS/Kelvin` mostrou `#kelvin` com meta 1 ao mesmo tempo em que a lista informou “Não há conversas ativas neste grupo”. A implementação do filtro exclui resolvidas, enquanto a meta ainda conserva esse valor; isso deve ser corrigido em rodada própria, sem atribuí-lo ao deploy de retenção.
+- A rota de Follow-up abriu em aproximadamente 4,5 s e estava vazia; não foi possível repetir o duplo clique em um cartão sem criar dados artificiais.
