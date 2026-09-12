@@ -348,19 +348,21 @@ export default {
         v-if="showDictationButton"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_DICTATION_ICON')"
         :icon="isDictating ? 'i-ph-stop-circle' : 'i-ph-text-aa'"
-        slate
-        faded
+        color="blue"
+        :variant="isDictating ? 'solid' : 'faded'"
         sm
         :disabled="isTranscribing"
+        :aria-label="$t('CONVERSATION.REPLYBOX.TIP_DICTATION_ICON')"
         @click="toggleDictation"
       />
       <NextButton
         v-if="showAudioRecorderButton"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
         :icon="!isRecordingAudio ? 'i-ph-microphone' : 'i-ph-microphone-slash'"
-        slate
-        faded
+        color="ruby"
+        :variant="isRecordingAudio ? 'solid' : 'faded'"
         sm
+        :aria-label="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
         @click="toggleAudioRecorder"
       />
       <NextButton
