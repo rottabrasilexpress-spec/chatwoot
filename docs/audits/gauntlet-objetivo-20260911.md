@@ -120,3 +120,11 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Código/backend já publicado nesta rodada: commits `1a10c1617`, `d25beeb2b`, `c3d394336`, `c8b916bae`; estes commits estão em `origin/rotta-custom-v1`. Os assets regenerados e este registro ainda precisam de commit/push/deploy.
 - Testes disponíveis: `inboxMixin.spec.js` 43/43, `ReplyBox.spec.js` 93/93, `DictationRecorder.spec.js` 2/2, suíte focalizada inicial 76/76; ESLint focalizado sem erros (2 warnings i18n preexistentes), `git diff --check` sem erros materiais. Ruby/RSpec não executável localmente por ausência de Ruby/Bundler. Gate AAA permanece aberto; não há nota final até o deploy dos assets e a revalidação live dos dois controles.
 - Aplicativo móvel: pesquisa oficial confirma que o campo recebe o host/base (`domain.com`), não `/app/login`; usar `n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host` ou a URL-base HTTPS, conforme a versão do app. Fontes registradas em `docs/research/chatwoot-mobile-connection-20260911.md`.
+
+## Checkpoint 10 — chunks publicados e composer confirmado live — 12/09/2026
+
+- O commit `fadc8f4d3` foi enviado para `origin/rotta-custom-v1` com os 34 arquivos de runtime referenciados pelo manifesto que estavam ignorados pelo Git. O primeiro deploy do manifesto isolado foi revertido operacionalmente pela correção de empacotamento: ele produziu 404 nos chunks novos e tela em branco, sem alteração de dados.
+- O segundo deploy terminou com `Success` às `05:05:33 UTC`; Rails, Sidekiq e Sidekiq UAZAPI foram recriados. O Chatwoot real voltou após a janela de startup e carregou a conversa `#2330`.
+- Prova live final: `i-ph-text-aa = 1`, `i-ph-microphone = 1`; a resposta de rede pós-deploy teve zero 4xx em assets Vite/manifesto. O teste não acionou microfone nem enviou áudio/mensagem, portanto a presença dos controles está aprovada e o envio efetivo de áudio permanece não exercitado nesta rodada.
+- O critério de bundle/composer passa nesta revalidação. O gate AAA global continua aberto por cobertura Ruby/RSpec indisponível localmente e por cenários externos que não foram executados; não atribuir nota final AAA somente com essa prova.
+- URL móvel confirmada pela pesquisa oficial: usar o host/base `n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host` ou a base HTTPS, sem `/app/login`; `app.chatwoot.com` é somente Cloud.
