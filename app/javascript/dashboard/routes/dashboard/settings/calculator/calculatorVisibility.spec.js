@@ -1,4 +1,7 @@
-import { canViewCalculator } from './calculatorVisibility';
+import {
+  canViewCalculator,
+  shouldClaimCalculatorOwnership,
+} from './calculatorVisibility';
 
 describe('calculatorVisibility', () => {
   it('keeps the calculator available until its owner is established', () => {
@@ -20,5 +23,14 @@ describe('calculatorVisibility', () => {
     expect(
       canViewCalculator({ shared: true, ownerId: 4, currentUserId: 9 })
     ).toBe(true);
+  });
+
+  it('claims ownership only when the account has no owner yet', () => {
+    expect(
+      shouldClaimCalculatorOwnership({ ownerId: null, currentUserId: 4 })
+    ).toBe(true);
+    expect(
+      shouldClaimCalculatorOwnership({ ownerId: 4, currentUserId: 9 })
+    ).toBe(false);
   });
 });

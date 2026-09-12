@@ -13,13 +13,20 @@ const TagInputStub = defineComponent({
     menuItems: { type: Array, default: () => [] },
     placeholder: { type: String, default: '' },
   },
-  emits: ['input'],
+  emits: ['input', 'secondaryAction'],
   setup(props, { emit }) {
     const onInput = event => emit('input', event.target.value);
+    const emitSecondaryAction = item => emit('secondaryAction', item);
     const inputType = computed(() => props.type);
     const inputMenuItems = computed(() => props.menuItems);
     const inputPlaceholder = computed(() => props.placeholder);
-    return { onInput, inputType, inputMenuItems, inputPlaceholder };
+    return {
+      onInput,
+      emitSecondaryAction,
+      inputType,
+      inputMenuItems,
+      inputPlaceholder,
+    };
   },
   template:
     '<input data-test="contact-input" :data-input-type="inputType" :data-menu-count="inputMenuItems.length" :placeholder="inputPlaceholder" @input="onInput" />',
@@ -60,6 +67,11 @@ describe('ContactSelector', () => {
       label: 'Kelvin (11965927865)',
       icon: 'i-ri-whatsapp-fill',
       phoneNumber: '11965927865',
+      isContactCard: true,
+      secondaryAction: {
+        label: 'Abrir conversa',
+        icon: 'i-lucide-message-circle',
+      },
     });
 
     await wrapper.get('[data-test="contact-input"]').setValue('11965927865');
@@ -69,6 +81,16 @@ describe('ContactSelector', () => {
     expect(tagInput.props('menuItems')).not.toContainEqual(
       expect.objectContaining({ action: 'create' })
     );
+  });
+
+  it('opens a known contact conversation through the Chatwoot action', async () => {
+    const wrapper = mountSelector();
+    const tagInput = wrapper.findComponent(TagInputStub);
+    const contact = tagInput.props('menuItems')[0];
+
+    await tagInput.vm.emitSecondaryAction(contact);
+
+    expect(wrapper.emitted('openConversation')).toEqual([[contact]]);
   });
 
   it('offers an explicit clickable WhatsApp option for an unknown number', async () => {
@@ -84,6 +106,9 @@ describe('ContactSelector', () => {
         phoneNumber: '11965927865',
         value: '11965927865',
       })
+    );
+    expect(tagInput.props('menuItems')).not.toContainEqual(
+      expect.objectContaining({ isContactCard: true })
     );
   });
 });

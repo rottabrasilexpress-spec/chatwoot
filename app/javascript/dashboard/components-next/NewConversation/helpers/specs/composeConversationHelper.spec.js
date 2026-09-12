@@ -593,6 +593,23 @@ describe('composeConversationHelper', () => {
         });
       });
 
+      it('gets the most recent conversation for opening it in Chatwoot', async () => {
+        ContactAPI.getConversations.mockResolvedValue({
+          data: {
+            payload: [
+              { id: 10, last_activity_at: '2024-01-01T10:00:00Z' },
+              { id: 11, last_activity_at: '2024-01-02T10:00:00Z' },
+            ],
+          },
+        });
+
+        await expect(helpers.getLatestContactConversation(7)).resolves.toEqual({
+          id: 11,
+          last_activity_at: '2024-01-02T10:00:00Z',
+        });
+        expect(ContactAPI.getConversations).toHaveBeenCalledWith(7);
+      });
+
       it('creates new contact with phone number', async () => {
         const mockContact = {
           id: 1,

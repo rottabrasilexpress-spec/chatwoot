@@ -51,6 +51,7 @@ const emit = defineEmits([
   'updateSelectedContact',
   'updateTargetInbox',
   'clearSelectedContact',
+  'openConversation',
   'createConversation',
 ]);
 
@@ -382,6 +383,7 @@ useKeyboardEvents({
         @set-selected-contact="setSelectedContact"
         @clear-selected-contact="clearSelectedContact"
         @update-dropdown="handleDropdownUpdate"
+        @open-conversation="emit('openConversation', $event)"
       />
       <InboxEmptyState v-if="showNoInboxAlert" />
       <InboxSelector

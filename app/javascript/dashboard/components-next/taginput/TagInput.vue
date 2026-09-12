@@ -51,6 +51,7 @@ const emit = defineEmits([
   'onClickOutside',
   'add',
   'remove',
+  'secondaryAction',
 ]);
 
 const modelValue = defineModel({
@@ -249,7 +250,24 @@ const handleBlur = e => emit('blur', e);
         :is-searching="isLoading"
         class="ltr:left-0 rtl:right-0 z-[100] top-8 max-h-56 w-[inherit] max-w-md dark:!outline-n-slate-5"
         @action="handleDropdownAction"
-      />
+        @secondary-action="emit('secondaryAction', $event)"
+      >
+        <template #label="{ item }">
+          <slot name="menu-label" :item="item">
+            <span class="min-w-0 text-sm font-420 truncate text-n-slate-12">
+              {{ item.label }}
+            </span>
+          </slot>
+        </template>
+        <template #trailing-icon="{ item }">
+          <slot name="menu-trailing-icon" :item="item" />
+        </template>
+        <template #secondary-action="{ item }">
+          <slot name="menu-secondary-action" :item="item">
+            <span class="i-lucide-arrow-up-right size-4" aria-hidden="true" />
+          </slot>
+        </template>
+      </DropdownMenu>
     </div>
   </div>
 </template>

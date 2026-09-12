@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted, watch } from 'vue';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
@@ -15,7 +16,9 @@ import {
   fetchContactableInboxes,
   processContactableInboxes,
   mergeInboxDetails,
+  getLatestContactConversation,
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
+import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
 
 import Popover from 'dashboard/components-next/popover/Popover.vue';
 import ComposeNewConversationForm from 'dashboard/components-next/NewConversation/components/ComposeNewConversationForm.vue';
@@ -35,6 +38,8 @@ const emit = defineEmits(['close']);
 
 const searchContacts = createContactSearcher();
 const store = useStore();
+const route = useRoute();
+const router = useRouter();
 const { t } = useI18n();
 
 const { fetchSignatureFlagFromUISettings } = useUISettings();
@@ -167,6 +172,27 @@ const closeCompose = () => {
   resetContacts();
 };
 
+const openContactConversation = async contact => {
+  if (!contact?.id) return;
+
+  try {
+    const conversation = await getLatestContactConversation(contact.id);
+    if (!conversation?.id) return;
+
+    closeCompose();
+    router.push({
+      path: frontendURL(
+        conversationUrl({
+          accountId: route.params.accountId,
+          id: conversation.id,
+        })
+      ),
+    });
+  } catch {
+    useAlert(t('COMPOSE_NEW_CONVERSATION.FORM.ERROR_MESSAGE'));
+  }
+};
+
 const discardCompose = () => {
   clearFormState();
   formState.message = '';
@@ -274,6 +300,7 @@ onMounted(() => resetContacts());
         @clear-selected-contact="clearSelectedContact"
         @create-conversation="createConversation"
         @discard="discardCompose"
+        @open-conversation="openContactConversation"
       />
     </template>
   </Popover>

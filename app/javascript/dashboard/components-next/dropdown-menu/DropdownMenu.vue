@@ -54,7 +54,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['action', 'search', 'empty']);
+const emit = defineEmits(['action', 'search', 'empty', 'secondaryAction']);
 
 const { t } = useI18n();
 
@@ -118,6 +118,10 @@ const handleSearchInput = event => {
 const handleAction = item => {
   const { action, value, ...rest } = item;
   emit('action', { action, value, ...rest });
+};
+
+const handleSecondaryAction = item => {
+  emit('secondaryAction', item);
 };
 
 const shouldShowEmptyState = computed(() => {
@@ -235,52 +239,115 @@ onMounted(() => {
         <div v-if="isLoading" class="flex items-center justify-center py-2">
           <Spinner :size="24" />
         </div>
-        <button
-          v-for="(item, index) in filteredMenuItems"
-          :key="index"
-          type="button"
-          class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
-          :class="{
-            'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
-            'text-n-ruby-11': item.action === 'delete',
-            'text-n-slate-12': item.action !== 'delete',
-          }"
-          :disabled="item.disabled"
-          @click="handleAction(item)"
-        >
-          <slot name="thumbnail" :item="item">
-            <Avatar
-              v-if="item.thumbnail"
-              :name="item.thumbnail.name"
-              :src="item.thumbnail.src"
-              :size="thumbnailSize"
-              :rounded-full="roundedThumbnail"
-            />
-          </slot>
-          <slot name="icon" :item="item">
-            <Icon
-              v-if="item.icon"
-              :icon="item.icon"
-              class="flex-shrink-0 size-3.5"
-            />
-          </slot>
-          <EmojiIcon
-            v-if="item.emoji"
-            :value="item.emoji"
-            :color="item.iconColor"
-            class="flex-shrink-0 size-4"
-          />
-          <slot name="label" :item="item">
-            <span
-              v-if="item.label"
-              class="min-w-0 text-sm font-420 truncate"
-              :class="labelClass"
+        <template v-for="(item, index) in filteredMenuItems" :key="index">
+          <div
+            v-if="item.isContactCard"
+            class="flex w-full min-w-[20rem] min-h-16 items-stretch gap-1 rounded-lg bg-n-alpha-1 p-1 dark:bg-n-alpha-2"
+            data-test="dropdown-contact-card"
+          >
+            <button
+              type="button"
+              class="inline-flex min-w-0 flex-1 items-center justify-start gap-2 rounded-md border-0 px-2 py-1.5 text-left transition-all duration-200 ease-in-out hover:bg-n-alpha-2 dark:hover:bg-n-alpha-3 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+              :class="{
+                'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
+                'text-n-ruby-11': item.action === 'delete',
+                'text-n-slate-12': item.action !== 'delete',
+              }"
+              :disabled="item.disabled"
+              @click="handleAction(item)"
             >
-              {{ item.label }}
-            </span>
-          </slot>
-          <slot name="trailing-icon" :item="item" />
-        </button>
+              <slot name="thumbnail" :item="item">
+                <Avatar
+                  v-if="item.thumbnail"
+                  :name="item.thumbnail.name"
+                  :src="item.thumbnail.src"
+                  :size="thumbnailSize"
+                  :rounded-full="roundedThumbnail"
+                />
+              </slot>
+              <slot name="icon" :item="item">
+                <Icon
+                  v-if="item.icon"
+                  :icon="item.icon"
+                  class="flex-shrink-0 size-4"
+                />
+              </slot>
+              <EmojiIcon
+                v-if="item.emoji"
+                :value="item.emoji"
+                :color="item.iconColor"
+                class="flex-shrink-0 size-4"
+              />
+              <slot name="label" :item="item">
+                <span
+                  v-if="item.label"
+                  class="min-w-0 text-sm font-420 truncate"
+                  :class="labelClass"
+                >
+                  {{ item.label }}
+                </span>
+              </slot>
+              <slot name="trailing-icon" :item="item" />
+            </button>
+            <button
+              v-if="item.secondaryAction"
+              type="button"
+              class="inline-flex w-32 shrink-0 items-center justify-center gap-1 rounded-md border-0 px-2 text-n-slate-12 transition-all duration-200 ease-in-out hover:bg-n-alpha-2 dark:hover:bg-n-alpha-3 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+              :aria-label="item.secondaryAction.label"
+              :title="item.secondaryAction.label"
+              @click.stop="handleSecondaryAction(item)"
+            >
+              <slot name="secondary-action" :item="item">
+                <Icon :icon="item.secondaryAction.icon" class="size-4" />
+              </slot>
+            </button>
+          </div>
+          <button
+            v-else
+            type="button"
+            class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+            :class="{
+              'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
+              'text-n-ruby-11': item.action === 'delete',
+              'text-n-slate-12': item.action !== 'delete',
+            }"
+            :disabled="item.disabled"
+            @click="handleAction(item)"
+          >
+            <slot name="thumbnail" :item="item">
+              <Avatar
+                v-if="item.thumbnail"
+                :name="item.thumbnail.name"
+                :src="item.thumbnail.src"
+                :size="thumbnailSize"
+                :rounded-full="roundedThumbnail"
+              />
+            </slot>
+            <slot name="icon" :item="item">
+              <Icon
+                v-if="item.icon"
+                :icon="item.icon"
+                class="flex-shrink-0 size-3.5"
+              />
+            </slot>
+            <EmojiIcon
+              v-if="item.emoji"
+              :value="item.emoji"
+              :color="item.iconColor"
+              class="flex-shrink-0 size-4"
+            />
+            <slot name="label" :item="item">
+              <span
+                v-if="item.label"
+                class="min-w-0 text-sm font-420 truncate"
+                :class="labelClass"
+              >
+                {{ item.label }}
+              </span>
+            </slot>
+            <slot name="trailing-icon" :item="item" />
+          </button>
+        </template>
       </template>
       <div
         v-if="shouldShowEmptyState"

@@ -251,6 +251,29 @@ export const createNewContact = async input => {
   return camelcaseKeys(newContact, { deep: true });
 };
 
+export const getLatestContactConversation = async contactId => {
+  const {
+    data: { payload },
+  } = await ContactAPI.getConversations(contactId);
+  const conversations = Array.isArray(payload)
+    ? payload
+    : payload?.conversations || [];
+
+  const timestamp = conversation => {
+    const value =
+      conversation.last_activity_at ||
+      conversation.lastActivityAt ||
+      conversation.created_at ||
+      conversation.createdAt;
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue)
+      ? numericValue
+      : Date.parse(value || '') || 0;
+  };
+
+  return [...conversations].sort((a, b) => timestamp(b) - timestamp(a))[0];
+};
+
 export const fetchContactableInboxes = async contactId => {
   const {
     data: { payload: inboxes = [] },

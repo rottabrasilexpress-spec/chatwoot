@@ -319,6 +319,7 @@
     "PARTICIPATING_CONVERSATIONS": "Participating",
     "UNATTENDED_CONVERSATIONS": "Unattended",
     "REPORTS": "Reports",
+    "CALCULATOR": "Calculadora",
     "SETTINGS": "Settings",
     "CONTACTS": "Contacts",
     "ACTIVE": "Active",
@@ -1079,6 +1080,91 @@
       "DESCRIPTION": "Are you sure you want to delete this policy? This action cannot be undone.",
       "CONFIRM_BUTTON_LABEL": "Delete",
       "CANCEL_BUTTON_LABEL": "Cancel"
+    }
+  },
+  "CALCULATOR": {
+    "TITLE": "Calculadora Rotta Brasil Express",
+    "DESCRIPTION": "Central de leitura e preparação de propostas para mudanças e fretes.",
+    "PRIVATE_MESSAGE": "Esta Calculadora está disponível somente para o agente que a criou.",
+    "SHARING": {
+      "TITLE": "Visibilidade da Calculadora",
+      "DESCRIPTION": "Por padrão, somente o criador acessa esta área. Ative o botão para liberar para os demais agentes.",
+      "PRIVATE": "Privada",
+      "SHARED": "Compartilhada"
+    },
+    "READING": {
+      "TITLE": "Central de leitura",
+      "DESCRIPTION": "Cole o texto da conversa ou do inventário para preparar os dados do cálculo.",
+      "LABEL": "Texto da conversa",
+      "PLACEHOLDER": "Cole aqui as mensagens, medidas, origem, destino e demais informações do cliente..."
+    },
+    "ACTIONS": {
+      "CLEAR": "Limpar",
+      "CALCULATE": "Calcular"
+    },
+    "FREIGHT": {
+      "TITLE": "Dados do frete",
+      "DESCRIPTION": "Preencha ou confirme os dados que serão usados na proposta.",
+      "CLIENT": "Nome do cliente",
+      "CLIENT_PLACEHOLDER": "Ex.: Antônio Silva",
+      "DATE": "Data pretendida",
+      "ORIGIN": "Origem",
+      "ORIGIN_PLACEHOLDER": "Cidade e estado de origem",
+      "DESTINATION": "Destino",
+      "DESTINATION_PLACEHOLDER": "Cidade e estado de destino"
+    },
+    "SERVICES": {
+      "TITLE": "Serviços adicionais",
+      "ASSEMBLY": "Montador",
+      "PACKING": "Embalagem",
+      "DISASSEMBLY": "Desmontagem e montagem",
+      "STORAGE": "Armazenagem",
+      "INSURANCE": "Seguro da mudança"
+    },
+    "INVENTORY": {
+      "TITLE": "Inventário e cubagem",
+      "DESCRIPTION": "Registre um item por linha. Medidas no formato largura x altura x profundidade em metros ou centímetros são calculadas automaticamente.",
+      "LABEL": "Lista de itens",
+      "PLACEHOLDER": "Ex.: Sofá — 2,00 x 0,90 x 0,80 m\nMesa — 1,20 x 0,80 x 0,75 m",
+      "ITEMS": "Itens identificados",
+      "VOLUME": "Cubagem estimada",
+      "VOLUME_VALUE": "{value} m³"
+    },
+    "INTEGRATIONS": {
+      "TITLE": "Integrações planejadas",
+      "DESCRIPTION": "A interface já reserva os espaços para as próximas integrações, sem simular dados externos.",
+      "AI_TITLE": "IA de leitura e cálculo",
+      "MAPS_TITLE": "Google Maps e rota",
+      "PENDING": "Preparado para a próxima etapa"
+    },
+    "RESULT": {
+      "TITLE": "Resultado da preparação",
+      "DESCRIPTION": "Confira a rota, os serviços e a proposta antes de copiar para o WhatsApp.",
+      "ROUTE": "Rota",
+      "PRICE": "Preço",
+      "PRICE_PENDING": "Aguardando integração de cálculo",
+      "SERVICES": "Serviços",
+      "NO_SERVICES": "Nenhum serviço adicional",
+      "PROPOSAL_TITLE": "Proposta para WhatsApp",
+      "COPY": "Copiar proposta",
+      "PROPOSAL_TAB": "Proposta",
+      "INVENTORY_TAB": "Inventário",
+      "INVENTORY_COPY": "Copiar inventário",
+      "INVENTORY_EMPTY": "Nenhum inventário foi informado.",
+      "ROUTE_PREVIEW_TITLE": "Prévia da rota",
+      "ROUTE_PREVIEW_PENDING": "A rota será calculada quando a integração com o Google Maps estiver configurada.",
+      "DISTANCE": "Distância",
+      "DURATION": "Tempo estimado",
+      "TOLLS": "Pedágios",
+      "PENDING_VALUE": "Aguardando"
+    },
+    "ALERTS": {
+      "VISIBILITY_UPDATED": "Visibilidade da Calculadora atualizada.",
+      "VISIBILITY_ERROR": "Não foi possível atualizar a visibilidade da Calculadora.",
+      "PROPOSAL_COPIED": "Proposta copiada para a área de transferência.",
+      "PROPOSAL_COPY_ERROR": "Não foi possível copiar a proposta.",
+      "INVENTORY_COPIED": "Inventário copiado para a área de transferência.",
+      "INVENTORY_COPY_ERROR": "Não foi possível copiar o inventário."
     }
   }
 }

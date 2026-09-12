@@ -14,6 +14,7 @@ import Suspended from './suspended/Index.vue';
 import NoAccounts from './noAccounts/Index.vue';
 import OnboardingAccountDetails from './onboarding/Index.vue';
 import OnboardingInboxSetup from './onboarding/InboxSetup.vue';
+import calculator from './settings/calculator/calculator.routes';
 
 export default {
   routes: [
@@ -24,6 +25,7 @@ export default {
         ...captainRoutes,
         ...inboxRoutes,
         ...conversation.routes,
+        ...calculator.routes,
         ...settings.routes,
         ...callRoutes,
         ...contactRoutes,

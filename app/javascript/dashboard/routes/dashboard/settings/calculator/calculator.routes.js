@@ -6,7 +6,7 @@ import CalculatorIndex from './Index.vue';
 export default {
   routes: [
     {
-      path: frontendURL('accounts/:accountId/settings/calculator'),
+      path: frontendURL('accounts/:accountId/calculator'),
       component: SettingsWrapper,
       children: [
         {

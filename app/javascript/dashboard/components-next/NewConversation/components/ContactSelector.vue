@@ -52,6 +52,7 @@ const emit = defineEmits([
   'searchContacts',
   'setSelectedContact',
   'clearSelectedContact',
+  'openConversation',
   'updateDropdown',
 ]);
 
@@ -92,6 +93,15 @@ const contactsList = computed(() => {
       phoneNumber,
       icon: phoneNumber ? 'i-ri-whatsapp-fill' : undefined,
       action: 'contact',
+      isContactCard: Boolean(phoneNumber),
+      ...(phoneNumber
+        ? {
+            secondaryAction: {
+              label: 'Abrir conversa',
+              icon: 'i-lucide-message-circle',
+            },
+          }
+        : {}),
     };
   });
 
@@ -210,7 +220,38 @@ const handleInput = value => {
         @on-click-outside="emit('updateDropdown', 'contacts', false)"
         @add="emit('setSelectedContact', $event)"
         @remove="emit('clearSelectedContact')"
-      />
+        @secondary-action="emit('openConversation', $event)"
+      >
+        <template #menu-label="{ item }">
+          <div
+            v-if="item.isContactCard"
+            class="flex min-w-0 flex-1 flex-col items-start gap-0.5 py-1 text-left"
+            data-test="contact-card"
+          >
+            <span class="w-full truncate text-sm font-medium text-n-slate-12">
+              {{ item.name }}
+            </span>
+            <span class="w-full truncate text-xs text-n-slate-11">
+              {{ item.phoneNumber }}
+            </span>
+          </div>
+          <span
+            v-else
+            class="min-w-0 text-sm font-420 truncate text-n-slate-12"
+          >
+            {{ item.label }}
+          </span>
+        </template>
+        <template #menu-secondary-action="{ item }">
+          <span
+            class="i-lucide-message-circle size-4 shrink-0"
+            aria-hidden="true"
+          />
+          <span class="truncate text-xs font-medium">
+            {{ item.secondaryAction.label }}
+          </span>
+        </template>
+      </TagInput>
     </div>
   </div>
 </template>
