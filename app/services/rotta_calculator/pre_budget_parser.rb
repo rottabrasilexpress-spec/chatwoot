@@ -138,7 +138,7 @@ module RottaCalculator
     end
 
     def explicitly_requested?(text, keyword)
-      context = text.to_s.split(/(?=(?:montag|desmont))/).find { |segment| segment.match?(keyword) }.to_s
+      context = text.to_s
       return false if context.blank?
       return false if NEGATION_WORDS.any? { |word| context.include?(InventoryCatalog.normalize(word)) }
 
