@@ -1,4 +1,5 @@
 import { frontendURL } from '../../../../helper/URLHelper';
+import { ROLES } from 'dashboard/constants/permissions.js';
 import SettingsWrapper from '../SettingsWrapper.vue';
 import CalculatorIndex from './Index.vue';
 
@@ -11,6 +12,9 @@ export default {
         {
           path: '',
           name: 'calculator_index',
+          meta: {
+            permissions: ROLES,
+          },
           component: CalculatorIndex,
         },
       ],
