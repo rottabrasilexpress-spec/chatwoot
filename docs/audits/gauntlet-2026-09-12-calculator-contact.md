@@ -66,3 +66,15 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Teste live pós-deploy com `11 9 65 92 78 65`: cartão presente, área efetiva `465 x 90 px`, conteúdo completo e `Abrir conversa` visível; clique abriu internamente `#2143`; console sem erros.
 - Testes live adicionais: `11965927865` e `11 9 6592-7865` também abriram o cartão/conversa; `11965927866` continuou somente como WhatsApp e foi descartado sem criação/envio.
 - Nenhuma mensagem foi enviada, nenhuma etiqueta/conversa foi criada ou alterada. Branches `codex/rotta-objective-20260911` e `rotta-custom-v1` estão no commit `9a20f7189`.
+
+## Quarta rodada — cartão ampliado, privacidade e validação cross-agent — 2026-09-12
+
+- O vídeo `20260912-1941-28.4629223.mp4` foi revisado integralmente e o áudio foi transcrito. O teste confirmado foi `11 9 6 5 9 2 7 8 6 5`; o cartão deveria crescer, abrir a conversa, mover Calculadora para depois de Relatórios e permitir compartilhamento controlado com o Caio.
+- O cartão passou a usar dropdown de `40rem` limitado pela viewport, cartão com `min-w-[36rem] min-h-32` e ação `Abrir conversa` de `w-48`. No live final, a busca formatada encontrou Kelvin e a ação abriu internamente `/app/accounts/1/conversations/2143`; nenhuma mensagem foi enviada.
+- A ordem live final ficou `Follow-up → Etiquetas → Chamadas → Relatórios → Calculadora → Configurações` na sessão do Caio.
+- O fluxo do switch ganhou modal premium antes de persistir: `Liberar a Calculadora para os agentes?` / `Manter a Calculadora privada?`, explicação do efeito, botões de cancelar e confirmação, além de cores distintas para liberar/restringir.
+- A bateria encontrou e corrigiu dois bugs reais: o evento do switch estava sendo interpretado invertido; e o endpoint de contas não devolvia as configurações atualizadas. O controlador foi incluído explicitamente no `docker/Dockerfile.overlay`.
+- Prova cross-agent: depois de confirmar o compartilhamento no Edge/Caio, a API retornou `rotta_calculator_shared: true` e `rotta_calculator_owner_id: 2`; no Chrome/Kelvin a Calculadora abriu. Depois o estado foi restaurado para privado; a API retornou `false`, o conteúdo ficou bloqueado para Kelvin e o item sumiu da barra lateral após recarga completa, enquanto Caio continuou com acesso.
+- Vitest focalizado final: `10/10`; ESLint dos arquivos alterados: `0` erros e `8` avisos de chaves i18n dinâmicas; build Vite: `5.089` módulos; manifesto: `240` assets verificados.
+- Commits funcionais publicados nas branches `codex/rotta-objective-20260911` e `rotta-custom-v1`: `fc6c5b245`, `dc6cc1916`, `77739f681`, `fe3de610f`, `80d642bab` e `200c62c22`. Deploy final do EasyPanel concluiu com sucesso.
+- Nenhum cliente recebeu mensagem, nenhum contato/conversa/etiqueta foi criado ou removido e o estado final da Calculadora ficou privado, como antes da prova.
