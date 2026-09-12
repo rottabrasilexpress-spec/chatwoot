@@ -102,3 +102,12 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Teste focalizado: `conversationStats/actions.spec.js` e `labels/sidebarLabelCounts.spec.js` passaram, 9/9. ESLint focado passou sem erros quando isolada a diferença de CRLF preexistente, mantendo apenas 2 warnings de chaves i18n dinâmicas já existentes.
 - A suíte frontend completa terminou com `4315 passed / 33 failed` em 443 arquivos; as falhas restantes são de ambiente/locale/fuso/estado global (por exemplo, timezone UTC, traduções pt-BR e dados de macros), sem falha apontada nos arquivos da correção. O script `pnpm test` nativo não funciona no Windows porque usa `TZ=UTC`; a execução equivalente via `corepack pnpm exec vitest` foi usada.
 - Estado: código ainda não implantado neste checkpoint; próximo passo obrigatório é commit, push para `origin/rotta-custom-v1`, deploy verde no Easypanel e revalidação live da rota Kelvin e da atualização após add/remove.
+
+## Checkpoint 8 — contador de etiquetas publicado e validado live — 12/09/2026
+
+- O commit `3dd350ce5` foi publicado em `origin/rotta-custom-v1` e implantado no Easypanel; a implantação exibiu `Compose implantado` para `fix(chatwoot): use live filtered label counts`.
+- A correção usa `conversationStats.allCount` da meta filtrada real na rota de etiqueta, força a meta imediatamente ao montar/trocar a rota e após add/remove, corrige `all_count` para `allCount` e remove a constante duplicada de atenção.
+- Na validação live autenticada como Kelvin, `ORÇAMENTOS/Kelvin` abriu vazio sem contador no cabeçalho. O DOM confirmou `#kelvin` sem badge; a barra lateral mostrou `ORÇAMENTOS` sem número; o seletor exibiu `Kelvin 0`.
+- O Rails runner read-only confirmou `Label#conversations_count = 0`, `Conversation#2308.label_list = []` e `contact.label_list = []`. O estado final da base permaneceu sem mutação de teste.
+- Recarga repetida permaneceu estável. Testes focados: 9/9 aprovados; suíte frontend equivalente: 4315 aprovados e 33 falhas ambientais/locale/fuso/estado global, sem falha nos arquivos alterados. O deploy foi validado após a janela de startup.
+- Pendências não mascaradas: não foi executado o fluxo completo de add/remove via API/UAZAPI nesta rodada; o teste de menu de etiquetas foi revertido/confirmado sem mutação. O runtime Ruby/RSpec continua indisponível localmente.
