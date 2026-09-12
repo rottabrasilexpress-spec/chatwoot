@@ -72,6 +72,44 @@ Durante a recarga forçada da auditoria, o banner `Desconectado` apareceu e perm
 
 Se o app aceitar a base e ainda mostrar uma conta vazia, o próximo diagnóstico é limpar a instalação/sessão salva, comparar a versão do app e validar permissões do agente e compatibilidade da inbox. A evidência do servidor não indica erro de DNS, HTTPS ou indisponibilidade básica.
 
+## Addendum — causa técnica no aplicativo estável e correção oficial posterior — 12/09/2026
+
+### Causa mais provável
+
+A página oficial de releases lista `v4.9.0` como a versão estável mais recente do aplicativo no momento desta auditoria. O código da tag `v4.9.0` contém duas decisões incompatíveis:
+
+1. `checkValidUrl` valida o texto bruto com `new URL(url)`, portanto o formato documentado `domain.com` pode ser rejeitado antes da conexão.
+2. Depois de extrair o domínio para a API, a mesma versão monta o WebSocket usando o texto bruto (`wss://${url}/cable`). Se o valor digitado contém `https://`, isso pode resultar em `wss://https://.../cable`, que não conecta.
+
+Esses pontos são observáveis no código oficial da tag [v4.9.0/settingsActions.ts](https://raw.githubusercontent.com/chatwoot/chatwoot-mobile-app/v4.9.0/src/store/settings/settingsActions.ts) e [v4.9.0/settingsUtils.ts](https://raw.githubusercontent.com/chatwoot/chatwoot-mobile-app/v4.9.0/src/store/settings/settingsUtils.ts).
+
+O projeto oficial corrigiu exatamente essa combinação no commit [b33a43e — “build the websocket URL from the normalized host”](https://github.com/chatwoot/chatwoot-mobile-app/commit/b33a43e7111b0ea0c1ed52dd6d85731b3b464736), de 02/09/2026. A correção normaliza o host, monta `wss://<host>/cable` a partir dele, rejeita espaços e repara um WebSocket antigo salvo no armazenamento. O release estável `v4.9.0` foi publicado em 18/08/2026 e não lista esse commit em seu changelog; portanto, a disponibilidade dessa correção depende de uma nova versão do app ou de uma versão beta que já a contenha.
+
+### Prova no servidor desta instalação
+
+- `https://atendimento.via-cargo.com/api`: HTTP 200, Chatwoot `4.17.0`, `queue_services: ok`, `data_services: ok`.
+- `https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/api`: o mesmo resultado.
+- `/api/v1/profile` retorna HTTP 401 sem autenticação nos dois hosts, comportamento esperado antes do login.
+- Raiz e `/app/login` retornam HTTP 200 nos dois hosts.
+
+Logo, a API básica, o HTTPS e a saúde do servidor não são a causa principal observada; o problema mais provável é o app estável ainda conter a montagem incorreta do endpoint em tempo real ou manter uma URL/WebSocket antigo salvo.
+
+### Procedimento exato
+
+1. Atualizar o aplicativo pela App Store para uma versão que contenha a correção `b33a43e` (ou usar a versão beta oficial, se a atualização estável ainda não a incluir).
+2. Remover a configuração/sessão salva do servidor no app; se não houver essa opção, desinstalar e instalar novamente.
+3. Após a atualização, informar somente:
+
+   ```text
+   atendimento.via-cargo.com
+   ```
+
+   Sem `https://`, sem `/app/login`, sem `/app/accounts/...` e sem `app.chatwoot.com`.
+4. Entrar com o mesmo usuário da web e confirmar que ele está associado à inbox WhatsApp correta.
+5. Se ainda falhar, anotar a versão exibida no app, a versão do iOS e a mensagem exata. Com a versão `v4.9.0`, não existe um formato de entrada que seja simultaneamente confiável: o host puro segue a documentação mas pode ser rejeitado pela validação antiga; a URL absoluta pode passar da validação, mas deixa o WebSocket malformado.
+
+Enquanto a versão corrigida não estiver disponível, a alternativa segura é usar a web/PWA pelo domínio canônico. Não há necessidade de mudar o deploy do Chatwoot para corrigir esse defeito do aplicativo nativo.
+
 ## Addendum — confirmação do endereço canônico e do comportamento live (12/09/2026)
 
 - `https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/` e `/app/login`: HTTP 200.

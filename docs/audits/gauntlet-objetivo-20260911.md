@@ -186,3 +186,12 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - A tela autenticada de Configurações → Agentes mostrou `Caio Mazine` como agente verificado e administrador da conta Rotta Brasil Express. A conta live possui 3 agentes: Caio, Capital Bridge e Kelvin.
 - Essa verificação confirma que o alvo Caio existe na conta e que a configuração de destinatário não aponta para um usuário ausente. Ela não substitui a prova de UI na sessão efetivamente autenticada do Caio, que permanece pendente.
 - A consulta foi somente leitura; nenhuma conta, senha, permissão ou agente foi alterado.
+
+## Checkpoint 19 — causa do aplicativo móvel isolada no código oficial — 12/09/2026
+
+- O servidor live não é o bloqueio: os dois hosts retornaram `/api` HTTP 200 com Chatwoot `4.17.0`, `queue_services: ok` e `data_services: ok`; `/api/v1/profile` retornou 401 sem autenticação, como esperado.
+- A tag oficial estável `v4.9.0` do aplicativo valida o campo com `new URL(url)` antes de normalizar o domínio, embora a documentação oficial peça `domain.com`. Na mesma tag, o WebSocket é montado com o texto bruto (`wss://${url}/cable`); ao informar `https://...`, o resultado pode ser `wss://https://.../cable`.
+- O commit oficial `b33a43e` (#1151, 02/09/2026) corrige exatamente isso: extrai/normaliza o host, monta `wss://<host>/cable`, rejeita espaços e repara URL persistida. O release estável listado é `v4.9.0` (18/08/2026), anterior ao commit da correção.
+- Orientação operacional: atualizar o app para uma versão que contenha `b33a43e`, limpar a configuração salva e informar `atendimento.via-cargo.com` somente como host. Não usar `/app/login` ou `/app/accounts/...`; `app.chatwoot.com` é somente Cloud.
+- Nenhuma alteração funcional no Chatwoot/Easypanel foi feita durante este diagnóstico. O achado é do cliente móvel nativo, não do fork web.
+- Fonte detalhada: [pesquisa de conexão móvel](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\research\chatwoot-mobile-connection-20260911.md).
