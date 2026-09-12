@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -42,6 +43,19 @@ const serviceOptions = [
 const services = reactive(
   Object.fromEntries(serviceOptions.map(service => [service.key, false]))
 );
+const pricing = reactive({
+  selectedCardId: 'padrao',
+  marginPercent: 35,
+  adjustmentPerKm: 0,
+  adjustmentStep: 0.25,
+  helperUnit: 0,
+  assemblerUnit: 0,
+  materialsSelected: false,
+  materialsTotal: 0,
+  specialFee: 0,
+  helpers: { origin: 0, destination: 0 },
+  assembly: { originDisassembly: 0, destinationAssembly: 0 },
+});
 const readingText = ref('');
 const inventoryText = ref('');
 const result = ref(null);
@@ -70,6 +84,38 @@ const selectedServices = computed(() =>
     selected: services[service.key],
   }))
 );
+
+const money = value =>
+  `R$ ${Number(value || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const selectedPricing = computed(() => result.value?.pricing?.selected || {});
+
+const updatePricingFromResult = data => {
+  const extracted = data?.extracted_data || {};
+  freight.clientName = extracted.client_name || freight.clientName;
+  freight.date = extracted.date || freight.date;
+  freight.origin = extracted.origin || freight.origin;
+  freight.destination = extracted.destination || freight.destination;
+  const parsedServices = extracted.services || {};
+  pricing.helpers.origin =
+    parsedServices.helpers?.origin ?? pricing.helpers.origin;
+  pricing.helpers.destination =
+    parsedServices.helpers?.destination ?? pricing.helpers.destination;
+  pricing.assembly.originDisassembly =
+    parsedServices.assembly?.origin_disassembly ??
+    pricing.assembly.originDisassembly;
+  pricing.assembly.destinationAssembly =
+    parsedServices.assembly?.destination_assembly ??
+    pricing.assembly.destinationAssembly;
+  const firstInventoryLine = data.inventory?.items
+    ?.map(item => `${item.quantity}x ${item.name}`)
+    .join('\n');
+  if (firstInventoryLine && !inventoryText.value.trim())
+    inventoryText.value = firstInventoryLine;
+};
 
 watch(
   calculatorSettings,
@@ -140,6 +186,19 @@ const clearCalculator = () => {
   serviceOptions.forEach(service => {
     services[service.key] = false;
   });
+  pricing.selectedCardId = 'padrao';
+  pricing.marginPercent = 35;
+  pricing.adjustmentPerKm = 0;
+  pricing.adjustmentStep = 0.25;
+  pricing.helperUnit = 0;
+  pricing.assemblerUnit = 0;
+  pricing.materialsSelected = false;
+  pricing.materialsTotal = 0;
+  pricing.specialFee = 0;
+  pricing.helpers.origin = 0;
+  pricing.helpers.destination = 0;
+  pricing.assembly.originDisassembly = 0;
+  pricing.assembly.destinationAssembly = 0;
   result.value = null;
   calculationError.value = '';
   activeResultTab.value = 'proposal';
@@ -166,8 +225,25 @@ const calculate = async () => {
         item_count: inventorySummary.value.itemCount,
         volume_m3: inventorySummary.value.volumeM3,
       },
+      pricing: {
+        selected_card_id: pricing.selectedCardId,
+        margin_percent: pricing.marginPercent,
+        adjustment_per_km: pricing.adjustmentPerKm,
+        adjustment_step: pricing.adjustmentStep,
+        helper_unit: pricing.helperUnit,
+        assembler_unit: pricing.assemblerUnit,
+        materials_selected: pricing.materialsSelected,
+        materials_total: pricing.materialsTotal,
+        special_fee: pricing.specialFee,
+        helpers: pricing.helpers,
+        assembly: {
+          origin_disassembly: pricing.assembly.originDisassembly,
+          destination_assembly: pricing.assembly.destinationAssembly,
+        },
+      },
     });
     result.value = data;
+    updatePricingFromResult(data);
     activeResultTab.value = 'proposal';
   } catch (error) {
     calculationError.value =
@@ -204,6 +280,7 @@ const copyInventory = async () => {
 onMounted(ensureCalculatorOwnership);
 </script>
 
+<!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <template>
   <SettingsLayout>
     <template #header>
@@ -326,7 +403,8 @@ onMounted(ensureCalculatorOwnership);
               <Input
                 v-model="freight.date"
                 :label="t('CALCULATOR.FREIGHT.DATE')"
-                type="date"
+                type="text"
+                :placeholder="t('CALCULATOR.FREIGHT.DATE_PLACEHOLDER')"
                 data-testid="calculator-date"
               />
               <Input
@@ -358,6 +436,90 @@ onMounted(ensureCalculatorOwnership);
                     class="rounded border-n-strong text-n-brand focus:ring-n-brand"
                   />
                   <span>{{ service.label }}</span>
+                </label>
+              </div>
+              <div
+                class="grid grid-cols-1 gap-3 mt-4 sm:grid-cols-2 lg:grid-cols-4"
+              >
+                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
+                  Ajudantes — origem
+                  <input
+                    v-model.number="pricing.helpers.origin"
+                    type="number"
+                    min="0"
+                    max="999"
+                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
+                  Ajudantes — destino
+                  <input
+                    v-model.number="pricing.helpers.destination"
+                    type="number"
+                    min="0"
+                    max="999"
+                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
+                  Desmontagem — origem
+                  <input
+                    v-model.number="pricing.assembly.originDisassembly"
+                    type="number"
+                    min="0"
+                    max="999"
+                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
+                  Montagem — destino
+                  <input
+                    v-model.number="pricing.assembly.destinationAssembly"
+                    type="number"
+                    min="0"
+                    max="999"
+                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
+                  Valor unitário ajudante
+                  <input
+                    v-model.number="pricing.helperUnit"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
+                  Valor unitário montador
+                  <input
+                    v-model.number="pricing.assemblerUnit"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
+                  Taxa especial
+                  <input
+                    v-model.number="pricing.specialFee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
+                  Material/embalagem
+                  <input
+                    v-model.number="pricing.materialsTotal"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  />
                 </label>
               </div>
             </div>
@@ -557,6 +719,137 @@ onMounted(ensureCalculatorOwnership);
               </p>
             </div>
           </div>
+          <section
+            class="flex flex-col gap-4 p-4 border rounded-xl border-n-weak bg-n-solid-1"
+            data-testid="calculator-pricing"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-semibold text-n-slate-12">
+                  Opções comerciais
+                </h3>
+                <p class="mt-1 text-xs text-n-slate-11">
+                  Seis faixas espelhadas do Hub. O motor aplica margem, piso
+                  mínimo de R$ 600 no frete e ajuste manual por quilômetro.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-2 text-xs text-n-slate-11">
+                <label class="flex items-center gap-1"
+                  >Margem
+                  <input
+                    v-model.number="pricing.marginPercent"
+                    type="number"
+                    min="0"
+                    max="95"
+                    step="1"
+                    class="w-16 px-2 py-1 border rounded border-n-weak bg-n-solid-1"
+                  />%
+                </label>
+                <label class="flex items-center gap-1"
+                  >Ajuste/km
+                  <input
+                    v-model.number="pricing.adjustmentPerKm"
+                    type="number"
+                    step="0.05"
+                    class="w-20 px-2 py-1 border rounded border-n-weak bg-n-solid-1"
+                  />
+                </label>
+                <Button
+                  label="Recalcular"
+                  size="sm"
+                  color="blue"
+                  :is-loading="isCalculating"
+                  @click="calculate"
+                />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <button
+                v-for="card in result.pricing.cards"
+                :key="card.id"
+                type="button"
+                class="flex flex-col gap-2 p-4 text-left border rounded-xl transition-colors"
+                :class="
+                  card.id === result.pricing.selected_card_id
+                    ? 'border-n-brand bg-n-brand/10'
+                    : 'border-n-weak bg-n-alpha-1 hover:border-n-brand/50'
+                "
+                @click="
+                  pricing.selectedCardId = card.id;
+                  calculate();
+                "
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-semibold text-n-slate-12">{{
+                    card.name
+                  }}</span>
+                  <span class="text-xs text-n-slate-11">{{
+                    card.description
+                  }}</span>
+                </div>
+                <div class="flex items-end justify-between gap-2">
+                  <span class="text-lg font-bold text-n-brand">{{
+                    money(card.final_price)
+                  }}</span>
+                  <span class="text-xs text-n-slate-11"
+                    >{{ money(card.final_tariff_per_km) }}/km</span
+                  >
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-[11px] text-n-slate-11">
+                  <span>Frete {{ money(card.freight_only_price) }}</span>
+                  <span>Serviços {{ money(card.services_cost) }}</span>
+                  <span>Lucro {{ money(card.profit) }}</span>
+                </div>
+              </button>
+            </div>
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+              <div class="p-3 rounded-lg bg-n-alpha-2">
+                <p class="text-xs text-n-slate-11">Custo operacional</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{
+                    money(
+                      result.pricing.selected.freight_cost +
+                        result.pricing.services.total
+                    )
+                  }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-alpha-2">
+                <p class="text-xs text-n-slate-11">Preço final</p>
+                <p class="mt-1 text-sm font-semibold text-n-brand">
+                  {{ money(selectedPricing.final_price) }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-alpha-2">
+                <p class="text-xs text-n-slate-11">Lucro estimado</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ money(selectedPricing.profit) }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-alpha-2">
+                <p class="text-xs text-n-slate-11">Margem real</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ selectedPricing.real_margin_percent }}%
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-alpha-2">
+                <p class="text-xs text-n-slate-11">Caminhão</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ result.truck_duration_hours }} h
+                </p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-3 text-xs text-n-slate-11">
+              <span>Pedágios: desativados</span>
+              <span>Serviços: {{ money(result.pricing.services.total) }}</span>
+              <span>Tempo de rota × 1,25 aplicado ao caminhão</span>
+              <span
+                v-if="result.inventory.manual_review"
+                class="font-semibold text-n-ruby-11"
+                >Revisão manual necessária em item(ns)</span
+              >
+            </div>
+          </section>
           <div class="flex flex-col gap-3">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <h3 class="text-sm font-semibold text-n-slate-12">
@@ -609,6 +902,39 @@ onMounted(ensureCalculatorOwnership);
               />
             </div>
             <div v-else class="flex flex-col gap-3">
+              <div
+                v-if="result.inventory?.items?.length"
+                class="overflow-x-auto border rounded-lg border-n-weak"
+              >
+                <table class="w-full text-xs text-left">
+                  <thead class="text-n-slate-11 bg-n-alpha-2">
+                    <tr>
+                      <th class="px-3 py-2">Item</th>
+                      <th class="px-3 py-2">Qtd.</th>
+                      <th class="px-3 py-2">Montado</th>
+                      <th class="px-3 py-2">Desmontado</th>
+                      <th class="px-3 py-2">Peso</th>
+                      <th class="px-3 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="item in result.inventory.items"
+                      :key="`${item.original_line}-${item.name}`"
+                      class="border-t border-n-weak text-n-slate-12"
+                    >
+                      <td class="px-3 py-2">{{ item.name }}</td>
+                      <td class="px-3 py-2">{{ item.quantity }}</td>
+                      <td class="px-3 py-2">{{ item.mounted_m3 }} m³</td>
+                      <td class="px-3 py-2">{{ item.disassembled_m3 }} m³</td>
+                      <td class="px-3 py-2">{{ item.weight_kg }} kg</td>
+                      <td class="px-3 py-2">
+                        {{ item.manual_review ? 'Revisar' : 'Catálogo' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               <div class="flex justify-end">
                 <Button
                   :label="t('CALCULATOR.RESULT.INVENTORY_COPY')"

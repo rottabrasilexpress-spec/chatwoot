@@ -1115,6 +1115,7 @@
       "CLIENT": "Nome do cliente",
       "CLIENT_PLACEHOLDER": "Ex.: Antônio Silva",
       "DATE": "Data pretendida",
+      "DATE_PLACEHOLDER": "Ex.: 3 a 5 de outubro",
       "ORIGIN": "Origem",
       "ORIGIN_PLACEHOLDER": "Cidade e estado de origem",
       "DESTINATION": "Destino",

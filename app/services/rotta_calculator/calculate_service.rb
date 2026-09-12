@@ -1,66 +1,88 @@
 module RottaCalculator
   class CalculateService
-    def initialize(payload, routes_client: GoogleRoutesClient.new, ai_client: OpenRouterClient.new)
+    def initialize(payload, routes_client: nil, ai_client: OpenRouterClient.new)
       @payload = payload.stringify_keys
-      @routes_client = routes_client
+      @routes_client = routes_client || ResilientRoutesClient.new
       @ai_client = ai_client
     end
 
     def call
       freight = @payload.fetch('freight', {}).stringify_keys
-      services = Array(@payload['services']).map(&:stringify_keys).select { |service| service['selected'] }
       inventory = @payload.fetch('inventory', {}).stringify_keys
+      pricing_input = @payload.fetch('pricing', {}).stringify_keys
       origin = freight['origin'].to_s.strip
       destination = freight['destination'].to_s.strip
       raise ArgumentError, 'Origem e destino são obrigatórios' if origin.blank? || destination.blank?
 
       route = @routes_client.call(origin: origin, destination: destination)
+      parsed = PreBudgetParser.new(
+        reading_text: @payload['reading_text'],
+        freight: freight,
+        inventory: inventory,
+        services: @payload['services']
+      ).call
       ai = @ai_client.call(
         'reading_text' => @payload['reading_text'].to_s,
         'freight' => freight,
-        'services' => services,
+        'services' => @payload['services'],
         'inventory' => inventory,
+        'parsed_data' => parsed,
+        'inventory_catalog' => InventoryCatalog.all.map { |entry| { 'name' => entry.name, 'aliases' => entry.aliases, 'mounted_m3' => entry.mounted_m3, 'disassembled_m3' => entry.disassembled_m3, 'weight_kg' => entry.weight_kg, 'disassemblable' => entry.disassemblable } },
         'route' => route,
         'toll' => { 'enabled' => false, 'calculated' => false }
       ).stringify_keys
+      extracted = parsed.deep_merge(ai['extracted_data'].is_a?(Hash) ? ai['extracted_data'].deep_stringify_keys : {})
+      extracted['client_name'] = parsed['client_name'] if parsed['client_name'].present?
+      extracted['date'] = parsed['date'] if parsed['date'].present?
+      extracted['origin'] = parsed['origin'] if parsed['origin'].present?
+      extracted['destination'] = parsed['destination'] if parsed['destination'].present?
+      resolved_inventory = InventoryResolver.new(ai_estimates: ai['inventory_estimates']).call(parsed.dig('inventory', 'items'))
+      extracted['inventory'] = resolved_inventory
+      extracted['services'] = parsed['services'].deep_merge(ai['services'].is_a?(Hash) ? ai['services'].deep_stringify_keys : {})
+      pricing = PricingEngine.new(route: route, parsed_data: extracted, pricing: pricing_input).call
+      proposal = ProposalBuilder.call(freight: freight.merge(extracted.slice('client_name', 'date', 'origin', 'destination')), route: route, inventory: resolved_inventory, pricing: pricing)
 
       {
         'route' => "#{origin} → #{destination}",
         'distance_km' => route['distance_km'],
         'duration_minutes' => route['duration_minutes'],
-        'selected_services' => services.map { |service| service['label'] }.compact,
-        'price' => numeric_price_or_nil(ai['price']),
+        'truck_duration_minutes' => pricing['truck_duration_minutes'],
+        'truck_duration_hours' => pricing['truck_duration_hours'],
+        'selected_services' => selected_services(extracted),
+        'price' => pricing.dig('selected', 'final_price'),
         'api_status' => 'complete',
         'ai_status' => 'complete',
         'toll_status' => 'disabled',
-        'proposal' => ai['proposal'].presence || fallback_proposal(freight, inventory, route),
+        'route_provider' => route['provider'],
+        'route_polyline' => route['polyline'],
+        'proposal' => proposal,
         'summary' => ai['summary'].to_s,
-        'missing_information' => Array(ai['missing_information']),
-        'extracted_data' => ai['extracted_data'].is_a?(Hash) ? ai['extracted_data'] : {},
-        'pricing_note' => ai['pricing_note'].presence || 'Nenhuma tabela de preços foi fornecida.'
+        'missing_information' => missing_information(extracted, ai),
+        'extracted_data' => extracted,
+        'inventory' => resolved_inventory,
+        'pricing' => pricing,
+        'pricing_note' => 'Valores calculados pelo motor determinístico; pedágios permanentemente desativados.'
       }
     end
 
     private
 
-    def numeric_price_or_nil(value)
-      return if value.blank?
-      return value.to_f if value.is_a?(Numeric)
-
-      value.to_s.gsub(',', '.').to_f if value.to_s.match?(/\A\d+(?:[.,]\d+)?\z/)
+    def selected_services(extracted)
+      services = extracted.fetch('services', {}).to_h.stringify_keys
+      labels = []
+      labels << 'Ajudantes' if services.dig('helpers', 'origin').to_i.positive? || services.dig('helpers', 'destination').to_i.positive?
+      labels << 'Desmontagem e montagem' if services.dig('assembly', 'requested')
+      labels << 'Material e embalagem' if services.dig('materials', 'selected')
+      labels
     end
 
-    def fallback_proposal(freight, inventory, route)
-      [
-        'Rotta Brasil Express',
-        "Cliente: #{freight['client_name'].presence || 'A definir'}",
-        "Data prevista: #{freight['date'].presence || 'A definir'}",
-        "Rota: #{freight['origin']} → #{freight['destination']}",
-        "Distância estimada: #{route['distance_km']} km",
-        "Tempo estimado: #{route['duration_minutes']} min",
-        "Inventário: #{inventory['item_count'] || 0} item(ns)",
-        'Preço: falta a tabela de preços da empresa.'
-      ].join("\n")
+    def missing_information(extracted, ai)
+      missing = Array(ai['missing_information']).map(&:to_s)
+      missing << 'Origem' if extracted['origin'].blank?
+      missing << 'Destino' if extracted['destination'].blank?
+      missing << 'Data pretendida' if extracted['date'].blank?
+      missing << 'Revisar itens sem correspondência no catálogo' if extracted.dig('inventory', 'manual_review')
+      missing.uniq
     end
   end
 end

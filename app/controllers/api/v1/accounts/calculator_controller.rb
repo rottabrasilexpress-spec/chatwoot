@@ -31,11 +31,18 @@ class Api::V1::Accounts::CalculatorController < Api::V1::Accounts::BaseControlle
   end
 
   def calculator_params
-    params.require(:calculator).permit(
-      :reading_text,
-      freight: %i[client_name date origin destination],
-      services: %i[label selected],
-      inventory: %i[text item_count volume_m3]
-    ).to_h.deep_stringify_keys
+      params.require(:calculator).permit(
+        :reading_text,
+        freight: %i[client_name date origin destination],
+        services: %i[label selected],
+        inventory: %i[text item_count volume_m3],
+        pricing: [
+          :selected_card_id, :margin_percent, :adjustment_per_km, :adjustment_step,
+          :helper_unit, :assembler_unit, :materials_selected, :materials_total,
+          :special_fee,
+          helpers: %i[origin destination],
+          assembly: %i[origin_disassembly destination_assembly]
+        ]
+      ).to_h.deep_stringify_keys
   end
 end

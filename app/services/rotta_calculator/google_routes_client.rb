@@ -21,7 +21,7 @@ module RottaCalculator
         headers: {
           'Accept' => 'application/json',
           'Content-Type' => 'application/json',
-          'X-Goog-FieldMask' => 'routes.distanceMeters,routes.duration'
+          'X-Goog-FieldMask' => 'routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline'
         },
         body: {
           origin: { address: origin },
@@ -42,7 +42,8 @@ module RottaCalculator
       route = payload['routes'].first
       {
         'distance_km' => (route['distanceMeters'].to_f / 1000).round(1),
-        'duration_minutes' => parse_duration_minutes(route['duration'])
+        'duration_minutes' => parse_duration_minutes(route['duration']),
+        'polyline' => route.dig('polyline', 'encodedPolyline')
       }
     rescue JSON::ParserError => e
       raise UpstreamError, "Resposta inválida do Google Routes: #{e.message}"
