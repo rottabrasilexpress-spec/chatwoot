@@ -11,8 +11,10 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Switch from 'next/switch/Switch.vue';
+import Modal from 'dashboard/components/Modal.vue';
 import {
   canViewCalculator,
+  getRequestedCalculatorVisibility,
   shouldClaimCalculatorOwnership,
 } from './calculatorVisibility';
 import { buildCalculationResult, parseInventory } from './calculatorHelpers';
@@ -43,6 +45,9 @@ const readingText = ref('');
 const inventoryText = ref('');
 const result = ref(null);
 const isShared = ref(false);
+const showVisibilityConfirmModal = ref(false);
+const pendingVisibility = ref(null);
+const isSavingVisibility = ref(false);
 const activeResultTab = ref('proposal');
 
 const calculatorSettings = computed(() => currentAccount.value?.settings || {});
@@ -87,13 +92,39 @@ const ensureCalculatorOwnership = async () => {
   }
 };
 
-const toggleVisibility = async () => {
+const requestVisibilityChange = switchEventValue => {
+  const requestedVisibility =
+    getRequestedCalculatorVisibility(switchEventValue);
+
+  // Keep the switch aligned with the persisted state until the agent confirms
+  // the change in the modal.
+  isShared.value = !requestedVisibility;
+  pendingVisibility.value = requestedVisibility;
+  showVisibilityConfirmModal.value = true;
+};
+
+const cancelVisibilityChange = () => {
+  pendingVisibility.value = null;
+  showVisibilityConfirmModal.value = false;
+};
+
+const confirmVisibilityChange = async () => {
+  if (pendingVisibility.value === null || isSavingVisibility.value) return;
+
+  const requestedVisibility = pendingVisibility.value;
+  isSavingVisibility.value = true;
+  isShared.value = requestedVisibility;
+  showVisibilityConfirmModal.value = false;
+
   try {
-    await updateAccount({ rotta_calculator_shared: isShared.value });
+    await updateAccount({ rotta_calculator_shared: requestedVisibility });
     useAlert(t('CALCULATOR.ALERTS.VISIBILITY_UPDATED'));
   } catch {
-    isShared.value = !isShared.value;
+    isShared.value = !requestedVisibility;
     useAlert(t('CALCULATOR.ALERTS.VISIBILITY_ERROR'));
+  } finally {
+    pendingVisibility.value = null;
+    isSavingVisibility.value = false;
   }
 };
 
@@ -183,7 +214,7 @@ onMounted(ensureCalculatorOwnership);
             <Switch
               v-model="isShared"
               data-testid="calculator-share-switch"
-              @change="toggleVisibility"
+              @change="requestVisibilityChange"
             />
           </div>
         </section>
@@ -563,6 +594,79 @@ onMounted(ensureCalculatorOwnership);
           {{ t('CALCULATOR.PRIVATE_MESSAGE') }}
         </p>
       </div>
+
+      <Modal
+        v-model:show="showVisibilityConfirmModal"
+        :show-close-button="false"
+        size="medium"
+        @close="cancelVisibilityChange"
+      >
+        <div
+          class="flex flex-col gap-5 p-8"
+          data-testid="calculator-visibility-confirmation"
+        >
+          <div class="flex items-start gap-4">
+            <div
+              class="flex items-center justify-center flex-shrink-0 rounded-2xl size-12"
+              :class="
+                pendingVisibility
+                  ? 'bg-n-brand/10 text-n-brand'
+                  : 'bg-n-ruby-4 text-n-ruby-11'
+              "
+            >
+              <Icon
+                :icon="
+                  pendingVisibility
+                    ? 'i-lucide-users-round'
+                    : 'i-lucide-lock-keyhole'
+                "
+                class="size-6"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5 pr-6">
+              <h2 class="text-lg font-semibold text-n-slate-12">
+                {{
+                  t(
+                    pendingVisibility
+                      ? 'CALCULATOR.SHARING.CONFIRM_SHARED_TITLE'
+                      : 'CALCULATOR.SHARING.CONFIRM_PRIVATE_TITLE'
+                  )
+                }}
+              </h2>
+              <p class="text-sm leading-5 text-n-slate-11">
+                {{
+                  t(
+                    pendingVisibility
+                      ? 'CALCULATOR.SHARING.CONFIRM_SHARED_DESCRIPTION'
+                      : 'CALCULATOR.SHARING.CONFIRM_PRIVATE_DESCRIPTION'
+                  )
+                }}
+              </p>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3">
+            <Button
+              :label="t('CALCULATOR.SHARING.CONFIRM_CANCEL')"
+              variant="outline"
+              color="slate"
+              :disabled="isSavingVisibility"
+              @click="cancelVisibilityChange"
+            />
+            <Button
+              :label="
+                t(
+                  pendingVisibility
+                    ? 'CALCULATOR.SHARING.CONFIRM_SHARED'
+                    : 'CALCULATOR.SHARING.CONFIRM_PRIVATE'
+                )
+              "
+              :color="pendingVisibility ? 'blue' : 'ruby'"
+              :is-loading="isSavingVisibility"
+              @click="confirmVisibilityChange"
+            />
+          </div>
+        </div>
+      </Modal>
     </template>
   </SettingsLayout>
 </template>

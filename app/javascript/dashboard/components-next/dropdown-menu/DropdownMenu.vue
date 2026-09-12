@@ -242,7 +242,7 @@ onMounted(() => {
         <template v-for="(item, index) in filteredMenuItems" :key="index">
           <div
             v-if="item.isContactCard"
-            class="flex w-full min-w-[26rem] min-h-24 items-stretch gap-2 rounded-xl bg-n-alpha-1 p-2 dark:bg-n-alpha-2"
+            class="flex w-full min-w-[36rem] min-h-32 items-stretch gap-3 rounded-xl bg-n-alpha-1 p-3 dark:bg-n-alpha-2"
             data-test="dropdown-contact-card"
           >
             <button
@@ -292,7 +292,7 @@ onMounted(() => {
             <button
               v-if="item.secondaryAction"
               type="button"
-              class="inline-flex w-40 shrink-0 items-center justify-center gap-1 rounded-lg border-0 px-3 text-n-slate-12 transition-all duration-200 ease-in-out hover:bg-n-alpha-2 dark:hover:bg-n-alpha-3 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+              class="inline-flex w-48 shrink-0 items-center justify-center gap-1 rounded-lg border-0 px-3 text-n-slate-12 transition-all duration-200 ease-in-out hover:bg-n-alpha-2 dark:hover:bg-n-alpha-3 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
               :aria-label="item.secondaryAction.label"
               :title="item.secondaryAction.label"
               @click.stop="handleSecondaryAction(item)"

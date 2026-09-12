@@ -1090,7 +1090,14 @@
       "TITLE": "Visibilidade da Calculadora",
       "DESCRIPTION": "Por padrão, somente o criador acessa esta área. Ative o botão para liberar para os demais agentes.",
       "PRIVATE": "Privada",
-      "SHARED": "Compartilhada"
+      "SHARED": "Compartilhada",
+      "CONFIRM_SHARED_TITLE": "Liberar a Calculadora para os agentes?",
+      "CONFIRM_SHARED_DESCRIPTION": "A Calculadora ficará disponível para os demais agentes desta conta, incluindo o Caio. Eles poderão abrir a área, consultar os dados e preparar propostas.",
+      "CONFIRM_PRIVATE_TITLE": "Manter a Calculadora privada?",
+      "CONFIRM_PRIVATE_DESCRIPTION": "Somente o agente responsável continuará vendo esta área. Os demais agentes deixarão de acessá-la até que você libere novamente.",
+      "CONFIRM_CANCEL": "Cancelar",
+      "CONFIRM_SHARED": "Liberar para agentes",
+      "CONFIRM_PRIVATE": "Manter privada"
     },
     "READING": {
       "TITLE": "Central de leitura",

@@ -476,17 +476,6 @@ const menuItems = computed(() => {
       to: accountScopedRoute('rotta_follow_up'),
       activeOn: ['rotta_follow_up'],
     },
-    ...(showCalculator.value
-      ? [
-          {
-            name: 'Calculator',
-            label: t('SIDEBAR.CALCULATOR'),
-            icon: 'i-lucide-calculator',
-            to: accountScopedRoute('calculator_index'),
-            activeOn: ['calculator_index'],
-          },
-        ]
-      : []),
     {
       name: 'Labels',
       label: 'Etiquetas',
@@ -540,6 +529,17 @@ const menuItems = computed(() => {
         ...reportRoutes.value,
       ],
     },
+    ...(showCalculator.value
+      ? [
+          {
+            name: 'Calculator',
+            label: t('SIDEBAR.CALCULATOR'),
+            icon: 'i-lucide-calculator',
+            to: accountScopedRoute('calculator_index'),
+            activeOn: ['calculator_index'],
+          },
+        ]
+      : []),
     {
       name: 'Settings',
       label: t('SIDEBAR.SETTINGS'),

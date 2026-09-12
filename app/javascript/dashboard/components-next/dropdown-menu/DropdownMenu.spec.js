@@ -46,11 +46,11 @@ describe('DropdownMenu contact cards', () => {
 
     expect(
       wrapper.get('[data-test="dropdown-contact-card"]').classes()
-    ).toEqual(expect.arrayContaining(['min-h-24', 'min-w-[26rem]']));
+    ).toEqual(expect.arrayContaining(['min-h-32', 'min-w-[36rem]']));
     expect(wrapper.get('[data-test="contact-label"]').text()).toBe('Kelvin');
     expect(
       wrapper.get('button[aria-label="Abrir conversa"]').classes()
-    ).toEqual(expect.arrayContaining(['w-40']));
+    ).toEqual(expect.arrayContaining(['w-48']));
 
     await wrapper.get('button[aria-label="Abrir conversa"]').trigger('click');
 

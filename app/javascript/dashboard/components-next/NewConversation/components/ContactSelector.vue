@@ -215,7 +215,11 @@ const handleInput = value => {
         allow-create
         :type="inputType"
         class="flex-1 min-h-10 [&_input]:!min-h-10 [&_input]:!text-base"
-        :dropdown-class="['!max-w-lg', '!max-h-72']"
+        :dropdown-class="[
+          '!w-[40rem]',
+          '!max-w-[calc(100vw-2rem)]',
+          '!max-h-[calc(100vh-8rem)]',
+        ]"
         :class="errorClass"
         focus-on-mount
         @input="handleInput"

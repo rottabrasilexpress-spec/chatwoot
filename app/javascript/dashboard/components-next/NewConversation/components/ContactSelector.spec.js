@@ -29,7 +29,7 @@ const TagInputStub = defineComponent({
     };
   },
   template:
-    '<input data-test="contact-input" :data-input-type="inputType" :data-menu-count="inputMenuItems.length" :placeholder="inputPlaceholder" @input="onInput" />',
+    '<input data-test="contact-input" :data-input-type="inputType" :data-menu-count="inputMenuItems.length" :data-dropdown-class="String(dropdownClass)" :placeholder="inputPlaceholder" @input="onInput" />',
 });
 
 describe('ContactSelector', () => {
@@ -73,7 +73,6 @@ describe('ContactSelector', () => {
         icon: 'i-lucide-message-circle',
       },
     });
-
     await wrapper.get('[data-test="contact-input"]').setValue('11965927865');
 
     expect(tagInput.props('type')).toBe('tel');

@@ -1,5 +1,6 @@
 import {
   canViewCalculator,
+  getRequestedCalculatorVisibility,
   shouldClaimCalculatorOwnership,
 } from './calculatorVisibility';
 
@@ -32,5 +33,10 @@ describe('calculatorVisibility', () => {
     expect(
       shouldClaimCalculatorOwnership({ ownerId: 4, currentUserId: 9 })
     ).toBe(false);
+  });
+
+  it('converts the switch event into the requested shared state', () => {
+    expect(getRequestedCalculatorVisibility(false)).toBe(true);
+    expect(getRequestedCalculatorVisibility(true)).toBe(false);
   });
 });
