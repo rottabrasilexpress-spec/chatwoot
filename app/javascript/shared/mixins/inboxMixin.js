@@ -18,7 +18,9 @@ export const isRottaReplyInbox = channelType => {
   ).toLowerCase();
 
   return (
-    [INBOX_TYPES.API, INBOX_TYPES.WHATSAPP].includes(channelType) ||
+    [INBOX_TYPES.API, INBOX_TYPES.WHATSAPP]
+      .map(type => type.toLowerCase())
+      .includes(normalizedChannelType) ||
     normalizedChannelType.includes('uazapi')
   );
 };
@@ -62,7 +64,12 @@ export const INBOX_FEATURE_MAP = {
 export default {
   computed: {
     channelType() {
-      return normalizeInboxChannelType(this.inbox.channel_type);
+      return normalizeInboxChannelType(
+        this.inbox?.channel_type ||
+          this.inbox?.channelType ||
+          this.chat?.inbox?.channel_type ||
+          this.chat?.inbox?.channelType
+      );
     },
     whatsAppAPIProvider() {
       return this.inbox.provider || '';

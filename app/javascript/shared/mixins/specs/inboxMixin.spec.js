@@ -52,6 +52,15 @@ describe('inboxMixin', () => {
     expect(wrapper.vm.isAPIInbox).toBe(true);
   });
 
+  it('supports camelized inbox payloads', () => {
+    const Component = getComponentConfigForInbox(undefined, {
+      channelType: 'Channel::api',
+    });
+    const wrapper = shallowMount(Component);
+    expect(wrapper.vm.channelType).toBe('Channel::Api');
+    expect(wrapper.vm.isAPIInbox).toBe(true);
+  });
+
   it('isATwitterInbox returns true if channel type is twitter', () => {
     const Component = getComponentConfigForInbox('Channel::TwitterProfile');
     const wrapper = shallowMount(Component);

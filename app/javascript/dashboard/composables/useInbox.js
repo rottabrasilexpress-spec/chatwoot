@@ -53,7 +53,9 @@ export const useInbox = (inboxId = null) => {
   });
 
   const channelType = computed(() => {
-    return normalizeInboxChannelType(inbox.value?.channelType);
+    return normalizeInboxChannelType(
+      inbox.value?.channelType || inbox.value?.channel_type
+    );
   });
 
   const isAPIInbox = computed(() => {
