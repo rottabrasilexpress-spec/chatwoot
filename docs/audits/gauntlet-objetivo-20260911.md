@@ -222,3 +222,9 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Verificação dentro do Rails publicado confirmou `{active: true, event: true, file: true}` para a mensagem `41045`. Suíte focalizada após a correção: `11` arquivos, `208/208` testes aprovados; teste específico do `MessageList`: `1/1`; manifesto: `240` assets verificados.
 - O fixture `source_id=codex-ui-delete-test-20260912-0326`, mensagem `41045`, continua presente apenas para permitir a conferência e precisa ser removido por comando exato; nenhuma outra mensagem deve ser tocada. A remoção permanece pendente de confirmação imediata exigida para a ação destrutiva via console.
 - Limites mantidos: ainda falta prova independente na sessão do próprio Caio para popup/áudio e execução Ruby/RSpec local; a política server-side e a prova de agente autenticado estão confirmadas.
+
+## Checkpoint 23 — menu contextual revalidado após o deploy — 12/09/2026
+
+- Na conversa live `#2143`, o clique direito no cartão de Kelvin exibiu `Solicitar Atenção`, `Copiar link da conversa`, `Arquivar conversa`, `Atribuir etiqueta` e as demais ações permitidas.
+- A mesma árvore de acessibilidade não contém `Reabrir conversa`, `Deixar pendente` nem `Fechar conversa`. O menu foi fechado clicando fora e nenhuma ação mutável foi acionada.
+- O fixture `41045` continua aberto somente para a validação agent-only e segue pendente de remoção exata após confirmação de exclusão via console.
