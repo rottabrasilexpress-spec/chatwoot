@@ -78,3 +78,11 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Vitest focalizado final: `10/10`; ESLint dos arquivos alterados: `0` erros e `8` avisos de chaves i18n dinâmicas; build Vite: `5.089` módulos; manifesto: `240` assets verificados.
 - Commits funcionais publicados nas branches `codex/rotta-objective-20260911` e `rotta-custom-v1`: `fc6c5b245`, `dc6cc1916`, `77739f681`, `fe3de610f`, `80d642bab` e `200c62c22`. Deploy final do EasyPanel concluiu com sucesso.
 - Nenhum cliente recebeu mensagem, nenhum contato/conversa/etiqueta foi criado ou removido e o estado final da Calculadora ficou privado, como antes da prova.
+
+## Quinta rodada — propriedade Kelvin e auditoria segura de credenciais — 2026-09-12
+
+- O estado persistido da conta 1 foi confirmado no Rails: `rotta_calculator_shared=false` e `rotta_calculator_owner_id=1` (Kelvin). A sessão do Caio (usuário 2) recebeu a mensagem de acesso restrito e não exibiu a Calculadora; a sessão do proprietário Kelvin havia exibido o formulário normalmente.
+- O ambiente do serviço foi conferido após a prova: voltou às 34 variáveis originais e não contém `OPENROUTER_*` nem `GOOGLE_*` adicionadas nesta rodada. Nenhum deploy foi disparado.
+- O caminho local informado é uma pasta contendo `rotta-secrets.env.txt`, não um arquivo `.env` diretamente. O modelo desejado foi identificado como `deepseek/deepseek-v4-flash-0731`; a linha da chave de IA está malformada/colada ao modelo e deve ser regenerada antes do uso. As variáveis Google existem no catálogo da Vercel, mas os valores secretos são write-only e não foram copiados. O arquivo local não possui valores válidos para as chaves Google.
+- Por segurança, não foram persistidos segredos no código, GitHub ou Obsidian. A integração real de IA/Google Maps ainda não está funcional nesta implantação; o código permanece com placeholders explícitos. Pedágios continuam totalmente desativados e não devem ser calculados.
+- Para concluir a integração, é necessário um arquivo corrigido ou o preenchimento direto no EasyPanel com três valores válidos, sempre em linhas separadas: `OPENROUTER_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` e `GOOGLE_ROUTES_API_KEY`. Depois disso: cadastrar no serviço, validar sem expor valores, implantar e testar a calculadora ponta a ponta. O modelo ficará fixo em `deepseek/deepseek-v4-flash-0731`.
