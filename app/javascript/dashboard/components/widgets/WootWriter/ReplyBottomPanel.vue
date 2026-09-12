@@ -207,10 +207,7 @@ export default {
       // );
 
       return (
-        this.isFeatureEnabledonAccount(
-          this.accountId,
-          FEATURE_FLAGS.VOICE_RECORDER
-        ) && this.showAudioRecorder
+        this.voiceCaptureEnabled && this.showAudioRecorder
         // !isSafari
       );
     },
@@ -222,11 +219,19 @@ export default {
       if (this.isEditorDisabled) return false;
       if (this.isALineChannel || this.isATiktokChannel) return false;
 
+      return this.voiceCaptureEnabled && this.showDictation;
+    },
+    voiceCaptureEnabled() {
+      // API/WhatsApp inboxes are the supported Rotta reply channels. Keep
+      // their recorder controls available even when the account feature
+      // payload is stale or missing the flag in the browser store.
       return (
         this.isFeatureEnabledonAccount(
           this.accountId,
           FEATURE_FLAGS.VOICE_RECORDER
-        ) && this.showDictation
+        ) ||
+        this.isAPIInbox ||
+        this.isAWhatsAppChannel
       );
     },
     isInstagramDM() {
