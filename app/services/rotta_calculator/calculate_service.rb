@@ -10,17 +10,17 @@ module RottaCalculator
       freight = @payload.fetch('freight', {}).stringify_keys
       inventory = @payload.fetch('inventory', {}).stringify_keys
       pricing_input = @payload.fetch('pricing', {}).stringify_keys
-      origin = freight['origin'].to_s.strip
-      destination = freight['destination'].to_s.strip
-      raise ArgumentError, 'Origem e destino são obrigatórios' if origin.blank? || destination.blank?
-
-      route = @routes_client.call(origin: origin, destination: destination)
       parsed = PreBudgetParser.new(
         reading_text: @payload['reading_text'],
         freight: freight,
         inventory: inventory,
         services: @payload['services']
       ).call
+      origin = freight['origin'].presence || parsed['origin'].to_s.strip
+      destination = freight['destination'].presence || parsed['destination'].to_s.strip
+      raise ArgumentError, 'Origem e destino são obrigatórios' if origin.blank? || destination.blank?
+
+      route = @routes_client.call(origin: origin, destination: destination)
       ai = @ai_client.call(
         'reading_text' => @payload['reading_text'].to_s,
         'freight' => freight,

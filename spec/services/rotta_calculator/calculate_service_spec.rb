@@ -38,4 +38,33 @@ RSpec.describe RottaCalculator::CalculateService do
       expect(context.to_json).not_to include('pedágio', 'tollAmount', 'extraComputations')
     end
   end
+
+  it 'uses origin and destination parsed from the pasted reading when fields are blank' do
+    allow(routes_client).to receive(:call).with(
+      origin: 'Palotina - PR',
+      destination: 'Linhares - ES'
+    ).and_return('distance_km' => 100, 'duration_minutes' => 120)
+    allow(ai_client).to receive(:call).and_return(
+      'summary' => 'Resumo factual.',
+      'missing_information' => [],
+      'extracted_data' => {},
+      'price' => nil
+    )
+
+    result = described_class.new(
+      {
+        'reading_text' => "Origem: Palotina - PR\nDestino: Linhares - ES\n1 Cama",
+        'freight' => {},
+        'inventory' => {}
+      },
+      routes_client: routes_client,
+      ai_client: ai_client
+    ).call
+
+    expect(result['route']).to eq('Palotina - PR → Linhares - ES')
+    expect(routes_client).to have_received(:call).with(
+      origin: 'Palotina - PR',
+      destination: 'Linhares - ES'
+    )
+  end
 end
