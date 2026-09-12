@@ -262,7 +262,14 @@ const onFinalizeConversation = async () => {
       [props.source.id]
     );
     if (!assigned) return;
-    await updateConversationStatus(props.source.id, 'resolved', null);
+    // Finalization is an explicit workflow action. Resolve directly so the
+    // conversation cannot remain open behind the generic required-attributes
+    // guard used by the regular resolve button.
+    await store.dispatch('toggleStatus', {
+      conversationId: props.source.id,
+      status: 'resolved',
+      snoozedUntil: null,
+    });
     useAlert(t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_SUCCESS'));
   } catch (error) {
     useAlert(t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_FAILED'));

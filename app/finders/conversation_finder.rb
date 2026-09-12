@@ -182,8 +182,10 @@ class ConversationFinder
   def filter_by_status
     if params[:status] == 'all'
       # The main "Todos" view is the active workspace. Resolved conversations
-      # belong exclusively to Arquivados. This applies to label views too, so
-      # a conversation cannot reappear in the active workspace through a tag.
+      # belong exclusively to Arquivados, except when a label view is being
+      # requested: labels are also used as workflow buckets such as
+      # FINALIZADOS, so those views must include resolved conversations.
+      return if params[:labels].present?
       return if params[:conversation_type] == 'archived'
 
       @conversations = @conversations.where.not(status: Conversation.statuses[:resolved])
