@@ -42,14 +42,11 @@ class Label < ApplicationRecord
     conversations.where.not(contact_id: nil).distinct.count(:contact_id)
   end
 
-  # Keep sidebar badges aligned with the default label conversation view. The
-  # view excludes resolved conversations, while contacts_count is a different
-  # metric and can remain non-zero after the active conversation disappears.
+  # Keep sidebar badges aligned with the label conversation view. Label views
+  # include resolved conversations so workflow buckets such as FINALIZADOS
+  # remain visible after a freight is completed.
   def conversations_count
-    conversations
-      .where.not(status: Conversation.statuses[:resolved])
-      .distinct
-      .count(:id)
+    conversations.distinct.count(:id)
   end
 
   def messages
