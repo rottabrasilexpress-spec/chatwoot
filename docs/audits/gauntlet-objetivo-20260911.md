@@ -287,6 +287,18 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - A sessão independente do Caio permanece aberta para eventual repetição; nenhuma credencial foi registrada em arquivo, GitHub ou Obsidian.
 - Linhas conectadas: [contexto no Obsidian](C:/Users/User/Documents/Obsidian/Meu%20Cofre/Meu%20Cofre/Projetos/Chatwoot%20Rotta/00%20-%20Contexto%20e%20estado.md) ↔ [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1).
 
+## Checkpoint 32 — fluxo FINALIZADOS concluído e validado live — 12/09/2026
+
+- Implementado no fork `rotta-custom-v1`: sidebar `Emitir Contrato` (roxo), sidebar `FINALIZADOS` (vermelho), remoção de `ADIAR`, ação contextual `Enviar para FINALIZADOS`, confirmação em português, remoção das etiquetas anteriores, atribuição exclusiva de `finalizados` e resolução direta da conversa.
+- A consulta por etiqueta passou a incluir conversas resolvidas; o contador do badge passou a usar o mesmo conjunto da fila. Isso elimina a divergência entre cabeçalho, lista e número lateral.
+- O texto de mensagem apagada permanece em português e vermelho (`Mensagem apagada` / `Mensagem apagada pelo cliente`). O dashboard também carregou a primeira leva de conversas automaticamente, sem depender de scroll para iniciar a lista.
+- Commits publicados no GitHub: `cbe47371e` (fluxo e UI), `d93fd198d` (filtro de resolvidas por etiqueta), `ffc303300` (bundles referenciados pelo manifesto) e `b8dd9ceaa` (contador alinhado à fila). Os dois snapshots preexistentes não relacionados permaneceram fora dos commits.
+- Validação de código: Vitest focalizado `30/30`; ESLint com `0 errors` e somente o aviso preexistente de chave i18n dinâmica; `git diff --check` sem erro; build Vite concluído com `5084` módulos transformados. Ruby/RSpec não está disponível nesta máquina; o spec de modelo foi incluído e será executável no ambiente Rails.
+- O Easypanel concluiu os três deploys corretivos. Após a janela transitória de reinício, `/api` voltou a HTTP 200 com `queue_services: ok` e `data_services: ok`.
+- Teste real final no Chatwoot: o menu mostrou `Enviar para FINALIZADOS` e não mostrou `ADIAR`; o popup exibiu a confirmação completa; após confirmar na conversa `#2269`, a fila mostrou `#finalizados` com valor `1`, o badge exibiu `FINALIZADOS 1`, a conversa ficou somente com `finalizados` e a abertura direta mostrou `Reabrir`, comprovando status resolvido. O histórico registrou `Conversa foi marcada como resolvida por Kelvin`.
+- Durante a primeira prova, uma mensagem nova reabriu a conversa automaticamente, comportamento nativo esperado do Chatwoot. O finalizador foi executado novamente após o último deploy e o estado resolvido foi confirmado sem nova mensagem posterior.
+- Linhas conectadas: [contexto no Obsidian](C:/Users/User/Documents/Obsidian/Meu%20Cofre/Meu%20Cofre/Projetos/Chatwoot%20Rotta/00%20-%20Contexto%20e%20estado.md) ↔ [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1).
+
 ## Checkpoint 31 — retry do catálogo de etiquetas validado pós-deploy — 12/09/2026
 
 - A bateria live anterior reproduziu um caso de corrida: depois de remover `Caio Atenção` pelo Kelvin, a sessão do Kelvin atualizava, mas a sessão do Caio mantinha o total antigo até F5. A causa provável era a leitura do catálogo antes do commit da transação, seguida apenas de uma releitura do store ainda stale.
