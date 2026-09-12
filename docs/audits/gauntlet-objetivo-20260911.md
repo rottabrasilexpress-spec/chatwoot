@@ -180,3 +180,9 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - A busca global do Chatwoot por `Esta mensagem foi excluída` retornou somente a conversa `#2143`; todas as ocorrências carregadas estavam em bolhas `message--outgoing` do agente. Não foi encontrada uma mensagem `message--incoming` apagada pelo cliente para exercer o botão de visualização.
 - A busca foi limpa por teclado e a lista original voltou a carregar. Nenhuma mensagem, etiqueta ou conversa foi criada, removida ou alterada durante a procura.
 - A ausência de uma ocorrência recebida é uma limitação do dado live disponível, não uma aprovação do cenário agent-only. O contrato server-side continua coberto por policy, endpoint, retenção criptografada e specs do repositório.
+
+## Checkpoint 18 — identidade do destinatário Caio confirmada live — 12/09/2026
+
+- A tela autenticada de Configurações → Agentes mostrou `Caio Mazine` como agente verificado e administrador da conta Rotta Brasil Express. A conta live possui 3 agentes: Caio, Capital Bridge e Kelvin.
+- Essa verificação confirma que o alvo Caio existe na conta e que a configuração de destinatário não aponta para um usuário ausente. Ela não substitui a prova de UI na sessão efetivamente autenticada do Caio, que permanece pendente.
+- A consulta foi somente leitura; nenhuma conta, senha, permissão ou agente foi alterado.
