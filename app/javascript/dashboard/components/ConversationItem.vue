@@ -8,6 +8,8 @@ import ConversationCard from './widgets/conversation/ConversationCard.vue';
 import ConversationCardExpanded from 'dashboard/components-next/Conversation/ConversationCard/ConversationCardExpanded.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
 import ConversationContextMenu from './widgets/conversation/contextMenu/Index.vue';
+import ConversationAPI from 'dashboard/api/inbox/conversation';
+import { useAlert } from 'dashboard/composables';
 
 const props = defineProps({
   source: { type: Object, required: true },
@@ -55,6 +57,7 @@ const currentChat = useMapGetter('getSelectedChat');
 const inboxesList = useMapGetter('inboxes/getInboxes');
 const activeInbox = useMapGetter('getSelectedInbox');
 const accountId = useMapGetter('getCurrentAccountId');
+const currentUser = useMapGetter('getCurrentUser');
 
 const chatMetadata = computed(() => props.source.meta || {});
 const assignee = computed(() => chatMetadata.value.assignee || {});
@@ -194,6 +197,26 @@ const isPinned = computed(() => {
 const hasUnreadMessages = computed(() =>
   hasUnreadIncomingMessage(props.source)
 );
+
+const canRequestAttention = computed(() => {
+  const configuredId = window.chatwootConfig?.rottaAttentionRequesterUserId;
+  return (
+    Boolean(configuredId) &&
+    String(currentUser.value?.id) === String(configuredId)
+  );
+});
+
+const onRequestAttention = async conversationId => {
+  try {
+    await ConversationAPI.requestAttention(conversationId);
+    useAlert('Solicitação enviada para o agente Caio.');
+  } catch (error) {
+    useAlert(
+      error?.response?.data?.error ||
+        'Não foi possível solicitar atenção para esta conversa.'
+    );
+  }
+};
 </script>
 
 <template>
@@ -249,6 +272,7 @@ const hasUnreadMessages = computed(() =>
       :conversation-labels="source.labels"
       :pinned="isPinned"
       :conversation-url="conversationPath"
+      :can-request-attention="canRequestAttention"
       @update-conversation="onUpdateConversation"
       @assign-label="onAssignLabel"
       @remove-label="onRemoveLabel"
@@ -258,6 +282,7 @@ const hasUnreadMessages = computed(() =>
       @delete-conversation="onDeleteConversation"
       @toggle-pinned="onTogglePinned"
       @archive-conversation="onArchiveConversation"
+      @request-attention="onRequestAttention"
       @close="closeContextMenu"
     />
   </ContextMenu>

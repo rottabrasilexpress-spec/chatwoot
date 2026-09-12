@@ -94,6 +94,10 @@ class ConversationApi extends ApiClient {
     });
   }
 
+  requestAttention(conversationId) {
+    return axios.post(`${this.url}/${conversationId}/request_attention`);
+  }
+
   mute(conversationId) {
     return axios.post(`${this.url}/${conversationId}/mute`);
   }

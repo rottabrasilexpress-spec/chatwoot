@@ -11,6 +11,15 @@ class ConversationPolicy < ApplicationPolicy
     administrator? || agent_bot? || agent_can_view_conversation?
   end
 
+  def request_attention?
+    return false unless user.is_a?(User)
+    return false unless account_user&.account_id == account&.id
+    return false unless user.id == ENV['ROTTABRASIL_ATTENTION_REQUESTER_USER_ID'].to_i
+    return false if ENV['ROTTABRASIL_ATTENTION_REQUESTER_USER_ID'].blank?
+
+    agent_can_view_conversation?
+  end
+
   private
 
   def agent_can_view_conversation?

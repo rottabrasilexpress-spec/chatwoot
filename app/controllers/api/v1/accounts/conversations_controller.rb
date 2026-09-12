@@ -79,6 +79,19 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     head :ok
   end
 
+  def request_attention
+    authorize @conversation, :request_attention?
+
+    Conversations::RequestAttentionService.new(
+      conversation: @conversation,
+      requester: Current.user
+    ).perform
+    head :created
+  rescue ActiveRecord::RecordNotFound => e
+    Rails.logger.warn("Rotta attention request unavailable: #{e.message}")
+    head :service_unavailable
+  end
+
   def toggle_status
     # FIXME: move this logic into a service object
     if bot_handoff?

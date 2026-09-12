@@ -22,6 +22,7 @@ const MENU = {
   COPY_LINK: 'copy-link',
   PIN: 'pin',
   ARCHIVE: 'archive',
+  REQUEST_ATTENTION: 'request-attention',
 };
 
 export default {
@@ -64,6 +65,10 @@ export default {
       type: Array,
       default: () => [],
     },
+    canRequestAttention: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: [
     'updateConversation',
@@ -75,6 +80,7 @@ export default {
     'deleteConversation',
     'togglePinned',
     'archiveConversation',
+    'requestAttention',
     'close',
   ],
   setup() {
@@ -96,23 +102,7 @@ export default {
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.MARK_AS_UNREAD'),
         icon: 'mail-unread',
       },
-      statusMenuConfig: [
-        {
-          key: wootConstants.STATUS_TYPE.RESOLVED,
-          label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.RESOLVED'),
-          icon: 'checkmark',
-        },
-        {
-          key: wootConstants.STATUS_TYPE.OPEN,
-          label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.REOPEN'),
-          icon: 'arrow-redo',
-        },
-        {
-          key: wootConstants.STATUS_TYPE.PENDING,
-          label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.PENDING'),
-          icon: 'book-clock',
-        },
-      ],
+      statusMenuConfig: [],
       snoozeOption: {
         key: wootConstants.STATUS_TYPE.SNOOZED,
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.SNOOZE.TITLE'),
@@ -169,6 +159,11 @@ export default {
         key: MENU.ARCHIVE,
         icon: 'archive',
         label: 'Arquivar conversa',
+      },
+      requestAttentionOption: {
+        key: MENU.REQUEST_ATTENTION,
+        icon: 'i-lucide-bell-ring',
+        label: 'Solicitar Atenção',
       },
     };
   },
@@ -233,6 +228,10 @@ export default {
         // error
       }
     },
+    requestAttention() {
+      this.$emit('requestAttention', this.chatId);
+      this.$emit('close');
+    },
     show(key) {
       // If the conversation status is same as the action, then don't display the option
       // i.e.: Don't show an option to resolve if the conversation is already resolved.
@@ -288,6 +287,16 @@ export default {
       />
       <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
     </template>
+    <MenuItem
+      v-if="canRequestAttention && isAllowed([MENU.REQUEST_ATTENTION])"
+      :option="requestAttentionOption"
+      variant="attention"
+      @click.stop="requestAttention"
+    />
+    <hr
+      v-if="canRequestAttention && isAllowed([MENU.REQUEST_ATTENTION])"
+      class="m-1 rounded border-b border-n-weak dark:border-n-weak"
+    />
     <MenuItem
       v-if="isAllowed([MENU.ARCHIVE])"
       :option="archiveOption"
