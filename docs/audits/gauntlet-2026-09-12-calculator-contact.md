@@ -49,3 +49,10 @@ As integrações reais de IA, Google Maps, motor de preço e envio direto ao Wha
 ## Situação para a próxima revisão
 
 O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta rodada. Permanecem como ressalvas: a suíte completa baseline tem 33 falhas não relacionadas de locale/timezone/estado e o teste live de privacidade com uma segunda sessão de agente não foi executado; a interface e os testes unitários confirmam o estado privado por padrão e o compartilhamento explícito.
+
+## Veredito AAA independente
+
+- Revisor independente: aprovado, `96/100`.
+- Não foram encontrados defeitos críticos, regressões funcionais ou uso de `wa.me`.
+- Ressalvas P2: privacidade entre duas sessões não foi executada; a regra está coberta por código/testes. A suíte completa mantém 33 falhas baseline fora dos arquivos alterados, com totais históricos de `4.344/4.377` e `4.329/4.362` devido a execuções/ambiente distintos. P3: arquivo físico ainda está em `settings/calculator`, embora rota e sidebar sejam independentes.
+- Encerramento: contrato funcional aprovado; IA, Maps, preço e WhatsApp real permanecem placeholders explícitos para próxima etapa.
