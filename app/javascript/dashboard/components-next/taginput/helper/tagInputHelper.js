@@ -21,6 +21,13 @@ export const validatePhoneNumber = value => {
   }
 };
 
+export const isPhoneLikeInput = value => {
+  const normalizedValue = String(value || '').trim();
+  const digitCount = normalizedValue.replace(/\D/g, '').length;
+
+  return /^\+?\d[\d\s().-]*$/.test(normalizedValue) && digitCount >= 2;
+};
+
 export const formatPhoneNumber = value => {
   try {
     const phoneNumber = parsePhoneNumber(value);

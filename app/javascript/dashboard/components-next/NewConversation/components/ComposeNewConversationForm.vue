@@ -336,6 +336,8 @@ const handleSendTwilioMessage = async ({ message, templateParams }) => {
 
 const shouldShowMessageEditor = computed(() => {
   return (
+    !!props.selectedContact &&
+    !!props.targetInbox &&
     !inboxTypes.value.isWhatsapp &&
     !showNoInboxAlert.value &&
     !inboxTypes.value.isTwilioWhatsapp
@@ -383,7 +385,7 @@ useKeyboardEvents({
       />
       <InboxEmptyState v-if="showNoInboxAlert" />
       <InboxSelector
-        v-else
+        v-else-if="selectedContact"
         :target-inbox="targetInbox"
         :selected-contact="selectedContact"
         :show-inboxes-dropdown="showInboxesDropdown"

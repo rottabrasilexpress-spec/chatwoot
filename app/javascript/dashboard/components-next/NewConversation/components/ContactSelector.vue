@@ -1,7 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { INPUT_TYPES } from 'dashboard/components-next/taginput/helper/tagInputHelper.js';
+import {
+  INPUT_TYPES,
+  isPhoneLikeInput,
+} from 'dashboard/components-next/taginput/helper/tagInputHelper.js';
 
 import TagInput from 'dashboard/components-next/taginput/TagInput.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -58,26 +61,44 @@ const { t } = useI18n();
 const inputType = ref(INPUT_TYPES.EMAIL);
 
 const contactsList = computed(() => {
-  return props.contacts?.map(({ name, id, thumbnail, email, ...rest }) => ({
-    id,
-    label: email ? `${name} (${email})` : name,
-    value: id,
-    thumbnail: { name, src: thumbnail },
-    ...rest,
-    name,
-    email,
-    action: 'contact',
-  }));
+  return props.contacts?.map(contact => {
+    const {
+      name,
+      id,
+      thumbnail,
+      email,
+      phoneNumber: contactPhoneNumber,
+      phone_number: contactPhoneNumberSnake,
+      ...rest
+    } = contact;
+    const phoneNumber = contactPhoneNumber || contactPhoneNumberSnake;
+    const identifier = phoneNumber || email;
+
+    return {
+      id,
+      label: identifier ? `${name} (${identifier})` : name,
+      value: id,
+      thumbnail: { name, src: thumbnail },
+      ...rest,
+      name,
+      email,
+      phoneNumber,
+      icon: phoneNumber ? 'i-ri-whatsapp-fill' : undefined,
+      action: 'contact',
+    };
+  });
 });
 
 const selectedContactLabel = computed(() => {
-  const { name, email = '', phoneNumber = '' } = props.selectedContact || {};
-  if (email) {
-    return `${name} (${email})`;
-  }
-  if (phoneNumber) {
-    return `${name} (${phoneNumber})`;
-  }
+  const {
+    name,
+    email = '',
+    phoneNumber = '',
+    phone_number: phoneNumberSnake = '',
+  } = props.selectedContact || {};
+  const contactPhoneNumber = phoneNumber || phoneNumberSnake;
+  if (contactPhoneNumber) return `${name} (${contactPhoneNumber})`;
+  if (email) return `${name} (${email})`;
   return name || '';
 });
 
@@ -88,10 +109,9 @@ const errorClass = computed(() => {
 });
 
 const handleInput = value => {
-  // Update input type based on whether input starts with '+'
-  // If it does, set input type to 'tel'
-  // Otherwise, set input type to 'email'
-  inputType.value = value.startsWith('+') ? INPUT_TYPES.TEL : INPUT_TYPES.EMAIL;
+  inputType.value = isPhoneLikeInput(value)
+    ? INPUT_TYPES.TEL
+    : INPUT_TYPES.EMAIL;
   emit('searchContacts', value);
 };
 </script>
@@ -99,8 +119,19 @@ const handleInput = value => {
 <template>
   <div class="relative flex-1 px-4 py-3 overflow-y-visible">
     <div class="flex items-baseline w-full gap-3 min-h-7">
-      <label class="text-sm font-medium text-n-slate-11 whitespace-nowrap">
-        {{ t(`${i18nPrefix}.LABEL`) }}
+      <label
+        class="inline-flex items-center gap-1.5 text-sm font-medium text-n-slate-11 whitespace-nowrap"
+      >
+        <span
+          v-if="
+            inputType === INPUT_TYPES.TEL ||
+            selectedContact?.phoneNumber ||
+            selectedContact?.phone_number
+          "
+          class="i-ri-whatsapp-fill size-4 text-[#25D366]"
+          aria-hidden="true"
+        />
+        <span>{{ t(`${i18nPrefix}.LABEL`) }}</span>
       </label>
 
       <div

@@ -9,10 +9,26 @@ import {
   createNewTagMenuItem,
   canAddTag,
   findMatchingMenuItem,
+  isPhoneLikeInput,
 } from '../tagInputHelper';
 import { email } from '@vuelidate/validators';
 
 describe('tagInputHelper', () => {
+  describe('isPhoneLikeInput', () => {
+    it('recognizes a Brazilian phone number without a leading plus sign', () => {
+      expect(isPhoneLikeInput('11965927865')).toBe(true);
+    });
+
+    it('recognizes formatted phone input', () => {
+      expect(isPhoneLikeInput('+55 (11) 96592-7865')).toBe(true);
+    });
+
+    it('does not treat a contact name or email as phone input', () => {
+      expect(isPhoneLikeInput('Antonio')).toBe(false);
+      expect(isPhoneLikeInput('antonio@example.com')).toBe(false);
+    });
+  });
+
   describe('validatePhoneNumber', () => {
     it('returns true for empty value', () => {
       expect(validatePhoneNumber('')).toBe(true);

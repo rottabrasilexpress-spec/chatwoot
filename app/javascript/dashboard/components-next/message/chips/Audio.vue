@@ -49,6 +49,8 @@ const { messageType } = useMessageContext();
 const isPlaying = ref(false);
 const currentTime = ref(0);
 const duration = ref(0);
+const PLAYBACK_SPEEDS = [1, 1.5, 2];
+const playbackSpeed = ref(1);
 const waveformLabel = 'Posição do áudio';
 const waveformBars = [
   24, 42, 31, 58, 38, 72, 46, 88, 54, 36, 64, 80, 48, 30, 62, 44, 76, 52, 34,
@@ -123,6 +125,8 @@ const waveformProgress = computed(() => {
   return Math.min(100, (currentTime.value / duration.value) * 100);
 });
 
+const playbackSpeedLabel = computed(() => `${playbackSpeed.value}x`);
+
 const audioActionLabel = computed(() =>
   isPlaying.value ? 'Pausar áudio' : 'Reproduzir áudio'
 );
@@ -143,6 +147,13 @@ const seek = event => {
   const time = Number(event.target.value);
   audioPlayer.value.currentTime = time;
   currentTime.value = time;
+};
+
+const changePlaybackSpeed = () => {
+  const currentIndex = PLAYBACK_SPEEDS.indexOf(playbackSpeed.value);
+  playbackSpeed.value =
+    PLAYBACK_SPEEDS[(currentIndex + 1) % PLAYBACK_SPEEDS.length];
+  if (audioPlayer.value) audioPlayer.value.playbackRate = playbackSpeed.value;
 };
 
 const playOrPause = () => {
@@ -223,7 +234,23 @@ const onEnd = () => {
           @input="seek"
         />
       </div>
-      <span class="rotta-audio__duration">{{ formatTime(duration) }}</span>
+      <div class="rotta-audio__meta">
+        <span class="rotta-audio__duration">
+          {{ formatTime(currentTime) }}
+          <span class="rotta-audio__time-separator" aria-hidden="true" />
+          {{ formatTime(duration) }}
+        </span>
+        <button
+          data-test="audio-speed"
+          class="rotta-audio__speed"
+          type="button"
+          :aria-label="`Velocidade do áudio: ${playbackSpeedLabel}`"
+          :title="`Velocidade do áudio: ${playbackSpeedLabel}`"
+          @click="changePlaybackSpeed"
+        >
+          {{ playbackSpeedLabel }}
+        </button>
+      </div>
     </div>
 
     <div
@@ -265,7 +292,7 @@ const onEnd = () => {
 .rotta-audio__row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   width: 100%;
 }
 
@@ -276,20 +303,21 @@ const onEnd = () => {
   height: 2.15rem;
   place-items: center;
   color: #fff;
-  background: #00a884;
+  background: #f97316;
   border: 0;
   border-radius: 999px;
   cursor: pointer;
 }
 
 .rotta-audio__play:hover {
-  background: #008f72;
+  background: #ea580c;
 }
 
 .rotta-audio__waveform {
   position: relative;
   display: flex;
   flex: 1 1 auto;
+  min-width: 0;
   align-items: center;
   gap: 2px;
   height: 2rem;
@@ -307,7 +335,7 @@ const onEnd = () => {
 }
 
 .rotta-audio__bar--played {
-  background: #00a884;
+  background: #f97316;
   opacity: 1;
 }
 
@@ -322,11 +350,41 @@ const onEnd = () => {
   opacity: 0;
 }
 
+.rotta-audio__meta {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .rotta-audio__duration {
-  min-width: 2.5rem;
+  min-width: 5.5rem;
   color: #667781;
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.rotta-audio__time-separator::before {
+  content: '/';
+  padding: 0 0.15rem;
+}
+
+.rotta-audio__speed {
+  min-width: 2.35rem;
+  padding: 0.2rem 0.35rem;
+  color: #c2410c;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  background: rgb(249 115 22 / 0.12);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.rotta-audio__speed:hover {
+  color: #9a3412;
+  background: rgb(249 115 22 / 0.2);
 }
 </style>

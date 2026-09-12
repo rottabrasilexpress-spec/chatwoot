@@ -6,7 +6,6 @@ import ConversationBasicFilter from './widgets/conversation/ConversationBasicFil
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import FilterSelect from 'dashboard/components-next/filter/inputs/FilterSelect.vue';
-import { useAccount } from 'dashboard/composables/useAccount';
 
 const props = defineProps({
   pageTitle: { type: String, required: true },
@@ -36,10 +35,7 @@ const emit = defineEmits([
   'markAllAsRead',
 ]);
 
-const { accountScopedRoute } = useAccount();
 const rottaCopy = {
-  archivedTitle: 'Abrir arquivados',
-  archivedLabel: 'Arquivados',
   markAllRead: 'Marcar tudo como lido',
   searchPlaceholder: 'Pesquisar conversas...',
   searchLabel: 'Pesquisar conversas',
@@ -89,7 +85,7 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
           {{ formattedAllCount }}
         </span>
         <span
-          v-if="!hasAppliedFiltersOrActiveFolders"
+          v-if="!hasAppliedFiltersOrActiveFolders && activeStatus !== 'all'"
           class="px-2 py-1 my-0.5 mx-1 rounded-md capitalize bg-n-slate-3 text-xxs text-n-slate-12 shrink-0"
         >
           {{ $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`) }}
@@ -98,14 +94,6 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
           v-if="showRottaShortcuts"
           class="flex items-center gap-1 ml-1 shrink-0"
         >
-          <RouterLink
-            :to="accountScopedRoute('archived_conversations')"
-            class="inline-flex items-center gap-1 px-2 h-7 rounded-lg text-xxs font-medium text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2"
-            :title="rottaCopy.archivedTitle"
-          >
-            <span class="i-lucide-archive size-3.5 text-n-ruby-10" />
-            <span class="hidden md:inline">{{ rottaCopy.archivedLabel }}</span>
-          </RouterLink>
           <NextButton
             v-tooltip.top="rottaCopy.markAllRead"
             icon="i-lucide-mail-check"
@@ -203,7 +191,7 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
     <div class="flex items-center gap-2">
       <div class="relative flex-1 min-w-0 rotta-conversation-search">
         <span
-          class="absolute inset-y-0 ltr:left-2.5 rtl:right-2.5 flex items-center pointer-events-none i-lucide-search size-4 text-n-slate-10"
+          class="absolute top-1/2 ltr:left-2.5 rtl:right-2.5 flex size-4 -translate-y-1/2 items-center justify-center pointer-events-none i-lucide-search text-n-slate-10"
         />
         <input
           id="conversation-search"
