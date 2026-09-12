@@ -174,3 +174,9 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - A fala confirma o defeito histórico de etiquetas/Follow-up: contador que permanece em 1 apesar de três clientes, clientes que só aparecem depois de entrar na aba, etiquetas antigas/poluição no Follow-up e atualização que funciona de forma intermitente ao adicionar/remover `Kelvin` e `Primeiro contato`.
 - Quadros extraídos em quatro momentos mostram visualmente o dashboard/lista, uma conversa com o seletor de etiquetas, a área de Follow-up e a tela de etapas. Esse material confirma que a correção de contagem e sincronização é relevante ao contexto, embora não altere o escopo funcional dos quatro itens deste objetivo.
 - O áudio local teve erros de reconhecimento pontuais por usar o modelo pequeno; os fatos acima foram aceitos somente quando coincidiram com o vídeo e o relato do usuário. Nenhuma mensagem, etiqueta ou conversa foi criada/modificada durante o processamento.
+
+## Checkpoint 17 — busca live por exclusão recebida — 12/09/2026
+
+- A busca global do Chatwoot por `Esta mensagem foi excluída` retornou somente a conversa `#2143`; todas as ocorrências carregadas estavam em bolhas `message--outgoing` do agente. Não foi encontrada uma mensagem `message--incoming` apagada pelo cliente para exercer o botão de visualização.
+- A busca foi limpa por teclado e a lista original voltou a carregar. Nenhuma mensagem, etiqueta ou conversa foi criada, removida ou alterada durante a procura.
+- A ausência de uma ocorrência recebida é uma limitação do dado live disponível, não uma aprovação do cenário agent-only. O contrato server-side continua coberto por policy, endpoint, retenção criptografada e specs do repositório.
