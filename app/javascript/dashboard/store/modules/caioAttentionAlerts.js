@@ -10,8 +10,7 @@ const isValidAlert = alert =>
     alert?.alert_id &&
       alert.conversation_id &&
       alert.inbox_id &&
-      (alert.label === 'caio-atencao' ||
-        alert.kind === 'attention-requested')
+      (alert.label === 'caio-atencao' || alert.kind === 'attention-requested')
   );
 
 export const getters = {

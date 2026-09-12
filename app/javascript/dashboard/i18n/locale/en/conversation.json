@@ -84,6 +84,13 @@
     "VIEW_DELETED_CONTENT": "View content deleted by customer",
     "DELETED_CONTENT_TITLE": "Content deleted by customer",
     "DELETED_CONTENT_ERROR": "Couldn't load deleted content.",
+    "CAIO_ATTENTION": {
+      "TITLE": "Caio Attention",
+      "NEW_CONVERSATION": "New conversation #{id}",
+      "CONVERSATION": "Conversation #{id}",
+      "DISMISS": "Dismiss Caio Attention alert",
+      "OPEN": "Open conversation"
+    },
     "NO_RESPONSE": "No response",
     "RESPONSE": "Response",
     "RATING_TITLE": "Rating",

@@ -74,6 +74,13 @@
     "VIEW_DELETED_CONTENT": "Ver conteúdo apagado pelo cliente",
     "DELETED_CONTENT_TITLE": "Conteúdo apagado pelo cliente",
     "DELETED_CONTENT_ERROR": "Não foi possível carregar o conteúdo apagado.",
+    "CAIO_ATTENTION": {
+      "TITLE": "Caio Atenção",
+      "NEW_CONVERSATION": "Nova conversa #{id}",
+      "CONVERSATION": "Conversa #{id}",
+      "DISMISS": "Fechar alerta Caio Atenção",
+      "OPEN": "Abrir conversa"
+    },
     "NO_RESPONSE": "Sem resposta",
     "RESPONSE": "Resposta",
     "RATING_TITLE": "Classificação",

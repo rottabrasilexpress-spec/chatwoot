@@ -21,6 +21,22 @@ vi.mock('vue-router', () => ({
 }));
 
 describe('CaioAttentionAlertHost', () => {
+  const mountAlert = () =>
+    mount(CaioAttentionAlertHost, {
+      global: {
+        mocks: {
+          $t: (key, params = {}) => {
+            if (key.endsWith('NEW_CONVERSATION')) {
+              return `Nova conversa #${params.id}`;
+            }
+            if (key.endsWith('DISMISS')) return 'Fechar alerta Caio Atenção';
+            if (key.endsWith('OPEN')) return 'Abrir conversa';
+            return key;
+          },
+        },
+      },
+    });
+
   beforeEach(() => {
     alerts.value = [
       {
@@ -35,12 +51,16 @@ describe('CaioAttentionAlertHost', () => {
   });
 
   it('renders a global alert card and opens the conversation', async () => {
-    const wrapper = mount(CaioAttentionAlertHost);
+    const wrapper = mountAlert();
 
-    expect(wrapper.get('[data-test-id="caio-attention-alert-host"]').classes()).toContain('fixed');
+    expect(
+      wrapper.get('[data-test-id="caio-attention-alert-host"]').classes()
+    ).toContain('fixed');
     expect(wrapper.text()).toContain('Nova conversa #42');
 
-    await wrapper.get('button:last-child').trigger('click');
+    await wrapper
+      .get('[data-test-id="caio-attention-alert"] > button')
+      .trigger('click');
 
     expect(dispatch).toHaveBeenCalledWith(
       'caioAttentionAlerts/dismiss',
@@ -53,9 +73,11 @@ describe('CaioAttentionAlertHost', () => {
   });
 
   it('dismisses the card without navigating', async () => {
-    const wrapper = mount(CaioAttentionAlertHost);
+    const wrapper = mountAlert();
 
-    await wrapper.get('button[aria-label="Fechar alerta Caio Atenção"]').trigger('click');
+    await wrapper
+      .get('[data-test-id="caio-attention-alert"] > div button')
+      .trigger('click');
 
     expect(dispatch).toHaveBeenCalledWith(
       'caioAttentionAlerts/dismiss',

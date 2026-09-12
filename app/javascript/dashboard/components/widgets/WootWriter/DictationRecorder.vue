@@ -8,11 +8,7 @@ const stream = ref(null);
 const chunks = ref([]);
 const isRecording = ref(false);
 
-const MIME_TYPES = [
-  'audio/webm;codecs=opus',
-  'audio/webm',
-  'audio/mp4',
-];
+const MIME_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
 
 const getSupportedMimeType = () => {
   if (typeof MediaRecorder === 'undefined') return '';

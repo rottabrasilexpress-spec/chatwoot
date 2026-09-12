@@ -28,6 +28,20 @@ describe('caioAttentionAlerts store module', () => {
     expect(getters.getAlerts(state)).toEqual([]);
   });
 
+  it('accepts a private requester alert without a Caio Atenção label', () => {
+    const state = { alerts: [], seenAlertIds: [] };
+    const commit = (type, payload) => mutations[type](state, payload);
+    const requesterAlert = {
+      alert_id: 'request-1',
+      conversation_id: 43,
+      inbox_id: 7,
+      kind: 'attention-requested',
+    };
+
+    expect(actions.receive({ commit, state }, requesterAlert)).toBe(true);
+    expect(getters.getAlerts(state)).toEqual([requesterAlert]);
+  });
+
   it('dismisses an alert without removing its deduplication record', () => {
     const state = { alerts: [], seenAlertIds: [] };
     const commit = (type, payload) => mutations[type](state, payload);

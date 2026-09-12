@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
 
 const router = useRouter();
 const store = useStore();
@@ -42,25 +43,38 @@ const openConversation = alert => {
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
           <p class="text-xs font-bold uppercase tracking-wide text-n-ruby-11">
-            {{ alert.title || 'Caio Atenção' }}
+            {{ alert.title || $t('CONVERSATION.CAIO_ATTENTION.TITLE') }}
           </p>
           <p class="mt-1 text-base font-semibold text-n-slate-12">
-            {{ alert.contact?.name || 'Cliente sem nome' }}
+            {{
+              alert.contact?.name ||
+              $t('CONVERSATION.CAIO_ATTENTION.NEW_CONVERSATION', {
+                id: alert.conversation_id,
+              })
+            }}
           </p>
-          <p v-if="alert.contact?.phone_number" class="mt-1 text-xs text-n-slate-11">
+          <p
+            v-if="alert.contact?.phone_number"
+            class="mt-1 text-xs text-n-slate-11"
+          >
             {{ alert.contact.phone_number }}
           </p>
           <p class="mt-2 text-sm text-n-slate-11">
-            {{ alert.message || `Conversa #${alert.conversation_id}` }}
+            {{
+              alert.message ||
+              $t('CONVERSATION.CAIO_ATTENTION.CONVERSATION', {
+                id: alert.conversation_id,
+              })
+            }}
           </p>
         </div>
         <button
           type="button"
           class="shrink-0 rounded-lg px-2 py-1 text-lg text-n-slate-11 hover:bg-n-alpha-2"
-          aria-label="Fechar alerta Caio Atenção"
+          :aria-label="$t('CONVERSATION.CAIO_ATTENTION.DISMISS')"
           @click="dismiss(alert.alert_id)"
         >
-          ×
+          <Icon icon="i-lucide-x" class="size-4" />
         </button>
       </div>
       <button
@@ -68,7 +82,7 @@ const openConversation = alert => {
         class="mt-3 w-full rounded-lg bg-n-ruby-9 px-3 py-2 text-sm font-semibold text-white hover:bg-n-ruby-10"
         @click="openConversation(alert)"
       >
-        Abrir conversa
+        {{ $t('CONVERSATION.CAIO_ATTENTION.OPEN') }}
       </button>
     </article>
   </div>
