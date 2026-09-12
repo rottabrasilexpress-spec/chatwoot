@@ -60,4 +60,23 @@ A página oficial de Mobile Apps do Chatwoot continua descrevendo o campo como *
 
 Não usar `/app/login`, `/app/accounts/1/dashboard`, `/app/accounts/1/conversations/...` nem `app.chatwoot.com`. A rota `/app/login` serve para o navegador; o aplicativo precisa do host para montar as chamadas de autenticação e API. Fontes: [Chatwoot Mobile Apps](https://www.chatwoot.com/mobile-apps) e [guia oficial Android](https://www.chatwoot.com/hc/user-guide/articles/1677777866-mobile-app-for-android).
 
-Na auditoria web de hoje, a instalação base respondeu normalmente e a conta carregou conversas; por isso, se o app aceitar a base e ainda mostrar uma conta vazia, o próximo diagnóstico é limpar a instalação/sessão salva e comparar a versão do app, permissões do agente e conexão WebSocket. Não há evidência, nesta etapa, de que `/app/login` seja um endpoint correto para o campo móvel.
+Na auditoria web de hoje, a instalação base respondeu normalmente e a conta carregou conversas. A inspeção do HTML público de ambas as entradas mostrou `chatwootConfig.hostURL = https://atendimento.via-cargo.com`; portanto, este é o endereço público canônico e deve ser o primeiro valor testado no aplicativo:
+
+```text
+atendimento.via-cargo.com
+```
+
+O domínio `n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host` é um alias funcional do serviço (raiz e `/app/login` responderam HTTP 200 e a sessão web carregou os mesmos dados), mas não é o `hostURL` canônico anunciado pelo Chatwoot. Não há evidência de que `/app/login` seja um endpoint correto para o campo móvel.
+
+Durante a recarga forçada da auditoria, o banner `Desconectado` apareceu e permaneceu por cerca de 20 segundos tanto no alias quanto no domínio canônico, embora histórico e lista continuassem carregados. Isso é uma pendência separada de Action Cable/tempo real; não deve ser usado como justificativa para trocar a URL no aplicativo.
+
+Se o app aceitar a base e ainda mostrar uma conta vazia, o próximo diagnóstico é limpar a instalação/sessão salva, comparar a versão do app e validar permissões do agente e compatibilidade da inbox. A evidência do servidor não indica erro de DNS, HTTPS ou indisponibilidade básica.
+
+## Addendum — confirmação do endereço canônico e do comportamento live (12/09/2026)
+
+- `https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/` e `/app/login`: HTTP 200.
+- `https://atendimento.via-cargo.com/` e `/app/login`: HTTP 200.
+- Em ambos os hosts, o HTML anuncia `hostURL: 'https://atendimento.via-cargo.com'`.
+- O navegador autenticado abriu a mesma conta/conversas nos dois hosts.
+- No aplicativo, informar primeiro **somente** `atendimento.via-cargo.com` — sem `https://`, sem `/app/login` e sem `/app/accounts/...`. Se a versão do app aceitar esquema, `https://atendimento.via-cargo.com` é equivalente; o formato documentado continua sendo `domain.com`.
+- Ao recarregar o navegador, o banner `Desconectado` foi observado nos dois hosts. Isso exige investigação própria de conexão em tempo real/WebSocket; não muda a recomendação de URL do aplicativo.
