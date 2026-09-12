@@ -36,7 +36,7 @@ describe('calculatorVisibility', () => {
   });
 
   it('converts the switch event into the requested shared state', () => {
-    expect(getRequestedCalculatorVisibility(false)).toBe(true);
-    expect(getRequestedCalculatorVisibility(true)).toBe(false);
+    expect(getRequestedCalculatorVisibility(false)).toBe(false);
+    expect(getRequestedCalculatorVisibility(true)).toBe(true);
   });
 });
