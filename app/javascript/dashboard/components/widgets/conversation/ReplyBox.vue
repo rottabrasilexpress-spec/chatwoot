@@ -349,12 +349,20 @@ export default {
       const { image_send: imageSend } =
         this.currentChat?.additional_attributes?.tiktok_capabilities ?? {};
       const tiktokAttachmentSupported = imageSend ?? true;
+      const eventChannel = String(
+        this.currentChat?.meta?.channel || this.currentChat?.channel || ''
+      ).toLowerCase();
+      const isRottaReplyChannel =
+        eventChannel.includes('channel::api') ||
+        eventChannel.includes('channel::whatsapp') ||
+        eventChannel.includes('uazapi');
 
       return (
         this.isAWebWidgetInbox ||
         this.isAFacebookInbox ||
         this.isAWhatsAppChannel ||
         this.isAPIInbox ||
+        isRottaReplyChannel ||
         this.isAnEmailChannel ||
         this.isASmsInbox ||
         this.isATelegramChannel ||

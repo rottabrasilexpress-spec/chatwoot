@@ -68,7 +68,11 @@ export default {
         this.inbox?.channel_type ||
           this.inbox?.channelType ||
           this.chat?.inbox?.channel_type ||
-          this.chat?.inbox?.channelType
+          this.chat?.inbox?.channelType ||
+          this.chat?.meta?.channel ||
+          this.chat?.channel ||
+          this.currentChat?.meta?.channel ||
+          this.currentChat?.channel
       );
     },
     whatsAppAPIProvider() {
