@@ -7,6 +7,9 @@ json.message_type message.message_type_before_type_cast
 json.content_type message.content_type
 json.status message.status
 json.content_attributes message.content_attributes
+if Current.user.is_a?(User)
+  json.deleted_content_available message.deleted_by_customer? && message.deleted_message_content&.active?
+end
 json.created_at message.created_at.to_i
 json.private message.private
 json.source_id message.source_id

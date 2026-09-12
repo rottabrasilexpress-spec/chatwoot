@@ -2,7 +2,7 @@
 import { onMounted, computed, ref, toRefs } from 'vue';
 import { useTimeoutFn } from '@vueuse/core';
 import { provideMessageContext } from './provider.js';
-import { useTrack } from 'dashboard/composables';
+import { useAlert, useTrack } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
 import { useI18n } from 'vue-i18n';
@@ -51,6 +51,7 @@ import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 import MessageError from './MessageError.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
+import MessageApi from 'dashboard/api/inbox/message.js';
 
 /**
  * @typedef {Object} Attachment
@@ -143,6 +144,7 @@ const props = defineProps({
   senderType: { type: String, default: null },
   sourceId: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties
   starred: { type: Boolean, default: false },
+  deletedContentAvailable: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['retry']);
@@ -150,6 +152,9 @@ const emit = defineEmits(['retry']);
 const contextMenuPosition = ref({});
 const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
+const showDeletedContentModal = ref(false);
+const deletedContent = ref('');
+const isDeletedContentLoading = ref(false);
 const { t } = useI18n();
 const replyActionLabel = 'Responder';
 const route = useRoute();
@@ -377,6 +382,10 @@ const isMessageDeleted = computed(() => {
   return props.contentAttributes?.deleted;
 });
 
+const canViewDeletedContent = computed(
+  () => isMessageDeleted.value && props.deletedContentAvailable
+);
+
 const shouldShowWhatsappReferral = computed(
   () =>
     variant.value === MESSAGE_VARIANTS.USER &&
@@ -537,6 +546,27 @@ function closeContextMenu() {
   contextMenuPosition.value = { x: null, y: null };
 }
 
+async function viewDeletedContent() {
+  isDeletedContentLoading.value = true;
+  try {
+    const { data } = await MessageApi.getDeletedContent(
+      props.conversationId,
+      props.id
+    );
+    deletedContent.value = data.content;
+    showDeletedContentModal.value = true;
+  } catch (error) {
+    useAlert(t('CONVERSATION.DELETED_CONTENT_ERROR'));
+  } finally {
+    isDeletedContentLoading.value = false;
+  }
+}
+
+function closeDeletedContentModal() {
+  showDeletedContentModal.value = false;
+  deletedContent.value = '';
+}
+
 function handleReplyTo() {
   const replyStorageKey = LOCAL_STORAGE_KEYS.MESSAGE_REPLY_TO;
   const { conversationId, id: replyTo } = props;
@@ -678,6 +708,18 @@ provideMessageContext({
           />
           <Component :is="componentToRender" />
           <Button
+            v-if="canViewDeletedContent"
+            type="button"
+            faded
+            slate
+            xs
+            icon="i-lucide-eye"
+            class="rotta-deleted-content-action"
+            :label="$t('CONVERSATION.VIEW_DELETED_CONTENT')"
+            :is-loading="isDeletedContentLoading"
+            @click.stop="viewDeletedContent"
+          />
+          <Button
             v-if="canShowIncomingReplyAction"
             type="button"
             ghost
@@ -724,6 +766,28 @@ provideMessageContext({
         @reply-to="handleReplyTo"
       />
     </div>
+    <woot-modal
+      v-if="showDeletedContentModal"
+      v-model:show="showDeletedContentModal"
+      :on-close="closeDeletedContentModal"
+    >
+      <div class="rotta-action-modal">
+        <woot-modal-header
+          :header-title="$t('CONVERSATION.DELETED_CONTENT_TITLE')"
+        />
+        <p class="whitespace-pre-wrap break-words text-sm text-n-slate-12">
+          {{ deletedContent }}
+        </p>
+        <div class="rotta-action-modal__actions">
+          <Button
+            faded
+            slate
+            :label="$t('CONVERSATION.CONTEXT_MENU.CANCEL')"
+            @click="closeDeletedContentModal"
+          />
+        </div>
+      </div>
+    </woot-modal>
   </div>
 </template>
 

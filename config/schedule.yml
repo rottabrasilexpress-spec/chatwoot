@@ -94,3 +94,9 @@ rotta_uazapi_webhook_delivery_retention_job:
   cron: '30 2 * * *'
   class: 'RottaUazapiWebhookDeliveryRetentionJob'
   queue: housekeeping
+
+# executed every 10 minutes; removes encrypted customer-deleted message content after 48 hours
+rotta_deleted_message_content_retention_job:
+  cron: '*/10 * * * *'
+  class: 'RottaDeletedMessageContentRetentionJob'
+  queue: housekeeping

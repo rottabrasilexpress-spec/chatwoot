@@ -10,7 +10,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
   # skips transcription.
   BYTE_LIMIT = 25_000_000
 
-  attr_reader :blob, :account, :transcription_model
+  attr_reader :blob, :account, :transcription_model, :language, :prompt
 
   # Transcription runs on Captain's OpenAI credentials and consumes its response credits.
   def self.available_for?(account)
@@ -24,10 +24,12 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     blob.present? && blob.byte_size > BYTE_LIMIT
   end
 
-  def initialize(blob:, account:)
+  def initialize(blob:, account:, language: nil, prompt: nil)
     super()
     @blob = blob
     @account = account
+    @language = language
+    @prompt = prompt
     @transcription_model = Llm::FeatureRouter.resolve(feature: 'audio_transcription', account: account)[:model]
   end
 
@@ -40,13 +42,15 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
         # temperature: 0.0 minimises hallucinations on silence / near-silent
         # audio; non-zero values trigger spiraling repeats — well-documented
         # behaviour across OpenAI transcription models.
-        response = @client.audio.transcribe(
-          parameters: {
-            model: transcription_model,
-            file: file,
-            temperature: 0.0
-          }
-        )
+        parameters = {
+          model: transcription_model,
+          file: file,
+          temperature: 0.0
+        }
+        parameters[:language] = language if language.present?
+        parameters[:prompt] = prompt if prompt.present?
+
+        response = @client.audio.transcribe(parameters: parameters)
         response['text']
       end
     end

@@ -30,6 +30,10 @@ class Webhooks::UazapiController < ActionController::API
       return process_call_event(payload)
     end
 
+    if customer_deleted_message_event?(payload, event)
+      return process_customer_deleted_message(payload)
+    end
+
     if incoming_message_event?(event)
       return process_incoming_message(payload)
     end
@@ -211,7 +215,8 @@ class Webhooks::UazapiController < ActionController::API
   def extract_event(payload)
     route_event = params[:event].to_s.split('/').first
     known_events = %w[
-      connection history message messages messages_update newsletter_messages call calls
+      connection history message messages messages_update message_delete messages_deleted
+      message_deleted messages_revoke message_revoked newsletter_messages call calls
       contacts contact presence groups labels chats chat_labels blocks sender
     ]
     return route_event.downcase if known_events.include?(route_event.downcase)
@@ -240,6 +245,32 @@ class Webhooks::UazapiController < ActionController::API
 
   def incoming_message_event?(event)
     %w[message messages history].include?(event)
+  end
+
+  def customer_deleted_message_event?(payload, event)
+    return false unless Messages::UazapiCustomerDeletionDetector.call(payload: payload, event: event)
+
+    incoming = extract_message_payload(payload)
+    !from_me?(incoming || {})
+  end
+
+  def process_customer_deleted_message(payload)
+    message = find_customer_deleted_message(payload)
+    return render json: { ok: true, ignored: 'mensagem não localizada' } unless message
+
+    Messages::CustomerDeletionService.new(message: message, deleted_at: Time.current).perform
+    associate_uazapi_delivery(message.conversation)
+
+    render json: { ok: true, event: 'message_deleted', message_ids: [message.id] }
+  end
+
+  def find_customer_deleted_message(payload)
+    provider_ids = extract_provider_ids(payload)
+    return if provider_ids.blank?
+
+    provider_id_variants = provider_ids.flat_map { |id| [id, "uazapi:#{id}"] }.uniq
+    Message.where(account_id: ACCOUNT_ID, message_type: :incoming, source_id: provider_id_variants)
+           .order(created_at: :desc).first
   end
 
   def process_incoming_message(payload)

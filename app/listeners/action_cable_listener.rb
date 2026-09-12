@@ -49,9 +49,17 @@ class ActionCableListener < BaseListener
   def message_updated(event)
     message, account = extract_message_and_account(event)
     conversation = message.conversation
-    tokens = user_tokens(account, conversation.inbox.members) + contact_tokens(conversation.contact_inbox, message)
+    agent_tokens = user_tokens(account, conversation.inbox.members)
+    contact_message_tokens = contact_tokens(conversation.contact_inbox, message)
 
-    broadcast(account, tokens, MESSAGE_UPDATED, message.push_event_data.merge(previous_changes: event.data[:previous_changes]))
+    if message.deleted_by_customer?
+      broadcast(account, agent_tokens, MESSAGE_UPDATED, message.agent_push_event_data.merge(previous_changes: event.data[:previous_changes]))
+      broadcast(account, contact_message_tokens, MESSAGE_UPDATED, message.push_event_data.merge(previous_changes: event.data[:previous_changes]))
+      return
+    end
+
+    broadcast(account, agent_tokens + contact_message_tokens, MESSAGE_UPDATED,
+              message.push_event_data.merge(previous_changes: event.data[:previous_changes]))
   end
 
   def first_reply_created(event)
@@ -89,6 +97,8 @@ class ActionCableListener < BaseListener
 
     broadcast(account, tokens, CONVERSATION_UPDATED,
               conversation.push_event_data.merge(previous_changes: event.data[:changed_attributes]))
+
+    broadcast_caio_attention_alert(conversation, event)
   end
 
   def conversation_unread_count_changed(event)
@@ -229,6 +239,24 @@ class ActionCableListener < BaseListener
     payload[:performer] = Current.user&.push_event_data if Current.user.present?
 
     ::ActionCableBroadcastJob.perform_later(tokens.uniq, event_name, payload)
+  end
+
+  # This event intentionally bypasses #broadcast. It is a private alert for
+  # the configured Caio user: no performer is attached and no contact token is
+  # included. Missing or invalid configuration is fail-closed.
+  def broadcast_caio_attention_alert(conversation, event)
+    alert = Rotta::CaioAttentionAlert.call(
+      conversation: conversation,
+      changed_attributes: event.data[:changed_attributes],
+      occurred_at: event.timestamp
+    )
+    return if alert.blank?
+
+    ::ActionCableBroadcastJob.perform_later(
+      [alert.delete(:recipient_pubsub_token)],
+      CONVERSATION_CAIO_ATTENTION_ADDED,
+      alert.merge(account_id: conversation.account_id)
+    )
   end
 end
 

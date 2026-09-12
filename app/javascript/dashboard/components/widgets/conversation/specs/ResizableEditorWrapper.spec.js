@@ -9,7 +9,7 @@ describe('ResizableEditorWrapper', () => {
     });
 
     expect(wrapper.attributes('style')).toContain('--editor-height: 72px');
-    expect(wrapper.attributes('style')).toContain('--editor-min-allowed: 64px');
+    expect(wrapper.attributes('style')).toContain('--editor-min-allowed: 52px');
 
     wrapper.vm.toggleEditorExpand();
     await wrapper.vm.$nextTick();

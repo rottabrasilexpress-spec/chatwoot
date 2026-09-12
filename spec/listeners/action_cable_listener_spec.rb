@@ -263,6 +263,47 @@ describe ActionCableListener do
       )
       listener.conversation_updated(event)
     end
+
+    describe 'the private Caio Atenção alert' do
+      let!(:caio) { create(:user, account: account, role: :agent) }
+      let(:event) do
+        Events::Base.new(
+          event_name,
+          Time.zone.parse('2026-09-11 12:00:00.123456'),
+          conversation: conversation,
+          changed_attributes: { 'label_list' => [['Kelvin'], ['Kelvin', 'Caio Atenção']] }
+        )
+      end
+
+      around do |example|
+        with_modified_env(
+          'ROTTABRASIL_CHATWOOT_ACCOUNT_ID' => account.id.to_s,
+          'ROTTABRASIL_CAIO_USER_ID' => caio.id.to_s
+        ) { example.run }
+      end
+
+      it 'sends only the private event to Caio without performer or contact tokens' do
+        allow(ActionCableBroadcastJob).to receive(:perform_later)
+
+        listener.conversation_updated(event)
+
+        expect(ActionCableBroadcastJob).to have_received(:perform_later).with(
+          [caio.pubsub_token],
+          'conversation.caio_attention_added',
+          hash_including(
+            account_id: account.id,
+            recipient_user_id: caio.id,
+            conversation_id: conversation.display_id,
+            label: 'caio-atencao'
+          )
+        )
+        expect(ActionCableBroadcastJob).to have_received(:perform_later).with(
+          [caio.pubsub_token],
+          'conversation.caio_attention_added',
+          satisfy { |payload| !payload.key?(:performer) && payload[:contact].is_a?(Hash) }
+        )
+      end
+    end
   end
 
   describe '#conversation_unread_count_changed' do

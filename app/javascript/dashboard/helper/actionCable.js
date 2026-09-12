@@ -15,6 +15,7 @@ import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
 import { markCallDismissed, isLocalCall } from 'dashboard/helper/voice';
 import { VOICE_CALL_DIRECTION } from 'dashboard/components-next/message/constants';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import CaioAttentionAlertAudio from './CaioAttentionAlertAudio';
 
 const { isImpersonating } = useImpersonation();
 const UNREAD_COUNTS_REFETCH_THROTTLE_MS = 1000;
@@ -55,6 +56,8 @@ class ActionCableConnector extends BaseActionCableConnector {
       'notification.updated': this.onNotificationUpdated,
       'conversation.read': this.onConversationRead,
       'conversation.updated': this.onConversationUpdated,
+      'conversation.caio_attention_added': this.onCaioAttentionAdded,
+      'conversation.attention_requested': this.onAttentionRequested,
       'conversation.unread_count_changed':
         this.onConversationUnreadCountChanged,
       'account.cache_invalidated': this.onCacheInvalidate,
@@ -162,6 +165,29 @@ class ActionCableConnector extends BaseActionCableConnector {
       this.app.$store.dispatch('labels/get', { forceNetwork: true });
       emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, data);
     }
+  };
+
+  onCaioAttentionAdded = data => {
+    this.receiveCaioAttentionAlert(data);
+  };
+
+  onAttentionRequested = data => {
+    this.receiveCaioAttentionAlert(data);
+  };
+
+  receiveCaioAttentionAlert = data => {
+    if (
+      Number(data?.recipient_user_id) !==
+      Number(this.app.$store.getters.getCurrentUserID)
+    ) {
+      return;
+    }
+
+    Promise.resolve(
+      this.app.$store.dispatch('caioAttentionAlerts/receive', data)
+    ).then(accepted => {
+      if (accepted) CaioAttentionAlertAudio.play();
+    });
   };
 
   onConversationUnreadCountChanged = () => {

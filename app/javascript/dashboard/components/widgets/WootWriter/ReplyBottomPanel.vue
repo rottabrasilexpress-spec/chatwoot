@@ -68,6 +68,22 @@ export default {
       type: Boolean,
       default: false,
     },
+    showDictation: {
+      type: Boolean,
+      default: false,
+    },
+    toggleDictation: {
+      type: Function,
+      default: () => {},
+    },
+    isDictating: {
+      type: Boolean,
+      default: false,
+    },
+    isTranscribing: {
+      type: Boolean,
+      default: false,
+    },
     recordingAudioState: {
       type: String,
       default: '',
@@ -202,6 +218,17 @@ export default {
       if (this.isEditorDisabled) return false;
       return this.showAudioRecorder && this.isRecordingAudio;
     },
+    showDictationButton() {
+      if (this.isEditorDisabled) return false;
+      if (this.isALineChannel || this.isATiktokChannel) return false;
+
+      return (
+        this.isFeatureEnabledonAccount(
+          this.accountId,
+          FEATURE_FLAGS.VOICE_RECORDER
+        ) && this.showDictation
+      );
+    },
     isInstagramDM() {
       return this.conversationType === 'instagram_direct_message';
     },
@@ -312,6 +339,16 @@ export default {
           sm
         />
       </FileUpload>
+      <NextButton
+        v-if="showDictationButton"
+        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_DICTATION_ICON')"
+        :icon="isDictating ? 'i-ph-stop-circle' : 'i-ph-text-aa'"
+        slate
+        faded
+        sm
+        :disabled="isTranscribing"
+        @click="toggleDictation"
+      />
       <NextButton
         v-if="showAudioRecorderButton"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"

@@ -10,6 +10,12 @@ vi.mock('shared/helpers/mitt', () => ({
   },
 }));
 
+vi.mock('../CaioAttentionAlertAudio', () => ({
+  default: { play: vi.fn() },
+}));
+
+import CaioAttentionAlertAudio from '../CaioAttentionAlertAudio';
+
 vi.mock('dashboard/composables/useImpersonation', () => ({
   useImpersonation: () => ({
     isImpersonating: { value: false },
@@ -75,6 +81,53 @@ describe('ActionCableConnector - Copilot Tests', () => {
         'copilotMessages/upsert',
         copilotData
       );
+    });
+  });
+
+  describe('private Caio Atenção event', () => {
+    const event = {
+      account_id: 1,
+      recipient_user_id: 9,
+      alert_id: 'alert-1',
+      conversation_id: 42,
+      inbox_id: 7,
+      label: 'caio-atencao',
+    };
+
+    beforeEach(() => {
+      store.$store.getters.getCurrentUserID = 9;
+      mockDispatch.mockResolvedValue(true);
+    });
+
+    it('registers and dispatches the private event to the configured user', async () => {
+      expect(actionCable.events['conversation.caio_attention_added']).toBe(
+        actionCable.onCaioAttentionAdded
+      );
+
+      actionCable.onReceived({
+        event: 'conversation.caio_attention_added',
+        data: event,
+      });
+      await Promise.resolve();
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'caioAttentionAlerts/receive',
+        event
+      );
+      expect(CaioAttentionAlertAudio.play).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not dispatch an event addressed to another user', () => {
+      actionCable.onReceived({
+        event: 'conversation.caio_attention_added',
+        data: { ...event, recipient_user_id: 10 },
+      });
+
+      expect(mockDispatch).not.toHaveBeenCalledWith(
+        'caioAttentionAlerts/receive',
+        expect.anything()
+      );
+      expect(CaioAttentionAlertAudio.play).not.toHaveBeenCalled();
     });
   });
 

@@ -18,7 +18,7 @@ const props = defineProps({
 // Keep the resting composer close to WhatsApp Web while retaining the
 // drag handle and the expand toggle for longer replies.
 const DEFAULT_HEIGHT = 72;
-const MIN_HEIGHT = 64;
+const MIN_HEIGHT = 52;
 const MIN_MESSAGES_HEIGHT = 200;
 const EXPAND_RATIO = 0.5;
 const RESET_DELAY_MS = 120;

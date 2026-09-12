@@ -23,6 +23,14 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     @message = message
   end
 
+  def deleted_content
+    retained_content = message.deleted_message_content
+    return head :not_found unless retained_content&.active?
+
+    authorize retained_content, :show?
+    @deleted_message_content = retained_content
+  end
+
   def edit
     text = permitted_params[:text].to_s
     validate_editable_message!(text)

@@ -20,6 +20,8 @@ import QuotedEmailPreview from './QuotedEmailPreview.vue';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import AudioRecorder from 'dashboard/components/widgets/WootWriter/AudioRecorder.vue';
+import DictationRecorder from 'dashboard/components/widgets/WootWriter/DictationRecorder.vue';
+import AudioTranscriptionApi from 'dashboard/api/inbox/audioTranscription';
 import { AUDIO_FORMATS } from 'shared/constants/messages';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { CMD_AI_ASSIST } from 'dashboard/helper/commandbar/events';
@@ -71,6 +73,7 @@ export default {
     ArticleSearchPopover,
     AttachmentPreview,
     AudioRecorder,
+    DictationRecorder,
     ReplyBoxBanner,
     EmojiIconPicker,
     MessageSignatureMissingAlert,
@@ -132,6 +135,8 @@ export default {
       showEmojiPicker: false,
       attachedFiles: [],
       isRecordingAudio: false,
+      isDictating: false,
+      isTranscribing: false,
       recordingAudioState: '',
       recordingAudioDurationText: '',
       replyType: REPLY_EDITOR_MODES.REPLY,
@@ -284,6 +289,7 @@ export default {
     isReplyButtonDisabled() {
       if (this.isEditorDisabled) return true;
       if (this.isATwitterInbox) return true;
+      if (this.isDictating || this.isTranscribing) return true;
       if (this.hasAttachments || this.hasRecordedAudio) return false;
 
       return (
@@ -381,6 +387,9 @@ export default {
     },
     showAudioRecorderEditor() {
       return this.showAudioRecorder && this.isRecordingAudio;
+    },
+    showDictation() {
+      return !this.isOnPrivateNote && this.showFileUpload;
     },
     isOnExpandedLayout() {
       const {
@@ -1091,6 +1100,15 @@ export default {
         this.resetAudioRecorderInput();
       }
     },
+    toggleDictation() {
+      if (this.isTranscribing) return;
+
+      if (this.isDictating) {
+        this.$refs.dictationRecorder?.stopRecording();
+      } else {
+        this.isDictating = true;
+      }
+    },
     toggleAudioRecorderPlayPause() {
       if (!this.$refs.audioRecorderInput) return;
       if (!this.recordingAudioState) {
@@ -1131,9 +1149,58 @@ export default {
       };
       return file && this.onFileUpload(autoRecordedFile);
     },
-    onRecordError() {
+    onRecordError({ error } = {}) {
       this.toggleAudioRecorder();
-      useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'));
+      const denied = ['NotAllowedError', 'PermissionDeniedError'].includes(
+        error?.name
+      );
+      useAlert(
+        this.$t(
+          denied
+            ? 'CONVERSATION.REPLYBOX.DICTATION_PERMISSION_ERROR'
+            : 'CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'
+        )
+      );
+    },
+    onDictationRecordError({ error } = {}) {
+      this.isDictating = false;
+      this.isTranscribing = false;
+      const denied = ['NotAllowedError', 'PermissionDeniedError'].includes(
+        error?.name
+      );
+      useAlert(
+        this.$t(
+          denied
+            ? 'CONVERSATION.REPLYBOX.DICTATION_PERMISSION_ERROR'
+            : 'CONVERSATION.REPLYBOX.DICTATION_ERROR'
+        )
+      );
+    },
+    async onDictationRecording(file) {
+      const messageBeforeTranscription = this.message;
+      this.isDictating = false;
+      this.isTranscribing = true;
+
+      try {
+        const { data } = await AudioTranscriptionApi.create({
+          conversationId: this.conversationId,
+          file,
+        });
+        const text = data?.text?.trim();
+        if (text) {
+          const separator = messageBeforeTranscription.trim() ? '\n' : '';
+          this.message = `${messageBeforeTranscription}${separator}${text}`;
+        }
+      } catch (error) {
+        // Keep the exact composer content that existed before the request.
+        this.message = messageBeforeTranscription;
+        useAlert(
+          error?.response?.data?.error ||
+            this.$t('CONVERSATION.REPLYBOX.DICTATION_ERROR')
+        );
+      } finally {
+        this.isTranscribing = false;
+      }
     },
     toggleTyping(status) {
       const conversationId = this.currentChat.id;
@@ -1424,6 +1491,12 @@ export default {
           @play="recordingAudioState = 'playing'"
           @pause="recordingAudioState = 'paused'"
         />
+        <DictationRecorder
+          v-if="isDictating"
+          ref="dictationRecorder"
+          @finish-record="onDictationRecording"
+          @record-error="onDictationRecordError"
+        />
         <CopilotEditorSection
           v-if="copilot.isActive.value && !showAudioRecorderEditor"
           :show-copilot-editor="copilot.showEditor.value"
@@ -1525,6 +1598,8 @@ export default {
         :inbox="inbox"
         :is-on-private-note="isOnPrivateNote"
         :is-recording-audio="isRecordingAudio"
+        :is-dictating="isDictating"
+        :is-transcribing="isTranscribing"
         :is-send-disabled="isReplyButtonDisabled"
         :is-note="isPrivate"
         :is-editor-disabled="isEditorDisabled"
@@ -1535,12 +1610,14 @@ export default {
         :recording-audio-state="recordingAudioState"
         :send-button-text="replyButtonLabel"
         :show-audio-recorder="showAudioRecorder"
+        :show-dictation="showDictation"
         :show-emoji-picker="showEmojiPicker"
         :show-file-upload="showFileUpload"
         :show-quoted-reply-toggle="shouldShowQuotedReplyToggle"
         :quoted-reply-enabled="quotedReplyPreference"
         :toggle-audio-recorder-play-pause="toggleAudioRecorderPlayPause"
         :toggle-audio-recorder="toggleAudioRecorder"
+        :toggle-dictation="toggleDictation"
         :toggle-emoji-picker="toggleEmojiPicker"
         :message="message"
         :portal-slug="connectedPortalSlug"

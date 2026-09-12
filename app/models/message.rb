@@ -135,6 +135,7 @@ class Message < ApplicationRecord
   has_many :message_stars, dependent: :destroy
   has_one :csat_survey_response, dependent: :destroy_async
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
+  has_one :deleted_message_content, dependent: :destroy
 
   after_create_commit :execute_after_create_commit_callbacks
 
@@ -155,6 +156,16 @@ class Message < ApplicationRecord
     data[:echo_id] = echo_id if echo_id.present?
     data[:attachments] = attachments.map(&:push_event_data) if attachments.present?
     merge_sender_attributes(data)
+  end
+
+  def agent_push_event_data
+    push_event_data.merge(
+      deleted_content_available: deleted_by_customer? && deleted_message_content&.active?
+    )
+  end
+
+  def deleted_by_customer?
+    deleted == true && content_attributes.to_h.stringify_keys['deleted_by'] == 'customer'
   end
 
   def conversation_push_event_data

@@ -21,6 +21,7 @@ import {
 } from './helper/pushHelper';
 import ReconnectService from 'dashboard/helper/ReconnectService';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import CaioAttentionAlertHost from './components-next/CaioAttentionAlert/CaioAttentionAlertHost.vue';
 
 export default {
   name: 'App',
@@ -34,6 +35,7 @@ export default {
     WootSnackbarBox,
     PendingEmailVerificationBanner,
     LowBackupCodesBanner,
+    CaioAttentionAlertHost,
   },
   setup() {
     const router = useRouter();
@@ -154,6 +156,7 @@ export default {
     </router-view>
     <WootSnackbarBox />
     <NetworkNotification />
+    <CaioAttentionAlertHost v-if="currentAccountId" />
   </div>
   <LoadingState v-else />
 </template>
