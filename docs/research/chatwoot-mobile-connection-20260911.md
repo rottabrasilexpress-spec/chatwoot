@@ -50,3 +50,14 @@ Não há acesso ao iPhone físico nem aos logs internos do aplicativo nesta sess
 ## Observação sobre o fork
 
 Alterações visuais feitas no fork web não aparecem automaticamente no aplicativo nativo. O aplicativo móvel tem sua própria interface e só reutiliza as APIs do servidor. Assim, a ausência das customizações visuais no app pode ser normal; já a ausência de conversas/inbox aponta para autorização, compatibilidade da API ou bug do app móvel.
+
+## Addendum — confirmação na documentação oficial atual (12/09/2026)
+
+A página oficial de Mobile Apps do Chatwoot continua descrevendo o campo como **Installation URL** e exemplifica somente o domínio do servidor (`chatwoot.yourcompany.com`). O guia oficial de Android explicita `domain.com` e orienta usar a URL do servidor na instalação self-hosted. Portanto, para reduzir a chance de rejeição no aplicativo, usar nesta ordem:
+
+1. `n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host` (somente domínio, sem rota); ou
+2. `https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host` se a versão instalada aceitar o esquema HTTPS.
+
+Não usar `/app/login`, `/app/accounts/1/dashboard`, `/app/accounts/1/conversations/...` nem `app.chatwoot.com`. A rota `/app/login` serve para o navegador; o aplicativo precisa do host para montar as chamadas de autenticação e API. Fontes: [Chatwoot Mobile Apps](https://www.chatwoot.com/mobile-apps) e [guia oficial Android](https://www.chatwoot.com/hc/user-guide/articles/1677777866-mobile-app-for-android).
+
+Na auditoria web de hoje, a instalação base respondeu normalmente e a conta carregou conversas; por isso, se o app aceitar a base e ainda mostrar uma conta vazia, o próximo diagnóstico é limpar a instalação/sessão salva e comparar a versão do app, permissões do agente e conexão WebSocket. Não há evidência, nesta etapa, de que `/app/login` seja um endpoint correto para o campo móvel.
