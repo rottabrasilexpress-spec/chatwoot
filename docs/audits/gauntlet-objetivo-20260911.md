@@ -213,3 +213,12 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Menu contextual live reaberto e fechado sem ação mutável: presentes `Solicitar Atenção`, `Copiar link da conversa` e as ações permitidas; ausentes `Reabrir conversa`, `Deixar pendente` e `Fechar conversa`.
 - A tela não exibiu banner visível de desconexão durante a inspeção; o componente interno correspondente estava com `display:none`. As mensagens de áudio e o histórico continuaram renderizados.
 - Não houve alteração funcional nem novo deploy nesta rodada. O commit publicado permanece `19d234ffd`; snapshots modificados anteriormente continuam fora do commit.
+
+## Checkpoint 22 — botão agent-only de conteúdo retido validado live — 12/09/2026
+
+- A causa visual foi isolada em dois pontos: `MessageList.vue` não encaminhava `deleted_content_available` para `Message.vue`, e o resumo da conversa usava `push_event_data` mesmo para a última mensagem recebida. Foram corrigidos somente esses caminhos; o resumo agora usa `agent_push_event_data` apenas quando `Current.user` é um agente, preservando o payload público do cliente.
+- O bundle frontend foi reconstruído, o manifesto foi verificado (`240` assets referenciados), e os commits `aef75f49d` (frontend + assets + teste) e `bb5d049aa` (Jbuilder + Dockerfile overlay) foram enviados para `origin/rotta-custom-v1`.
+- O Easypanel concluiu os dois deploys. No Chatwoot real, após recarga completa da conversa `#2143`, o tombstone temporário `41045` exibiu `Ver conteúdo apagado pelo cliente`; o clique abriu o modal agent-only com o conteúdo original `Teste temporário de exclusão do cliente — remover ao final`. A página permaneceu conectada e o composer/histórico continuaram carregados.
+- Verificação dentro do Rails publicado confirmou `{active: true, event: true, file: true}` para a mensagem `41045`. Suíte focalizada após a correção: `11` arquivos, `208/208` testes aprovados; teste específico do `MessageList`: `1/1`; manifesto: `240` assets verificados.
+- O fixture `source_id=codex-ui-delete-test-20260912-0326`, mensagem `41045`, continua presente apenas para permitir a conferência e precisa ser removido por comando exato; nenhuma outra mensagem deve ser tocada. A remoção permanece pendente de confirmação imediata exigida para a ação destrutiva via console.
+- Limites mantidos: ainda falta prova independente na sessão do próprio Caio para popup/áudio e execução Ruby/RSpec local; a política server-side e a prova de agente autenticado estão confirmadas.
