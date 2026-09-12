@@ -137,8 +137,11 @@ export default {
       isRecordingAudio: false,
       isDictating: false,
       isTranscribing: false,
+      dictationBaseMessage: '',
+      dictationStarted: false,
       recordingAudioState: '',
       recordingAudioDurationText: '',
+      audioRecorderKey: 0,
       replyType: REPLY_EDITOR_MODES.REPLY,
       draftConversationId: null,
       draftReplyMode: null,
@@ -394,7 +397,10 @@ export default {
       return !this.isOnPrivateNote && this.showFileUpload;
     },
     showAudioRecorderEditor() {
-      return this.showAudioRecorder && this.isRecordingAudio;
+      return (
+        this.showAudioRecorder &&
+        (this.isRecordingAudio || this.hasRecordedAudio)
+      );
     },
     showDictation() {
       return !this.isOnPrivateNote && this.showFileUpload;
@@ -1103,6 +1109,9 @@ export default {
       this.showEmojiPicker = !this.showEmojiPicker;
     },
     toggleAudioRecorder() {
+      if (!this.isRecordingAudio && this.hasRecordedAudio) {
+        this.resetAudioRecorderInput();
+      }
       this.isRecordingAudio = !this.isRecordingAudio;
       if (!this.isRecordingAudio) {
         this.resetAudioRecorderInput();
@@ -1114,6 +1123,8 @@ export default {
       if (this.isDictating) {
         this.$refs.dictationRecorder?.stopRecording();
       } else {
+        this.dictationBaseMessage = this.message;
+        this.dictationStarted = true;
         this.isDictating = true;
       }
     },
@@ -1149,6 +1160,7 @@ export default {
     onFinishRecorder(file) {
       this.recordingAudioState = 'stopped';
       this.hasRecordedAudio = true;
+      this.isRecordingAudio = false;
       // Added a new key isVoiceMessage to the file to identify recorded audio
       // Because to filter and show only non recorded audio and other attachments
       const autoRecordedFile = {
@@ -1173,6 +1185,8 @@ export default {
     onDictationRecordError({ error } = {}) {
       this.isDictating = false;
       this.isTranscribing = false;
+      this.dictationBaseMessage = '';
+      this.dictationStarted = false;
       const denied = ['NotAllowedError', 'PermissionDeniedError'].includes(
         error?.name
       );
@@ -1185,7 +1199,9 @@ export default {
       );
     },
     async onDictationRecording(file) {
-      const messageBeforeTranscription = this.message;
+      const messageBeforeTranscription = this.dictationStarted
+        ? this.dictationBaseMessage
+        : this.message;
       const browserTranscript = file?.nativeTranscript?.trim();
       this.isDictating = false;
       this.isTranscribing = true;
@@ -1214,7 +1230,15 @@ export default {
         );
       } finally {
         this.isTranscribing = false;
+        this.dictationBaseMessage = '';
+        this.dictationStarted = false;
       }
+    },
+    onDictationTranscript(text) {
+      if (!this.isDictating || !text) return;
+
+      const separator = this.dictationBaseMessage.trim() ? '\n' : '';
+      this.message = `${this.dictationBaseMessage}${separator}${text}`;
     },
     toggleTyping(status) {
       const conversationId = this.currentChat.id;
@@ -1417,6 +1441,9 @@ export default {
       this.isRecordingAudio = false;
       this.recordingAudioState = '';
       this.hasRecordedAudio = false;
+      this.audioRecorderKey += 1;
+      this.dictationBaseMessage = '';
+      this.dictationStarted = false;
       // Only clear the recorded audio when we click toggle button.
       this.attachedFiles = this.attachedFiles.filter(
         file => !file?.isVoiceMessage
@@ -1497,6 +1524,7 @@ export default {
         />
         <AudioRecorder
           v-if="showAudioRecorderEditor"
+          :key="audioRecorderKey"
           ref="audioRecorderInput"
           :audio-record-format="audioRecordFormat"
           @recorder-progress-changed="onRecordProgressChanged"
@@ -1509,6 +1537,7 @@ export default {
           v-if="isDictating"
           ref="dictationRecorder"
           @finish-record="onDictationRecording"
+          @transcript="onDictationTranscript"
           @record-error="onDictationRecordError"
         />
         <CopilotEditorSection

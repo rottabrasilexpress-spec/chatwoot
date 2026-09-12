@@ -213,7 +213,10 @@ export default {
     },
     showAudioPlayStopButton() {
       if (this.isEditorDisabled) return false;
-      return this.showAudioRecorder && this.isRecordingAudio;
+      return (
+        this.showAudioRecorder &&
+        (this.isRecordingAudio || !!this.recordingAudioState)
+      );
     },
     showDictationButton() {
       if (this.isEditorDisabled) return false;
@@ -356,25 +359,6 @@ export default {
         @click="toggleDictation"
       />
       <NextButton
-        v-if="showAudioRecorderButton"
-        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
-        :icon="!isRecordingAudio ? 'i-ph-microphone' : 'i-ph-microphone-slash'"
-        color="ruby"
-        :variant="isRecordingAudio ? 'solid' : 'faded'"
-        sm
-        :aria-label="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
-        @click="toggleAudioRecorder"
-      />
-      <NextButton
-        v-if="showAudioPlayStopButton"
-        :icon="audioRecorderPlayStopIcon"
-        slate
-        faded
-        sm
-        :label="recordingAudioDurationText"
-        @click="toggleAudioRecorderPlayPause"
-      />
-      <NextButton
         v-if="showMessageSignatureButton"
         v-tooltip.top-end="signatureToggleTooltip"
         icon="i-ph-signature"
@@ -441,6 +425,27 @@ export default {
       />
     </div>
     <div class="right-wrap">
+      <NextButton
+        v-if="showAudioRecorderButton"
+        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
+        :icon="!isRecordingAudio ? 'i-ph-microphone' : 'i-ph-microphone-slash'"
+        color="ruby"
+        :variant="isRecordingAudio ? 'solid' : 'faded'"
+        md
+        data-test="audio-recorder-button"
+        :aria-label="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
+        @click="toggleAudioRecorder"
+      />
+      <NextButton
+        v-if="showAudioPlayStopButton"
+        :icon="audioRecorderPlayStopIcon"
+        slate
+        faded
+        md
+        :label="recordingAudioDurationText"
+        data-test="audio-preview-button"
+        @click="toggleAudioRecorderPlayPause"
+      />
       <NextButton
         :label="sendButtonText"
         type="submit"

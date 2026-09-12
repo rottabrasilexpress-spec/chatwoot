@@ -45,4 +45,12 @@ describe('ChatListHeader', () => {
     );
     expect(wrapper.text()).not.toContain('Arquivados');
   });
+
+  it('anchors the search icon on the right side of the search field', () => {
+    const wrapper = mountHeader();
+
+    expect(wrapper.find('.i-lucide-search').classes()).toContain(
+      'ltr:right-2.5'
+    );
+  });
 });

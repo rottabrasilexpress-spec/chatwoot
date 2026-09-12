@@ -2,6 +2,7 @@ import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
 import camelcaseKeys from 'camelcase-keys';
 import ContactAPI from 'dashboard/api/contacts';
+import { isPhoneLikeInput } from 'dashboard/components-next/taginput/helper/tagInputHelper';
 
 const CHANNEL_PRIORITY = {
   'Channel::Email': 1,
@@ -82,6 +83,17 @@ export const buildContactableInboxesList = contactInboxes => {
 export const getCapitalizedNameFromEmail = email => {
   const name = email.match(/^([^@]*)@/)?.[1] || email.split('@')[0];
   return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
+export const normalizePhoneForWhatsApp = input => {
+  const trimmed = String(input || '').trim();
+  if (!isPhoneLikeInput(trimmed)) return trimmed;
+  if (trimmed.startsWith('+')) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.startsWith('55')) return `+${digits}`;
+  if ([10, 11].includes(digits.length)) return `+55${digits}`;
+  return trimmed;
 };
 
 export const processContactableInboxes = inboxes => {
@@ -223,11 +235,11 @@ export const createContactSearcher = () => {
 };
 
 export const createNewContact = async input => {
+  const isPhone = isPhoneLikeInput(input);
+  const phoneNumber = normalizePhoneForWhatsApp(input);
   const payload = {
-    name: input.startsWith('+')
-      ? input.slice(1) // Remove the '+' prefix if it exists
-      : getCapitalizedNameFromEmail(input),
-    ...(input.startsWith('+') ? { phone_number: input } : { email: input }),
+    name: isPhone ? phoneNumber.slice(1) : getCapitalizedNameFromEmail(input),
+    ...(isPhone ? { phone_number: phoneNumber } : { email: input }),
   };
 
   const {

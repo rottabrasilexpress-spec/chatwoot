@@ -28,6 +28,7 @@ import {
   findSidebarLabel,
 } from '../../store/modules/labels';
 import { buildConversationPrefetchViews } from './rottaPrefetch';
+import { canViewCalculator } from 'dashboard/routes/dashboard/settings/calculator/calculatorVisibility';
 
 const props = defineProps({
   isMobileSidebarOpen: {
@@ -65,6 +66,7 @@ const isMobile = computed(() => windowWidth.value < 768);
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
+const currentAccount = useMapGetter('getCurrentAccount');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
@@ -88,6 +90,15 @@ const hasDataImport = computed(() => {
     accountId.value,
     FEATURE_FLAGS.DATA_IMPORT
   );
+});
+
+const showCalculator = computed(() => {
+  const settings = currentAccount.value?.settings || {};
+  return canViewCalculator({
+    shared: settings.rotta_calculator_shared,
+    ownerId: settings.rotta_calculator_owner_id,
+    currentUserId: currentUserId.value,
+  });
 });
 
 const fetchConversationUnreadCounts = ([currentAccountId, isEnabled]) => {
@@ -541,6 +552,16 @@ const menuItems = computed(() => {
           icon: 'i-lucide-square-user',
           to: accountScopedRoute('agent_list'),
         },
+        ...(showCalculator.value
+          ? [
+              {
+                name: 'Settings Calculator',
+                label: 'Calculadora',
+                icon: 'i-lucide-calculator',
+                to: accountScopedRoute('calculator_index'),
+              },
+            ]
+          : []),
         ...(hasAdvancedAssignment.value
           ? [
               {

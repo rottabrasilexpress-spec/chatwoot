@@ -191,7 +191,7 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
     <div class="flex items-center gap-2">
       <div class="relative flex-1 min-w-0 rotta-conversation-search">
         <span
-          class="absolute top-1/2 ltr:left-2.5 rtl:right-2.5 flex size-4 -translate-y-1/2 items-center justify-center pointer-events-none i-lucide-search text-n-slate-10"
+          class="absolute top-1/2 ltr:right-2.5 rtl:left-2.5 flex size-4 -translate-y-1/2 items-center justify-center pointer-events-none i-lucide-search text-n-slate-10"
         />
         <input
           id="conversation-search"
@@ -200,14 +200,14 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
           autocomplete="off"
           :placeholder="rottaCopy.searchPlaceholder"
           :aria-label="rottaCopy.searchLabel"
-          class="w-full h-8 ltr:pl-8 rtl:pr-8 ltr:pr-9 rtl:pl-9 rounded-xl outline outline-1 outline-n-weak bg-n-surface-2 text-sm text-n-slate-12 placeholder:text-n-slate-10 focus:outline-n-brand"
+          class="w-full h-8 ltr:pr-8 rtl:pl-8 ltr:pl-9 rtl:pr-9 rounded-xl outline outline-1 outline-n-weak bg-n-surface-2 text-sm text-n-slate-12 placeholder:text-n-slate-10 focus:outline-n-brand"
           @input="emit('updateSearchQuery', $event.target.value)"
           @keydown.esc.prevent="emit('updateSearchQuery', '')"
         />
         <button
           v-if="searchQuery"
           type="button"
-          class="absolute top-1/2 ltr:right-1 rtl:left-1 flex items-center justify-center size-6 -translate-y-1/2 rounded-lg text-n-slate-10 hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+          class="absolute top-1/2 ltr:left-1 rtl:right-1 flex items-center justify-center size-6 -translate-y-1/2 rounded-lg text-n-slate-10 hover:bg-n-alpha-2 hover:text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
           :aria-label="rottaCopy.clearSearch"
           :title="rottaCopy.clearSearch"
           @click="emit('updateSearchQuery', '')"

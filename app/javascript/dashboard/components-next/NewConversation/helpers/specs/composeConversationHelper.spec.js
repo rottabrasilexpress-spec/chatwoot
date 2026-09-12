@@ -614,6 +614,24 @@ describe('composeConversationHelper', () => {
           phone_number: '+919999999999',
         });
       });
+
+      it('normalizes a Brazilian phone number without a country code', async () => {
+        const mockContact = {
+          id: 2,
+          name: '5511965927865',
+          phone_number: '+5511965927865',
+        };
+        ContactAPI.create.mockResolvedValue({
+          data: { payload: { contact: mockContact } },
+        });
+
+        await helpers.createNewContact('11965927865');
+
+        expect(ContactAPI.create).toHaveBeenCalledWith({
+          name: '5511965927865',
+          phone_number: '+5511965927865',
+        });
+      });
     });
 
     describe('fetchContactableInboxes', () => {

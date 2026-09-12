@@ -1,7 +1,11 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
+import {
+  formatFinalTranscript,
+  formatRealtimeTranscript,
+} from './dictationTextHelper';
 
-const emit = defineEmits(['finishRecord', 'recordError']);
+const emit = defineEmits(['finishRecord', 'recordError', 'transcript']);
 
 const recorder = ref(null);
 const stream = ref(null);
@@ -10,6 +14,7 @@ const isRecording = ref(false);
 const speechRecognition = ref(null);
 
 let nativeTranscript = '';
+let interimTranscript = '';
 let nativeRecognitionDone = null;
 let resolveNativeRecognitionDone = null;
 
@@ -45,6 +50,7 @@ const resetSpeechRecognition = () => {
   }
   speechRecognition.value = null;
   nativeTranscript = '';
+  interimTranscript = '';
   resolveNativeRecognitionDone?.();
   resolveNativeRecognitionDone = null;
   nativeRecognitionDone = null;
@@ -64,16 +70,26 @@ const startSpeechRecognition = () => {
     instance.continuous = true;
     instance.interimResults = true;
     instance.onresult = event => {
+      let currentInterimTranscript = '';
       for (
         let index = event.resultIndex;
         index < event.results.length;
         index += 1
       ) {
         const result = event.results[index];
+        const transcript = result[0]?.transcript || '';
         if (result?.isFinal) {
-          nativeTranscript += ` ${result[0]?.transcript || ''}`;
+          nativeTranscript += ` ${transcript}`;
+          interimTranscript = '';
+        } else {
+          currentInterimTranscript += ` ${transcript}`;
         }
       }
+      interimTranscript = currentInterimTranscript;
+      emit(
+        'transcript',
+        formatRealtimeTranscript(`${nativeTranscript} ${interimTranscript}`)
+      );
     };
     instance.onend = () => {
       speechRecognition.value = null;
@@ -110,7 +126,7 @@ const finishSpeechRecognition = async () => {
     ]);
   }
 
-  return nativeTranscript.trim();
+  return formatFinalTranscript(`${nativeTranscript} ${interimTranscript}`);
 };
 
 const resetRecorder = () => {

@@ -26,6 +26,7 @@ import security from './security/security.routes';
 import conversationWorkflow from './conversationWorkflow/conversationWorkflow.routes';
 import captain from './captain/captain.routes';
 import data from './data/data.routes';
+import calculator from './calculator/calculator.routes';
 
 export default {
   routes: [
@@ -58,6 +59,7 @@ export default {
     ...templates.routes,
     ...integrations.routes,
     ...data.routes,
+    ...calculator.routes,
     ...labels.routes,
     ...macros.routes,
     ...reports.routes,

@@ -26,17 +26,19 @@ const TagInputStub = defineComponent({
 });
 
 describe('ContactSelector', () => {
-  const mountSelector = () =>
+  const mountSelector = (
+    contacts = [
+      {
+        id: '1',
+        name: 'Kelvin',
+        phone_number: '11965927865',
+        thumbnail: '',
+      },
+    ]
+  ) =>
     shallowMount(ContactSelector, {
       props: {
-        contacts: [
-          {
-            id: '1',
-            name: 'Kelvin',
-            phone_number: '11965927865',
-            thumbnail: '',
-          },
-        ],
+        contacts,
         selectedContact: null,
         showContactsDropdown: true,
         isLoading: false,
@@ -64,5 +66,24 @@ describe('ContactSelector', () => {
 
     expect(tagInput.props('type')).toBe('tel');
     expect(wrapper.emitted('searchContacts')).toEqual([['11965927865']]);
+    expect(tagInput.props('menuItems')).not.toContainEqual(
+      expect.objectContaining({ action: 'create' })
+    );
+  });
+
+  it('offers an explicit clickable WhatsApp option for an unknown number', async () => {
+    const wrapper = mountSelector([]);
+    const tagInput = wrapper.findComponent(TagInputStub);
+
+    await wrapper.get('[data-test="contact-input"]').setValue('11965927865');
+
+    expect(tagInput.props('menuItems')).toContainEqual(
+      expect.objectContaining({
+        action: 'create',
+        label: 'WhatsApp (11965927865)',
+        phoneNumber: '11965927865',
+        value: '11965927865',
+      })
+    );
   });
 });

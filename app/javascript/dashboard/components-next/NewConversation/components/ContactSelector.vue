@@ -59,9 +59,16 @@ const i18nPrefix = 'COMPOSE_NEW_CONVERSATION.FORM.CONTACT_SELECTOR';
 const { t } = useI18n();
 
 const inputType = ref(INPUT_TYPES.EMAIL);
+const searchValue = ref('');
+
+const normalizePhoneForComparison = value => {
+  const digits = String(value || '').replace(/\D/g, '');
+  if ([10, 11].includes(digits.length)) return `55${digits}`;
+  return digits;
+};
 
 const contactsList = computed(() => {
-  return props.contacts?.map(contact => {
+  const contacts = (props.contacts || []).map(contact => {
     const {
       name,
       id,
@@ -87,6 +94,27 @@ const contactsList = computed(() => {
       action: 'contact',
     };
   });
+
+  const typedPhoneNumber = searchValue.value.trim();
+  const normalizedTypedPhone = normalizePhoneForComparison(typedPhoneNumber);
+  const hasMatchingContact = contacts.some(
+    contact =>
+      normalizePhoneForComparison(contact.phoneNumber) === normalizedTypedPhone
+  );
+
+  if (isPhoneLikeInput(typedPhoneNumber) && !hasMatchingContact) {
+    contacts.push({
+      label: `WhatsApp (${typedPhoneNumber})`,
+      value: typedPhoneNumber,
+      name: typedPhoneNumber,
+      phoneNumber: typedPhoneNumber,
+      thumbnail: { name: typedPhoneNumber, src: '' },
+      icon: 'i-ri-whatsapp-fill',
+      action: 'create',
+    });
+  }
+
+  return contacts;
 });
 
 const selectedContactLabel = computed(() => {
@@ -109,6 +137,7 @@ const errorClass = computed(() => {
 });
 
 const handleInput = value => {
+  searchValue.value = value;
   inputType.value = isPhoneLikeInput(value)
     ? INPUT_TYPES.TEL
     : INPUT_TYPES.EMAIL;
@@ -118,7 +147,7 @@ const handleInput = value => {
 
 <template>
   <div class="relative flex-1 px-4 py-3 overflow-y-visible">
-    <div class="flex items-baseline w-full gap-3 min-h-7">
+    <div class="flex items-center w-full gap-3 min-h-10">
       <label
         class="inline-flex items-center gap-1.5 text-sm font-medium text-n-slate-11 whitespace-nowrap"
       >
@@ -174,7 +203,7 @@ const handleInput = value => {
         :disabled="contactableInboxesList?.length > 0 && showInboxesDropdown"
         allow-create
         :type="inputType"
-        class="flex-1 min-h-7"
+        class="flex-1 min-h-10 [&_input]:!min-h-10 [&_input]:!text-base"
         :class="errorClass"
         focus-on-mount
         @input="handleInput"

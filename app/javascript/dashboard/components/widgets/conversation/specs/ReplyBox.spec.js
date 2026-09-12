@@ -477,7 +477,9 @@ describe('ReplyBox', () => {
     });
 
     it('uses the browser pt-BR transcript when server transcription is unavailable', async () => {
-      const { wrapper } = mountWith({});
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Api' },
+      });
       wrapper.vm.message = 'Mensagem anterior';
       vi.spyOn(AudioTranscriptionApi, 'create').mockRejectedValueOnce({
         response: {
@@ -495,6 +497,37 @@ describe('ReplyBox', () => {
 
       expect(wrapper.vm.message).toBe('Mensagem anterior\nOlá, tudo bem?');
       expect(wrapper.vm.isTranscribing).toBe(false);
+    });
+
+    it('updates the editor with the live dictation transcript before recording ends', async () => {
+      const { wrapper } = mountWith({});
+      wrapper.vm.message = 'Mensagem anterior';
+      wrapper.vm.toggleDictation();
+
+      wrapper.vm.onDictationTranscript('Olá, meu nome é Kelvin');
+
+      expect(wrapper.vm.message).toBe(
+        'Mensagem anterior\nOlá, meu nome é Kelvin'
+      );
+    });
+
+    it('leaves the audio preview active but stops the recording state after capture', async () => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Api' },
+      });
+      wrapper.vm.isRecordingAudio = true;
+      wrapper.vm.onFileUpload = vi.fn();
+
+      await wrapper.vm.onFinishRecorder({
+        name: 'voice.mp3',
+        type: 'audio/mpeg',
+        size: 10,
+        file: new File(['audio'], 'voice.mp3', { type: 'audio/mpeg' }),
+      });
+
+      expect(wrapper.vm.isRecordingAudio).toBe(false);
+      expect(wrapper.vm.hasRecordedAudio).toBe(true);
+      expect(wrapper.vm.showAudioRecorderEditor).toBe(true);
     });
   });
 });

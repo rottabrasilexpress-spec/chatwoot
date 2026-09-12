@@ -132,4 +132,45 @@ describe('DictationRecorder', () => {
     const [file] = wrapper.emitted('finishRecord')[0];
     expect(file.nativeTranscript).toBe('Olá, tudo bem?');
   });
+
+  it('emits interim browser transcript while the user is still speaking', async () => {
+    let recognition;
+    function FakeSpeechRecognition() {
+      recognition = this;
+    }
+
+    FakeSpeechRecognition.prototype.start = () => {};
+    FakeSpeechRecognition.prototype.stop = () => {};
+    FakeSpeechRecognition.prototype.abort = () => {};
+
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+    });
+    window.MediaRecorder = buildMediaRecorder();
+    window.SpeechRecognition = FakeSpeechRecognition;
+
+    const wrapper = mount(DictationRecorder, {
+      global: { mocks: { $t: value => value } },
+    });
+    await nextTick();
+
+    recognition.onresult({
+      resultIndex: 0,
+      results: [
+        {
+          isFinal: false,
+          0: { transcript: 'Olá meu nome é Kelvin' },
+        },
+      ],
+    });
+
+    expect(wrapper.emitted('transcript')).toContainEqual([
+      'Olá, meu nome é Kelvin',
+    ]);
+  });
 });
