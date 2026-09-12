@@ -1,5 +1,6 @@
 class Messages::SendOnApiService < Base::SendOnChannelService
   UAZAPI_PATH = '/send/text'.freeze
+  UAZAPI_MEDIA_PATH = '/send/media'.freeze
 
   private
 
@@ -8,7 +9,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   end
 
   def perform_reply
-    return fail_message('Mídia enviada pelo Chatwoot ainda não está habilitada neste canal') if message.attachments.present?
+    return perform_media_reply if message.attachments.present?
 
     content_attributes = message.content_attributes.to_h.with_indifferent_access
     body = {
@@ -37,6 +38,44 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     Rails.logger.info("[ROTTABRASIL_API] message=#{message.id} sent provider_id_present=#{provider_id.present?}")
   rescue StandardError => e
     fail_message("Falha ao enviar pela Uazapi: #{e.message}")
+  end
+
+  def perform_media_reply
+    return fail_message('A UAZAPI aceita uma mídia por mensagem neste canal') if message.attachments.size != 1
+
+    attachment = message.attachments.first
+    return fail_message('Somente áudio gravado é suportado neste canal') unless attachment.audio?
+
+    file_url = attachment.download_url.to_s
+    return fail_message('Áudio sem URL pública para a UAZAPI') unless file_url.match?(%r{\Ahttps?://}i)
+
+    content_attributes = message.content_attributes.to_h.with_indifferent_access
+    body = {
+      number: recipient_number,
+      type: 'ptt',
+      file: file_url,
+      text: message.outgoing_content.to_s,
+      delay: 2,
+      readchat: true,
+      track_source: 'chatwoot',
+      track_id: "message-#{message.id}"
+    }
+    body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
+
+    response = HTTParty.post(
+      "#{uazapi_base_url}#{UAZAPI_MEDIA_PATH}",
+      headers: uazapi_headers,
+      body: body.to_json,
+      timeout: 30
+    )
+
+    return fail_message(provider_error(response)) unless response.success?
+
+    provider_id = provider_message_id(response)
+    message.update!(source_id: provider_id) if provider_id.present?
+    Rails.logger.info("[ROTTABRASIL_API] voice message=#{message.id} sent provider_id_present=#{provider_id.present?}")
+  rescue StandardError => e
+    fail_message("Falha ao enviar áudio pela Uazapi: #{e.message}")
   end
 
   def uazapi_base_url

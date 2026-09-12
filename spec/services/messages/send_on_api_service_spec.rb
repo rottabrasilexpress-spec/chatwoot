@@ -49,4 +49,35 @@ RSpec.describe Messages::SendOnApiService do
     expect(message.reload.status).to eq('failed')
     expect(message.external_error).to include('HTTP 422')
   end
+
+  it 'sends a recorded audio attachment as a WhatsApp voice message' do
+    attachment = message.attachments.build(account_id: message.account_id, file_type: :audio)
+    attachment.file.attach(
+      io: StringIO.new('audio bytes'),
+      filename: 'voice.ogg',
+      content_type: 'audio/ogg'
+    )
+    attachment.save!
+    allow(attachment).to receive(:download_url).and_return('https://chatwoot.example/voice.ogg')
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/media')
+      .with(
+        body: hash_including(
+          'number' => '5511965927865',
+          'type' => 'ptt',
+          'file' => 'https://chatwoot.example/voice.ogg',
+          'track_source' => 'chatwoot'
+        )
+      )
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBVOICE123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.source_id).to eq('3EBVOICE123')
+    expect(message.status).to eq('sent')
+  end
 end

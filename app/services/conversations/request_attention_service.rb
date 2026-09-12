@@ -50,7 +50,18 @@ module Conversations
       target_id = configured_target_id
       return if target_id.zero?
 
-      conversation.account.users.find_by(id: target_id)
+      target = conversation.account.users.find_by(id: target_id)
+      return unless caio_identity?(target)
+
+      target
+    end
+
+    def caio_identity?(target)
+      return false if target.blank?
+
+      [target.name, target.display_name, target.email].compact.any? do |value|
+        value.to_s.downcase.include?('caio')
+      end
     end
 
     def configured_target_id

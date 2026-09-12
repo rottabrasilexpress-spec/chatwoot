@@ -45,6 +45,13 @@ describe('inboxMixin', () => {
     expect(wrapper.vm.isAPIInbox).toBe(true);
   });
 
+  it('normalizes lowercase API channel types from self-hosted payloads', () => {
+    const Component = getComponentConfigForInbox('Channel::api');
+    const wrapper = shallowMount(Component);
+    expect(wrapper.vm.channelType).toBe('Channel::Api');
+    expect(wrapper.vm.isAPIInbox).toBe(true);
+  });
+
   it('isATwitterInbox returns true if channel type is twitter', () => {
     const Component = getComponentConfigForInbox('Channel::TwitterProfile');
     const wrapper = shallowMount(Component);
@@ -271,11 +278,15 @@ describe('inboxMixin', () => {
     });
 
     it('allows unresolved non-email inbox metadata in the Rotta overlay', () => {
+      expect(isRottaReplyMessage({ channelType: undefined, inboxId: 1 })).toBe(
+        true
+      );
       expect(
-        isRottaReplyMessage({ channelType: undefined, inboxId: 1 })
-      ).toBe(true);
-      expect(
-        isRottaReplyMessage({ channelType: undefined, inboxId: 1, isEmailInbox: true })
+        isRottaReplyMessage({
+          channelType: undefined,
+          inboxId: 1,
+          isEmailInbox: true,
+        })
       ).toBe(false);
     });
   });

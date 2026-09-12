@@ -215,8 +215,9 @@ class Webhooks::UazapiController < ActionController::API
   def extract_event(payload)
     route_event = params[:event].to_s.split('/').first
     known_events = %w[
-      connection history message messages messages_update message_delete messages_deleted
-      message_deleted messages_revoke message_revoked newsletter_messages call calls
+      connection history message messages messages_update message_delete messages_delete
+      messages_deleted message_deleted message_revoke messages_revoke message_revoked
+      messages_revoked newsletter_messages call calls
       contacts contact presence groups labels chats chat_labels blocks sender
     ]
     return route_event.downcase if known_events.include?(route_event.downcase)

@@ -6,7 +6,7 @@ RSpec.describe 'Conversation attention request API', type: :request do
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
   let(:requester) { create(:user, account: account, role: :agent) }
   let(:other_agent) { create(:user, account: account, role: :agent) }
-  let(:target) { create(:user, account: account, role: :agent) }
+  let(:target) { create(:user, account: account, role: :agent, name: 'Caio', display_name: 'Caio') }
   let(:path) { "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/request_attention" }
 
   before do

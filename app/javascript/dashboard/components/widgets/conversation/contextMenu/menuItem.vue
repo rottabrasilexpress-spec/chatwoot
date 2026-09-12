@@ -55,7 +55,7 @@ defineProps({
       class="menu-label truncate min-w-0 flex-1"
       :class="
         variant === 'attention' &&
-        'text-amber-700 dark:text-amber-300 font-semibold'
+        'text-n-amber-11 dark:text-n-amber-11 font-semibold'
       "
     >
       {{ option.label }}

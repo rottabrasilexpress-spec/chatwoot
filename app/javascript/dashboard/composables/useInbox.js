@@ -5,6 +5,7 @@ import {
   INBOX_TYPES,
   isVoiceCallEnabled,
   getVoiceCallProvider,
+  normalizeInboxChannelType,
 } from 'dashboard/helper/inbox';
 
 export const INBOX_FEATURES = {
@@ -52,7 +53,7 @@ export const useInbox = (inboxId = null) => {
   });
 
   const channelType = computed(() => {
-    return inbox.value?.channelType;
+    return normalizeInboxChannelType(inbox.value?.channelType);
   });
 
   const isAPIInbox = computed(() => {

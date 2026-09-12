@@ -102,16 +102,10 @@ export default {
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.MARK_AS_UNREAD'),
         icon: 'mail-unread',
       },
-      // Preserve the existing resolved action. The Rotta change removes only
-      // reopen and pending from this context menu; resolving remains a core
-      // agent workflow and must not regress.
-      statusMenuConfig: [
-        {
-          key: wootConstants.STATUS_TYPE.RESOLVED,
-          label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.RESOLVED'),
-          icon: 'checkmark',
-        },
-      ],
+      // Rotta's conversation context menu must not expose any status-closing
+      // action. Resolve/reopen/pending remain available through their normal
+      // conversation controls, but not from this menu.
+      statusMenuConfig: [],
       snoozeOption: {
         key: wootConstants.STATUS_TYPE.SNOOZED,
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.SNOOZE.TITLE'),

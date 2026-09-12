@@ -1,4 +1,8 @@
-import { INBOX_TYPES, isVoiceCallEnabled } from 'dashboard/helper/inbox';
+import {
+  INBOX_TYPES,
+  isVoiceCallEnabled,
+  normalizeInboxChannelType,
+} from 'dashboard/helper/inbox';
 
 export const INBOX_FEATURES = {
   REPLY_TO: 'replyTo',
@@ -9,7 +13,9 @@ export const isSyntheticRottaInboxId = inboxId =>
   inboxId !== null && inboxId !== undefined && Number(inboxId) === 0;
 
 export const isRottaReplyInbox = channelType => {
-  const normalizedChannelType = String(channelType || '').toLowerCase();
+  const normalizedChannelType = String(
+    normalizeInboxChannelType(channelType)
+  ).toLowerCase();
 
   return (
     [INBOX_TYPES.API, INBOX_TYPES.WHATSAPP].includes(channelType) ||
@@ -56,7 +62,7 @@ export const INBOX_FEATURE_MAP = {
 export default {
   computed: {
     channelType() {
-      return this.inbox.channel_type;
+      return normalizeInboxChannelType(this.inbox.channel_type);
     },
     whatsAppAPIProvider() {
       return this.inbox.provider || '';

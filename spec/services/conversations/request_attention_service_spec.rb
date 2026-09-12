@@ -5,7 +5,7 @@ RSpec.describe Conversations::RequestAttentionService do
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
   let(:requester) { create(:user, account: account, role: :agent) }
-  let(:target) { create(:user, account: account, role: :agent) }
+  let(:target) { create(:user, account: account, role: :agent, name: 'Caio', display_name: 'Caio') }
 
   around do |example|
     with_modified_env(
@@ -37,5 +37,13 @@ RSpec.describe Conversations::RequestAttentionService do
         described_class.new(conversation: conversation, requester: requester).perform
       end.to raise_error(ActiveRecord::RecordNotFound)
     end
+  end
+
+  it 'does not send to an account user who is not Caio' do
+    target.update!(name: 'Outro agente', display_name: 'Outro agente', email: 'outro@example.com')
+
+    expect do
+      described_class.new(conversation: conversation, requester: requester).perform
+    end.to raise_error(ActiveRecord::RecordNotFound)
   end
 end

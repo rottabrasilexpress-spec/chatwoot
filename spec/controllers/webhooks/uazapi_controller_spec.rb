@@ -428,5 +428,20 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(response).to have_http_status(:success)
       expect(conversation.messages.find_by!(source_id: 'uazapi-dynamic-route').content).to eq('Evento veio pela rota')
     end
+
+    it 'recognizes every explicit customer-deletion event alias from the route' do
+      %w[
+        message_delete messages_delete message_deleted messages_deleted
+        message_revoke messages_revoke message_revoked messages_revoked
+      ].each do |route_event|
+        post "/webhooks/uazapi/#{webhook_token}/#{route_event}",
+             params: {}.to_json,
+             headers: { 'CONTENT_TYPE' => 'application/json' }
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body).to include('ignored' => 'mensagem não localizada')
+        expect(UazapiWebhookDelivery.order(:id).last.event).to eq(route_event)
+      end
+    end
   end
 end

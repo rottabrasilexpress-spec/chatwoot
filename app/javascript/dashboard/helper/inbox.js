@@ -13,6 +13,22 @@ export const INBOX_TYPES = {
   TIKTOK: 'Channel::Tiktok',
 };
 
+// Self-hosted API inboxes can arrive as `Channel::api` (lowercase class
+// suffix) while the standard Chatwoot payload uses `Channel::Api`. Keep the
+// channel checks identical for both forms so channel capabilities do not
+// silently disappear in the composer.
+export const normalizeInboxChannelType = channelType => {
+  const rawType = String(channelType || '');
+  if (!rawType) return rawType;
+
+  const normalized = rawType.toLowerCase().replace(/^channel::/, '');
+  return (
+    Object.values(INBOX_TYPES).find(
+      type => type.toLowerCase().replace(/^channel::/, '') === normalized
+    ) || rawType
+  );
+};
+
 // Short channel-type slugs used to identify a channel without leaning on its
 // Channel:: class name — e.g. onboarding channel cards and OAuth provider maps.
 export const CHANNEL_TYPES = {
@@ -41,7 +57,9 @@ export const getVoiceCallProvider = inbox => {
   if (!inbox) return null;
 
   // Callers pass either snake_case (raw API) or camelCase (after camelcaseKeys) shapes.
-  const channelType = inbox.channel_type || inbox.channelType;
+  const channelType = normalizeInboxChannelType(
+    inbox.channel_type || inbox.channelType
+  );
   const voiceEnabled = inbox.voice_enabled || inbox.voiceEnabled;
 
   if (!voiceEnabled) return null;
