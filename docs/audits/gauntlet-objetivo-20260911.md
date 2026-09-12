@@ -162,3 +162,8 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Na conversa live `#2143`, após recarga da sessão autenticada, o clique direito no cartão de conversa exibiu `Solicitar Atenção`, `Marcar como não lida`, `Adiar`, `Arquivar conversa`, `Prioridade`, `Atribuir etiqueta`, `Abrir em nova aba`, `Copiar link da conversa`, `Fixar conversa` e `Excluir conversa`.
 - A mesma inspeção não encontrou `Reabrir conversa`, `Deixar pendente` ou `Fechar conversa`. O menu foi fechado com `Escape`; nenhuma ação mutável foi acionada nesta rodada.
 - O estado funcional continua no deploy anterior `3c36b491b`; `508d139f` contém apenas o registro de auditoria e está sincronizado em `origin/rotta-custom-v1`.
+
+## Checkpoint 15 — lint focado sem erros funcionais — 12/09/2026
+
+- ESLint dos componentes e helpers funcionais da implementação terminou com `0 errors` e 4 warnings não bloqueantes: dois `vue/no-root-v-if` e dois avisos de chaves i18n dinâmicas no tratamento de permissão/ditado.
+- A execução incluindo `NetworkNotification.vue` e `ReconnectService.js` acusou somente normalização CRLF (`prettier/prettier`, “Delete ␍”) nesses arquivos preexistentes. Eles não foram reformatados para evitar alteração não solicitada.
