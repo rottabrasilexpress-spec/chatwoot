@@ -244,3 +244,20 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Testes após o ajuste: suíte focalizada `2` arquivos, `97/97`; bateria relacionada `14` arquivos, `177/177`; ESLint dos quatro arquivos alterados com `0` erros e somente `3` avisos já conhecidos; build Vite concluído; manifesto verificado com `240` assets.
 - O deploy live e a prova manual pós-deploy do ditado ainda são a próxima etapa. Nenhuma conversa, etiqueta, conta, inbox ou mensagem foi alterada nesta etapa; os snapshots preexistentes permanecem fora do commit.
 - Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1).
+
+## Checkpoint 26 — deploy e prova manual live do composer — 12/09/2026
+
+- O commit `47b19f9c4` foi enviado para `origin/rotta-custom-v1` e publicado no Easypanel. O restart produziu uma janela transitória de indisponibilidade; depois o endpoint `/api` voltou a HTTP 200 com `queue_services: ok` e `data_services: ok`, e a conversa `#2143` carregou normalmente.
+- No navegador live, `Falar e transcrever para texto` entrou em `Gravando ditado. Clique novamente para parar.` e saiu desse estado; como o recurso server-side da conta continua sem provedor, o retorno foi o erro conhecido `Audio transcription is not available for this account`. Nenhuma mensagem foi enviada.
+- `Gravar áudio` permaneceu separado; iniciou com contador `00:00`/`00:03`, parou e restaurou o composer sem anexo e sem envio. O botão de envio permaneceu desabilitado.
+- O bundle publicado contém `SpeechRecognition`, `pt-BR` e `nativeTranscript`; os testes unitários cobrem a captura de transcript e o fallback para o rascunho. A limitação honesta desta prova é não haver fala humana disponível para exercitar a qualidade final do reconhecimento no navegador; a conta também ainda precisa de um provedor server-side para o caminho de maior precisão.
+- Nenhuma conversa, etiqueta, conta, inbox ou mensagem foi alterada nesta prova. Os snapshots preexistentes continuam fora do commit.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1).
+
+## Checkpoint 27 — pesquisa oficial atualizada sobre o app iOS — 12/09/2026
+
+- A App Store oficial lista o Chatwoot iOS na versão `4.9.3` (02/09/2026; iOS 16.4+). O projeto oficial publicou no mesmo dia o commit `b33a43e` (#1151), que corrige a montagem do WebSocket a partir do host normalizado e repara uma URL persistida incorreta.
+- A correção explica o sintoma relatado: a versão antiga podia rejeitar o host puro apesar da documentação pedir `domain.com`, ou aceitar `https://...` e gerar `wss://https://.../cable`, deixando API/web acessíveis e o app sem conversas/tempo real.
+- Como a página pública da App Store não vincula explicitamente o binário àquele hash, a recomendação segura é atualizar para `4.9.3` ou superior, sair/reinstalar para limpar o estado salvo e informar exatamente `atendimento.via-cargo.com`.
+- Probes read-only repetidos em 12/09: ambos os hosts retornaram `/api` HTTP 200 com Chatwoot `4.17.0`, serviços `ok`; `/api/v1/profile` retornou 401 sem sessão; `/app/login/api` retornou HTML. Nenhuma alteração em servidor, conta, inbox, conversa ou mensagem.
+- Fontes primárias: [Mobile Apps](https://www.chatwoot.com/mobile-apps), [guia Android](https://www.chatwoot.com/hc/user-guide/articles/1677777866-mobile-app-for-android), [App Store](https://apps.apple.com/us/app/chatwoot/id1495796682), [commit oficial b33a43e](https://github.com/chatwoot/chatwoot-mobile-app/commit/b33a43e7111b0ea0c1ed52dd6d85731b3b464736).
