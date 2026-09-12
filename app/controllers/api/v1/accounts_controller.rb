@@ -64,6 +64,7 @@ class Api::V1::AccountsController < Api::BaseController
     @account.settings.merge!(new_settings)
     @account.custom_attributes['onboarding_step'] = 'invite_team' if @account.custom_attributes['onboarding_step'] == 'account_update'
     @account.save!
+    render 'api/v1/accounts/show', format: :json
   end
 
   def update_active_at
