@@ -168,8 +168,10 @@ export function useBulkActions() {
           labelsToAssign.some(isArchivedLabel) ? { variant: 'danger' } : null
         );
       }
+      return true;
     } catch (err) {
       useAlert(t('BULK_ACTION.LABELS.ASSIGN_FAILED'));
+      return false;
     }
   }
 
@@ -202,12 +204,14 @@ export function useBulkActions() {
         store.dispatch('bulkActions/clearSelectedConversationIds');
         useAlert(t('BULK_ACTION.LABELS.REMOVE_SUCCESFUL'));
       }
+      return true;
     } catch (err) {
       useAlert(
         conversationId
           ? t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_REMOVAL.FAILED')
           : t('BULK_ACTION.LABELS.REMOVE_FAILED')
       );
+      return false;
     }
   }
 

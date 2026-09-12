@@ -55,6 +55,7 @@ import {
 import { matchesFilters } from '../store/modules/conversations/helpers/filterHelpers';
 import { CONVERSATION_EVENTS } from '../helper/AnalyticsHelper/events';
 import { conversationActivityTimestamp } from 'shared/helpers/timeHelper';
+import { isSidebarLabelTitle } from '../store/modules/labels';
 
 const props = defineProps({
   conversationInbox: { type: [String, Number], default: 0 },
@@ -77,14 +78,21 @@ const store = useStore();
 const resolveAttributesModalRef = ref(null);
 
 const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ALL);
-const defaultConversationStatus =
-  props.conversationStatus ||
-  (!props.conversationType &&
-  !props.conversationInbox &&
-  !props.label &&
-  !props.teamId
-    ? wootConstants.STATUS_TYPE.ALL
-    : wootConstants.STATUS_TYPE.OPEN);
+const defaultConversationStatus = (() => {
+  if (props.conversationStatus) return props.conversationStatus;
+  if (isSidebarLabelTitle(props.label, 'finalized')) {
+    return wootConstants.STATUS_TYPE.ALL;
+  }
+  if (
+    !props.conversationType &&
+    !props.conversationInbox &&
+    !props.label &&
+    !props.teamId
+  ) {
+    return wootConstants.STATUS_TYPE.ALL;
+  }
+  return wootConstants.STATUS_TYPE.OPEN;
+})();
 const activeStatus = ref(defaultConversationStatus);
 const activeSortBy = ref(wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC);
 const showAdvancedFilters = ref(false);

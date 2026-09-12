@@ -224,7 +224,9 @@ const archivedUnreadCount = useMapGetter(
 
 const budgetLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[0];
 const caioAttentionLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[1];
-const closedClientsLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[2];
+const contractIssuanceLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[2];
+const closedClientsLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[3];
+const finalizedLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[4];
 
 const getSidebarLabelTitle = definition =>
   findSidebarLabel(allLabels.value, definition)?.title ||
@@ -236,8 +238,14 @@ const budgetLabelTitle = computed(() =>
 const caioAttentionLabelTitle = computed(() =>
   getSidebarLabelTitle(caioAttentionLabelDefinition)
 );
+const contractIssuanceLabelTitle = computed(() =>
+  getSidebarLabelTitle(contractIssuanceLabelDefinition)
+);
 const closedClientsLabelTitle = computed(() =>
   getSidebarLabelTitle(closedClientsLabelDefinition)
+);
+const finalizedLabelTitle = computed(() =>
+  getSidebarLabelTitle(finalizedLabelDefinition)
 );
 
 const refreshSidebarLabelCounts = () => {
@@ -416,6 +424,17 @@ const menuItems = computed(() => {
           badgeCount: getSidebarLabelCount.value('caioAttention'),
         },
         {
+          name: 'ContractIssuance',
+          label: 'Emitir Contrato',
+          icon: 'i-lucide-file-signature',
+          color: contractIssuanceLabelDefinition.color,
+          to: accountScopedRoute('label_conversations', {
+            label: contractIssuanceLabelTitle.value,
+          }),
+          activeOn: ['label_conversations', 'conversations_through_label'],
+          badgeCount: getSidebarLabelCount.value('contractIssuance'),
+        },
+        {
           name: 'ClosedClients',
           label: 'Clientes Fechados',
           icon: 'i-lucide-badge-check',
@@ -425,6 +444,17 @@ const menuItems = computed(() => {
           }),
           activeOn: ['label_conversations', 'conversations_through_label'],
           badgeCount: getSidebarLabelCount.value('closedClients'),
+        },
+        {
+          name: 'Finalized',
+          label: 'FINALIZADOS',
+          icon: 'i-lucide-circle-check-big',
+          color: finalizedLabelDefinition.color,
+          to: accountScopedRoute('label_conversations', {
+            label: finalizedLabelTitle.value,
+          }),
+          activeOn: ['label_conversations', 'conversations_through_label'],
+          badgeCount: getSidebarLabelCount.value('finalized'),
         },
       ],
     },

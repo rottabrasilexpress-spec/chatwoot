@@ -162,7 +162,6 @@ onMounted(() => {
       @close="closeContextMenu"
     >
       <ConversationContextMenu
-        :status="activeContextChat.status"
         :priority="activeContextChat.priority"
         :chat-id="activeContextChat.id"
         :has-unread-messages="hasUnreadIncomingMessage(activeContextChat)"

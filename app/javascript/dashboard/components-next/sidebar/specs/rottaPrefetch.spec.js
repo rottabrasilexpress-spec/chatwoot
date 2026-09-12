@@ -12,7 +12,13 @@ describe('buildConversationPrefetchViews', () => {
       unreadConversationType: 'unread',
       priorityConversationType: 'priority',
       archivedConversationType: 'archived',
-      sidebarLabelTitles: ['Kelvin', 'Caio Atenção', 'Clientes fechados 🤝'],
+      sidebarLabelTitles: [
+        'Kelvin',
+        'Caio Atenção',
+        'Emitir Contrato',
+        'Clientes fechados 🤝',
+        'FINALIZADOS',
+      ],
     });
 
     expect(views).toEqual([
@@ -63,7 +69,23 @@ describe('buildConversationPrefetchViews', () => {
         sortBy: 'last_activity_at_desc',
         page: 1,
         perPage: 50,
+        labels: ['Emitir Contrato'],
+      },
+      {
+        assigneeType: 'all',
+        status: 'all',
+        sortBy: 'last_activity_at_desc',
+        page: 1,
+        perPage: 50,
         labels: ['Clientes fechados 🤝'],
+      },
+      {
+        assigneeType: 'all',
+        status: 'all',
+        sortBy: 'last_activity_at_desc',
+        page: 1,
+        perPage: 50,
+        labels: ['FINALIZADOS'],
       },
     ]);
   });

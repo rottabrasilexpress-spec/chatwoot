@@ -6,7 +6,6 @@ import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import { picoSearch } from '@chatwoot/pico-search';
 import MenuItem from './menuItem.vue';
 import MenuItemWithSubmenu from './menuItemWithSubmenu.vue';
-import wootConstants from 'dashboard/constants/globals';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 
@@ -14,8 +13,6 @@ const MENU = {
   MARK_AS_READ: 'mark-as-read',
   MARK_AS_UNREAD: 'mark-as-unread',
   PRIORITY: 'priority',
-  STATUS: 'status',
-  SNOOZE: 'snooze',
   LABEL: 'label',
   DELETE: 'delete',
   OPEN_NEW_TAB: 'open-new-tab',
@@ -23,6 +20,7 @@ const MENU = {
   PIN: 'pin',
   ARCHIVE: 'archive',
   REQUEST_ATTENTION: 'request-attention',
+  FINALIZE: 'finalize',
 };
 
 export default {
@@ -36,10 +34,6 @@ export default {
     chatId: {
       type: Number,
       default: null,
-    },
-    status: {
-      type: String,
-      default: '',
     },
     hasUnreadMessages: {
       type: Boolean,
@@ -69,9 +63,12 @@ export default {
       type: Boolean,
       default: false,
     },
+    canFinalize: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: [
-    'updateConversation',
     'assignPriority',
     'markAsUnread',
     'markAsRead',
@@ -81,6 +78,7 @@ export default {
     'togglePinned',
     'archiveConversation',
     'requestAttention',
+    'finalizeConversation',
     'close',
   ],
   setup() {
@@ -93,7 +91,6 @@ export default {
     return {
       MENU,
       labelSearchQuery: '',
-      STATUS_TYPE: wootConstants.STATUS_TYPE,
       readOption: {
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.MARK_AS_READ'),
         icon: 'mail',
@@ -101,15 +98,6 @@ export default {
       unreadOption: {
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.MARK_AS_UNREAD'),
         icon: 'mail-unread',
-      },
-      // Rotta's conversation context menu must not expose any status-closing
-      // action. Resolve/reopen/pending remain available through their normal
-      // conversation controls, but not from this menu.
-      statusMenuConfig: [],
-      snoozeOption: {
-        key: wootConstants.STATUS_TYPE.SNOOZED,
-        label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.SNOOZE.TITLE'),
-        icon: 'snooze',
       },
       priorityConfig: {
         key: MENU.PRIORITY,
@@ -168,16 +156,17 @@ export default {
         icon: 'i-lucide-bell-ring',
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.REQUEST_ATTENTION'),
       },
+      finalizeOption: {
+        key: MENU.FINALIZE,
+        icon: 'i-lucide-circle-check-big',
+        label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE'),
+      },
     };
   },
   computed: {
     ...mapGetters({
       labels: 'labels/getLabels',
     }),
-    showSnooze() {
-      // Don't show snooze if the conversation is already snoozed/resolved/pending
-      return this.status === wootConstants.STATUS_TYPE.OPEN;
-    },
     filteredLabels() {
       const labels = this.labelSearchQuery
         ? picoSearch(this.labels, this.labelSearchQuery, ['title'])
@@ -198,14 +187,6 @@ export default {
     isAllowed(keys) {
       if (!this.allowedOptions.length) return true;
       return keys.some(key => this.allowedOptions.includes(key));
-    },
-    toggleStatus(status, snoozedUntil) {
-      this.$emit('updateConversation', status, snoozedUntil);
-    },
-    async snoozeConversation() {
-      await this.$store.dispatch('setContextMenuChatId', this.chatId);
-      const ninja = document.querySelector('ninja-keys');
-      ninja.open({ parent: 'snooze_conversation' });
     },
     assignPriority(priority) {
       this.$emit('assignPriority', priority);
@@ -235,10 +216,9 @@ export default {
       this.$emit('requestAttention', this.chatId);
       this.$emit('close');
     },
-    show(key) {
-      // If the conversation status is same as the action, then don't display the option
-      // i.e.: Don't show an option to resolve if the conversation is already resolved.
-      return this.status !== key;
+    finalizeConversation() {
+      this.$emit('finalizeConversation', this.chatId);
+      this.$emit('close');
     },
     generateMenuLabelConfig(option, type = 'text') {
       return {
@@ -272,24 +252,6 @@ export default {
       />
       <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
     </template>
-    <template v-if="isAllowed([MENU.STATUS, MENU.SNOOZE])">
-      <template v-for="option in statusMenuConfig">
-        <MenuItem
-          v-if="show(option.key) && isAllowed([MENU.STATUS])"
-          :key="option.key"
-          :option="option"
-          variant="icon"
-          @click.stop="toggleStatus(option.key, null)"
-        />
-      </template>
-      <MenuItem
-        v-if="showSnooze && isAllowed([MENU.SNOOZE])"
-        :option="snoozeOption"
-        variant="icon"
-        @click.stop="snoozeConversation()"
-      />
-      <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
-    </template>
     <MenuItem
       v-if="canRequestAttention && isAllowed([MENU.REQUEST_ATTENTION])"
       :option="requestAttentionOption"
@@ -298,6 +260,16 @@ export default {
     />
     <hr
       v-if="canRequestAttention && isAllowed([MENU.REQUEST_ATTENTION])"
+      class="m-1 rounded border-b border-n-weak dark:border-n-weak"
+    />
+    <MenuItem
+      v-if="canFinalize && isAllowed([MENU.FINALIZE])"
+      :option="finalizeOption"
+      variant="attention"
+      @click.stop="finalizeConversation"
+    />
+    <hr
+      v-if="canFinalize && isAllowed([MENU.FINALIZE])"
       class="m-1 rounded border-b border-n-weak dark:border-n-weak"
     />
     <MenuItem

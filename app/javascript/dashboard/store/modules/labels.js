@@ -9,7 +9,9 @@ export const SIDEBAR_LABEL_COUNTS_MUTATION = 'SET_SIDEBAR_LABEL_COUNTS';
 const SIDEBAR_LABEL_COLOR = Object.freeze({
   budget: '#f59e0b',
   caioAttention: '#1e3a8a',
+  contractIssuance: '#7c3aed',
   closedClients: '#16a34a',
+  finalized: '#dc2626',
 });
 
 export const normalizeSidebarLabel = value =>
@@ -33,12 +35,33 @@ export const SIDEBAR_LABEL_DEFINITIONS = Object.freeze([
     color: SIDEBAR_LABEL_COLOR.caioAttention,
   }),
   Object.freeze({
+    key: 'contractIssuance',
+    fallbackTitle: 'emitir-contrato',
+    aliases: Object.freeze(['emitir-contrato']),
+    color: SIDEBAR_LABEL_COLOR.contractIssuance,
+  }),
+  Object.freeze({
     key: 'closedClients',
     fallbackTitle: 'clientes-fechados',
     aliases: Object.freeze(['clientes-fechados']),
     color: SIDEBAR_LABEL_COLOR.closedClients,
   }),
+  Object.freeze({
+    key: 'finalized',
+    fallbackTitle: 'finalizados',
+    aliases: Object.freeze(['finalizados']),
+    color: SIDEBAR_LABEL_COLOR.finalized,
+  }),
 ]);
+
+export const isSidebarLabelTitle = (value, key) => {
+  const definition = SIDEBAR_LABEL_DEFINITIONS.find(item => item.key === key);
+  return Boolean(
+    definition?.aliases.some(
+      alias => normalizeSidebarLabel(alias) === normalizeSidebarLabel(value)
+    )
+  );
+};
 
 export const findSidebarLabel = (records, definition) => {
   const aliases = definition?.aliases || [];

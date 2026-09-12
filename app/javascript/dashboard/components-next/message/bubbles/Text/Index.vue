@@ -8,16 +8,29 @@ import { MESSAGE_TYPES } from '../../constants';
 import { useMessageContext } from '../../provider.js';
 import { useTranslations } from 'dashboard/composables/useTranslations';
 import { getMessageDisplayContent } from '../../helpers/messageContent';
+import { useI18n } from 'vue-i18n';
 
 const { content, attachments, contentAttributes, messageType } =
   useMessageContext();
+const { t } = useI18n();
 
 const { hasTranslations, translationContent } =
   useTranslations(contentAttributes);
 
 const renderOriginal = ref(false);
 
+const isDeletedMessage = computed(() => contentAttributes.value?.deleted);
+const deletedMessageLabel = computed(() => {
+  const deletedBy =
+    contentAttributes.value?.deletedBy || contentAttributes.value?.deleted_by;
+  return deletedBy === 'customer'
+    ? t('CONVERSATION.DELETED_MESSAGE_BY_CUSTOMER')
+    : t('CONVERSATION.DELETED_MESSAGE');
+});
+
 const renderContent = computed(() => {
+  if (isDeletedMessage.value) return deletedMessageLabel.value;
+
   if (renderOriginal.value) {
     return content.value;
   }
@@ -47,7 +60,11 @@ const handleSeeOriginal = () => {
 </script>
 
 <template>
-  <BaseBubble class="px-4 py-3" data-bubble-name="text">
+  <BaseBubble
+    class="px-4 py-3"
+    :class="{ 'rotta-deleted-message': isDeletedMessage }"
+    data-bubble-name="text"
+  >
     <div class="gap-3 flex flex-col">
       <span v-if="isEmpty" class="text-n-slate-11">
         {{ $t('CONVERSATION.NO_CONTENT') }}
@@ -72,8 +89,17 @@ const handleSeeOriginal = () => {
   </BaseBubble>
 </template>
 
-<style>
+<style scoped>
 p:last-child {
   margin-bottom: 0;
+}
+
+.rotta-deleted-message {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+.rotta-deleted-message :deep(*) {
+  color: inherit !important;
 }
 </style>
