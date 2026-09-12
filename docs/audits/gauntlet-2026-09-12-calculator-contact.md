@@ -16,7 +16,7 @@ Data: 2026-09-12
 
 ## Implementação auditada
 
-- Cartão conhecido com área mínima de `min-h-16` e `min-w-[20rem]`.
+- Cartão conhecido com área mínima de `min-h-24` e `min-w-[26rem]`, ação dedicada de `w-40` e texto de nome/telefone sem truncamento.
 - Ação `Abrir conversa` consulta a conversa mais recente do contato e navega para `/app/accounts/:accountId/conversations/:id`; não usa `wa.me` nem abre WhatsApp externo.
 - Número desconhecido mantém o fluxo WhatsApp já existente.
 - Calculadora em `/app/accounts/:accountId/calculator`, fora do conjunto de rotas de configurações, com item independente na barra lateral.
@@ -56,3 +56,13 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Não foram encontrados defeitos críticos, regressões funcionais ou uso de `wa.me`.
 - Ressalvas P2: privacidade entre duas sessões não foi executada; a regra está coberta por código/testes. A suíte completa mantém 33 falhas baseline fora dos arquivos alterados, com totais históricos de `4.344/4.377` e `4.329/4.362` devido a execuções/ambiente distintos. P3: arquivo físico ainda está em `settings/calculator`, embora rota e sidebar sejam independentes.
 - Encerramento: contrato funcional aprovado; IA, Maps, preço e WhatsApp real permanecem placeholders explícitos para próxima etapa.
+
+## Terceira rodada — telefone formatado e tamanho visual — 2026-09-12
+
+- Reprodução vermelha criada antes da correção: `ContactSelector.spec.js` falhava ao emitir `11 9 6592-7865` como consulta literal em vez de `11965927865`.
+- Correção `70ec6d837`: normalização da consulta telefônica antes da busca, preservando o formato digitado na interface. A regressão passou em `42/42` testes focados.
+- Correção visual `9a20f7189`: dropdown exclusivo da nova conversa ampliado, cartão para `min-w-[26rem] min-h-24`, botão `w-40` e nome/telefone sem truncamento. Os testes focados finais passaram em `43/43`; lint ficou com `0` erros e 5 avisos i18n preexistentes.
+- Deploy do commit `9a20f7189` terminou com `Success` no EasyPanel. Houve apenas a janela transitória de reinício, encerrada antes da validação.
+- Teste live pós-deploy com `11 9 65 92 78 65`: cartão presente, área efetiva `465 x 90 px`, conteúdo completo e `Abrir conversa` visível; clique abriu internamente `#2143`; console sem erros.
+- Testes live adicionais: `11965927865` e `11 9 6592-7865` também abriram o cartão/conversa; `11965927866` continuou somente como WhatsApp e foi descartado sem criação/envio.
+- Nenhuma mensagem foi enviada, nenhuma etiqueta/conversa foi criada ou alterada. Branches `codex/rotta-objective-20260911` e `rotta-custom-v1` estão no commit `9a20f7189`.
