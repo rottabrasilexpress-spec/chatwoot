@@ -203,3 +203,13 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Foi adicionado ao repositório um spec de integração do webhook UAZAPI que cobre o evento `message_deleted`: encontra a mensagem recebida, cria o conteúdo retido, deixa o tombstone e registra a entrega do webhook. Este spec ainda precisa ser executado em um ambiente com Ruby/RSpec; Ruby não está instalado nesta máquina.
 - Como a mudança nesta rodada é somente cobertura de teste e auditoria, não houve novo deploy funcional no Easypanel. O runtime publicado continua `3c36b491b`; o spec e os registros desta rodada serão enviados ao GitHub sem incluir snapshots preexistentes não relacionados.
 - Limite mantido: ainda não foi possível exercer uma mensagem apagada pelo cliente pela UI real nem observar o botão agent-only na sessão de Caio, porque a conta live não contém uma ocorrência recebida desse tipo. O teste transacional valida o motor, mas não substitui essa prova visual.
+
+## Checkpoint 21 — suíte frontend repetida e redução visual do composer — 12/09/2026
+
+- A suíte focalizada foi executada novamente com Vitest direto no Windows: 12 arquivos, `186/186` testes aprovados. Cobriu ReplyBox, redimensionamento, gravação, ditado, transcrição API, Action Cable/reconexão, alertas sonoros, store e host do alerta Caio.
+- A execução do script `pnpm test` puro não funciona neste shell Windows porque o script usa a sintaxe Unix `TZ=UTC`; isso foi contornado executando o mesmo Vitest diretamente, sem alterar o projeto. Houve somente aviso de Browserslist/source map e os warnings Vue/i18n já conhecidos.
+- ESLint focalizado dos componentes/serviços terminou com `0 errors` e 4 warnings não bloqueantes (`vue/no-root-v-if` x2 e chaves i18n dinâmicas x2). `git diff --check` não apontou erro material.
+- Teste manual live no Chatwoot `#2143`: o compositor iniciou em 72 px, foi arrastado até o limite publicado de 52 px, e voltou a 72 px pelo duplo clique no puxador. Os controles `Falar e transcrever para texto` e `Gravar áudio` permaneceram distintos.
+- Menu contextual live reaberto e fechado sem ação mutável: presentes `Solicitar Atenção`, `Copiar link da conversa` e as ações permitidas; ausentes `Reabrir conversa`, `Deixar pendente` e `Fechar conversa`.
+- A tela não exibiu banner visível de desconexão durante a inspeção; o componente interno correspondente estava com `display:none`. As mensagens de áudio e o histórico continuaram renderizados.
+- Não houve alteração funcional nem novo deploy nesta rodada. O commit publicado permanece `19d234ffd`; snapshots modificados anteriormente continuam fora do commit.
