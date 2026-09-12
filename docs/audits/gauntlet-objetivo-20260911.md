@@ -43,8 +43,8 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 | M2 | Implementar alerta de `Caio Atenção` | especialista de etiquetas/notificações | componentes de sidebar/notificação, canal/evento e specs correspondentes | aplicação da etiqueta gera alerta apenas no alvo e sem duplicação | concluída localmente; Action Cable + deduplicação + alerta visual/sonoro |
 | M3 | Reter e exibir mensagem apagada por dois dias | especialista de mensagens | modelo/migration/serviço/bubble e specs correspondentes | cliente não vê conteúdo; agente autorizado vê até TTL; após TTL não vê | concluída localmente; criptografia condicionada e job TTL |
 | M4 | Ajustar composer e separar transcrição de gravação | especialista de composer/áudio | composer, recorder/transcriber, i18n e specs correspondentes | controles distintos; gravação envia áudio; transcrição envia texto pt-BR | concluída localmente; idioma `pt-BR` e controles distintos |
-| I1 | Integrar, publicar manifestos/assets e validar E2E | controlador | interfaces compartilhadas, testes integrados, ledger | testes automatizados e navegador aprovados | em correção de publicação; backend deployado, assets recompilados |
-| R1 | Revisão independente AAA do snapshot integrado | revisor independente | nenhum | relatório com nota e veto por critério | veto recebido (72/100); correções aplicadas e nova revisão pendente |
+| I1 | Integrar, publicar manifestos/assets e validar E2E | controlador | interfaces compartilhadas, testes integrados, ledger | testes automatizados e navegador aprovados | deploy final publicado; validação ao vivo em andamento |
+| R1 | Revisão independente AAA do snapshot integrado | revisor independente | nenhum | relatório com nota e veto por critério | veto recebido (72/100); correções aplicadas; R2 solicitado |
 
 ## Hipóteses iniciais verificáveis
 
@@ -61,3 +61,11 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 | 0 | `cfeb0630a` | base limpa inspecionada | branch `rotta-custom-v1` e working tree limpos | — |
 | 1 | `0d22fada4` | primeiro snapshot integrado | Vitest focalizado 29/30; build Vite aprovado; deploy Rails concluído, mas manifesto ainda antigo | veto independente: menu removeu `Resolver`, cobertura Ruby insuficiente |
 | 2 | working tree pós-revisão | correções de segurança e publicação | ação `Resolver` preservada; `pt-BR`; specs de retenção/detector/job/policy/endpoint; manifesto verifica 240 assets; IDs dos agentes e chaves de criptografia adicionados no Easypanel | aguarda commit, novo deploy e R2 |
+| 3 | `217f5941a` / `origin/rotta-custom-v1` | snapshot publicado | push concluído; Easypanel concluiu build e recriação dos três containers; Rails runner confirmou boot, criptografia e IDs `Caio=2`/`requester=1`; `/app/login` 200; manifesto ao vivo aponta `dashboard-Cm3m31nO.js` e `Messages-Bj9ACAIM.js`; navegador mostrou 50-page size, labels e menu contextual sem reabrir/pendente/fechar | R2 pendente |
+
+## Registro operacional
+
+- O primeiro 502 observado imediatamente após a recriação foi transitório; após a inicialização, o health check retornou 200.
+- A configuração de criptografia foi adicionada ao ambiente de produção para habilitar a retenção interna sem expor os valores no repositório ou neste registro.
+- O menu contextual foi verificado no navegador autenticado como Kelvin: apresentou `Solicitar Atenção`, `Marcar como resolvida`, `Adiar`, `Arquivar conversa`, etiquetas, link e fixação; não apresentou `Reabrir`, `Deixar pendente` ou `Fechar conversa`.
+- Os testes Ruby continuam dependentes do runtime do container; localmente não há Ruby/Bundler disponíveis. O boot Rails remoto foi executado sem alteração de dados.
