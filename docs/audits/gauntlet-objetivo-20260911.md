@@ -228,3 +228,11 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Na conversa live `#2143`, o clique direito no cartão de Kelvin exibiu `Solicitar Atenção`, `Copiar link da conversa`, `Arquivar conversa`, `Atribuir etiqueta` e as demais ações permitidas.
 - A mesma árvore de acessibilidade não contém `Reabrir conversa`, `Deixar pendente` nem `Fechar conversa`. O menu foi fechado clicando fora e nenhuma ação mutável foi acionada.
 - O fixture `41045` continua aberto somente para a validação agent-only e segue pendente de remoção exata após confirmação de exclusão via console.
+
+## Checkpoint 24 — conexão do aplicativo móvel pesquisada e endpoint live validado — 12/09/2026
+
+- A documentação oficial do Chatwoot determina que o campo **Installation URL** receba o domínio do servidor (`domain.com`), não `/app/login` nem uma rota de dashboard/conversa.
+- O código oficial atual do app valida `GET <host>/api`, usa a base para `api/v1/...` e monta o WebSocket em `wss://<host>/cable`. Isso confirma que `/app/login` é uma URL de navegador; no teste live, `/app/login/api` retornou HTML, enquanto `/api` retornou JSON HTTP 200.
+- `https://atendimento.via-cargo.com/api` e `https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/api` responderam Chatwoot `4.17.0`, `queue_services: ok` e `data_services: ok`. A API autenticada sem credencial retornou 401, comportamento esperado.
+- Procedimento indicado ao usuário: atualizar/reinstalar o app para limpar a configuração salva e informar somente `atendimento.via-cargo.com`, usando o mesmo agente da web; depois conferir conta selecionada e colaborador da inbox WhatsApp.
+- Nenhum código funcional, configuração do Easypanel, conta, inbox ou conversa foi alterado. Relatório completo: [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md).

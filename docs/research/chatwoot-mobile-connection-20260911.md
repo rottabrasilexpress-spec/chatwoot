@@ -118,3 +118,45 @@ Enquanto a versão corrigida não estiver disponível, a alternativa segura é u
 - O navegador autenticado abriu a mesma conta/conversas nos dois hosts.
 - No aplicativo, informar primeiro **somente** `atendimento.via-cargo.com` — sem `https://`, sem `/app/login` e sem `/app/accounts/...`. Se a versão do app aceitar esquema, `https://atendimento.via-cargo.com` é equivalente; o formato documentado continua sendo `domain.com`.
 - Ao recarregar o navegador, o banner `Desconectado` foi observado nos dois hosts. Isso exige investigação própria de conexão em tempo real/WebSocket; não muda a recomendação de URL do aplicativo.
+
+## Addendum — verificação oficial do fluxo do app e teste live do endpoint — 12/09/2026
+
+### O que o app realmente faz
+
+O código oficial atual do aplicativo confirma que o campo não é uma página de login:
+
+- `setInstallationUrl` extrai somente o host, monta `https://<host>/` e valida `GET <host>/api`.
+- As chamadas autenticadas usam essa base e acrescentam `api/v1/...`.
+- O WebSocket é montado como `wss://<host>/cable`.
+
+Fontes primárias: [ConfigURLScreen.tsx](https://raw.githubusercontent.com/chatwoot/chatwoot-mobile-app/develop/src/screens/auth/ConfigURLScreen.tsx), [settingsActions.ts](https://raw.githubusercontent.com/chatwoot/chatwoot-mobile-app/develop/src/store/settings/settingsActions.ts), [settingsService.ts](https://raw.githubusercontent.com/chatwoot/chatwoot-mobile-app/develop/src/store/settings/settingsService.ts), [settingsUtils.ts](https://raw.githubusercontent.com/chatwoot/chatwoot-mobile-app/develop/src/store/settings/settingsUtils.ts) e [APIService.ts](https://raw.githubusercontent.com/chatwoot/chatwoot-mobile-app/develop/src/services/APIService.ts).
+
+### Teste da instalação Rotta
+
+Em 12/09/2026, sem autenticação e sem alteração de dados:
+
+| Endereço | Resultado |
+|---|---|
+| `https://atendimento.via-cargo.com/api` | HTTP 200; JSON; Chatwoot 4.17.0; `queue_services: ok`; `data_services: ok` |
+| `https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/api` | Mesmo resultado |
+| `https://atendimento.via-cargo.com/app/login/api` | HTTP 200, mas `text/html` — não é API |
+| `https://atendimento.via-cargo.com/api/v1/accounts/1/conversations` | HTTP 401 sem autenticação — resposta esperada antes do login |
+
+Portanto, o valor correto para o campo do aplicativo é o host, preferencialmente:
+
+```text
+atendimento.via-cargo.com
+```
+
+Não usar `https://atendimento.via-cargo.com/app/login`, nem uma URL de dashboard/conversa. O alias `n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host` responde, mas o HTML público da instalação anuncia `atendimento.via-cargo.com` como `hostURL`; por isso o domínio canônico é o primeiro teste.
+
+### Procedimento fechado para o iPhone
+
+1. Atualizar o Chatwoot pela App Store.
+2. Sair da conta no app; se o campo/URL anterior permanecer salvo, apagar o app e instalar novamente para limpar a configuração persistida.
+3. No campo **URL de instalação**, digitar exatamente `atendimento.via-cargo.com`, sem `https://`, sem `/` e sem `/app/login`.
+4. Tocar em **Conectar** e entrar com o mesmo usuário agente que funciona na web.
+5. Se entrar numa conta vazia, conferir na web o seletor de conta e em **Configurações → Inboxes → WhatsApp → Colaboradores** se esse usuário está vinculado à inbox WhatsApp.
+6. Se a URL for aceita, mas as conversas continuarem ausentes, anotar a versão do app, iOS, conta selecionada e se alguma outra inbox aparece. Nesse ponto a URL deixa de ser a hipótese principal; resta autorização da inbox, conta selecionada ou bug do app móvel.
+
+O app oficial declara compatibilidade com Chatwoot `3.13.0+`; a instalação testada está em `4.17.0`. A página oficial também confirma compatibilidade com instalações self-hosted e o formato de domínio no campo: [Mobile Apps](https://www.chatwoot.com/mobile-apps), [guia Android](https://www.chatwoot.com/hc/user-guide/articles/1677777866-mobile-app-for-android) e [repositório oficial do app](https://github.com/chatwoot/chatwoot-mobile-app).
