@@ -195,3 +195,11 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Orientação operacional: atualizar o app para uma versão que contenha `b33a43e`, limpar a configuração salva e informar `atendimento.via-cargo.com` somente como host. Não usar `/app/login` ou `/app/accounts/...`; `app.chatwoot.com` é somente Cloud.
 - Nenhuma alteração funcional no Chatwoot/Easypanel foi feita durante este diagnóstico. O achado é do cliente móvel nativo, não do fork web.
 - Fonte detalhada: [pesquisa de conexão móvel](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\research\chatwoot-mobile-connection-20260911.md).
+
+## Checkpoint 20 — caminho de retenção do cliente exercitado com rollback — 12/09/2026
+
+- No Rails live, foi escolhido um candidato real de mensagem recebida na conversa `#2143` e executado o `Messages::CustomerDeletionService` dentro de uma transação explicitamente revertida. O retorno foi `incoming=true`, `tombstone=true`, `retained=true` e `expires_in=172800`, confirmando retenção criptografada por 48 horas e marcador público de exclusão.
+- A consulta somente leitura imediatamente depois do rollback confirmou o estado original: mensagem `#37372` com `content="ok"`, sem atributo `deleted` e sem `DeletedMessageContent`. Nenhuma alteração persistiu.
+- Foi adicionado ao repositório um spec de integração do webhook UAZAPI que cobre o evento `message_deleted`: encontra a mensagem recebida, cria o conteúdo retido, deixa o tombstone e registra a entrega do webhook. Este spec ainda precisa ser executado em um ambiente com Ruby/RSpec; Ruby não está instalado nesta máquina.
+- Como a mudança nesta rodada é somente cobertura de teste e auditoria, não houve novo deploy funcional no Easypanel. O runtime publicado continua `3c36b491b`; o spec e os registros desta rodada serão enviados ao GitHub sem incluir snapshots preexistentes não relacionados.
+- Limite mantido: ainda não foi possível exercer uma mensagem apagada pelo cliente pela UI real nem observar o botão agent-only na sessão de Caio, porque a conta live não contém uma ocorrência recebida desse tipo. O teste transacional valida o motor, mas não substitui essa prova visual.

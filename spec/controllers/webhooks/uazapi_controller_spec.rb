@@ -429,6 +429,58 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(conversation.messages.find_by!(source_id: 'uazapi-dynamic-route').content).to eq('Evento veio pela rota')
     end
 
+    it 'retains an incoming customer-deleted message and leaves an agent-only tombstone' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      message = create(
+        :message,
+        account: account,
+        inbox: api_inbox,
+        conversation: conversation,
+        message_type: :incoming,
+        private: false,
+        source_id: 'uazapi-customer-delete-1',
+        content: 'Conteúdo que o cliente apagou'
+      )
+      allow(DeletedMessageContent).to receive(:encryption_ready?).and_return(true)
+
+      post_uazapi(
+        event: 'message_deleted',
+        data: {
+          message: {
+            messageId: message.source_id,
+            chatid: '5511999999999@s.whatsapp.net',
+            fromMe: false
+          }
+        }
+      )
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include('ok' => true, 'event' => 'message_deleted', 'message_ids' => [message.id])
+      expect(message.reload).to have_attributes(
+        content: I18n.t('conversations.messages.deleted'),
+        content_type: 'text'
+      )
+      expect(message.content_attributes).to include('deleted' => true, 'deleted_by' => 'customer')
+      expect(message.deleted_message_content).to have_attributes(
+        content: 'Conteúdo que o cliente apagou',
+        source: 'customer'
+      )
+      expect(UazapiWebhookDelivery.order(:id).last).to have_attributes(
+        event: 'message_deleted',
+        status: 'persisted',
+        conversation_id: conversation.id
+      )
+    end
+
     it 'recognizes every explicit customer-deletion event alias from the route' do
       %w[
         message_delete messages_delete message_deleted messages_deleted
