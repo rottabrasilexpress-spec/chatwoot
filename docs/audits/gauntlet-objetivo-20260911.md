@@ -156,3 +156,9 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Bateria frontend focalizada: 7 arquivos, 147/147 testes aprovados (`actionCable`, `ReconnectService`, `DictationRecorder`, `ReplyBox`, alerta sonoro, store e host do alerta). Warnings foram somente mocks de componentes/diretivas nos testes, source map ausente de dependência e Browserslist desatualizado.
 - Limite de evidência: a captura real não continha fala portuguesa utilizável; portanto o fluxo de gravação e envio foi aprovado, mas a qualidade semântica da transcrição pt-BR não foi declarada como teste live. Ruby/RSpec continua indisponível localmente; os specs Ruby permanecem cobertos no repositório, não executados nesta máquina.
 - Estado: sem alteração funcional adicional neste checkpoint. O gate AAA continua aberto até haver evidência independente do popup/som na sessão do Caio, da visibilidade agent-only da exclusão e da transcrição com fala portuguesa, ou uma justificativa operacional documentada para cada cenário não reproduzível sem um segundo dispositivo/voz.
+
+## Checkpoint 14 — menu contextual revalidado no estado atual — 12/09/2026
+
+- Na conversa live `#2143`, após recarga da sessão autenticada, o clique direito no cartão de conversa exibiu `Solicitar Atenção`, `Marcar como não lida`, `Adiar`, `Arquivar conversa`, `Prioridade`, `Atribuir etiqueta`, `Abrir em nova aba`, `Copiar link da conversa`, `Fixar conversa` e `Excluir conversa`.
+- A mesma inspeção não encontrou `Reabrir conversa`, `Deixar pendente` ou `Fechar conversa`. O menu foi fechado com `Escape`; nenhuma ação mutável foi acionada nesta rodada.
+- O estado funcional continua no deploy anterior `3c36b491b`; `508d139f` contém apenas o registro de auditoria e está sincronizado em `origin/rotta-custom-v1`.
