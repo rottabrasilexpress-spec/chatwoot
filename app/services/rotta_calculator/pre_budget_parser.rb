@@ -142,8 +142,7 @@ module RottaCalculator
       return false if context.blank?
       return false if NEGATION_WORDS.any? { |word| context.include?(InventoryCatalog.normalize(word)) }
 
-      ACTIVATION_WORDS.any? { |word| context.include?(InventoryCatalog.normalize(word)) } ||
-        context.match?(/(?:contrate|solicito|preciso|incluir|inclua|fazer)/)
+      context.match?(/\b(?:sim|inclus[oa]|contratad[oa]|contratar)\b|✅|(?:contrate|solicito|preciso|incluir|inclua|fazer)/)
     end
 
     def count_for(text, pattern, default = 0)
