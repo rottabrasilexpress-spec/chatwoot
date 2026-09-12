@@ -23,7 +23,7 @@ RSpec.describe Messages::DictationTranscriptionService, type: :service do
     allow(Llm::SpeechToTextService).to receive(:new).with(
       blob: blob,
       account: account,
-      language: 'pt',
+      language: 'pt-BR',
       prompt: described_class::PROMPT
     ).and_return(speech_service)
     allow(speech_service).to receive(:perform).and_return('Olá, equipe')

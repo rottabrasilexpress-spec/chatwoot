@@ -4,7 +4,7 @@ class Messages::DictationTranscriptionService
   INPUT_ERROR = 'A valid audio file is required'.freeze
 
   ALLOWED_CONTENT_TYPES = %r{\Aaudio/}.freeze
-  LANGUAGE = 'pt'.freeze
+  LANGUAGE = 'pt-BR'.freeze
   PROMPT = 'Transcreva em português do Brasil, preservando nomes próprios, cidades, estados, números e valores monetários.'.freeze
 
   pattr_initialize [:audio!, :account!]

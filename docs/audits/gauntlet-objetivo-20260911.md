@@ -2,7 +2,7 @@
 
 Data de início: 2026-09-11  
 Branch de trabalho: `codex/rotta-objective-20260911`  
-Base: `rotta-custom-v1` (`cfeb0630a`)  
+Base: `rotta-custom-v1` (`0d22fada4`)  
 Deploy alvo: Easypanel/Chatwoot Rotta
 
 ## Contrato
@@ -39,12 +39,12 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 
 | ID | Objetivo | Dono | Arquivos próprios | Aceite local | Estado |
 |---|---|---|---|---|---|
-| M1 | Implementar ação `Solicitar Atenção` com autorização e aviso interno | especialista de conversas | menu/ações de conversa, endpoint/serviço próprio, specs correspondentes | agente não autorizado não executa; Caio recebe aviso sem mensagem pública | planejada |
-| M2 | Implementar alerta de `Caio Atenção` | especialista de etiquetas/notificações | componentes de sidebar/notificação, canal/evento e specs correspondentes | aplicação da etiqueta gera alerta apenas no alvo e sem duplicação | planejada |
-| M3 | Reter e exibir mensagem apagada por dois dias | especialista de mensagens | modelo/migration/serviço/bubble e specs correspondentes | cliente não vê conteúdo; agente autorizado vê até TTL; após TTL não vê | planejada |
-| M4 | Ajustar composer e separar transcrição de gravação | especialista de composer/áudio | composer, recorder/transcriber, i18n e specs correspondentes | controles distintos; gravação envia áudio; transcrição envia texto pt-BR | planejada |
-| I1 | Integrar, publicar manifestos/assets e validar E2E | controlador | interfaces compartilhadas, testes integrados, ledger | testes automatizados e navegador aprovados | pendente |
-| R1 | Revisão independente AAA do snapshot integrado | revisor independente | nenhum | relatório com nota e veto por critério | pendente |
+| M1 | Implementar ação `Solicitar Atenção` com autorização e aviso interno | especialista de conversas | menu/ações de conversa, endpoint/serviço próprio, specs correspondentes | agente não autorizado não executa; Caio recebe aviso sem mensagem pública | concluída localmente; backend + policy + endpoint + alerta privado |
+| M2 | Implementar alerta de `Caio Atenção` | especialista de etiquetas/notificações | componentes de sidebar/notificação, canal/evento e specs correspondentes | aplicação da etiqueta gera alerta apenas no alvo e sem duplicação | concluída localmente; Action Cable + deduplicação + alerta visual/sonoro |
+| M3 | Reter e exibir mensagem apagada por dois dias | especialista de mensagens | modelo/migration/serviço/bubble e specs correspondentes | cliente não vê conteúdo; agente autorizado vê até TTL; após TTL não vê | concluída localmente; criptografia condicionada e job TTL |
+| M4 | Ajustar composer e separar transcrição de gravação | especialista de composer/áudio | composer, recorder/transcriber, i18n e specs correspondentes | controles distintos; gravação envia áudio; transcrição envia texto pt-BR | concluída localmente; idioma `pt-BR` e controles distintos |
+| I1 | Integrar, publicar manifestos/assets e validar E2E | controlador | interfaces compartilhadas, testes integrados, ledger | testes automatizados e navegador aprovados | em correção de publicação; backend deployado, assets recompilados |
+| R1 | Revisão independente AAA do snapshot integrado | revisor independente | nenhum | relatório com nota e veto por critério | veto recebido (72/100); correções aplicadas e nova revisão pendente |
 
 ## Hipóteses iniciais verificáveis
 
@@ -59,4 +59,5 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 | Rodada | Snapshot | Estado | Evidência | Nota |
 |---:|---|---|---|---:|
 | 0 | `cfeb0630a` | base limpa inspecionada | branch `rotta-custom-v1` e working tree limpos | — |
-
+| 1 | `0d22fada4` | primeiro snapshot integrado | Vitest focalizado 29/30; build Vite aprovado; deploy Rails concluído, mas manifesto ainda antigo | veto independente: menu removeu `Resolver`, cobertura Ruby insuficiente |
+| 2 | working tree pós-revisão | correções de segurança e publicação | ação `Resolver` preservada; `pt-BR`; specs de retenção/detector/job/policy/endpoint; manifesto verifica 240 assets; IDs dos agentes e chaves de criptografia adicionados no Easypanel | aguarda commit, novo deploy e R2 |

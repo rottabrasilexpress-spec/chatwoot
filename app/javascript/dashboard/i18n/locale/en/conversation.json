@@ -236,6 +236,8 @@
     "CARD_CONTEXT_MENU": {
       "PENDING": "Mark as pending",
       "RESOLVED": "Mark as resolved",
+      "ARCHIVE": "Archive conversation",
+      "REQUEST_ATTENTION": "Request attention",
       "MARK_AS_UNREAD": "Mark as unread",
       "MARK_AS_READ": "Mark as read",
       "REOPEN": "Reopen conversation",

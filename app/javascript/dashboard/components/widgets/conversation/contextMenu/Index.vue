@@ -102,7 +102,16 @@ export default {
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.MARK_AS_UNREAD'),
         icon: 'mail-unread',
       },
-      statusMenuConfig: [],
+      // Preserve the existing resolved action. The Rotta change removes only
+      // reopen and pending from this context menu; resolving remains a core
+      // agent workflow and must not regress.
+      statusMenuConfig: [
+        {
+          key: wootConstants.STATUS_TYPE.RESOLVED,
+          label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.RESOLVED'),
+          icon: 'checkmark',
+        },
+      ],
       snoozeOption: {
         key: wootConstants.STATUS_TYPE.SNOOZED,
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.SNOOZE.TITLE'),
@@ -158,12 +167,12 @@ export default {
       archiveOption: {
         key: MENU.ARCHIVE,
         icon: 'archive',
-        label: 'Arquivar conversa',
+        label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.ARCHIVE'),
       },
       requestAttentionOption: {
         key: MENU.REQUEST_ATTENTION,
         icon: 'i-lucide-bell-ring',
-        label: 'Solicitar Atenção',
+        label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.REQUEST_ATTENTION'),
       },
     };
   },

@@ -199,6 +199,8 @@
     "CARD_CONTEXT_MENU": {
       "PENDING": "Deixar pendente",
       "RESOLVED": "Marcar como resolvida",
+      "ARCHIVE": "Arquivar conversa",
+      "REQUEST_ATTENTION": "Solicitar Atenção",
       "MARK_AS_UNREAD": "Marcar como não lida",
       "MARK_AS_READ": "Marcar como lida",
       "REOPEN": "Reabrir conversa",
