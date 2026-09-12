@@ -51,7 +51,7 @@ Rails.application.routes.draw do
         end
 
         scope module: :accounts do
-          resource :calculator, only: [] do
+          resource :calculator, only: [], controller: :calculator do
             post :calculate
           end
           namespace :actions do
