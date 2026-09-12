@@ -270,3 +270,9 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - A suíte frontend focalizada executada diretamente pelo Vitest terminou com `7` arquivos e `135/135` testes aprovados, incluindo alertas, Action Cable, ditado, ReplyBox, histórico e follow-up. O comando Ruby/RSpec continua indisponível localmente porque Ruby não está instalado.
 - O menu contextual live foi novamente confirmado sem `Reabrir conversa`, `Deixar pendente` ou `Fechar conversa`; `Solicitar Atenção` e `Copiar link da conversa` permaneceram presentes. Nenhuma ação mutável do menu foi acionada.
 - Nenhum código funcional, conversa, mensagem, inbox ou configuração foi alterado nesta etapa. O fixture isolado `41045` permanece somente para a prova agent-only e segue pendente de remoção exata após confirmação imediata.
+
+## Checkpoint 29 — solicitação real de atenção sem mensagem pública — 12/09/2026
+
+- Pela sessão live autenticada de Kelvin, o item `Solicitar Atenção` foi acionado uma vez na conversa `#2143`. O Chatwoot respondeu com o toast `Solicitação enviada para o agente Caio.`
+- A árvore de acessibilidade da sessão não recebeu a mensagem privada de instrução nem qualquer mensagem pública; não houve envio para o WhatsApp, alteração de etiqueta ou alteração de status.
+- O endpoint/serviço direciona o evento somente ao `recipient_user_id` configurado para Caio. A sessão Kelvin não exibiu o cartão de alerta, como exigido. A confirmação visual do cartão e do áudio na sessão independente de Caio segue pendente por falta de uma sessão autenticada desse agente.
