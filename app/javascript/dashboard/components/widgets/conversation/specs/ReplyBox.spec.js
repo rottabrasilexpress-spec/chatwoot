@@ -4,6 +4,7 @@ import { nextTick } from 'vue';
 import { createStore } from 'vuex';
 import ReplyBox from '../ReplyBox.vue';
 import WhatsappTemplates from '../WhatsappTemplates/Modal.vue';
+import AudioTranscriptionApi from 'dashboard/api/inbox/audioTranscription';
 
 const CHANNELS = [
   { name: 'WhatsApp Cloud', inbox: { channel_type: 'Channel::Whatsapp' } },
@@ -473,6 +474,27 @@ describe('ReplyBox', () => {
       expect(store.getters['draftMessages/getReplyEditorMode']).toBe(
         REPLY_EDITOR_MODES.NOTE
       );
+    });
+
+    it('uses the browser pt-BR transcript when server transcription is unavailable', async () => {
+      const { wrapper } = mountWith({});
+      wrapper.vm.message = 'Mensagem anterior';
+      vi.spyOn(AudioTranscriptionApi, 'create').mockRejectedValueOnce({
+        response: {
+          status: 403,
+          data: {
+            error: 'Audio transcription is not available for this account',
+          },
+        },
+      });
+
+      await wrapper.vm.onDictationRecording({
+        name: 'dictation.webm',
+        nativeTranscript: 'Olá, tudo bem?',
+      });
+
+      expect(wrapper.vm.message).toBe('Mensagem anterior\nOlá, tudo bem?');
+      expect(wrapper.vm.isTranscribing).toBe(false);
     });
   });
 });

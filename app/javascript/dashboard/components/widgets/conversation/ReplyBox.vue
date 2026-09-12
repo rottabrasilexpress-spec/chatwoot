@@ -1186,6 +1186,7 @@ export default {
     },
     async onDictationRecording(file) {
       const messageBeforeTranscription = this.message;
+      const browserTranscript = file?.nativeTranscript?.trim();
       this.isDictating = false;
       this.isTranscribing = true;
 
@@ -1194,7 +1195,7 @@ export default {
           conversationId: this.conversationId,
           file,
         });
-        const text = data?.text?.trim();
+        const text = data?.text?.trim() || browserTranscript;
         if (text) {
           const separator = messageBeforeTranscription.trim() ? '\n' : '';
           this.message = `${messageBeforeTranscription}${separator}${text}`;
@@ -1202,6 +1203,11 @@ export default {
       } catch (error) {
         // Keep the exact composer content that existed before the request.
         this.message = messageBeforeTranscription;
+        if (browserTranscript) {
+          const separator = messageBeforeTranscription.trim() ? '\n' : '';
+          this.message = `${messageBeforeTranscription}${separator}${browserTranscript}`;
+          return;
+        }
         useAlert(
           error?.response?.data?.error ||
             this.$t('CONVERSATION.REPLYBOX.DICTATION_ERROR')

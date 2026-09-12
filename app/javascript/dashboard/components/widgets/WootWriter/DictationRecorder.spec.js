@@ -28,6 +28,8 @@ const buildMediaRecorder = () => {
 describe('DictationRecorder', () => {
   const originalMediaDevices = navigator.mediaDevices;
   const originalMediaRecorder = window.MediaRecorder;
+  const originalSpeechRecognition = window.SpeechRecognition;
+  const originalWebkitSpeechRecognition = window.webkitSpeechRecognition;
 
   afterEach(() => {
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -35,6 +37,8 @@ describe('DictationRecorder', () => {
       value: originalMediaDevices,
     });
     window.MediaRecorder = originalMediaRecorder;
+    window.SpeechRecognition = originalSpeechRecognition;
+    window.webkitSpeechRecognition = originalWebkitSpeechRecognition;
   });
 
   it('emits a browser-supported file and releases the microphone tracks', async () => {
@@ -54,6 +58,10 @@ describe('DictationRecorder', () => {
     });
     await nextTick();
     wrapper.vm.stopRecording();
+
+    await vi.waitFor(() =>
+      expect(wrapper.emitted('finishRecord')).toBeTruthy()
+    );
 
     const [file] = wrapper.emitted('finishRecord')[0];
     expect(file.type).toBe('audio/webm;codecs=opus');
@@ -75,5 +83,53 @@ describe('DictationRecorder', () => {
     await vi.waitFor(() => expect(wrapper.emitted('recordError')).toBeTruthy());
 
     expect(wrapper.emitted('recordError')[0][0].error).toBe(error);
+  });
+
+  it('captures a pt-BR browser transcript alongside the recorded file', async () => {
+    function FakeSpeechRecognition() {}
+    function startSpeechRecognition() {}
+    function stopSpeechRecognition() {
+      this.onresult?.({
+        resultIndex: 0,
+        results: [
+          {
+            isFinal: true,
+            0: { transcript: 'Olá, tudo bem?' },
+          },
+        ],
+      });
+      this.onend?.();
+    }
+
+    function abortSpeechRecognition() {
+      this.onend?.();
+    }
+
+    FakeSpeechRecognition.prototype.start = startSpeechRecognition;
+    FakeSpeechRecognition.prototype.stop = stopSpeechRecognition;
+    FakeSpeechRecognition.prototype.abort = abortSpeechRecognition;
+
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+    });
+    window.MediaRecorder = buildMediaRecorder();
+    window.SpeechRecognition = FakeSpeechRecognition;
+
+    const wrapper = mount(DictationRecorder, {
+      global: { mocks: { $t: value => value } },
+    });
+    await nextTick();
+    wrapper.vm.stopRecording();
+
+    await vi.waitFor(() =>
+      expect(wrapper.emitted('finishRecord')).toBeTruthy()
+    );
+    const [file] = wrapper.emitted('finishRecord')[0];
+    expect(file.nativeTranscript).toBe('Olá, tudo bem?');
   });
 });

@@ -236,3 +236,11 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - `https://atendimento.via-cargo.com/api` e `https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/api` responderam Chatwoot `4.17.0`, `queue_services: ok` e `data_services: ok`. A API autenticada sem credencial retornou 401, comportamento esperado.
 - Procedimento indicado ao usuário: atualizar/reinstalar o app para limpar a configuração salva e informar somente `atendimento.via-cargo.com`, usando o mesmo agente da web; depois conferir conta selecionada e colaborador da inbox WhatsApp.
 - Nenhum código funcional, configuração do Easypanel, conta, inbox ou conversa foi alterado. Relatório completo: [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md).
+
+## Checkpoint 25 — fallback de ditado pt-BR coberto e bundle produzido — 12/09/2026
+
+- O teste manual live reproduziu a falha real ao parar o ditado: `Audio transcription is not available for this account`. A auditoria read-only confirmou `captain_feature=false`, `audio_transcriptions=nil` e ausência de configuração de provedor de áudio; nenhum dado foi alterado.
+- O fluxo do compositor foi ajustado de forma compatível: o caminho de transcrição do servidor continua sendo o primeiro; quando o navegador oferece `SpeechRecognition`, o gravador captura o texto em `pt-BR` junto do `MediaRecorder`, preserva o rascunho existente e usa esse texto se a API do servidor estiver indisponível. O botão de gravação de áudio e o envio de áudio não foram misturados com o ditado.
+- Testes após o ajuste: suíte focalizada `2` arquivos, `97/97`; bateria relacionada `14` arquivos, `177/177`; ESLint dos quatro arquivos alterados com `0` erros e somente `3` avisos já conhecidos; build Vite concluído; manifesto verificado com `240` assets.
+- O deploy live e a prova manual pós-deploy do ditado ainda são a próxima etapa. Nenhuma conversa, etiqueta, conta, inbox ou mensagem foi alterada nesta etapa; os snapshots preexistentes permanecem fora do commit.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [pesquisa móvel](../research/chatwoot-mobile-connection-20260911.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1).
