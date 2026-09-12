@@ -261,3 +261,12 @@ Gate: nota total >= 95, nenhum critério < 90, zero falha crítica e todos os te
 - Como a página pública da App Store não vincula explicitamente o binário àquele hash, a recomendação segura é atualizar para `4.9.3` ou superior, sair/reinstalar para limpar o estado salvo e informar exatamente `atendimento.via-cargo.com`.
 - Probes read-only repetidos em 12/09: ambos os hosts retornaram `/api` HTTP 200 com Chatwoot `4.17.0`, serviços `ok`; `/api/v1/profile` retornou 401 sem sessão; `/app/login/api` retornou HTML. Nenhuma alteração em servidor, conta, inbox, conversa ou mensagem.
 - Fontes primárias: [Mobile Apps](https://www.chatwoot.com/mobile-apps), [guia Android](https://www.chatwoot.com/hc/user-guide/articles/1677777866-mobile-app-for-android), [App Store](https://apps.apple.com/us/app/chatwoot/id1495796682), [commit oficial b33a43e](https://github.com/chatwoot/chatwoot-mobile-app/commit/b33a43e7111b0ea0c1ed52dd6d85731b3b464736).
+
+## Checkpoint 28 — teste live de etiqueta, contador e menu contextual — 12/09/2026
+
+- Na sessão autenticada de Kelvin, a conversa `#2143` recebeu temporariamente a etiqueta `Caio Atenção`. O evento Action Cable atualizou a conversa, o menu de etiquetas e o contador da barra lateral de forma imediata; o contador subiu de `1` para `2`.
+- A remoção foi feita pelo mesmo controle visual e também propagou em tempo real: a conversa voltou a `0` selecionada e o contador da barra lateral retornou a `1`. O estado original foi restaurado; nenhuma mensagem foi enviada.
+- Durante o teste, não apareceu alerta na sessão do solicitante Kelvin, confirmando o filtro por `recipient_user_id`. A exibição do popup e do áudio na sessão independente de Caio continua sendo a única validação visual pendente, embora o caminho server-side e os testes do host/áudio estejam cobertos.
+- A suíte frontend focalizada executada diretamente pelo Vitest terminou com `7` arquivos e `135/135` testes aprovados, incluindo alertas, Action Cable, ditado, ReplyBox, histórico e follow-up. O comando Ruby/RSpec continua indisponível localmente porque Ruby não está instalado.
+- O menu contextual live foi novamente confirmado sem `Reabrir conversa`, `Deixar pendente` ou `Fechar conversa`; `Solicitar Atenção` e `Copiar link da conversa` permaneceram presentes. Nenhuma ação mutável do menu foi acionada.
+- Nenhum código funcional, conversa, mensagem, inbox ou configuração foi alterado nesta etapa. O fixture isolado `41045` permanece somente para a prova agent-only e segue pendente de remoção exata após confirmação imediata.
