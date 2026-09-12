@@ -462,6 +462,35 @@ describe('ActionCableConnector - Copilot Tests', () => {
       );
     });
 
+    it('retries the label catalog after the label transaction settles', () => {
+      vi.useFakeTimers();
+      const conversation = {
+        id: 206,
+        account_id: 1,
+        previous_changes: {
+          label_list: [[], ['primeiro-contato']],
+        },
+      };
+
+      actionCable.onReceived({
+        event: 'conversation.updated',
+        data: conversation,
+      });
+
+      expect(
+        mockDispatch.mock.calls.filter(([action]) => action === 'labels/get')
+      ).toHaveLength(1);
+
+      vi.advanceTimersByTime(600);
+
+      expect(
+        mockDispatch.mock.calls.filter(([action]) => action === 'labels/get')
+      ).toHaveLength(2);
+      expect(mockDispatch).toHaveBeenLastCalledWith('labels/get', {
+        forceNetwork: true,
+      });
+    });
+
     it('does not refresh the Rotta follow-up queue for unrelated updates', () => {
       const conversation = {
         id: 206,

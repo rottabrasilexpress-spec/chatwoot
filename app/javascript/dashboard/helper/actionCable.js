@@ -22,6 +22,7 @@ const UNREAD_COUNTS_REFETCH_THROTTLE_MS = 1000;
 const FILTERED_UNREAD_COUNTS_REFRESH_RETRY_MS = 30000;
 const FILTERED_UNREAD_COUNTS_REFRESH_RETRY_JITTER_MS = 15000;
 const MENTION_UNREAD_COUNTS_REFETCH_DELAY_MS = 5000;
+const LABEL_CATALOG_REFRESH_RETRY_MS = 600;
 const getFilteredUnreadCountsRefreshRetryDelay = () =>
   FILTERED_UNREAD_COUNTS_REFRESH_RETRY_MS +
   Math.random() * FILTERED_UNREAD_COUNTS_REFRESH_RETRY_JITTER_MS;
@@ -36,6 +37,7 @@ class ActionCableConnector extends BaseActionCableConnector {
     this.mentionUnreadCountsFetchTimer = null;
     this.mentionUnreadCountsRetryTimer = null;
     this.filteredUnreadCountsRetryTimer = null;
+    this.labelCatalogRefreshTimer = null;
     this.events = {
       'message.created': this.onMessageCreated,
       'message.updated': this.onMessageUpdated,
@@ -163,8 +165,17 @@ class ActionCableConnector extends BaseActionCableConnector {
 
     if (hasLabelChange) {
       this.app.$store.dispatch('labels/get', { forceNetwork: true });
+      this.scheduleLabelCatalogRefresh();
       emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, data);
     }
+  };
+
+  scheduleLabelCatalogRefresh = () => {
+    clearTimeout(this.labelCatalogRefreshTimer);
+    this.labelCatalogRefreshTimer = setTimeout(() => {
+      this.app.$store.dispatch('labels/get', { forceNetwork: true });
+      this.labelCatalogRefreshTimer = null;
+    }, LABEL_CATALOG_REFRESH_RETRY_MS);
   };
 
   onCaioAttentionAdded = data => {
