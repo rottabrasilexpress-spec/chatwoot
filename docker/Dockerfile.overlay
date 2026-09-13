@@ -84,15 +84,3 @@ COPY enterprise/app/services/conversation_ai/context_builder.rb /app/enterprise/
 COPY enterprise/app/views/api/v1/models/captain/_copilot_thread.json.jbuilder /app/enterprise/app/views/api/v1/models/captain/_copilot_thread.json.jbuilder
 COPY enterprise/app/views/api/v1/accounts/captain/copilot_threads/index.json.jbuilder /app/enterprise/app/views/api/v1/accounts/captain/copilot_threads/index.json.jbuilder
 COPY enterprise/app/views/api/v1/accounts/captain/copilot_messages/index.json.jbuilder /app/enterprise/app/views/api/v1/accounts/captain/copilot_messages/index.json.jbuilder
-
-# Include the checkout's frontend source and Vite configuration so the
-# production dashboard bundle is rebuilt from the same commit as the backend.
-COPY app/javascript /app/app/javascript
-COPY vite.config.ts vite.shared.ts vite.lib.config.ts /app/
-COPY config/vite.json /app/config/vite.json
-
-# The official image ships with a precompiled dashboard bundle. Rebuild it
-# here; otherwise new Vue components never reach the deployed application.
-RUN SECRET_KEY_BASE=precompile_placeholder RAILS_LOG_TO_STDOUT=enabled RAILS_ENV=production \
-  bundle exec rake assets:precompile \
-  && rm -rf node_modules tmp/cache
