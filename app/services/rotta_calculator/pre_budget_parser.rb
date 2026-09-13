@@ -195,8 +195,8 @@ module RottaCalculator
       materials_line = raw_service_lines.find { |line| InventoryCatalog.normalize(line).match?(/material|embalagem|plastico bolha/) }.to_s
       {
         'helpers' => {
-          'origin' => count_for(normalized, /(?:carga|origem).*?(\d+)\s*ajudantes?/),
-          'destination' => count_for(normalized, /(?:descarga|destino).*?(\d+)\s*ajudantes?/) 
+          'origin' => count_for(normalized, /(?:carga|origem).*?(\d+)(?:\s*ajudantes?)?/),
+          'destination' => count_for(normalized, /(?:descarga|destino).*?(\d+)(?:\s*ajudantes?)?/) 
         },
         'assembly' => {
           'origin_disassembly' => disassembly_count,

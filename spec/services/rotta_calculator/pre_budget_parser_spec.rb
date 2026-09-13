@@ -54,7 +54,7 @@ RSpec.describe RottaCalculator::PreBudgetParser do
         Instrução: não adicionar Ace Move, caixas adicionais ou utensílios
         Forma de pagamento: a combinar
         SERVIÇOS
-        Carga (origem): 2 ajudantes
+        Carga (origem): 2
       TEXT
       freight: {}, inventory: {}, services: {}
     ).call
