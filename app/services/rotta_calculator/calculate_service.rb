@@ -2,7 +2,7 @@ module RottaCalculator
   class CalculateService
     # Keep the synchronous request below the reverse-proxy limit while allowing
     # the configured model's normal response window to complete.
-    AI_WAIT_TIMEOUT = 14.5
+    AI_WAIT_TIMEOUT = 12.5
 
     def initialize(payload, routes_client: nil, ai_client: OpenRouterClient.new, ai_timeout: AI_WAIT_TIMEOUT)
       @payload = payload.stringify_keys
