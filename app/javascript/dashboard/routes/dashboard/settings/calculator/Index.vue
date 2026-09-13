@@ -1,6 +1,6 @@
 <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -126,6 +126,13 @@ watch(
 );
 
 const ensureCalculatorOwnership = async () => {
+  const account = currentAccount.value;
+  if (
+    !account?.id ||
+    !Object.prototype.hasOwnProperty.call(account, 'settings')
+  )
+    return;
+
   if (
     !shouldClaimCalculatorOwnership({
       ownerId: calculatorSettings.value.rotta_calculator_owner_id,
@@ -277,7 +284,13 @@ const copyInventory = async () => {
   }
 };
 
-onMounted(ensureCalculatorOwnership);
+watch(
+  currentAccount,
+  () => {
+    ensureCalculatorOwnership();
+  },
+  { immediate: true }
+);
 </script>
 
 <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
