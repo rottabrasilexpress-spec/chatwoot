@@ -758,7 +758,10 @@ watch(
               <p class="mt-1 text-xs text-n-slate-11">
                 {{
                   result?.api_status === 'complete'
-                    ? t('CALCULATOR.INTEGRATIONS.CONNECTED')
+                    ? t(
+                        'CALCULATOR.INTEGRATIONS.MAPS_BACKEND_ACTIVE',
+                        'Google Maps visual + motor de rotas do backend ativos'
+                      )
                     : t('CALCULATOR.INTEGRATIONS.READY')
                 }}
               </p>
