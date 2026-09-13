@@ -66,3 +66,10 @@ Data: 2026-09-12
 - O Chatwoot passou a exibir `Google Routes` e retornou `2755,9 km` para Teresina - PI → Campo Grande - MS; o Hub retornou `2760,7 km`. A diferença ficou em `4,8 km` (aprox. `0,17%`), muito menor que os `47,3 km` do OSRM fallback.
 - Pedágios permaneceram `Desativados`; a proposta foi copiada (`591` caracteres); `Satélite`/`Mapa` alternaram `t=k`/`t=m`; cards e ajuste/km recalcularam e foram restaurados ao padrão.
 - Deploy concluído e health HTTP `200`. Duas execuções consecutivas da IA ficaram em fallback determinístico por janela de resposta, isoladas da rota Google e sem inventar dados de inventário; a latência do provedor permanece uma pendência separada.
+
+## Reteste da latência da IA após otimização — 2026-09-13
+
+- A chamada mínima ao mesmo modelo respondeu HTTP 200 em `14.949 ms` e `14.416 ms` com `max_tokens=700`; com `max_tokens=350`, mantendo prompt e modelo, respondeu em `7.867 ms`.
+- O Hub não foi alterado. A comparação de rota segue `2760,7 km` no Hub contra `2755,9 km` no Chatwoot Google Routes (`4,8 km`, `0,17%`).
+- No Chatwoot pós-deploy, três cálculos consecutivos exibiram `Integração respondendo`, `Google Routes`, pedágios desativados, preço padrão `R$ 9.168,67`, proposta e mapa. Não houve fallback em `3/3`.
+- A mudança foi apenas `OpenRouterClient::MAX_TOKENS = 350`, publicada no commit `51a0496ef`; nenhum segredo foi gravado neste documento.
