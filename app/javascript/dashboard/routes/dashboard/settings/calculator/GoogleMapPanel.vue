@@ -296,7 +296,7 @@ onBeforeUnmount(() => {
 <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <template>
   <section
-    class="flex flex-col overflow-hidden border rounded-2xl border-n-weak bg-n-solid-1"
+    class="flex flex-col h-full overflow-hidden border rounded-2xl border-n-weak bg-n-solid-1"
     data-testid="calculator-google-map"
   >
     <div
@@ -419,7 +419,7 @@ onBeforeUnmount(() => {
         Abrir GPS
       </a>
     </div>
-    <div class="relative min-h-[24rem] bg-n-alpha-2">
+    <div class="relative flex-1 min-h-[16rem] bg-n-alpha-2">
       <div
         ref="mapElement"
         class="absolute inset-0"
