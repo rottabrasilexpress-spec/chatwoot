@@ -73,4 +73,24 @@ RSpec.describe RottaCalculator::CalculateService do
       destination: 'Linhares - ES'
     )
   end
+
+  it 'keeps the route response available when the AI provider is slow' do
+    allow(ai_client).to receive(:call) do
+      sleep 0.05
+      { 'summary' => 'Resposta lenta.' }
+    end
+
+    result = described_class.new(
+      {
+        'reading_text' => 'Origem: São Paulo - SP\nDestino: Salvador - BA',
+        'freight' => { 'origin' => 'São Paulo - SP', 'destination' => 'Salvador - BA' },
+        'inventory' => {}
+      },
+      routes_client: routes_client,
+      ai_client: ai_client,
+      ai_timeout: 0.01
+    ).call
+
+    expect(result).to include('route' => 'São Paulo - SP → Salvador - BA', 'ai_status' => 'degraded')
+  end
 end

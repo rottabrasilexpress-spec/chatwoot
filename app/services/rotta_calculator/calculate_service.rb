@@ -1,9 +1,12 @@
 module RottaCalculator
   class CalculateService
-    def initialize(payload, routes_client: nil, ai_client: OpenRouterClient.new)
+    AI_WAIT_TIMEOUT = 8
+
+    def initialize(payload, routes_client: nil, ai_client: OpenRouterClient.new, ai_timeout: AI_WAIT_TIMEOUT)
       @payload = payload.stringify_keys
       @routes_client = routes_client || ResilientRoutesClient.new
       @ai_client = ai_client
+      @ai_timeout = ai_timeout
     end
 
     def call
@@ -38,7 +41,7 @@ module RottaCalculator
         )
       end
       route = route_lookup.value
-      ai = ai_lookup.value.stringify_keys
+      ai = wait_for_ai(ai_lookup)
       extracted = parsed.deep_merge(ai['extracted_data'].is_a?(Hash) ? ai['extracted_data'].deep_stringify_keys : {})
       extracted['client_name'] = parsed['client_name'] if parsed['client_name'].present?
       extracted['date'] = parsed['date'] if parsed['date'].present?
@@ -59,7 +62,7 @@ module RottaCalculator
         'selected_services' => selected_services(extracted),
         'price' => pricing.dig('selected', 'final_price'),
         'api_status' => 'complete',
-        'ai_status' => 'complete',
+        'ai_status' => ai['status'],
         'toll_status' => 'disabled',
         'route_provider' => route['provider'],
         'route_polyline' => route['polyline'],
@@ -74,6 +77,29 @@ module RottaCalculator
     end
 
     private
+
+    def wait_for_ai(thread)
+      return thread.value.stringify_keys.merge('status' => 'complete') if thread.join(@ai_timeout)
+
+      thread.kill
+      thread.join(0.1)
+      Rails.logger.warn('[RottaCalculator] OpenRouter excedeu a janela síncrona; seguindo com leitura determinística.')
+      degraded_ai_response
+    rescue StandardError => e
+      Rails.logger.warn("[RottaCalculator] OpenRouter indisponível nesta tentativa: #{e.class}")
+      degraded_ai_response
+    end
+
+    def degraded_ai_response
+      {
+        'status' => 'degraded',
+        'summary' => 'A leitura assistida por IA excedeu a janela de resposta; os dados determinísticos foram preservados.',
+        'missing_information' => ['Revisar a leitura assistida por IA quando o provedor estiver disponível.'],
+        'extracted_data' => {},
+        'inventory_estimates' => [],
+        'services' => {}
+      }
+    end
 
     def selected_services(extracted)
       services = extracted.fetch('services', {}).to_h.stringify_keys
