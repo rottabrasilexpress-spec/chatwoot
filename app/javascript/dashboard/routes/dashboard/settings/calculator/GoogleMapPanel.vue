@@ -118,15 +118,25 @@ const drawRoute = () => {
 
   const endpoints = getGoogleMapEndpoints(props.route?.route_polyline);
   if (endpoints && window.google.maps.Marker) {
+    const markerIcon = fillColor => ({
+      path: window.google.maps.SymbolPath.CIRCLE,
+      scale: 12,
+      fillColor,
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 3,
+    });
     originMarker.value = new window.google.maps.Marker({
       position: endpoints.origin,
       map: map.value,
+      icon: markerIcon('#2563eb'),
       label: { text: 'A', color: '#ffffff', fontWeight: '700' },
       title: 'Origem',
     });
     destinationMarker.value = new window.google.maps.Marker({
       position: endpoints.destination,
       map: map.value,
+      icon: markerIcon('#e11d48'),
       label: { text: 'B', color: '#ffffff', fontWeight: '700' },
       title: 'Destino',
     });
