@@ -15,7 +15,7 @@ module RottaCalculator
       origin_point = @geocoder.call(origin)
       destination_point = @geocoder.call(destination)
       uri = URI("#{ENDPOINT}/#{origin_point['longitude']},#{origin_point['latitude']};#{destination_point['longitude']},#{destination_point['latitude']}")
-      uri.query = URI.encode_www_form(overview: 'false', alternatives: 'false', steps: 'false')
+      uri.query = URI.encode_www_form(overview: 'full', geometries: 'polyline', alternatives: 'false', steps: 'false')
       response = Net::HTTP.get_response(uri)
       payload = JSON.parse(response.body)
       route = payload['routes']&.first
@@ -24,6 +24,7 @@ module RottaCalculator
       {
         'distance_km' => (route['distance'].to_f / 1000).round(1),
         'duration_minutes' => (route['duration'].to_f / 60).ceil,
+        'polyline' => route['geometry'],
         'provider' => 'osm-osrm-fallback',
         'tolls' => 0.0,
         'toll_status' => 'disabled'
