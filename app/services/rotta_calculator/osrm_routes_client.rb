@@ -5,6 +5,8 @@ require 'uri'
 module RottaCalculator
   class OsrmRoutesClient
     ENDPOINT = 'https://router.project-osrm.org/route/v1/driving'.freeze
+    OPEN_TIMEOUT = 4
+    READ_TIMEOUT = 7
 
     def initialize(geocoder: NominatimGeocoder.new)
       @geocoder = geocoder
@@ -21,7 +23,15 @@ module RottaCalculator
       destination_point = destination_lookup.value
       uri = URI("#{ENDPOINT}/#{origin_point['longitude']},#{origin_point['latitude']};#{destination_point['longitude']},#{destination_point['latitude']}")
       uri.query = URI.encode_www_form(overview: 'full', geometries: 'polyline', alternatives: 'false', steps: 'false')
-      response = Net::HTTP.get_response(uri)
+      request = Net::HTTP::Get.new(uri)
+      request['Accept'] = 'application/json'
+      response = Net::HTTP.start(
+        uri.host,
+        uri.port,
+        use_ssl: true,
+        open_timeout: OPEN_TIMEOUT,
+        read_timeout: READ_TIMEOUT
+      ) { |http| http.request(request) }
       payload = JSON.parse(response.body)
       route = payload['routes']&.first
       raise UpstreamError, "OSRM respondeu HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess) && route
@@ -34,7 +44,7 @@ module RottaCalculator
         'tolls' => 0.0,
         'toll_status' => 'disabled'
       }
-    rescue JSON::ParserError, SocketError, Net::OpenTimeout, Net::ReadTimeout => e
+    rescue JSON::ParserError, SocketError, Net::OpenTimeout, Net::ReadTimeout, Timeout::Error => e
       raise UpstreamError, "Falha na rota de fallback: #{e.message}"
     end
   end
