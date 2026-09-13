@@ -79,6 +79,54 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Commits funcionais publicados nas branches `codex/rotta-objective-20260911` e `rotta-custom-v1`: `fc6c5b245`, `dc6cc1916`, `77739f681`, `fe3de610f`, `80d642bab` e `200c62c22`. Deploy final do EasyPanel concluiu com sucesso.
 - Nenhum cliente recebeu mensagem, nenhum contato/conversa/etiqueta foi criado ou removido e o estado final da Calculadora ficou privado, como antes da prova.
 
+## Sétima rodada — paridade visual/funcional com o Hub e mapa operacional — 2026-09-12
+
+### Escopo comparado
+
+- Referência visual e funcional: `https://hub-completo-ashen.vercel.app/`.
+- Contrato desta rodada: preservar a central de leitura, liberar espaço real para o mapa, separar a tela em duas colunas, manter serviços/quantidades/valores unitários, separar a precificação, disponibilizar proposta de WhatsApp e manter a rota visível após o cálculo.
+- O Hub foi usado como referência de layout e comportamento; não foram copiados segredos, dados de clientes ou estado externo.
+
+### Paridade implementada
+
+- Leitura e mapa agora ocupam a mesma tela em colunas, com o mapa operacional no lado direito.
+- O painel de mapa carrega o Google Maps de forma assíncrona, exibe a polilinha completa da rota, controles Mapa/Satélite/fullscreen/street view, link para abrir no Google Maps, distância, tempo estimado e pedágios explicitamente desativados.
+- Quando a chave de rotas server-side não está disponível, o backend usa fallback OSRM para obter rota e polilinha; isso não ativa pedágios nem inventa valores. A visualização continua sendo Google Maps quando a chave de navegador está configurada.
+- Serviços aparecem como cartões coloridos e independentes; inventário/cubagem, quantidades e unidades ficam separados da precificação.
+- A precificação apresenta seis cartões comerciais: Econômica, Padrão, Equilibrada, Prioritária, Premium e Rota ruim, com valor e preço por quilômetro.
+- As abas Proposta e Inventário permitem revisar/copiar o texto de WhatsApp e a lista estruturada de itens.
+- A consulta de IA recebe somente fatos da rota e do cálculo, sem transportar a polilinha gigante para o prompt; isso reduz latência e mantém o contexto controlado.
+
+### Evidência live pós-deploy
+
+- Sessão autenticada do Caio no Chatwoot: `/app/accounts/1/calculator?audit=20260912-final-map`.
+- POST real para `/api/v1/accounts/1/calculator/calculate`: HTTP `200` em aproximadamente `14,77 s`, abaixo do limite do proxy observado anteriormente.
+- Resultado visual confirmado: `Rota traçada`, `1855,3 km`, `1586 min`, pedágios `Desativados`, polilinha laranja visível entre Palotina/PR e Linhares/ES, controles do Google Maps e botão `Abrir no Google Maps`.
+- A mesma resposta exibiu inventário, seis cartões de preço e os dados do frete; as abas de Inventário e Proposta foram abertas durante a auditoria.
+- Reprodução direta do serviço Rails no container: `ok=true`, provider `osm-osrm-fallback`, polilinha com `83926` caracteres e serialização UTF-8 válida. Nenhuma mensagem WhatsApp foi enviada e nenhum registro de cliente/conversa/etiqueta foi alterado.
+
+### Otimizações e publicação
+
+- Geocodificação fallback de origem/destino em paralelo.
+- Consulta de rota e geração de proposta de IA em paralelo; o modelo permanece `deepseek/deepseek-v4-flash-0731`.
+- Carregamento assíncrono do script do Google Maps e espera explícita pela API antes de desenhar a rota.
+- Commits funcionais encadeados: `eea4808db`, `1b1114955`, `23c665036`, `a1ba0157e`, `79976efad`, `b9d562c50`, `4e5ce91d1`, `36937d0c2` e `909cf127f`.
+- A branch publicada `rotta-custom-v1` e a branch de trabalho apontam para `909cf127f`; o último deploy do EasyPanel terminou com sucesso e o serviço voltou saudável.
+
+### Verificação e limitações honestas
+
+- Vitest focalizado da Calculadora: `7/7` aprovados.
+- Build Vite: aprovado, `5091` módulos transformados; manifesto: `240` assets verificados.
+- Teste live de rota/mapa: aprovado com HTTP `200` e captura visual do layout.
+- ESLint direcionado não foi considerado aprovado neste checkout Windows porque os arquivos existentes usam CRLF e o comando reportou erros de formatação `Delete ␍`; não foi executado `--fix` para não reformatar arquivos fora do escopo.
+- RSpec não foi contado como aprovado: Ruby/Bundler não estão disponíveis localmente e a tentativa remota não retornou resultado conclusivo. A prova Rails usada foi a reprodução direta do serviço no container.
+- A chave server-side `GOOGLE_ROUTES_API_KEY` não estava presente no ambiente final da última medição; por isso o provider factual foi OSRM fallback. Para forçar Google Routes no backend, basta cadastrar essa variável no EasyPanel sem colocá-la no GitHub/Obsidian.
+
+### Veredito da rodada
+
+- O layout e as funções solicitadas do Hub estão publicados e verificados no Chatwoot live.
+- Não há blocker funcional para a solicitação atual. A única melhoria opcional restante é configurar uma chave server-side de Google Routes se a preferência for usar o motor Google no backend, mantendo pedágios desligados.
+
 ## Quinta rodada — propriedade Kelvin e auditoria segura de credenciais — 2026-09-12
 
 - O estado persistido da conta 1 foi confirmado no Rails: `rotta_calculator_shared=false` e `rotta_calculator_owner_id=1` (Kelvin). A sessão do Caio (usuário 2) recebeu a mensagem de acesso restrito e não exibiu a Calculadora; a sessão do proprietário Kelvin havia exibido o formulário normalmente.

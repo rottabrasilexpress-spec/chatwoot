@@ -62,6 +62,7 @@ const inventoryText = ref('');
 const result = ref(null);
 const isCalculating = ref(false);
 const calculationError = ref('');
+const routeMode = ref('shared');
 const isShared = ref(false);
 const showVisibilityConfirmModal = ref(false);
 const pendingVisibility = ref(null);
@@ -242,6 +243,7 @@ const calculate = async () => {
         volume_m3: inventorySummary.value.volumeM3,
       },
       pricing: {
+        route_mode: routeMode.value,
         selected_card_id: pricing.selectedCardId,
         margin_percent: pricing.marginPercent,
         adjustment_per_km: pricing.adjustmentPerKm,
@@ -381,8 +383,9 @@ watch(
               v-model="readingText"
               :label="t('CALCULATOR.READING.LABEL')"
               :placeholder="t('CALCULATOR.READING.PLACEHOLDER')"
-              min-height="17rem"
-              max-height="28rem"
+              custom-text-area-class="min-h-[20rem] xl:min-h-[22rem]"
+              min-height="20rem"
+              max-height="32rem"
               resize
               data-testid="calculator-reading-input"
             />
@@ -412,11 +415,60 @@ watch(
               {{ calculationError }}
             </p>
           </div>
-          <GoogleMapPanel
-            :origin="freight.origin"
-            :destination="freight.destination"
-            :route="result"
-          />
+          <div class="flex flex-col gap-4">
+            <GoogleMapPanel
+              :origin="freight.origin"
+              :destination="freight.destination"
+              :route="result"
+            />
+            <section
+              class="flex flex-wrap items-center justify-between gap-3 p-3 border rounded-xl border-n-orange-5 bg-n-orange-1"
+              data-testid="calculator-route-mode"
+            >
+              <div>
+                <p class="text-sm font-semibold text-n-slate-12">Modalidade</p>
+                <p class="mt-0.5 text-xs text-n-slate-11">
+                  Escolha como a rota deve ser apresentada no orçamento.
+                </p>
+              </div>
+              <div
+                class="flex items-center gap-1 p-1 border rounded-lg border-n-orange-5 bg-n-solid-1"
+              >
+                <button
+                  type="button"
+                  class="px-3 py-2 text-xs font-semibold rounded-md"
+                  :class="
+                    routeMode === 'shared'
+                      ? 'bg-n-orange-9 text-white'
+                      : 'text-n-slate-11 hover:bg-n-alpha-2'
+                  "
+                  @click="routeMode = 'shared'"
+                >
+                  Aproveitamento logístico
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-2 text-xs font-semibold rounded-md"
+                  :class="
+                    routeMode === 'exclusive'
+                      ? 'bg-n-orange-9 text-white'
+                      : 'text-n-slate-11 hover:bg-n-alpha-2'
+                  "
+                  @click="routeMode = 'exclusive'"
+                >
+                  Exclusivo
+                </button>
+              </div>
+              <Button
+                label="Calcular rota"
+                color="blue"
+                icon="i-lucide-route"
+                :is-loading="isCalculating"
+                data-testid="calculator-route-calculate"
+                @click="calculate"
+              />
+            </section>
+          </div>
         </section>
 
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -476,8 +528,9 @@ watch(
               v-model="inventoryText"
               :label="t('CALCULATOR.INVENTORY.LABEL')"
               :placeholder="t('CALCULATOR.INVENTORY.PLACEHOLDER')"
-              min-height="11rem"
-              max-height="22rem"
+              custom-text-area-class="min-h-[12rem] xl:min-h-[14rem]"
+              min-height="12rem"
+              max-height="24rem"
               resize
               data-testid="calculator-inventory-input"
             />
@@ -522,9 +575,9 @@ watch(
               >Tudo começa em zero e só entra no preço quando preenchido.</span
             >
           </div>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <section
-              class="flex flex-col gap-3 p-4 border-l-4 border rounded-xl border-n-blue-5 bg-n-solid-1"
+              class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-blue-5 bg-n-solid-1"
             >
               <div class="flex items-center justify-between">
                 <h3 class="font-semibold text-n-slate-12">👥 Ajudantes</h3>
@@ -566,7 +619,7 @@ watch(
               </div>
             </section>
             <section
-              class="flex flex-col gap-3 p-4 border-l-4 border rounded-xl border-n-orange-5 bg-n-solid-1"
+              class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-orange-5 bg-n-solid-1"
             >
               <div class="flex items-center justify-between">
                 <h3 class="font-semibold text-n-slate-12">🛠️ Montador</h3>
@@ -609,7 +662,7 @@ watch(
               </div>
             </section>
             <section
-              class="flex flex-col gap-3 p-4 border-l-4 border rounded-xl border-n-teal-5 bg-n-solid-1"
+              class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-teal-5 bg-n-solid-1"
             >
               <div class="flex items-center justify-between">
                 <h3 class="font-semibold text-n-slate-12">
@@ -642,7 +695,7 @@ watch(
               /></label>
             </section>
             <section
-              class="flex flex-col gap-3 p-4 border-l-4 border rounded-xl border-n-ruby-5 bg-n-solid-1"
+              class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-ruby-5 bg-n-solid-1"
             >
               <div class="flex items-center justify-between">
                 <h3 class="font-semibold text-n-slate-12">

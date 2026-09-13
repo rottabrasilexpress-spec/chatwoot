@@ -2,6 +2,10 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import {
+  buildGoogleDirectionsUrl,
+  buildGooglePlaceUrl,
+} from './googleMapHelpers';
 
 const props = defineProps({
   origin: { type: String, default: '' },
@@ -14,6 +18,7 @@ const map = ref(null);
 const routeLine = ref(null);
 const mapError = ref('');
 const isLoading = ref(true);
+const activeMapType = ref('roadmap');
 let scriptPromise;
 
 const config = computed(() => window.chatwootConfig || {});
@@ -25,12 +30,12 @@ const apiKey = computed(
     ''
 );
 const hasRoute = computed(() => Boolean(props.route?.route_polyline));
-const mapsLink = computed(() => {
-  const points = [props.origin, props.destination].filter(Boolean);
-  return points.length === 2
-    ? `https://www.google.com/maps/dir/${encodeURIComponent(points[0])}/${encodeURIComponent(points[1])}`
-    : 'https://maps.google.com';
-});
+const hasEndpoints = computed(() => Boolean(props.origin && props.destination));
+const mapsLink = computed(() =>
+  buildGoogleDirectionsUrl(props.origin, props.destination)
+);
+const originLink = computed(() => buildGooglePlaceUrl(props.origin));
+const destinationLink = computed(() => buildGooglePlaceUrl(props.destination));
 
 const decodePolyline = encoded => {
   if (!encoded) return [];
@@ -129,6 +134,18 @@ const drawRoute = () => {
   map.value.fitBounds(bounds, 48);
 };
 
+const setMapType = type => {
+  activeMapType.value = type;
+  map.value?.setMapTypeId(type);
+};
+
+const focusRoute = () => {
+  if (hasRoute.value) drawRoute();
+  document
+    .querySelector('[data-testid="calculator-google-map"]')
+    ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
 const initializeMap = async () => {
   isLoading.value = true;
   mapError.value = '';
@@ -137,7 +154,8 @@ const initializeMap = async () => {
     map.value = new maps.Map(mapElement.value, {
       center: { lat: -14.235, lng: -51.9253 },
       zoom: 4,
-      mapTypeControl: true,
+      mapTypeControl: false,
+      mapTypeId: activeMapType.value,
       streetViewControl: true,
       fullscreenControl: true,
       gestureHandling: 'greedy',
@@ -151,6 +169,7 @@ const initializeMap = async () => {
 };
 
 watch(() => props.route?.route_polyline, drawRoute);
+defineExpose({ focusRoute });
 onMounted(initializeMap);
 onBeforeUnmount(() => {
   if (routeLine.value) routeLine.value.setMap(null);
@@ -178,11 +197,20 @@ onBeforeUnmount(() => {
           </p>
         </div>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap items-center justify-end gap-2">
         <span
           v-if="hasRoute"
           class="px-2 py-1 text-xs font-medium rounded-full bg-n-teal-3 text-n-teal-11"
           >Rota traçada</span
+        >
+        <span
+          v-if="hasRoute"
+          class="px-2 py-1 text-xs font-medium rounded-full bg-n-blue-3 text-n-blue-11"
+          >{{
+            route?.route_provider === 'google-routes'
+              ? 'Google Routes'
+              : 'Fallback de rota'
+          }}</span
         >
         <a
           :href="mapsLink"
@@ -193,12 +221,98 @@ onBeforeUnmount(() => {
         >
       </div>
     </div>
+    <div
+      class="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-n-weak bg-n-alpha-1"
+      data-testid="calculator-map-actions"
+    >
+      <a
+        :href="hasEndpoints ? originLink : undefined"
+        :aria-disabled="!hasEndpoints"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide uppercase border rounded-lg transition-colors"
+        :class="[
+          hasEndpoints
+            ? 'border-n-weak text-n-slate-11 hover:border-n-brand hover:text-n-brand'
+            : 'cursor-not-allowed border-n-weak text-n-slate-9 opacity-60',
+        ]"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Abrir a localização da origem no Google Maps"
+      >
+        <Icon icon="i-lucide-camera" class="size-3.5" />
+        Foto origem
+      </a>
+      <a
+        :href="hasEndpoints ? destinationLink : undefined"
+        :aria-disabled="!hasEndpoints"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide uppercase border rounded-lg transition-colors"
+        :class="[
+          hasEndpoints
+            ? 'border-n-weak text-n-slate-11 hover:border-n-brand hover:text-n-brand'
+            : 'cursor-not-allowed border-n-weak text-n-slate-9 opacity-60',
+        ]"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Abrir a localização do destino no Google Maps"
+      >
+        <Icon icon="i-lucide-camera" class="size-3.5" />
+        Foto destino
+      </a>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide uppercase border rounded-lg border-n-weak text-n-slate-11 hover:border-n-brand hover:text-n-brand disabled:cursor-not-allowed disabled:opacity-60"
+        :disabled="!hasRoute"
+        title="Centralizar a rota no mapa"
+        @click="focusRoute"
+      >
+        <Icon icon="i-lucide-route" class="size-3.5" />
+        Ver rota
+      </button>
+      <a
+        :href="hasEndpoints ? mapsLink : undefined"
+        :aria-disabled="!hasEndpoints"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide uppercase border rounded-lg transition-colors"
+        :class="[
+          hasEndpoints
+            ? 'border-n-brand/40 bg-n-brand/10 text-n-brand hover:bg-n-brand/20'
+            : 'cursor-not-allowed border-n-weak text-n-slate-9 opacity-60',
+        ]"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Abrir a rota no Google Maps para navegação GPS"
+      >
+        <Icon icon="i-lucide-navigation" class="size-3.5" />
+        Abrir GPS
+      </a>
+    </div>
     <div class="relative min-h-[24rem] bg-n-alpha-2">
       <div
         ref="mapElement"
         class="absolute inset-0"
         data-testid="calculator-google-map-canvas"
       />
+      <div
+        class="absolute z-10 flex overflow-hidden border rounded-lg shadow-sm left-3 top-3 border-n-weak bg-n-solid-1"
+        data-testid="calculator-map-types"
+      >
+        <button
+          v-for="type in [
+            { id: 'roadmap', label: 'Mapa' },
+            { id: 'satellite', label: 'Satélite' },
+            { id: 'terrain', label: 'Relevo' },
+          ]"
+          :key="type.id"
+          type="button"
+          class="px-3 py-2 text-xs font-semibold transition-colors"
+          :class="
+            activeMapType === type.id
+              ? 'bg-n-brand text-white'
+              : 'text-n-slate-11 hover:bg-n-alpha-2'
+          "
+          @click="setMapType(type.id)"
+        >
+          {{ type.label }}
+        </button>
+      </div>
       <div
         v-if="isLoading"
         class="absolute inset-0 flex items-center justify-center bg-n-solid-1/80"
