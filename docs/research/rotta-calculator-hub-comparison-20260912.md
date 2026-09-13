@@ -41,3 +41,13 @@ Data: 2026-09-12
 - Testes focados: `7/7`.
 - Build Vite: aprovado; `240` assets verificados.
 - A auditoria de formatação ESLint permanece condicionada ao problema de CRLF do checkout Windows; não foi feita regravação automática de arquivos.
+
+## Atualização da inspeção visual — 2026-09-13
+
+- O Hub foi percorrido sem mutações em todas as áreas operacionais: Dashboard, Calculadora, Cadastro, Contrato, Ordem de Serviço, Inventário, Orçamento, Motoristas, Serviços, Pesquisa, Financeiro e Assinaturas.
+- O Hub confirma a referência de layout: leitura e cálculo em duas colunas, mapa operacional com rota e botões de origem/destino/GPS, controles Mapa/Satélite/Relevo, serviços compactos, seis cartões de preço clicáveis, ajuste por quilômetro e proposta/inventário separados.
+- O Chatwoot live foi comparado com essa referência no mesmo fluxo de Washington, Teresina - PI → Campo Grande - MS. O mapa passou a aparecer completo no primeiro cálculo após `ResizeObserver` + `google.maps.event.trigger(map, 'resize')`.
+- A proposta e o inventário passaram de 8 para 14 linhas com altura mínima de 20rem. O teste visual confirmou que o campo permite leitura ampla; as duas ações de cópia também passaram.
+- Os cartões `Econômica` e `Padrão` foram alternados no live; `Satélite` e `Mapa` foram alternados e seus links `t=k`/`t=m` conferidos.
+- Commits publicados: `8cac7d376` (redesenho responsivo do mapa) e `7e3783e37` (saídas ampliadas). O último deploy verde do EasyPanel é `fix(calculator): enlarge proposal and inventory outputs`.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [transcrição do vídeo](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\research\rotta-calculator-video-transcript-20260913.md) ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments).
