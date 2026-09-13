@@ -10,16 +10,31 @@ module RottaCalculator
       services_lines << "Montagem no destino: #{services['assembly_destination']}" if services['assembly_destination'].to_i.positive?
       services_lines << "Material e embalagem: R$ #{format('%.2f', services['materials'].to_f)}" if services['materials'].to_f.positive?
       services_lines << "Taxa especial: R$ #{format('%.2f', services['special_fee'].to_f)}" if services['special_fee'].to_f.positive?
-      service_text = services_lines.presence || ['Nenhum serviço adicional informado.']
+      service_total = services['total'].to_f
       transport_only = selected['freight_only_price'].to_f + (services['total'].to_f * 0.5)
-
-      [
+      header = [
         'ORÇAMENTO FINAL — ROTTA BRASIL EXPRESS',
         "Cliente: #{freight['client_name'].presence || 'A definir'}",
         "Data pretendida: #{freight['date'].presence || 'A definir'}",
         "Rota: #{freight['origin']} → #{freight['destination']}",
         "Distância: #{route['distance_km']} km | Tempo de caminhão: #{pricing['truck_duration_hours']} h",
-        "Cubagem montada: #{inventory['mounted_m3']} m³ | desmontada: #{inventory['disassembled_m3']} m³",
+        "Cubagem montada: #{inventory['mounted_m3']} m³ | desmontada: #{inventory['disassembled_m3']} m³"
+      ]
+
+      if service_total <= 0
+        return (header + [
+          '',
+          "Valor do transporte: R$ #{format('%.2f', selected['freight_only_price'].to_f)}",
+          '',
+          'Responsabilidades: os itens devem estar embalados antes da coleta; móveis desmontáveis devem estar desmontados.',
+          'Validade: 7 dias. A disponibilidade e a reserva só ficam garantidas após confirmação formal.',
+          'O contrato formal será emitido posteriormente. Pagamento via Pix, débito ou crédito em até 12x, sujeito aos juros da operadora.'
+        ]).join("\n")
+      end
+
+      service_text = services_lines.presence || ['Serviço adicional informado, com valor a confirmar.']
+
+      (header + [
         '',
         'Opção 1 — Transporte + serviços',
         "Valor: R$ #{format('%.2f', selected['final_price'].to_f)}",
@@ -33,7 +48,7 @@ module RottaCalculator
         'Responsabilidades: os itens devem estar embalados antes da coleta; no transporte sem serviço, móveis desmontáveis devem estar desmontados.',
         'Validade: 7 dias. A disponibilidade e a reserva só ficam garantidas após confirmação formal.',
         'O contrato formal será emitido posteriormente. Pagamento via Pix, débito ou crédito em até 12x, sujeito aos juros da operadora.'
-      ].join("\n")
+      ]).join("\n")
     end
   end
 end

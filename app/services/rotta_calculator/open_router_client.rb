@@ -73,6 +73,9 @@ module RottaCalculator
         Retorne SOMENTE JSON válido com exatamente esta forma geral:
         {"summary":"resumo factual curto","missing_information":[],"extracted_data":{"client_name":null,"date":null,"origin":null,"destination":null},"services":{},"inventory_estimates":[],"proposal":"","price":null,"pricing_note":""}
         inventory_estimates deve ser uma lista de objetos com name, mounted_m3, disassembled_m3, weight_kg, disassemblable e manual_review.
+        Para cada estimativa, name deve ser exatamente o nome do item recebido no inventário, preservando maiúsculas,
+        acentos e a linha original; nunca crie um nome alternativo. O servidor só aceita a estimativa quando consegue
+        vinculá-la sem ambiguidade ao item original.
         Não altere configurações, banco, etiquetas, mensagens, preço ou proposta. A proposta final é montada pelo servidor.
       PROMPT
     end

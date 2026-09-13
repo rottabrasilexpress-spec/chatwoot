@@ -29,10 +29,11 @@ RSpec.describe RottaCalculator::CalculateService do
       'api_status' => 'complete',
       'ai_status' => 'complete',
       'toll_status' => 'disabled',
-      'price' => 624.6
+      'price' => 627.68
     )
     expect(result['pricing']['cards'].length).to eq(6)
-    expect(result['proposal']).to include('Opção 1', 'Opção 2', 'Validade: 7 dias')
+    expect(result['proposal']).to include('Valor do transporte: R$ 627.68', 'Validade: 7 dias')
+    expect(result['proposal']).not_to include('Opção 2')
     expect(ai_client).to have_received(:call) do |context|
       expect(context['toll']).to eq('enabled' => false, 'calculated' => false)
       expect(context['route']).to include(

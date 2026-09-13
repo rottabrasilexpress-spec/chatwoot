@@ -38,7 +38,7 @@ class Api::V1::Accounts::CalculatorController < Api::V1::Accounts::BaseControlle
         services: %i[label selected],
         inventory: %i[text item_count volume_m3],
         pricing: [
-          :selected_card_id, :margin_percent, :adjustment_per_km, :adjustment_step,
+          :selected_card_id, :margin_percent, :adjustment_per_km, :adjustment_step, :route_mode,
           :helper_unit, :assembler_unit, :materials_selected, :materials_total,
           :special_fee,
           helpers: %i[origin destination],

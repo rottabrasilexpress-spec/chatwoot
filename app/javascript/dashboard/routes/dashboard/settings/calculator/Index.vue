@@ -47,7 +47,7 @@ const services = reactive(
 const pricing = reactive({
   selectedCardId: 'padrao',
   marginPercent: 35,
-  adjustmentPerKm: 0,
+  adjustmentPerKm: 0.25,
   adjustmentStep: 0.25,
   helperUnit: 0,
   assemblerUnit: 0,
@@ -126,6 +126,12 @@ const updatePricingFromResult = data => {
   pricing.assembly.destinationAssembly =
     parsedServices.assembly?.destination_assembly ??
     pricing.assembly.destinationAssembly;
+  pricing.materialsSelected =
+    parsedServices.materials?.selected ?? pricing.materialsSelected;
+  pricing.adjustmentPerKm =
+    data.pricing?.adjustment_per_km ?? pricing.adjustmentPerKm;
+  pricing.adjustmentStep =
+    data.pricing?.adjustment_step ?? pricing.adjustmentStep;
   const firstInventoryLine = data.inventory?.items
     ?.map(item => `${item.quantity}x ${item.name}`)
     .join('\n');
@@ -211,7 +217,7 @@ const clearCalculator = () => {
   });
   pricing.selectedCardId = 'padrao';
   pricing.marginPercent = 35;
-  pricing.adjustmentPerKm = 0;
+  pricing.adjustmentPerKm = 0.25;
   pricing.adjustmentStep = 0.25;
   pricing.helperUnit = 0;
   pricing.assemblerUnit = 0;
@@ -277,6 +283,14 @@ const calculate = async () => {
   } finally {
     isCalculating.value = false;
   }
+};
+
+const adjustPricePerKm = direction => {
+  const step = Math.max(Number(pricing.adjustmentStep) || 0.25, 0.05);
+  pricing.adjustmentPerKm = Number(
+    (Number(pricing.adjustmentPerKm || 0) + direction * step).toFixed(2)
+  );
+  calculate();
 };
 
 const copyProposal = async () => {
@@ -901,11 +915,37 @@ watch(
                 </label>
                 <label class="flex items-center gap-1"
                   >Ajuste/km
+                  <button
+                    type="button"
+                    class="px-1.5 py-1 text-sm font-semibold border rounded border-n-weak hover:bg-n-alpha-2"
+                    aria-label="Reduzir ajuste por quilômetro"
+                    @click="adjustPricePerKm(-1)"
+                  >
+                    −
+                  </button>
                   <input
                     v-model.number="pricing.adjustmentPerKm"
                     type="number"
                     step="0.05"
-                    class="w-20 px-2 py-1 border rounded border-n-weak bg-n-solid-1"
+                    class="w-20 px-2 py-1 text-center border rounded border-n-weak bg-n-solid-1"
+                  />
+                  <button
+                    type="button"
+                    class="px-1.5 py-1 text-sm font-semibold border rounded border-n-weak hover:bg-n-alpha-2"
+                    aria-label="Aumentar ajuste por quilômetro"
+                    @click="adjustPricePerKm(1)"
+                  >
+                    +
+                  </button>
+                </label>
+                <label class="flex items-center gap-1"
+                  >Passo
+                  <input
+                    v-model.number="pricing.adjustmentStep"
+                    type="number"
+                    min="0.05"
+                    step="0.05"
+                    class="w-16 px-2 py-1 text-center border rounded border-n-weak bg-n-solid-1"
                   />
                 </label>
                 <Button

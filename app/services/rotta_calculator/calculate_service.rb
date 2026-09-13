@@ -71,6 +71,8 @@ module RottaCalculator
         'proposal' => proposal,
         'summary' => ai['summary'].to_s,
         'missing_information' => missing_information(extracted, ai),
+        'inventory_snapshot_hash' => parsed['snapshot_hash'],
+        'inventory_snapshot_algorithm' => parsed['snapshot_algorithm'],
         'extracted_data' => extracted,
         'inventory' => resolved_inventory,
         'pricing' => pricing,

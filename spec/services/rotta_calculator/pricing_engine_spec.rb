@@ -36,9 +36,15 @@ RSpec.describe RottaCalculator::PricingEngine do
   end
 
   it 'applies the manual per-kilometre adjustment after the floor' do
-    without_adjustment = described_class.new(route: route, parsed_data: parsed, pricing: {}).call['selected']['freight_only_price']
+    without_adjustment = described_class.new(route: route, parsed_data: parsed, pricing: { 'adjustment_per_km' => 0.0 }).call['selected']['freight_only_price']
     with_adjustment = described_class.new(route: route, parsed_data: parsed, pricing: { 'adjustment_per_km' => 0.25 }).call['selected']['freight_only_price']
 
     expect(with_adjustment - without_adjustment).to eq(25.0)
+  end
+
+  it 'starts the manual adjustment at R$ 0,25 per kilometre' do
+    result = described_class.new(route: route, parsed_data: parsed, pricing: {}).call
+
+    expect(result['adjustment_per_km']).to eq(0.25)
   end
 end

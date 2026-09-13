@@ -22,7 +22,7 @@ module RottaCalculator
     def call
       distance = non_negative(@route['distance_km'])
       margin = [[number(@pricing['margin_percent'], MARGIN_DEFAULT_PERCENT), 0.0].max, 95.0].min / 100.0
-      adjustment = number(@pricing['adjustment_per_km'], 0.0)
+      adjustment = number(@pricing['adjustment_per_km'], DEFAULT_ADJUSTMENT_STEP)
       step = [number(@pricing['adjustment_step'], DEFAULT_ADJUSTMENT_STEP), MIN_ADJUSTMENT_STEP].max
       services = service_costs
       selected_id = @pricing['selected_card_id'].presence || 'padrao'

@@ -33,8 +33,9 @@ module RottaCalculator
         'disassembled_m3' => entry.disassembled_m3,
         'weight_kg' => entry.weight_kg
       }
+      measurement_values = measurement_values(source, entry)
       ai_values = valid_estimate(estimate)
-      values, conflict = merge_values(catalog_values, ai_values)
+      values, conflict = merge_values(catalog_values || measurement_values, ai_values)
       values ||= {
         'mounted_m3' => 0.0,
         'disassembled_m3' => 0.0,
@@ -53,7 +54,22 @@ module RottaCalculator
         'estimated' => entry.nil?,
         'manual_review' => entry.nil? || conflict.present?,
         'conflict' => conflict
-      }.compact
+      }.merge(source.slice('dimensions_mm', 'measured_m3')).compact
+    end
+
+    def measurement_values(source, entry)
+      return if entry.present?
+
+      measured_m3 = Float(source['measured_m3'])
+      return unless measured_m3.positive? && measured_m3 <= MAX_UNIT_VOLUME_M3
+
+      {
+        'mounted_m3' => measured_m3.round(3),
+        'disassembled_m3' => measured_m3.round(3),
+        'weight_kg' => 0.0
+      }
+    rescue ArgumentError, TypeError
+      nil
     end
 
     def find_ai_estimate(name)
