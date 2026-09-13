@@ -196,7 +196,7 @@ module RottaCalculator
       {
         'helpers' => {
           'origin' => count_for(normalized, /(?:carga|origem).*?(\d+)(?:\s*ajudantes?)?/),
-          'destination' => count_for(normalized, /(?:descarga|destino).*?(\d+)(?:\s*ajudantes?)?/) 
+          'destination' => count_for(normalized, /(?:descarga|destino).*?(\d+)(?:\s*ajudantes?)?/)
         },
         'assembly' => {
           'origin_disassembly' => disassembly_count,
