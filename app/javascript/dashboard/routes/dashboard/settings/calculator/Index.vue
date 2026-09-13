@@ -753,7 +753,9 @@ watch(
                 {{
                   result?.ai_status === 'complete'
                     ? t('CALCULATOR.INTEGRATIONS.CONNECTED')
-                    : t('CALCULATOR.INTEGRATIONS.READY')
+                    : result?.ai_status === 'degraded'
+                      ? t('CALCULATOR.INTEGRATIONS.DEGRADED')
+                      : t('CALCULATOR.INTEGRATIONS.READY')
                 }}
               </p>
             </div>

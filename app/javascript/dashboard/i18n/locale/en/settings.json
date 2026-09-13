@@ -1145,7 +1145,8 @@
       "MAPS_TITLE": "Google Maps e rota",
       "PENDING": "Aguardando cálculo",
       "READY": "Pronto para calcular",
-      "CONNECTED": "Integração respondendo"
+      "CONNECTED": "Integração respondendo",
+      "DEGRADED": "Fallback determinístico — IA fora da janela"
     },
     "RESULT": {
       "TITLE": "Resultado da preparação",
