@@ -65,29 +65,44 @@ const decodePolyline = encoded => {
 };
 
 const loadGoogleMaps = () => {
-  if (window.google?.maps) return Promise.resolve(window.google.maps);
+  if (window.google?.maps?.Map) return Promise.resolve(window.google.maps);
   if (!apiKey.value)
     return Promise.reject(new Error('Google Maps não configurado'));
   if (scriptPromise) return scriptPromise;
 
   scriptPromise = new Promise((resolve, reject) => {
+    const callbackName = '__rottaGoogleMapsReady';
+    const resolveMaps = () => {
+      if (window.google?.maps?.Map) {
+        delete window[callbackName];
+        resolve(window.google.maps);
+      }
+    };
+    window[callbackName] = resolveMaps;
+
     const existing = document.querySelector('script[data-rotta-google-maps]');
     if (existing) {
-      existing.addEventListener('load', () => resolve(window.google.maps));
-      existing.addEventListener('error', reject);
+      existing.addEventListener('load', resolveMaps);
+      existing.addEventListener('error', error => {
+        delete window[callbackName];
+        reject(error);
+      });
       return;
     }
 
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
       apiKey.value
-    )}&libraries=geometry&language=pt-BR&region=BR&loading=async`;
+    )}&libraries=geometry&language=pt-BR&region=BR&loading=async&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
     script.dataset.rottaGoogleMaps = 'true';
-    script.onload = () => resolve(window.google.maps);
+    script.onload = resolveMaps;
     script.onerror = () =>
-      reject(new Error('Não foi possível carregar o Google Maps'));
+      (() => {
+        delete window[callbackName];
+        reject(new Error('Não foi possível carregar o Google Maps'));
+      })();
     document.head.appendChild(script);
   });
 
