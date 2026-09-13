@@ -99,3 +99,4 @@ Data: 2026-09-12
 - O resultado live final usou `Teresina - PI → Campo Grande - MS`, `Google Routes`, `2755,9 km`, `2168 min` e pedágios desativados. O mapa mostrou linha, A/B, controles e links operacionais. O Hub segue como referência visual/funcional, com diferenças de tempo/distância esperadas entre execuções do motor.
 - Foi corrigido o resumo textual da preparação: ele agora usa os campos atuais, não o endereço anterior de uma seleção Places. O resultado final mostrou `Rota Teresina - PI → Campo Grande - MS` de forma consistente.
 - Deploy final `1689e8c63` concluído no EasyPanel; `/health` HTTP 200; bundle público `dashboard-C8ZSmAfW.js`; Vitest focalizado `11/11`. Nenhum dado WhatsApp foi alterado.
+- Revisão independente final: `AAA aprovado — 95,7/100`, sem bloqueador crítico e com todos os critérios acima de 90. A nota preserva as ressalvas de RSpec/Ruby indisponível e variação histórica do tempo de rota.
