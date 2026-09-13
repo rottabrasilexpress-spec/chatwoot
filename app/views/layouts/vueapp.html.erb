@@ -20,6 +20,7 @@
     <% end %>
     <link rel="icon" type="image/png" sizes="512x512" href="<%= @global_config['LOGO_THUMBNAIL'] %>">
     <%= csrf_meta_tags %>
+    <meta name="rotta-google-maps-api-key" content="<%= (ENV['NEXT_PUBLIC_GOOGLE_MAPS_API_KEY'].presence || ENV['GOOGLE_MAPS_BROWSER_API_KEY'].presence || '').to_s %>">
     <script>
       window.chatwootConfig = {
         hostURL: '<%= ENV.fetch('FRONTEND_URL', '') %>',

@@ -18,7 +18,11 @@ let scriptPromise;
 
 const config = computed(() => window.chatwootConfig || {});
 const apiKey = computed(
-  () => config.value.rottaGoogleMapsApiKey || config.value.googleMapsApiKey
+  () =>
+    config.value.rottaGoogleMapsApiKey ||
+    config.value.googleMapsApiKey ||
+    document.querySelector('meta[name="rotta-google-maps-api-key"]')?.content ||
+    ''
 );
 const hasRoute = computed(() => Boolean(props.route?.route_polyline));
 const mapsLink = computed(() => {
