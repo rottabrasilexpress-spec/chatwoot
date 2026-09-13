@@ -65,4 +65,4 @@ Data: 2026-09-12
 - As chaves Google já existentes e dedicadas ao Chatwoot foram persistidas no EasyPanel, sem criação de credencial nova e sem registrar valores neste documento.
 - O Chatwoot passou a exibir `Google Routes` e retornou `2755,9 km` para Teresina - PI → Campo Grande - MS; o Hub retornou `2760,7 km`. A diferença ficou em `4,8 km` (aprox. `0,17%`), muito menor que os `47,3 km` do OSRM fallback.
 - Pedágios permaneceram `Desativados`; a proposta foi copiada (`591` caracteres); `Satélite`/`Mapa` alternaram `t=k`/`t=m`; cards e ajuste/km recalcularam e foram restaurados ao padrão.
-- Deploy concluído e health HTTP `200`. A IA deste reteste ficou em fallback determinístico por janela de resposta, isolado da rota Google e sem inventar dados de inventário.
+- Deploy concluído e health HTTP `200`. Duas execuções consecutivas da IA ficaram em fallback determinístico por janela de resposta, isoladas da rota Google e sem inventar dados de inventário; a latência do provedor permanece uma pendência separada.
