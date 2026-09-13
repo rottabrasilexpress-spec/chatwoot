@@ -1,4 +1,4 @@
-<!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, no-bitwise, no-plusplus -->
+<!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text, no-bitwise, no-plusplus, no-use-before-define -->
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -20,6 +20,8 @@ const map = ref(null);
 const routeLine = ref(null);
 const originMarker = ref(null);
 const destinationMarker = ref(null);
+const originOverlay = ref(null);
+const destinationOverlay = ref(null);
 let resizeObserver;
 let resizeFrame;
 const mapError = ref('');
@@ -101,6 +103,7 @@ const drawRoute = () => {
   if (routeLine.value) routeLine.value.setMap(null);
   if (originMarker.value) originMarker.value.setMap(null);
   if (destinationMarker.value) destinationMarker.value.setMap(null);
+  clearEndpointOverlays();
   originMarker.value = null;
   destinationMarker.value = null;
 
@@ -140,6 +143,16 @@ const drawRoute = () => {
       label: { text: 'B', color: '#ffffff', fontWeight: '700' },
       title: 'Destino',
     });
+    originOverlay.value = createEndpointOverlay(
+      endpoints.origin,
+      'A',
+      '#2563eb'
+    );
+    destinationOverlay.value = createEndpointOverlay(
+      endpoints.destination,
+      'B',
+      '#e11d48'
+    );
   }
 
   const bounds = new window.google.maps.LatLngBounds();
@@ -168,6 +181,61 @@ const scheduleMapViewportRefresh = () => {
 const setMapType = type => {
   activeMapType.value = type;
   map.value?.setMapTypeId(type);
+};
+
+const clearEndpointOverlays = () => {
+  originOverlay.value?.setMap(null);
+  destinationOverlay.value?.setMap(null);
+  originOverlay.value = null;
+  destinationOverlay.value = null;
+};
+
+const createEndpointOverlay = (position, label, color) => {
+  const OverlayView = window.google?.maps?.OverlayView;
+  if (!OverlayView) return null;
+
+  const overlay = new OverlayView();
+  overlay.onAdd = () => {
+    const element = document.createElement('div');
+    element.textContent = label;
+    Object.assign(element.style, {
+      alignItems: 'center',
+      background: color,
+      border: '3px solid #ffffff',
+      borderRadius: '9999px',
+      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.35)',
+      color: '#ffffff',
+      display: 'flex',
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '13px',
+      fontWeight: '700',
+      height: '30px',
+      justifyContent: 'center',
+      pointerEvents: 'none',
+      position: 'absolute',
+      transform: 'translate(-50%, -50%)',
+      width: '30px',
+      zIndex: '3',
+    });
+    overlay.element = element;
+    overlay.getPanes()?.floatPane?.appendChild(element);
+  };
+  overlay.draw = () => {
+    const projection = overlay.getProjection();
+    if (!projection || !overlay.element) return;
+    const point = projection.fromLatLngToDivPixel(
+      new window.google.maps.LatLng(position)
+    );
+    if (!point) return;
+    overlay.element.style.left = `${point.x}px`;
+    overlay.element.style.top = `${point.y}px`;
+  };
+  overlay.onRemove = () => {
+    overlay.element?.remove();
+    overlay.element = null;
+  };
+  overlay.setMap(map.value);
+  return overlay;
 };
 
 const focusRoute = () => {
@@ -217,6 +285,7 @@ onBeforeUnmount(() => {
   if (routeLine.value) routeLine.value.setMap(null);
   if (originMarker.value) originMarker.value.setMap(null);
   if (destinationMarker.value) destinationMarker.value.setMap(null);
+  clearEndpointOverlays();
   map.value = null;
 });
 </script>
