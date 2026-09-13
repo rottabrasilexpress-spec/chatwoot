@@ -34,7 +34,7 @@ module RottaCalculator
             { role: 'user', content: context.to_json }
           ]
         }.to_json,
-        timeout: 12
+        timeout: 14
       )
 
       payload = response.parsed_response
