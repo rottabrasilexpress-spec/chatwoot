@@ -1164,14 +1164,14 @@
       "INVENTORY_EMPTY": "Nenhum inventário foi informado.",
       "ROUTE_PREVIEW_TITLE": "Prévia da rota",
       "ROUTE_PREVIEW_PENDING": "A rota será calculada quando a integração com o Google Maps estiver configurada.",
-      "ROUTE_PREVIEW_READY": "Distância e tempo retornados pelo Google Routes, sem cálculo de pedágio.",
+      "ROUTE_PREVIEW_READY": "Distância e tempo retornados pelo motor de rotas, sem cálculo de pedágio.",
       "DISTANCE": "Distância",
       "DURATION": "Tempo estimado",
       "TOLLS": "Pedágios",
       "PENDING_VALUE": "Aguardando",
       "TOLL_DISABLED": "Desativado",
       "CALCULATION_ERROR": "Não foi possível concluir o cálculo agora.",
-      "MAPS_BACKEND_ACTIVE": "Google Routes ativo no backend"
+      "MAPS_BACKEND_ACTIVE": "Google Maps visual + motor de rotas do backend ativos"
     },
     "ALERTS": {
       "VISIBILITY_UPDATED": "Visibilidade da Calculadora atualizada.",
