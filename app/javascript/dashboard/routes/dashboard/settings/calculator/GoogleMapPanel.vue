@@ -16,6 +16,8 @@ const props = defineProps({
 const mapElement = ref(null);
 const map = ref(null);
 const routeLine = ref(null);
+let resizeObserver;
+let resizeFrame;
 const mapError = ref('');
 const isLoading = ref(true);
 const activeMapType = ref('roadmap');
@@ -134,6 +136,24 @@ const drawRoute = () => {
   map.value.fitBounds(bounds, 48);
 };
 
+const refreshMapViewport = () => {
+  resizeFrame = undefined;
+  if (!map.value || !window.google?.maps || !mapElement.value) return;
+
+  const { width, height } = mapElement.value.getBoundingClientRect();
+  if (!width || !height) return;
+
+  window.google.maps.event.trigger(map.value, 'resize');
+  if (hasRoute.value) drawRoute();
+};
+
+const scheduleMapViewportRefresh = () => {
+  if (resizeFrame) cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = requestAnimationFrame(refreshMapViewport);
+  });
+};
+
 const setMapType = type => {
   activeMapType.value = type;
   map.value?.setMapTypeId(type);
@@ -161,6 +181,9 @@ const initializeMap = async () => {
       gestureHandling: 'greedy',
     });
     drawRoute();
+    resizeObserver = new ResizeObserver(scheduleMapViewportRefresh);
+    resizeObserver.observe(mapElement.value);
+    scheduleMapViewportRefresh();
   } catch (error) {
     mapError.value = error.message;
   } finally {
@@ -168,10 +191,18 @@ const initializeMap = async () => {
   }
 };
 
-watch(() => props.route?.route_polyline, drawRoute);
+watch(
+  () => props.route?.route_polyline,
+  () => {
+    drawRoute();
+    scheduleMapViewportRefresh();
+  }
+);
 defineExpose({ focusRoute });
 onMounted(initializeMap);
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+  if (resizeFrame) cancelAnimationFrame(resizeFrame);
   if (routeLine.value) routeLine.value.setMap(null);
   map.value = null;
 });
