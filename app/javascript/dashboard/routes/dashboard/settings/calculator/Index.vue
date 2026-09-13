@@ -617,13 +617,13 @@ onBeforeUnmount(() => {
                 Pedágios desativados
               </span>
               <span
-                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-n-orange-3 text-n-orange-11"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-n-amber-3 text-n-amber-11"
               >
                 {{ routeProviderLabel }}
               </span>
             </div>
             <section
-              class="flex flex-wrap items-center justify-between gap-3 p-3 border rounded-xl border-n-orange-5 bg-n-orange-1"
+              class="flex flex-wrap items-center justify-between gap-3 p-3 border rounded-xl border-n-amber-5 bg-n-amber-1"
               data-testid="calculator-route-mode"
             >
               <div>
@@ -633,15 +633,15 @@ onBeforeUnmount(() => {
                 </p>
               </div>
               <div
-                class="flex items-center gap-1 p-1 border rounded-lg border-n-orange-5 bg-n-solid-1"
+                class="flex items-center gap-1 p-1 border rounded-lg border-n-amber-5 bg-n-solid-1"
               >
                 <button
                   type="button"
                   class="px-3 py-2 text-xs font-semibold transition-colors rounded-md"
                   :class="
                     routeMode === 'shared'
-                      ? 'bg-n-orange-9 text-white shadow-sm ring-2 ring-n-orange-9/30'
-                      : 'bg-n-orange-2 text-n-orange-11 hover:bg-n-orange-3'
+                      ? 'bg-n-amber-9 text-n-amber-12 shadow-sm ring-2 ring-n-amber-9/30'
+                      : 'bg-n-amber-2 text-n-amber-11 hover:bg-n-amber-3'
                   "
                   :aria-pressed="routeMode === 'shared'"
                   @click="routeMode = 'shared'"
@@ -653,8 +653,8 @@ onBeforeUnmount(() => {
                   class="px-3 py-2 text-xs font-semibold transition-colors rounded-md"
                   :class="
                     routeMode === 'exclusive'
-                      ? 'bg-n-orange-9 text-white shadow-sm ring-2 ring-n-orange-9/30'
-                      : 'bg-n-orange-2 text-n-orange-11 hover:bg-n-orange-3'
+                      ? 'bg-n-amber-9 text-n-amber-12 shadow-sm ring-2 ring-n-amber-9/30'
+                      : 'bg-n-amber-2 text-n-amber-11 hover:bg-n-amber-3'
                   "
                   :aria-pressed="routeMode === 'exclusive'"
                   @click="routeMode = 'exclusive'"
@@ -676,7 +676,7 @@ onBeforeUnmount(() => {
 
         <div class="grid grid-cols-1 items-start gap-3 xl:contents">
           <section
-            class="flex flex-col self-start gap-3 p-3 border-l-4 rounded-xl border-n-orange-5 bg-n-orange-1/50 xl:col-start-1 xl:row-start-2"
+            class="flex flex-col self-start gap-3 p-3 border-l-4 rounded-xl border-n-amber-5 bg-n-amber-1/50 xl:col-start-1 xl:row-start-2"
           >
             <div>
               <h2 class="text-base font-semibold text-n-slate-12">
@@ -784,7 +784,7 @@ onBeforeUnmount(() => {
               >
             </div>
             <div
-              class="grid grid-cols-1 gap-2 p-2 border rounded-xl border-n-orange-5 bg-n-orange-1/40 sm:grid-cols-2"
+              class="grid grid-cols-1 gap-2 p-2 border rounded-xl border-n-amber-5 bg-n-amber-1/40 sm:grid-cols-2"
               data-testid="calculator-service-quantity-controls"
             >
               <div
@@ -799,7 +799,7 @@ onBeforeUnmount(() => {
                 <div class="flex items-center gap-1">
                   <button
                     type="button"
-                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-amber-6 text-n-amber-11 hover:bg-n-amber-2"
                     aria-label="Reduzir ajudantes na origem"
                     data-testid="calculator-helpers-origin-decrement"
                     @click="changeQuantity('helpers', 'origin', -1)"
@@ -812,7 +812,7 @@ onBeforeUnmount(() => {
                   >
                   <button
                     type="button"
-                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-amber-6 text-n-amber-11 hover:bg-n-amber-2"
                     aria-label="Aumentar ajudantes na origem"
                     data-testid="calculator-helpers-origin-increment"
                     @click="changeQuantity('helpers', 'origin', 1)"
@@ -833,7 +833,7 @@ onBeforeUnmount(() => {
                 <div class="flex items-center gap-1">
                   <button
                     type="button"
-                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-amber-6 text-n-amber-11 hover:bg-n-amber-2"
                     aria-label="Reduzir ajudantes no destino"
                     data-testid="calculator-helpers-destination-decrement"
                     @click="changeQuantity('helpers', 'destination', -1)"
@@ -846,7 +846,7 @@ onBeforeUnmount(() => {
                   >
                   <button
                     type="button"
-                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-amber-6 text-n-amber-11 hover:bg-n-amber-2"
                     aria-label="Aumentar ajudantes no destino"
                     data-testid="calculator-helpers-destination-increment"
                     @click="changeQuantity('helpers', 'destination', 1)"
@@ -867,7 +867,7 @@ onBeforeUnmount(() => {
                 <div class="flex items-center gap-1">
                   <button
                     type="button"
-                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-amber-6 text-n-amber-11 hover:bg-n-amber-2"
                     aria-label="Reduzir montadores na desmontagem"
                     data-testid="calculator-assembly-origin-decrement"
                     @click="changeQuantity('assembly', 'originDisassembly', -1)"
@@ -880,7 +880,7 @@ onBeforeUnmount(() => {
                   >
                   <button
                     type="button"
-                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-amber-6 text-n-amber-11 hover:bg-n-amber-2"
                     aria-label="Aumentar montadores na desmontagem"
                     data-testid="calculator-assembly-origin-increment"
                     @click="changeQuantity('assembly', 'originDisassembly', 1)"
@@ -901,7 +901,7 @@ onBeforeUnmount(() => {
                 <div class="flex items-center gap-1">
                   <button
                     type="button"
-                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-amber-6 text-n-amber-11 hover:bg-n-amber-2"
                     aria-label="Reduzir montadores na montagem"
                     data-testid="calculator-assembly-destination-decrement"
                     @click="
@@ -916,7 +916,7 @@ onBeforeUnmount(() => {
                   >
                   <button
                     type="button"
-                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-amber-6 text-n-amber-11 hover:bg-n-amber-2"
                     aria-label="Aumentar montadores na montagem"
                     data-testid="calculator-assembly-destination-increment"
                     @click="
@@ -968,16 +968,17 @@ onBeforeUnmount(() => {
                       min="0"
                       step="0.01"
                       class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                      @change="calculate"
                   /></label>
                 </div>
               </section>
               <section
-                class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-orange-5 bg-n-solid-1"
+                class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-amber-5 bg-n-solid-1"
               >
                 <div class="flex items-center justify-between">
                   <h3 class="font-semibold text-n-slate-12">🛠️ Montador</h3>
                   <span
-                    class="px-2 py-1 text-xs rounded-lg bg-n-orange-3 text-n-orange-11"
+                    class="px-2 py-1 text-xs rounded-lg bg-n-amber-3 text-n-amber-11"
                     >{{
                       money(
                         (pricing.assembly.originDisassembly +
@@ -989,7 +990,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div
-                    class="p-2 text-xs rounded-lg bg-n-orange-1 text-n-slate-11"
+                    class="p-2 text-xs rounded-lg bg-n-amber-1 text-n-slate-11"
                   >
                     Desmont. origem:
                     <strong class="text-n-slate-12">{{
@@ -997,7 +998,7 @@ onBeforeUnmount(() => {
                     }}</strong>
                   </div>
                   <div
-                    class="p-2 text-xs rounded-lg bg-n-orange-1 text-n-slate-11"
+                    class="p-2 text-xs rounded-lg bg-n-amber-1 text-n-slate-11"
                   >
                     Montag. destino:
                     <strong class="text-n-slate-12">{{
@@ -1011,6 +1012,7 @@ onBeforeUnmount(() => {
                       min="0"
                       step="0.01"
                       class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                      @change="calculate"
                   /></label>
                 </div>
               </section>
@@ -1229,10 +1231,10 @@ onBeforeUnmount(() => {
                   />
                 </div>
               </div>
-              <div class="p-3 border rounded-lg border-n-orange-5 bg-n-solid-1">
+              <div class="p-3 border rounded-lg border-n-amber-5 bg-n-solid-1">
                 <div class="flex items-center justify-between gap-2">
                   <p
-                    class="text-xs font-bold tracking-wide uppercase text-n-orange-11"
+                    class="text-xs font-bold tracking-wide uppercase text-n-amber-11"
                   >
                     Itens desmontados
                   </p>
@@ -1248,11 +1250,9 @@ onBeforeUnmount(() => {
                   {{ inventoryAudit.disassembled.usagePercent }}% de
                   {{ inventoryAudit.disassembled.capacityM3 }} m³
                 </p>
-                <div
-                  class="h-2 mt-3 overflow-hidden rounded-full bg-n-orange-3"
-                >
+                <div class="h-2 mt-3 overflow-hidden rounded-full bg-n-amber-3">
                   <div
-                    class="h-full rounded-full bg-n-orange-9"
+                    class="h-full rounded-full bg-n-amber-9"
                     :style="{
                       width: `${Math.min(inventoryAudit.disassembled.usagePercent, 100)}%`,
                     }"

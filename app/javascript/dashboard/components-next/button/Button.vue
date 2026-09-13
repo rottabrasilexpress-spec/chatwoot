@@ -123,14 +123,14 @@ const STYLE_CONFIG = {
     },
     orange: {
       solid:
-        'bg-n-orange-9 text-white hover:enabled:bg-n-orange-10 focus-visible:bg-n-orange-10 outline-transparent',
+        'bg-n-amber-9 text-n-amber-12 dark:text-n-amber-3 hover:enabled:bg-n-amber-10 focus-visible:bg-n-amber-10 outline-transparent',
       faded:
-        'bg-n-orange-9/10 text-n-orange-11 hover:enabled:bg-n-orange-9/20 focus-visible:bg-n-orange-9/20 outline-transparent',
+        'bg-n-amber-9/10 text-n-amber-11 hover:enabled:bg-n-amber-9/20 focus-visible:bg-n-amber-9/20 outline-transparent',
       outline:
-        'text-n-orange-11 hover:enabled:bg-n-orange-9/10 focus-visible:bg-n-orange-9/10 outline-n-orange-8',
+        'text-n-amber-11 hover:enabled:bg-n-amber-9/10 focus-visible:bg-n-amber-9/10 outline-n-amber-8',
       ghost:
-        'text-n-orange-11 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
-      link: 'text-n-orange-9 hover:enabled:underline focus-visible:underline outline-transparent',
+        'text-n-amber-11 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
+      link: 'text-n-amber-9 hover:enabled:underline focus-visible:underline outline-transparent',
     },
     amber: {
       solid:
