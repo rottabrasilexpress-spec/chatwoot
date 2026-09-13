@@ -28,7 +28,7 @@ import {
   getRequestedCalculatorVisibility,
   shouldClaimCalculatorOwnership,
 } from './calculatorVisibility';
-import { parseInventory } from './calculatorHelpers';
+import { buildInventoryAudit, parseInventory } from './calculatorHelpers';
 
 const { t } = useI18n();
 const { accountId, currentAccount, updateAccount } = useAccount();
@@ -84,6 +84,13 @@ const mapsBackendStatus = computed(() =>
     : t('CALCULATOR.INTEGRATIONS.READY')
 );
 
+const routeProviderLabel = computed(() => {
+  const provider = result.value?.route_provider;
+  if (provider === 'google-routes') return 'Google Routes conectado';
+  if (provider === 'osm-osrm-fallback') return 'Rota alternativa ativa';
+  return 'Rota pronta para conferência';
+});
+
 const calculatorSettings = computed(() => currentAccount.value?.settings || {});
 const canView = computed(() =>
   canViewCalculator({
@@ -117,6 +124,61 @@ const money = value =>
   })}`;
 
 const selectedPricing = computed(() => result.value?.pricing?.selected || {});
+
+const normalizeInventoryAudit = audit => {
+  if (!audit) return buildInventoryAudit(result.value?.inventory);
+
+  const normalizeLoad = load => ({
+    baseM3: Number(load?.base_m3 || 0),
+    auditedM3: Number(load?.audited_m3 || 0),
+    marginPercent: Number(load?.margin_percent || 0),
+    vehicle: load?.vehicle || 'A definir',
+    capacityM3: Number(load?.capacity_m3 || 0),
+    usagePercent: Number(load?.usage_percent || 0),
+  });
+
+  return {
+    mounted: normalizeLoad(audit.mounted),
+    disassembled: normalizeLoad(audit.disassembled),
+    weightKg: Number(audit.weight_kg || 0),
+    usesCubedWeight: !!audit.uses_cubed_weight,
+  };
+};
+
+const inventoryAudit = computed(() =>
+  normalizeInventoryAudit(result.value?.inventory_audit)
+);
+
+const financialDetail = computed(() => {
+  if (result.value?.financial_detail) {
+    const detail = result.value.financial_detail;
+    return {
+      driverPayout: Number(detail.driver_payout || 0),
+      services: Number(detail.services || 0),
+      priceWithoutServices: Number(detail.price_without_services || 0),
+      servicesWithHalf: Number(detail.services_with_half || 0),
+      finalPrice: Number(detail.final_price || 0),
+      routeDurationMinutes: Number(detail.route_duration_minutes || 0),
+      truckDurationMinutes: Number(detail.truck_duration_minutes || 0),
+    };
+  }
+
+  const pricingResult = result.value?.pricing || {};
+  const selected = pricingResult.selected || {};
+  const servicesTotal = Number(pricingResult.services?.total || 0);
+  const distanceKm = Number(result.value?.distance_km || 0);
+
+  return {
+    driverPayout: distanceKm * 2,
+    services: servicesTotal,
+    priceWithoutServices: Number(selected.freight_only_price || 0),
+    servicesWithHalf:
+      Number(selected.freight_only_price || 0) + servicesTotal * 0.5,
+    finalPrice: Number(selected.final_price || 0),
+    routeDurationMinutes: Number(result.value?.duration_minutes || 0),
+    truckDurationMinutes: Number(result.value?.truck_duration_minutes || 0),
+  };
+});
 
 const displayedRoute = computed(() => {
   const endpoints = [freight.origin, freight.destination]
@@ -520,6 +582,28 @@ onBeforeUnmount(() => {
               :destination="freight.destination"
               :route="result"
             />
+            <div
+              v-if="result"
+              class="flex flex-wrap gap-2 p-3 border rounded-xl border-n-teal-5 bg-n-teal-1/40"
+              data-testid="calculator-route-status"
+            >
+              <span
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-n-teal-3 text-n-teal-11"
+              >
+                <Icon icon="i-lucide-check-circle-2" class="size-3.5" />
+                Rota pronta para conferência
+              </span>
+              <span
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-n-slate-3 text-n-slate-11"
+              >
+                Pedágios desativados
+              </span>
+              <span
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-n-orange-3 text-n-orange-11"
+              >
+                {{ routeProviderLabel }}
+              </span>
+            </div>
             <section
               class="flex flex-wrap items-center justify-between gap-3 p-3 border rounded-xl border-n-orange-5 bg-n-orange-1"
               data-testid="calculator-route-mode"
@@ -973,6 +1057,91 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <section
+            class="flex flex-col gap-4 p-4 border rounded-xl border-n-teal-5 bg-n-teal-1/30"
+            data-testid="calculator-inventory-audit"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-semibold text-n-slate-12">
+                  Cubagem auditada
+                </h3>
+                <p class="mt-1 text-xs text-n-slate-11">
+                  Margens operacionais do Hub aplicadas sobre a cubagem do
+                  inventário identificado.
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-n-slate-11">Peso real estimado</p>
+                <p class="text-sm font-bold text-n-slate-12">
+                  {{ inventoryAudit.weightKg }} kg
+                </p>
+                <p class="text-[11px] text-n-slate-11">
+                  Não utiliza peso cubado.
+                </p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div class="p-3 border rounded-lg border-n-teal-5 bg-n-solid-1">
+                <div class="flex items-center justify-between gap-2">
+                  <p
+                    class="text-xs font-bold tracking-wide uppercase text-n-teal-11"
+                  >
+                    Itens montados
+                  </p>
+                  <span class="text-xs font-semibold text-n-slate-11">
+                    +{{ inventoryAudit.mounted.marginPercent }}% margem
+                  </span>
+                </div>
+                <p class="mt-2 text-xl font-bold text-n-slate-12">
+                  {{ inventoryAudit.mounted.auditedM3.toFixed(3) }} m³
+                </p>
+                <p class="mt-1 text-xs text-n-slate-11">
+                  Veículo sugerido: {{ inventoryAudit.mounted.vehicle }} ·
+                  {{ inventoryAudit.mounted.usagePercent }}% de
+                  {{ inventoryAudit.mounted.capacityM3 }} m³
+                </p>
+                <div class="h-2 mt-3 overflow-hidden rounded-full bg-n-teal-3">
+                  <div
+                    class="h-full rounded-full bg-n-teal-9"
+                    :style="{
+                      width: `${Math.min(inventoryAudit.mounted.usagePercent, 100)}%`,
+                    }"
+                  />
+                </div>
+              </div>
+              <div class="p-3 border rounded-lg border-n-orange-5 bg-n-solid-1">
+                <div class="flex items-center justify-between gap-2">
+                  <p
+                    class="text-xs font-bold tracking-wide uppercase text-n-orange-11"
+                  >
+                    Itens desmontados
+                  </p>
+                  <span class="text-xs font-semibold text-n-slate-11">
+                    +{{ inventoryAudit.disassembled.marginPercent }}% margem
+                  </span>
+                </div>
+                <p class="mt-2 text-xl font-bold text-n-slate-12">
+                  {{ inventoryAudit.disassembled.auditedM3.toFixed(3) }} m³
+                </p>
+                <p class="mt-1 text-xs text-n-slate-11">
+                  Veículo sugerido: {{ inventoryAudit.disassembled.vehicle }} ·
+                  {{ inventoryAudit.disassembled.usagePercent }}% de
+                  {{ inventoryAudit.disassembled.capacityM3 }} m³
+                </p>
+                <div
+                  class="h-2 mt-3 overflow-hidden rounded-full bg-n-orange-3"
+                >
+                  <div
+                    class="h-full rounded-full bg-n-orange-9"
+                    :style="{
+                      width: `${Math.min(inventoryAudit.disassembled.usagePercent, 100)}%`,
+                    }"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+          <section
             class="flex flex-col gap-4 p-4 border rounded-xl border-n-weak bg-n-solid-1"
             data-testid="calculator-pricing"
           >
@@ -1128,6 +1297,72 @@ onBeforeUnmount(() => {
                 class="font-semibold text-n-ruby-11"
                 >Revisão manual necessária em item(ns)</span
               >
+            </div>
+          </section>
+          <section
+            class="flex flex-col gap-4 p-4 border rounded-xl border-n-blue-5 bg-n-blue-1/30"
+            data-testid="calculator-financial-detail"
+          >
+            <div>
+              <h3 class="text-sm font-semibold text-n-slate-12">
+                Detalhamento financeiro
+              </h3>
+              <p class="mt-1 text-xs text-n-slate-11">
+                Valores separados para conferência operacional antes de enviar a
+                proposta.
+              </p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+              <div class="p-3 rounded-lg bg-n-solid-1">
+                <p class="text-xs text-n-slate-11">Repasse motorista</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ money(financialDetail.driverPayout) }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-solid-1">
+                <p class="text-xs text-n-slate-11">Serviços</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ money(financialDetail.services) }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-solid-1">
+                <p class="text-xs text-n-slate-11">Preço sem serviços</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ money(financialDetail.priceWithoutServices) }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-solid-1">
+                <p class="text-xs text-n-slate-11">Serviços com 50%</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ money(financialDetail.servicesWithHalf) }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-solid-1">
+                <p class="text-xs text-n-slate-11">Tempo caminhão</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ (financialDetail.truckDurationMinutes / 60).toFixed(2) }} h
+                </p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div class="p-3 rounded-lg bg-n-solid-1">
+                <p class="text-xs text-n-slate-11">Km da rota</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ result.distance_km }} km
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-solid-1">
+                <p class="text-xs text-n-slate-11">Cubagem montada</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ inventoryAudit.mounted.auditedM3.toFixed(3) }} m³
+                </p>
+              </div>
+              <div class="p-3 rounded-lg bg-n-solid-1">
+                <p class="text-xs text-n-slate-11">Tempo da viagem</p>
+                <p class="mt-1 text-sm font-semibold text-n-slate-12">
+                  {{ (financialDetail.routeDurationMinutes / 60).toFixed(2) }} h
+                </p>
+              </div>
             </div>
           </section>
           <div class="flex flex-col gap-3">

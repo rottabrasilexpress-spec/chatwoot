@@ -3,6 +3,9 @@ const toNumber = value => Number.parseFloat(String(value).replace(',', '.'));
 const roundToThreeDecimals = value =>
   Math.round((value + Number.EPSILON) * 1000) / 1000;
 
+const roundToTwoDecimals = value =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
+
 const parseDimensions = line => {
   const dimensions = line.match(
     /(\d+(?:[.,]\d+)?)\s*(cm|m)?\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*(cm|m)?\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*(cm|m)?/i
@@ -31,6 +34,50 @@ export const parseInventory = value => {
     volumeM3: roundToThreeDecimals(
       lines.reduce((total, line) => total + parseDimensions(line), 0)
     ),
+  };
+};
+
+const VEHICLE_REFERENCES = [
+  { label: 'Van / Kombi', capacityM3: 10 },
+  { label: 'HR / Bongo / Utilitário', capacityM3: 14 },
+  { label: 'VUC / Caminhão leve', capacityM3: 20 },
+  { label: 'Caminhão 3/4', capacityM3: 30 },
+];
+
+const vehicleForVolume = volumeM3 =>
+  VEHICLE_REFERENCES.find(vehicle => volumeM3 <= vehicle.capacityM3) ||
+  VEHICLE_REFERENCES.at(-1);
+
+const auditVolume = (baseM3, marginPercent) =>
+  roundToThreeDecimals(Number(baseM3 || 0) * (1 + marginPercent / 100));
+
+export const buildInventoryAudit = inventory => {
+  const mountedBaseM3 = Number(inventory?.mounted_m3 || 0);
+  const disassembledBaseM3 = Number(inventory?.disassembled_m3 || 0);
+  const mountedM3 = auditVolume(mountedBaseM3, 12);
+  const disassembledM3 = auditVolume(disassembledBaseM3, 20);
+  const mountedVehicle = vehicleForVolume(mountedM3);
+  const disassembledVehicle = vehicleForVolume(disassembledM3);
+
+  const buildLoad = (baseM3, auditedM3, marginPercent, vehicle) => ({
+    baseM3: roundToThreeDecimals(baseM3),
+    auditedM3,
+    marginPercent,
+    vehicle: vehicle.label,
+    capacityM3: vehicle.capacityM3,
+    usagePercent: Math.round((auditedM3 / vehicle.capacityM3) * 100),
+  });
+
+  return {
+    mounted: buildLoad(mountedBaseM3, mountedM3, 12, mountedVehicle),
+    disassembled: buildLoad(
+      disassembledBaseM3,
+      disassembledM3,
+      20,
+      disassembledVehicle
+    ),
+    weightKg: roundToTwoDecimals(inventory?.weight_kg || 0),
+    usesCubedWeight: false,
   };
 };
 

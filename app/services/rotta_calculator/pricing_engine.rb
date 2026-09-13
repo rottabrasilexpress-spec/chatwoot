@@ -3,6 +3,7 @@ module RottaCalculator
     MARGIN_DEFAULT_PERCENT = 35.0
     FLOOR_PROFIT = 600.0
     MIN_ADJUSTMENT_STEP = 0.05
+    DEFAULT_ADJUSTMENT_PER_KM = 0.25
     DEFAULT_ADJUSTMENT_STEP = 0.25
     CARDS = [
       { 'id' => 'economica', 'name' => 'Econômica', 'tariff_per_km' => 1.50, 'description' => 'Rotas flexíveis' },
@@ -22,7 +23,7 @@ module RottaCalculator
     def call
       distance = non_negative(@route['distance_km'])
       margin = [[number(@pricing['margin_percent'], MARGIN_DEFAULT_PERCENT), 0.0].max, 95.0].min / 100.0
-      adjustment = number(@pricing['adjustment_per_km'], DEFAULT_ADJUSTMENT_STEP)
+      adjustment = number(@pricing['adjustment_per_km'], DEFAULT_ADJUSTMENT_PER_KM)
       step = [number(@pricing['adjustment_step'], DEFAULT_ADJUSTMENT_STEP), MIN_ADJUSTMENT_STEP].max
       services = service_costs
       selected_id = @pricing['selected_card_id'].presence || 'padrao'

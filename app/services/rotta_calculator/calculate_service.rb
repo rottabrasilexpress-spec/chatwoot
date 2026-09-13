@@ -55,6 +55,8 @@ module RottaCalculator
       extracted['services'] = parsed['services'].deep_merge(ai['services'].is_a?(Hash) ? ai['services'].deep_stringify_keys : {})
       pricing = PricingEngine.new(route: route, parsed_data: extracted, pricing: pricing_input).call
       proposal = ProposalBuilder.call(freight: freight.merge(extracted.slice('client_name', 'date', 'origin', 'destination')), route: route, inventory: resolved_inventory, pricing: pricing)
+      inventory_audit = OperationalAudit.inventory(resolved_inventory)
+      financial_detail = OperationalAudit.financial(route: route, pricing: pricing)
 
       {
         'route' => "#{origin} → #{destination}",
@@ -76,6 +78,13 @@ module RottaCalculator
         'inventory_snapshot_algorithm' => parsed['snapshot_algorithm'],
         'extracted_data' => extracted,
         'inventory' => resolved_inventory,
+        'inventory_audit' => inventory_audit,
+        'financial_detail' => financial_detail,
+        'route_status' => {
+          'ready' => true,
+          'provider' => route['provider'],
+          'toll_status' => route['toll_status'] || 'disabled'
+        },
         'pricing' => pricing,
         'pricing_note' => 'Valores calculados pelo motor determinístico; pedágios permanentemente desativados.'
       }

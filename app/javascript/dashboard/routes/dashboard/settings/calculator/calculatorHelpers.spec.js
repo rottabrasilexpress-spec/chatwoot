@@ -1,4 +1,8 @@
-import { buildCalculationResult, parseInventory } from './calculatorHelpers';
+import {
+  buildCalculationResult,
+  buildInventoryAudit,
+  parseInventory,
+} from './calculatorHelpers';
 
 describe('calculatorHelpers', () => {
   it('counts inventory lines and calculates cubic volume from metre dimensions', () => {
@@ -31,6 +35,35 @@ describe('calculatorHelpers', () => {
       proposal: expect.stringContaining('Rotta Brasil Express'),
       selectedServices: ['Montador'],
       apiStatus: 'pending',
+    });
+  });
+
+  it('audits mounted and disassembled volume with the Hub safety margins', () => {
+    expect(
+      buildInventoryAudit({
+        mounted_m3: 10.22,
+        disassembled_m3: 6.22,
+        weight_kg: 561,
+      })
+    ).toEqual({
+      mounted: {
+        baseM3: 10.22,
+        auditedM3: 11.446,
+        marginPercent: 12,
+        vehicle: 'HR / Bongo / Utilitário',
+        capacityM3: 14,
+        usagePercent: 82,
+      },
+      disassembled: {
+        baseM3: 6.22,
+        auditedM3: 7.464,
+        marginPercent: 20,
+        vehicle: 'Van / Kombi',
+        capacityM3: 10,
+        usagePercent: 75,
+      },
+      weightKg: 561,
+      usesCubedWeight: false,
     });
   });
 });
