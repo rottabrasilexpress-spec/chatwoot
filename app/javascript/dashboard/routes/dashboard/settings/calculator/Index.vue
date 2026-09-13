@@ -118,6 +118,13 @@ const money = value =>
 
 const selectedPricing = computed(() => result.value?.pricing?.selected || {});
 
+const displayedRoute = computed(() => {
+  const endpoints = [freight.origin, freight.destination]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  return endpoints.length === 2 ? endpoints.join(' → ') : result.value?.route;
+});
+
 const updatePricingFromResult = data => {
   const extracted = data?.extracted_data || {};
   freight.clientName = extracted.client_name || freight.clientName;
@@ -881,7 +888,7 @@ onBeforeUnmount(() => {
                 {{ t('CALCULATOR.RESULT.ROUTE') }}
               </p>
               <p class="mt-1 text-sm font-semibold text-n-slate-12">
-                {{ result.route }}
+                {{ displayedRoute }}
               </p>
             </div>
             <div class="p-4 rounded-lg bg-n-solid-1">
