@@ -49,6 +49,7 @@ module RottaCalculator
       extracted['date'] = parsed['date'] if parsed['date'].present?
       extracted['origin'] = parsed['origin'] if parsed['origin'].present?
       extracted['destination'] = parsed['destination'] if parsed['destination'].present?
+      extracted['team'] = parsed['team'] if parsed['team'].present?
       resolved_inventory = InventoryResolver.new(ai_estimates: ai['inventory_estimates']).call(parsed.dig('inventory', 'items'))
       extracted['inventory'] = resolved_inventory
       extracted['services'] = parsed['services'].deep_merge(ai['services'].is_a?(Hash) ? ai['services'].deep_stringify_keys : {})

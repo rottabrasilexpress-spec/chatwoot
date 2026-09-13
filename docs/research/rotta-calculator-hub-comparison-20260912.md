@@ -73,3 +73,12 @@ Data: 2026-09-12
 - O Hub não foi alterado. A comparação de rota segue `2760,7 km` no Hub contra `2755,9 km` no Chatwoot Google Routes (`4,8 km`, `0,17%`).
 - No Chatwoot pós-deploy, três cálculos consecutivos exibiram `Integração respondendo`, `Google Routes`, pedágios desativados, preço padrão `R$ 9.168,67`, proposta e mapa. Não houve fallback em `3/3`.
 - A mudança foi apenas `OpenRouterClient::MAX_TOKENS = 350`, publicada no commit `51a0496ef`; nenhum segredo foi gravado neste documento.
+
+## Atualização de paridade visual e contexto — 2026-09-13
+
+- Os três vídeos complementares foram transcritos e conferidos visualmente. O Hub foi acionado novamente em mapa, satélite, relevo, Street View de origem/destino, GPS, modalidade, ajudantes, material, taxa, ajuste/km, cards comerciais, proposta e inventário; os estados temporários foram restaurados.
+- O frontend da Calculadora agora mantém leitura mais compacta e redimensionável, reorganiza inventário/cubagem e quatro serviços no lado esquerdo, reforça as cores dos cards e impede recálculo concorrente. O mapa mantém rota laranja, marcadores A/B pelos extremos reais da polilinha, controles Mapa/Satélite/Relevo e links independentes para origem, destino e GPS.
+- Os campos de origem e destino passaram a carregar a biblioteca Google Places e inicializar autocomplete com restrição de país `BR`; a seleção preenche o endereço formatado antes do cálculo.
+- A reconciliação de serviços usa os totais retornados pelo motor (`pricing.services`), evitando que ajudantes/montadores retornem visualmente a zero após o cálculo mesmo quando foram informados manualmente.
+- O parser contextualiza ano para expressões como `meados de outubro` e bloqueia acesso, pagamento, equipe, observações e instruções como inventário. O resolvedor continua exigindo item-fonte, portanto uma estimativa AI isolada não cria itens fantasmas.
+- Validações locais desta etapa: `12/12` testes Vitest focalizados, `0` erros ESLint, compilação dos dois SFCs e `git diff --check` aprovados. O teste live pós-deploy é o checkpoint seguinte; RSpec não pôde ser executado no host por ausência de Ruby/Bundler.

@@ -39,6 +39,40 @@ RSpec.describe RottaCalculator::PreBudgetParser do
     }.to raise_error(ArgumentError, /300 linhas/)
   end
 
+  it 'normalizes contextual dates and excludes instructions from the inventory' do
+    result = described_class.new(
+      reading_text: <<~TEXT,
+        Contexto da conversa de 2026
+        Cliente: Antonio
+        Data pretendida: meados de outubro
+        Origem: Brasilia - DF
+        Destino: Salvador - BA
+        Equipe: Caio
+        INVENTÁRIO
+        2 Sofá 2 lugares
+        1 Cama box casal
+        Instrução: não adicionar Ace Move, caixas adicionais ou utensílios
+        Forma de pagamento: a combinar
+        SERVIÇOS
+        Carga (origem): 2 ajudantes
+      TEXT
+      freight: {}, inventory: {}, services: {}
+    ).call
+
+    expect(result).to include(
+      'date' => '2026-10-15',
+      'team' => 'Caio'
+    )
+    expect(result.dig('inventory', 'items')).to include(
+      include('name' => 'Sofá 2 lugares', 'quantity' => 2),
+      include('name' => 'Cama box casal', 'quantity' => 1)
+    )
+    expect(result.dig('inventory', 'items').map { |item| item['name'] }).not_to include(
+      'Ace Move', 'caixas adicionais', 'utensílios'
+    )
+    expect(result.dig('services', 'helpers')).to eq('origin' => 2, 'destination' => 0)
+  end
+
   it 'parses bracket quantities from the real pre-budget format and does not infer materials from boxes' do
     result = described_class.new(
       reading_text: <<~TEXT,

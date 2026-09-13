@@ -5,6 +5,8 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import {
   buildGoogleDirectionsUrl,
   buildGooglePlaceUrl,
+  decodeGooglePolyline,
+  getGoogleMapEndpoints,
 } from './googleMapHelpers';
 
 const props = defineProps({
@@ -16,6 +18,8 @@ const props = defineProps({
 const mapElement = ref(null);
 const map = ref(null);
 const routeLine = ref(null);
+const originMarker = ref(null);
+const destinationMarker = ref(null);
 let resizeObserver;
 let resizeFrame;
 const mapError = ref('');
@@ -32,47 +36,22 @@ const apiKey = computed(
     ''
 );
 const hasRoute = computed(() => Boolean(props.route?.route_polyline));
-const hasEndpoints = computed(() => Boolean(props.origin && props.destination));
+const hasOrigin = computed(() => Boolean(String(props.origin || '').trim()));
+const hasDestination = computed(() =>
+  Boolean(String(props.destination || '').trim())
+);
+const hasEndpoints = computed(() => hasOrigin.value && hasDestination.value);
 const mapsLink = computed(() =>
   buildGoogleDirectionsUrl(props.origin, props.destination)
 );
 const originLink = computed(() => buildGooglePlaceUrl(props.origin));
 const destinationLink = computed(() => buildGooglePlaceUrl(props.destination));
 
-const decodePolyline = encoded => {
-  if (!encoded) return [];
-  const points = [];
-  let index = 0;
-  let latitude = 0;
-  let longitude = 0;
-
-  while (index < encoded.length) {
-    let shift = 0;
-    let result = 0;
-    let byte;
-    do {
-      byte = encoded.charCodeAt(index++) - 63;
-      result |= (byte & 0x1f) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
-    latitude += result & 1 ? ~(result >> 1) : result >> 1;
-
-    shift = 0;
-    result = 0;
-    do {
-      byte = encoded.charCodeAt(index++) - 63;
-      result |= (byte & 0x1f) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
-    longitude += result & 1 ? ~(result >> 1) : result >> 1;
-    points.push({ lat: latitude / 1e5, lng: longitude / 1e5 });
-  }
-
-  return points;
-};
-
 const loadGoogleMaps = () => {
-  if (window.google?.maps?.Map) return Promise.resolve(window.google.maps);
+  if (window.google?.maps?.Map) {
+    window.dispatchEvent(new Event('rotta-google-maps-ready'));
+    return Promise.resolve(window.google.maps);
+  }
   if (!apiKey.value)
     return Promise.reject(new Error('Google Maps não configurado'));
   if (scriptPromise) return scriptPromise;
@@ -82,6 +61,7 @@ const loadGoogleMaps = () => {
     const resolveMaps = () => {
       if (window.google?.maps?.Map) {
         delete window[callbackName];
+        window.dispatchEvent(new Event('rotta-google-maps-ready'));
         resolve(window.google.maps);
       }
     };
@@ -100,7 +80,7 @@ const loadGoogleMaps = () => {
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
       apiKey.value
-    )}&libraries=geometry&language=pt-BR&region=BR&loading=async&callback=${callbackName}`;
+    )}&libraries=geometry,places&language=pt-BR&region=BR&loading=async&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
     script.dataset.rottaGoogleMaps = 'true';
@@ -119,7 +99,12 @@ const loadGoogleMaps = () => {
 const drawRoute = () => {
   if (!map.value || !window.google?.maps) return;
   if (routeLine.value) routeLine.value.setMap(null);
-  const points = decodePolyline(props.route?.route_polyline);
+  if (originMarker.value) originMarker.value.setMap(null);
+  if (destinationMarker.value) destinationMarker.value.setMap(null);
+  originMarker.value = null;
+  destinationMarker.value = null;
+
+  const points = decodeGooglePolyline(props.route?.route_polyline);
   if (!points.length) return;
 
   routeLine.value = new window.google.maps.Polyline({
@@ -130,6 +115,22 @@ const drawRoute = () => {
     strokeWeight: 5,
     map: map.value,
   });
+
+  const endpoints = getGoogleMapEndpoints(props.route?.route_polyline);
+  if (endpoints && window.google.maps.Marker) {
+    originMarker.value = new window.google.maps.Marker({
+      position: endpoints.origin,
+      map: map.value,
+      label: { text: 'A', color: '#ffffff', fontWeight: '700' },
+      title: 'Origem',
+    });
+    destinationMarker.value = new window.google.maps.Marker({
+      position: endpoints.destination,
+      map: map.value,
+      label: { text: 'B', color: '#ffffff', fontWeight: '700' },
+      title: 'Destino',
+    });
+  }
 
   const bounds = new window.google.maps.LatLngBounds();
   points.forEach(point => bounds.extend(point));
@@ -204,6 +205,8 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect();
   if (resizeFrame) cancelAnimationFrame(resizeFrame);
   if (routeLine.value) routeLine.value.setMap(null);
+  if (originMarker.value) originMarker.value.setMap(null);
+  if (destinationMarker.value) destinationMarker.value.setMap(null);
   map.value = null;
 });
 </script>
@@ -257,11 +260,11 @@ onBeforeUnmount(() => {
       data-testid="calculator-map-actions"
     >
       <a
-        :href="hasEndpoints ? originLink : undefined"
-        :aria-disabled="!hasEndpoints"
+        :href="hasOrigin ? originLink : undefined"
+        :aria-disabled="!hasOrigin"
         class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide uppercase border rounded-lg transition-colors"
         :class="[
-          hasEndpoints
+          hasOrigin
             ? 'border-n-weak text-n-slate-11 hover:border-n-brand hover:text-n-brand'
             : 'cursor-not-allowed border-n-weak text-n-slate-9 opacity-60',
         ]"
@@ -273,11 +276,11 @@ onBeforeUnmount(() => {
         Foto origem
       </a>
       <a
-        :href="hasEndpoints ? destinationLink : undefined"
-        :aria-disabled="!hasEndpoints"
+        :href="hasDestination ? destinationLink : undefined"
+        :aria-disabled="!hasDestination"
         class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide uppercase border rounded-lg transition-colors"
         :class="[
-          hasEndpoints
+          hasDestination
             ? 'border-n-weak text-n-slate-11 hover:border-n-brand hover:text-n-brand'
             : 'cursor-not-allowed border-n-weak text-n-slate-9 opacity-60',
         ]"

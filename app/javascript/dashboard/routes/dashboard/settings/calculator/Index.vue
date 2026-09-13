@@ -1,6 +1,14 @@
 <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -68,6 +76,7 @@ const showVisibilityConfirmModal = ref(false);
 const pendingVisibility = ref(null);
 const isSavingVisibility = ref(false);
 const activeResultTab = ref('proposal');
+const placeAutocompleteListeners = [];
 
 const mapsBackendStatus = computed(() =>
   result.value?.api_status === 'complete'
@@ -116,22 +125,36 @@ const updatePricingFromResult = data => {
   freight.origin = extracted.origin || freight.origin;
   freight.destination = extracted.destination || freight.destination;
   const parsedServices = extracted.services || {};
+  const pricedServices = data.pricing?.services || {};
   pricing.helpers.origin =
-    parsedServices.helpers?.origin ?? pricing.helpers.origin;
+    pricedServices.helpers_origin ??
+    parsedServices.helpers?.origin ??
+    pricing.helpers.origin;
   pricing.helpers.destination =
-    parsedServices.helpers?.destination ?? pricing.helpers.destination;
+    pricedServices.helpers_destination ??
+    parsedServices.helpers?.destination ??
+    pricing.helpers.destination;
   pricing.assembly.originDisassembly =
+    pricedServices.disassembly_origin ??
     parsedServices.assembly?.origin_disassembly ??
     pricing.assembly.originDisassembly;
   pricing.assembly.destinationAssembly =
+    pricedServices.assembly_destination ??
     parsedServices.assembly?.destination_assembly ??
     pricing.assembly.destinationAssembly;
   pricing.materialsSelected =
     parsedServices.materials?.selected ?? pricing.materialsSelected;
+  pricing.helperUnit = pricedServices.helper_unit ?? pricing.helperUnit;
+  pricing.assemblerUnit =
+    pricedServices.assembler_unit ?? pricing.assemblerUnit;
+  pricing.materialsTotal = pricedServices.materials ?? pricing.materialsTotal;
+  pricing.specialFee = pricedServices.special_fee ?? pricing.specialFee;
   pricing.adjustmentPerKm =
     data.pricing?.adjustment_per_km ?? pricing.adjustmentPerKm;
   pricing.adjustmentStep =
     data.pricing?.adjustment_step ?? pricing.adjustmentStep;
+  pricing.selectedCardId =
+    data.pricing?.selected_card_id ?? pricing.selectedCardId;
   const firstInventoryLine = data.inventory?.items
     ?.map(item => `${item.quantity}x ${item.name}`)
     .join('\n');
@@ -286,10 +309,18 @@ const calculate = async () => {
 };
 
 const adjustPricePerKm = direction => {
+  if (isCalculating.value) return;
   const step = Math.max(Number(pricing.adjustmentStep) || 0.25, 0.05);
+  const current = Math.max(Number(pricing.adjustmentPerKm) || 0, 0);
   pricing.adjustmentPerKm = Number(
-    (Number(pricing.adjustmentPerKm || 0) + direction * step).toFixed(2)
+    Math.max(0, current + direction * step).toFixed(2)
   );
+  calculate();
+};
+
+const selectPricingCard = cardId => {
+  if (isCalculating.value || pricing.selectedCardId === cardId) return;
+  pricing.selectedCardId = cardId;
   calculate();
 };
 
@@ -315,6 +346,33 @@ const copyInventory = async () => {
   }
 };
 
+const setupPlacesAutocomplete = () => {
+  const Autocomplete = window.google?.maps?.places?.Autocomplete;
+  if (!Autocomplete) return;
+
+  ['origin', 'destination'].forEach(field => {
+    const input = document.getElementById(`calculator-${field}`);
+    if (!input || input.dataset.rottaPlacesReady === 'true') return;
+
+    const autocomplete = new Autocomplete(input, {
+      fields: ['formatted_address', 'geometry', 'name'],
+      componentRestrictions: { country: 'br' },
+      types: ['geocode'],
+    });
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      const value = place.formatted_address || place.name;
+      if (value) freight[field] = value;
+    });
+    input.dataset.rottaPlacesReady = 'true';
+    placeAutocompleteListeners.push({ input, listener });
+  });
+};
+
+const handleGoogleMapsReady = () => {
+  nextTick(setupPlacesAutocomplete);
+};
+
 watch(
   currentAccount,
   () => {
@@ -322,6 +380,20 @@ watch(
   },
   { immediate: true }
 );
+
+onMounted(() => {
+  window.addEventListener('rotta-google-maps-ready', handleGoogleMapsReady);
+  nextTick(setupPlacesAutocomplete);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('rotta-google-maps-ready', handleGoogleMapsReady);
+  placeAutocompleteListeners.forEach(({ input, listener }) => {
+    listener?.remove?.();
+    delete input.dataset.rottaPlacesReady;
+  });
+  placeAutocompleteListeners.length = 0;
+});
 </script>
 
 <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
@@ -335,9 +407,9 @@ watch(
     </template>
 
     <template #body>
-      <div v-if="canView" class="flex flex-col gap-6 mt-4">
+      <div v-if="canView" class="flex flex-col gap-4 mt-4">
         <section
-          class="flex flex-col gap-4 p-5 border rounded-2xl border-n-weak bg-n-solid-1 sm:flex-row sm:items-center sm:justify-between"
+          class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1 sm:flex-row sm:items-center sm:justify-between"
         >
           <div class="flex items-start gap-3">
             <div
@@ -371,10 +443,10 @@ watch(
         </section>
 
         <section
-          class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.02fr)_minmax(24rem,0.98fr)]"
+          class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.02fr)_minmax(24rem,0.98fr)]"
         >
           <div
-            class="flex flex-col gap-4 p-5 border rounded-2xl border-n-weak bg-n-solid-1"
+            class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="flex items-start gap-3">
@@ -403,8 +475,8 @@ watch(
               v-model="readingText"
               :label="t('CALCULATOR.READING.LABEL')"
               :placeholder="t('CALCULATOR.READING.PLACEHOLDER')"
-              custom-text-area-class="min-h-[20rem] xl:min-h-[22rem]"
-              min-height="20rem"
+              custom-text-area-class="min-h-[12rem] xl:min-h-[16rem]"
+              min-height="12rem"
               max-height="32rem"
               resize
               data-testid="calculator-reading-input"
@@ -491,9 +563,11 @@ watch(
           </div>
         </section>
 
-        <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div
+          class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]"
+        >
           <section
-            class="flex flex-col gap-5 p-5 border rounded-2xl border-n-weak bg-n-solid-1"
+            class="flex flex-col gap-3 p-3 border-l-4 rounded-xl border-n-orange-5 bg-n-orange-1/50 xl:col-start-2 xl:row-start-1"
           >
             <div>
               <h2 class="text-base font-semibold text-n-slate-12">
@@ -503,7 +577,7 @@ watch(
                 {{ t('CALCULATOR.FREIGHT.DESCRIPTION') }}
               </p>
             </div>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input
                 v-model="freight.clientName"
                 :label="t('CALCULATOR.FREIGHT.CLIENT')"
@@ -521,19 +595,21 @@ watch(
                 v-model="freight.origin"
                 :label="t('CALCULATOR.FREIGHT.ORIGIN')"
                 :placeholder="t('CALCULATOR.FREIGHT.ORIGIN_PLACEHOLDER')"
+                custom-input-class="bg-n-solid-1/80"
                 data-testid="calculator-origin"
               />
               <Input
                 v-model="freight.destination"
                 :label="t('CALCULATOR.FREIGHT.DESTINATION')"
                 :placeholder="t('CALCULATOR.FREIGHT.DESTINATION_PLACEHOLDER')"
+                custom-input-class="bg-n-solid-1/80"
                 data-testid="calculator-destination"
               />
             </div>
           </section>
 
           <section
-            class="flex flex-col gap-5 p-5 border rounded-2xl border-n-weak bg-n-solid-1"
+            class="flex flex-col gap-3 p-3 border-l-4 rounded-xl border-n-teal-5 bg-n-teal-1/40 xl:col-start-1 xl:row-start-1"
           >
             <div>
               <h2 class="text-base font-semibold text-n-slate-12">
@@ -548,14 +624,14 @@ watch(
               v-model="inventoryText"
               :label="t('CALCULATOR.INVENTORY.LABEL')"
               :placeholder="t('CALCULATOR.INVENTORY.PLACEHOLDER')"
-              custom-text-area-class="min-h-[12rem] xl:min-h-[14rem]"
-              min-height="12rem"
+              custom-text-area-class="min-h-[8rem] xl:min-h-[10rem]"
+              min-height="8rem"
               max-height="24rem"
               resize
               data-testid="calculator-inventory-input"
             />
-            <div class="grid grid-cols-2 gap-3">
-              <div class="p-3 rounded-lg bg-n-alpha-2">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-2 rounded-lg bg-n-teal-2/60">
                 <p class="text-xs text-n-slate-11">
                   {{ t('CALCULATOR.INVENTORY.ITEMS') }}
                 </p>
@@ -563,7 +639,7 @@ watch(
                   {{ inventorySummary.itemCount }}
                 </p>
               </div>
-              <div class="p-3 rounded-lg bg-n-alpha-2">
+              <div class="p-2 rounded-lg bg-n-teal-2/60">
                 <p class="text-xs text-n-slate-11">
                   {{ t('CALCULATOR.INVENTORY.VOLUME') }}
                 </p>
@@ -577,169 +653,169 @@ watch(
               </div>
             </div>
           </section>
-        </div>
-
-        <section class="flex flex-col gap-4">
-          <div class="flex items-end justify-between gap-3">
-            <div>
-              <p
-                class="text-xs font-bold tracking-wider uppercase text-n-slate-11"
+          <section class="flex flex-col gap-3 xl:col-start-1 xl:row-start-2">
+            <div class="flex items-end justify-between gap-3">
+              <div>
+                <p
+                  class="text-xs font-bold tracking-wider uppercase text-n-slate-11"
+                >
+                  Serviços adicionais
+                </p>
+                <h2 class="mt-1 text-base font-semibold text-n-slate-12">
+                  Quantidades e valores unitários
+                </h2>
+              </div>
+              <span class="text-xs text-n-slate-11"
+                >Tudo começa em zero e só entra no preço quando
+                preenchido.</span
               >
-                Serviços adicionais
-              </p>
-              <h2 class="mt-1 text-base font-semibold text-n-slate-12">
-                Quantidades e valores unitários
-              </h2>
             </div>
-            <span class="text-xs text-n-slate-11"
-              >Tudo começa em zero e só entra no preço quando preenchido.</span
-            >
-          </div>
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <section
-              class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-blue-5 bg-n-solid-1"
-            >
-              <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-n-slate-12">👥 Ajudantes</h3>
-                <span
-                  class="px-2 py-1 text-xs rounded-lg bg-n-blue-3 text-n-blue-11"
-                  >{{
-                    money(
-                      (pricing.helpers.origin + pricing.helpers.destination) *
-                        pricing.helperUnit
-                    )
-                  }}</span
-                >
-              </div>
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <label class="text-xs text-n-slate-11"
-                  >Origem<input
-                    v-model.number="pricing.helpers.origin"
-                    type="number"
-                    min="0"
-                    max="999"
-                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                /></label>
-                <label class="text-xs text-n-slate-11"
-                  >Destino<input
-                    v-model.number="pricing.helpers.destination"
-                    type="number"
-                    min="0"
-                    max="999"
-                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                /></label>
-                <label class="text-xs text-n-slate-11"
-                  >Valor unit.<input
-                    v-model.number="pricing.helperUnit"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                /></label>
-              </div>
-            </section>
-            <section
-              class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-orange-5 bg-n-solid-1"
-            >
-              <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-n-slate-12">🛠️ Montador</h3>
-                <span
-                  class="px-2 py-1 text-xs rounded-lg bg-n-orange-3 text-n-orange-11"
-                  >{{
-                    money(
-                      (pricing.assembly.originDisassembly +
-                        pricing.assembly.destinationAssembly) *
-                        pricing.assemblerUnit
-                    )
-                  }}</span
-                >
-              </div>
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <label class="text-xs text-n-slate-11"
-                  >Desmont. origem<input
-                    v-model.number="pricing.assembly.originDisassembly"
-                    type="number"
-                    min="0"
-                    max="999"
-                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                /></label>
-                <label class="text-xs text-n-slate-11"
-                  >Montag. destino<input
-                    v-model.number="pricing.assembly.destinationAssembly"
-                    type="number"
-                    min="0"
-                    max="999"
-                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                /></label>
-                <label class="text-xs text-n-slate-11"
-                  >Valor unit.<input
-                    v-model.number="pricing.assemblerUnit"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                /></label>
-              </div>
-            </section>
-            <section
-              class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-teal-5 bg-n-solid-1"
-            >
-              <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-n-slate-12">
-                  📦 Material e embalagem
-                </h3>
-                <span
-                  class="px-2 py-1 text-xs rounded-lg bg-n-teal-3 text-n-teal-11"
-                  >{{
-                    money(
-                      pricing.materialsSelected ? pricing.materialsTotal : 0
-                    )
-                  }}</span
-                >
-              </div>
-              <label class="flex items-center gap-2 text-xs text-n-slate-11"
-                ><input
-                  v-model="pricing.materialsSelected"
-                  type="checkbox"
-                  class="rounded border-n-strong text-n-brand focus:ring-n-brand"
-                />
-                Somente material, sem mão de obra</label
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <section
+                class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-blue-5 bg-n-solid-1"
               >
-              <label class="text-xs text-n-slate-11"
-                >Valor total<input
-                  v-model.number="pricing.materialsTotal"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-              /></label>
-            </section>
-            <section
-              class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-ruby-5 bg-n-solid-1"
-            >
-              <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-n-slate-12">
-                  🚚 Taxas especiais
-                </h3>
-                <span
-                  class="px-2 py-1 text-xs rounded-lg bg-n-ruby-3 text-n-ruby-11"
-                  >{{ money(pricing.specialFee) }}</span
+                <div class="flex items-center justify-between">
+                  <h3 class="font-semibold text-n-slate-12">👥 Ajudantes</h3>
+                  <span
+                    class="px-2 py-1 text-xs rounded-lg bg-n-blue-3 text-n-blue-11"
+                    >{{
+                      money(
+                        (pricing.helpers.origin + pricing.helpers.destination) *
+                          pricing.helperUnit
+                      )
+                    }}</span
+                  >
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <label class="text-xs text-n-slate-11"
+                    >Origem<input
+                      v-model.number="pricing.helpers.origin"
+                      type="number"
+                      min="0"
+                      max="999"
+                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  /></label>
+                  <label class="text-xs text-n-slate-11"
+                    >Destino<input
+                      v-model.number="pricing.helpers.destination"
+                      type="number"
+                      min="0"
+                      max="999"
+                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  /></label>
+                  <label class="text-xs text-n-slate-11"
+                    >Valor unit.<input
+                      v-model.number="pricing.helperUnit"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  /></label>
+                </div>
+              </section>
+              <section
+                class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-orange-5 bg-n-solid-1"
+              >
+                <div class="flex items-center justify-between">
+                  <h3 class="font-semibold text-n-slate-12">🛠️ Montador</h3>
+                  <span
+                    class="px-2 py-1 text-xs rounded-lg bg-n-orange-3 text-n-orange-11"
+                    >{{
+                      money(
+                        (pricing.assembly.originDisassembly +
+                          pricing.assembly.destinationAssembly) *
+                          pricing.assemblerUnit
+                      )
+                    }}</span
+                  >
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <label class="text-xs text-n-slate-11"
+                    >Desmont. origem<input
+                      v-model.number="pricing.assembly.originDisassembly"
+                      type="number"
+                      min="0"
+                      max="999"
+                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  /></label>
+                  <label class="text-xs text-n-slate-11"
+                    >Montag. destino<input
+                      v-model.number="pricing.assembly.destinationAssembly"
+                      type="number"
+                      min="0"
+                      max="999"
+                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  /></label>
+                  <label class="text-xs text-n-slate-11"
+                    >Valor unit.<input
+                      v-model.number="pricing.assemblerUnit"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                  /></label>
+                </div>
+              </section>
+              <section
+                class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-teal-5 bg-n-solid-1"
+              >
+                <div class="flex items-center justify-between">
+                  <h3 class="font-semibold text-n-slate-12">
+                    📦 Material e embalagem
+                  </h3>
+                  <span
+                    class="px-2 py-1 text-xs rounded-lg bg-n-teal-3 text-n-teal-11"
+                    >{{
+                      money(
+                        pricing.materialsSelected ? pricing.materialsTotal : 0
+                      )
+                    }}</span
+                  >
+                </div>
+                <label class="flex items-center gap-2 text-xs text-n-slate-11"
+                  ><input
+                    v-model="pricing.materialsSelected"
+                    type="checkbox"
+                    class="rounded border-n-strong text-n-brand focus:ring-n-brand"
+                  />
+                  Somente material, sem mão de obra</label
                 >
-              </div>
-              <p class="text-xs text-n-slate-11">
-                Motos, itens pesados, sensíveis ou fora do padrão.
-              </p>
-              <label class="text-xs text-n-slate-11"
-                >Valor da taxa<input
-                  v-model.number="pricing.specialFee"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-              /></label>
-            </section>
-          </div>
-        </section>
+                <label class="text-xs text-n-slate-11"
+                  >Valor total<input
+                    v-model.number="pricing.materialsTotal"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                /></label>
+              </section>
+              <section
+                class="flex flex-col gap-2 p-3 border-l-4 border rounded-xl border-n-ruby-5 bg-n-solid-1"
+              >
+                <div class="flex items-center justify-between">
+                  <h3 class="font-semibold text-n-slate-12">
+                    🚚 Taxas especiais
+                  </h3>
+                  <span
+                    class="px-2 py-1 text-xs rounded-lg bg-n-ruby-3 text-n-ruby-11"
+                    >{{ money(pricing.specialFee) }}</span
+                  >
+                </div>
+                <p class="text-xs text-n-slate-11">
+                  Motos, itens pesados, sensíveis ou fora do padrão.
+                </p>
+                <label class="text-xs text-n-slate-11"
+                  >Valor da taxa<input
+                    v-model.number="pricing.specialFee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                /></label>
+              </section>
+            </div>
+          </section>
+        </div>
 
         <section
           class="grid grid-cols-1 gap-4 p-5 border rounded-2xl border-dashed border-n-strong bg-n-alpha-1 lg:grid-cols-2"
@@ -919,6 +995,7 @@ watch(
                     type="button"
                     class="px-1.5 py-1 text-sm font-semibold border rounded border-n-weak hover:bg-n-alpha-2"
                     aria-label="Reduzir ajuste por quilômetro"
+                    :disabled="isCalculating"
                     @click="adjustPricePerKm(-1)"
                   >
                     −
@@ -933,6 +1010,7 @@ watch(
                     type="button"
                     class="px-1.5 py-1 text-sm font-semibold border rounded border-n-weak hover:bg-n-alpha-2"
                     aria-label="Aumentar ajuste por quilômetro"
+                    :disabled="isCalculating"
                     @click="adjustPricePerKm(1)"
                   >
                     +
@@ -964,14 +1042,13 @@ watch(
                 type="button"
                 class="flex flex-col gap-2 p-4 text-left border rounded-xl transition-colors"
                 :class="
-                  card.id === result.pricing.selected_card_id
+                  card.id === pricing.selectedCardId
                     ? 'border-n-brand bg-n-brand/10'
                     : 'border-n-weak bg-n-alpha-1 hover:border-n-brand/50'
                 "
-                @click="
-                  pricing.selectedCardId = card.id;
-                  calculate();
-                "
+                :aria-pressed="card.id === pricing.selectedCardId"
+                :disabled="isCalculating"
+                @click="selectPricingCard(card.id)"
               >
                 <div class="flex items-center justify-between gap-2">
                   <span class="font-semibold text-n-slate-12">{{

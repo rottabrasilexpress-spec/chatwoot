@@ -1,4 +1,5 @@
 require 'digest'
+require 'date'
 
 module RottaCalculator
   class PreBudgetParser
@@ -7,6 +8,13 @@ module RottaCalculator
     MAX_QUANTITY = 999
     ACTIVATION_WORDS = %w[sim incluso inclusa contratado contratada contratar ✅].freeze
     NEGATION_WORDS = ['a confirmar', 'talvez', 'por conta do cliente', 'já montado', 'ja montado', 'já desmontado', 'ja desmontado'].freeze
+    MONTHS = {
+      'janeiro' => 1, 'fevereiro' => 2, 'marco' => 3, 'abril' => 4, 'maio' => 5, 'junho' => 6,
+      'julho' => 7, 'agosto' => 8, 'setembro' => 9, 'outubro' => 10, 'novembro' => 11, 'dezembro' => 12
+    }.freeze
+    CONTEXT_YEAR_PATTERN = /\b((?:19|20)\d{2})\b/.freeze
+    INVENTORY_CONTROL_PATTERN = %r{\A(?:instru[cç][aã]o|orienta[cç][aã]o|acesso|pagamento|forma de pagamento|equipe|time|observa[cç][oõ]es|metadados|origem|destino|cliente|nome|data|carga|descarga)\b}i.freeze
+    INVENTORY_INSTRUCTION_PATTERN = %r{\b(?:n[aã]o (?:adicionar|incluir|considerar|inventar)|sem evid[eê]ncia|n[aã]o faz parte|apenas instru[cç][aã]o)\b}i.freeze
     DIMENSIONS_PATTERN = /(?<first>\d+(?:[,.]\d+)?)\s*(?<unit_first>mm|cm|m)?\s*[x×]\s*(?<second>\d+(?:[,.]\d+)?)\s*(?<unit_second>mm|cm|m)?\s*[x×]\s*(?<third>\d+(?:[,.]\d+)?)\s*(?<unit_third>mm|cm|m)?/i
 
     def initialize(reading_text:, freight: {}, inventory: {}, services: {})
@@ -30,6 +38,7 @@ module RottaCalculator
         'date' => freight['date'],
         'origin' => freight['origin'],
         'destination' => freight['destination'],
+        'team' => freight['team'],
         'inventory' => parsed_inventory,
         'services' => parsed_services,
         'snapshot_hash' => Digest::SHA256.hexdigest(@reading_text),
@@ -41,12 +50,38 @@ module RottaCalculator
     private
 
     def extract_freight(lines)
+      date = explicit_or_payload(lines, /(?:data(?: pretendida)?|coleta)\s*[:=-]\s*(.+)$/i, @freight['date'])
       {
         'client_name' => explicit_or_payload(lines, /(?:cliente|nome)\s*[:=-]\s*(.+)$/i, @freight['client_name']),
-        'date' => explicit_or_payload(lines, /(?:data(?: pretendida)?|coleta)\s*[:=-]\s*(.+)$/i, @freight['date']),
+        'date' => normalize_date(date, lines),
         'origin' => explicit_or_payload(lines, /origem\s*[:=-]\s*(.+)$/i, @freight['origin']),
-        'destination' => explicit_or_payload(lines, /destino\s*[:=-]\s*(.+)$/i, @freight['destination'])
+        'destination' => explicit_or_payload(lines, /destino\s*[:=-]\s*(.+)$/i, @freight['destination']),
+        'team' => explicit_or_payload(lines, /(?:equipe|time)\s*[:=-]\s*(.+)$/i, @freight['team'])
       }
+    end
+
+    def normalize_date(value, lines)
+      text = value.to_s.strip
+      return if text.blank?
+
+      match = text.match(/\b(?:meados?|meio)\s+(?:de\s+)?([[:alpha:]çãé]+)(?:\s+de)?(?:\s+((?:19|20)\d{2}))?/i)
+      return text unless match
+
+      month = MONTHS[InventoryCatalog.normalize(match[1])]
+      return text unless month
+
+      year = match[2]&.to_i || context_year(lines)
+      return text unless year
+
+      Date.new(year, month, 15).iso8601
+    rescue Date::Error
+      text
+    end
+
+    def context_year(lines)
+      candidates = [@freight['date'], @freight['context_date'], @freight['reference_date']].compact
+      candidates += lines.select { |line| InventoryCatalog.normalize(line).match?(/contexto|conversa|mensagem|refer[eê]ncia|ano|hoje/) }
+      candidates.filter_map { |value| value.to_s[CONTEXT_YEAR_PATTERN, 1]&.to_i }.first
     end
 
     def explicit_or_payload(lines, pattern, fallback)
@@ -58,11 +93,11 @@ module RottaCalculator
       started = false
       lines.filter_map do |line|
         normalized = InventoryCatalog.normalize(line)
-        if normalized.match?(/\binventario\b|\bitens?\b|\bmobiliario\b/)
+        if normalized.match?(/\A(?:inventario|itens?|mobiliario|lista)\b/)
           started = true
           next
         end
-        if started && normalized.match?(/\b(servicos?|ajudantes?|montagem|desmontagem|observacoes?|origem|destino)\b/)
+        if started && normalized.match?(/\A(?:servicos?|ajudantes?|equipe|montagem|desmontagem|observacoes?)\b/)
           started = false
           next
         end
@@ -84,6 +119,7 @@ module RottaCalculator
       original = line.to_s.strip
       return if original.blank?
       return if original.match?(/\A(?:invent[aá]rio|itens?|mobili[aá]rio|lista|observa[cç][oõ]es?)\b/i)
+      return if inventory_control_line?(original)
 
       cleaned = original.sub(/\A(?:[-*•·]\s*)?/, '').sub(/\A\d+[.)]\s*/, '').strip
       quantity = 1
@@ -115,6 +151,10 @@ module RottaCalculator
         'catalog_name' => catalog_entry&.name,
         'manual_review' => catalog_entry.nil?
       }.merge(dimensions.except(:name).stringify_keys)
+    end
+
+    def inventory_control_line?(line)
+      line.match?(INVENTORY_CONTROL_PATTERN) || line.match?(INVENTORY_INSTRUCTION_PATTERN)
     end
 
     def extract_dimensions(candidate)

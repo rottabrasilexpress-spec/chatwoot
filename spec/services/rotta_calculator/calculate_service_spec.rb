@@ -94,4 +94,28 @@ RSpec.describe RottaCalculator::CalculateService do
 
     expect(result).to include('route' => 'São Paulo - SP → Salvador - BA', 'ai_status' => 'degraded')
   end
+
+  it 'does not create inventory from an AI-only estimate without source evidence' do
+    allow(ai_client).to receive(:call).and_return(
+      'summary' => 'Resumo factual.',
+      'missing_information' => [],
+      'extracted_data' => {},
+      'inventory_estimates' => [
+        { 'name' => 'Ace Move', 'mounted_m3' => 1.0, 'disassembled_m3' => 1.0, 'weight_kg' => 10.0 }
+      ],
+      'price' => nil
+    )
+
+    result = described_class.new(
+      {
+        'reading_text' => "Origem: São Paulo - SP\nDestino: Salvador - BA\nINVENTÁRIO\n[1] Cama box casal",
+        'freight' => {},
+        'inventory' => {}
+      },
+      routes_client: routes_client,
+      ai_client: ai_client
+    ).call
+
+    expect(result.dig('inventory', 'items').map { |item| item['name'] }).to eq(['Cama box casal'])
+  end
 end
