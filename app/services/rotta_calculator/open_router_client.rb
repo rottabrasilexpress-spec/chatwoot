@@ -5,6 +5,7 @@ module RottaCalculator
   class OpenRouterClient
     ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'.freeze
     MODEL = 'deepseek/deepseek-v4-flash-0731'.freeze
+    MAX_TOKENS = 350
 
     def initialize(http_client: HTTParty)
       @http_client = http_client
@@ -28,7 +29,7 @@ module RottaCalculator
         body: {
           model: MODEL,
           temperature: 0.2,
-          max_tokens: 700,
+          max_tokens: MAX_TOKENS,
           messages: [
             { role: 'system', content: system_prompt },
             { role: 'user', content: context.to_json }

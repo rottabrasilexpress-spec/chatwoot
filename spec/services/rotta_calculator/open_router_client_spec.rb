@@ -27,6 +27,7 @@ RSpec.describe RottaCalculator::OpenRouterClient do
     expect(http_client).to have_received(:post) do |_url, options|
       body = JSON.parse(options[:body])
       expect(body['model']).to eq('deepseek/deepseek-v4-flash-0731')
+      expect(body['max_tokens']).to eq(350)
       expect(body['messages'].first['content']).to include('permanentemente desativado')
       expect(body['messages'].last['content']).not_to include('tollAmount')
     end
