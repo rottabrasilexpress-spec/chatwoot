@@ -334,6 +334,25 @@ onBeforeUnmount(() => {
           class="px-2 py-1 text-xs font-medium border rounded-lg border-n-weak text-n-slate-11 hover:text-n-brand"
           >Abrir no Google Maps</a
         >
+        <span
+          v-if="hasRoute"
+          class="inline-flex items-center gap-2 px-2 py-1 text-xs font-semibold border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+          data-testid="calculator-map-endpoint-legend-header"
+          title="A é a origem e B é o destino"
+        >
+          <span class="inline-flex items-center gap-1">
+            <span
+              class="inline-flex items-center justify-center text-[10px] text-white bg-n-blue-9 rounded-full size-4"
+              >A</span
+            >Origem
+          </span>
+          <span class="inline-flex items-center gap-1">
+            <span
+              class="inline-flex items-center justify-center text-[10px] text-white bg-n-ruby-9 rounded-full size-4"
+              >B</span
+            >Destino
+          </span>
+        </span>
       </div>
     </div>
     <div
@@ -430,7 +449,7 @@ onBeforeUnmount(() => {
       </div>
       <div
         v-if="hasRoute"
-        class="absolute z-10 flex items-center gap-2 px-2 py-1 text-[11px] font-semibold border rounded-lg shadow-sm right-3 top-3 border-n-weak bg-n-solid-1/95 text-n-slate-12"
+        class="absolute !z-[1000] flex items-center gap-2 px-2 py-1 text-[11px] font-semibold border rounded-lg shadow-sm pointer-events-none right-3 top-3 border-n-weak bg-n-solid-1 text-n-slate-12"
         data-testid="calculator-map-endpoint-legend"
       >
         <span class="flex items-center gap-1"
