@@ -1,10 +1,26 @@
 import {
+  adjustQuantity,
   buildCalculationResult,
   buildInventoryAudit,
+  formatDuration,
   parseInventory,
 } from './calculatorHelpers';
 
 describe('calculatorHelpers', () => {
+  it('formats route duration using 24-hour days', () => {
+    expect(formatDuration(2222)).toBe('1 dia e 13 horas');
+    expect(formatDuration(60)).toBe('1 hora');
+    expect(formatDuration(45)).toBe('45 minutos');
+    expect(formatDuration(0)).toBe('Aguardando');
+  });
+
+  it('clamps visible service quantity controls to zero and the maximum', () => {
+    expect(adjustQuantity(0, -1)).toBe(0);
+    expect(adjustQuantity(2, 1)).toBe(3);
+    expect(adjustQuantity(999, 1)).toBe(999);
+    expect(adjustQuantity(2, -1)).toBe(1);
+  });
+
   it('counts inventory lines and calculates cubic volume from metre dimensions', () => {
     expect(
       parseInventory('Sofá — 2.00 x 0.90 x 0.80 m\nMesa — 1.20 x 0.80 x 0.75 m')

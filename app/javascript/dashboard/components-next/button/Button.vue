@@ -73,6 +73,7 @@ const computedColor = computed(() => {
   if (props.color) return props.color;
   if (attrs.blue || attrs.blue === '') return 'blue';
   if (attrs.ruby || attrs.ruby === '') return 'ruby';
+  if (attrs.orange || attrs.orange === '') return 'orange';
   if (attrs.amber || attrs.amber === '') return 'amber';
   if (attrs.slate || attrs.slate === '') return 'slate';
   if (attrs.teal || attrs.teal === '') return 'teal';
@@ -119,6 +120,17 @@ const STYLE_CONFIG = {
       ghost:
         'text-n-ruby-11 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
       link: 'text-n-ruby-9 dark:text-n-ruby-11 hover:enabled:underline focus-visible:underline outline-transparent',
+    },
+    orange: {
+      solid:
+        'bg-n-orange-9 text-white hover:enabled:bg-n-orange-10 focus-visible:bg-n-orange-10 outline-transparent',
+      faded:
+        'bg-n-orange-9/10 text-n-orange-11 hover:enabled:bg-n-orange-9/20 focus-visible:bg-n-orange-9/20 outline-transparent',
+      outline:
+        'text-n-orange-11 hover:enabled:bg-n-orange-9/10 focus-visible:bg-n-orange-9/10 outline-n-orange-8',
+      ghost:
+        'text-n-orange-11 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
+      link: 'text-n-orange-9 hover:enabled:underline focus-visible:underline outline-transparent',
     },
     amber: {
       solid:

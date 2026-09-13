@@ -28,7 +28,12 @@ import {
   getRequestedCalculatorVisibility,
   shouldClaimCalculatorOwnership,
 } from './calculatorVisibility';
-import { buildInventoryAudit, parseInventory } from './calculatorHelpers';
+import {
+  adjustQuantity,
+  buildInventoryAudit,
+  formatDuration,
+  parseInventory,
+} from './calculatorHelpers';
 
 const { t } = useI18n();
 const { accountId, currentAccount, updateAccount } = useAccount();
@@ -387,6 +392,11 @@ const adjustPricePerKm = direction => {
   calculate();
 };
 
+const changeQuantity = (service, field, delta) => {
+  const target = service === 'helpers' ? pricing.helpers : pricing.assembly;
+  target[field] = adjustQuantity(target[field], delta);
+};
+
 const selectPricingCard = cardId => {
   if (isCalculating.value || pricing.selectedCardId === cardId) return;
   pricing.selectedCardId = cardId;
@@ -478,7 +488,7 @@ onBeforeUnmount(() => {
     <template #body>
       <div v-if="canView" class="flex flex-col gap-4 mt-4">
         <section
-          class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1 sm:flex-row sm:items-center sm:justify-between"
+          class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1 sm:flex-row sm:items-center sm:justify-between xl:col-span-2"
         >
           <div class="flex items-start gap-3">
             <div
@@ -511,11 +521,9 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <section
-          class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.02fr)_minmax(24rem,0.98fr)]"
-        >
+        <section class="grid grid-cols-1 items-start gap-3 xl:contents">
           <div
-            class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1"
+            class="flex flex-col self-start gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1 xl:col-start-1 xl:row-start-1"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="flex items-start gap-3">
@@ -544,9 +552,9 @@ onBeforeUnmount(() => {
               v-model="readingText"
               :label="t('CALCULATOR.READING.LABEL')"
               :placeholder="t('CALCULATOR.READING.PLACEHOLDER')"
-              custom-text-area-class="min-h-[12rem] xl:min-h-[16rem]"
-              min-height="12rem"
-              max-height="32rem"
+              custom-text-area-class="min-h-[8rem] xl:min-h-[10rem]"
+              min-height="8rem"
+              max-height="24rem"
               resize
               data-testid="calculator-reading-input"
             />
@@ -554,14 +562,14 @@ onBeforeUnmount(() => {
               <Button
                 :label="t('CALCULATOR.ACTIONS.CLEAR')"
                 variant="outline"
-                color="slate"
+                color="ruby"
                 icon="i-lucide-eraser"
                 data-testid="calculator-clear"
                 @click="clearCalculator"
               />
               <Button
                 :label="t('CALCULATOR.ACTIONS.CALCULATE')"
-                color="blue"
+                color="orange"
                 icon="i-lucide-calculator"
                 :is-loading="isCalculating"
                 data-testid="calculator-calculate"
@@ -576,7 +584,9 @@ onBeforeUnmount(() => {
               {{ calculationError }}
             </p>
           </div>
-          <div class="flex flex-col gap-4">
+          <div
+            class="flex flex-col self-start gap-3 xl:col-start-2 xl:row-start-1"
+          >
             <GoogleMapPanel
               :origin="freight.origin"
               :destination="freight.destination"
@@ -584,7 +594,7 @@ onBeforeUnmount(() => {
             />
             <div
               v-if="result"
-              class="flex flex-wrap gap-2 p-3 border rounded-xl border-n-teal-5 bg-n-teal-1/40"
+              class="flex flex-wrap gap-2 p-2 border rounded-xl border-n-teal-5 bg-n-teal-1/40"
               data-testid="calculator-route-status"
             >
               <span
@@ -619,24 +629,26 @@ onBeforeUnmount(() => {
               >
                 <button
                   type="button"
-                  class="px-3 py-2 text-xs font-semibold rounded-md"
+                  class="px-3 py-2 text-xs font-semibold transition-colors rounded-md"
                   :class="
                     routeMode === 'shared'
-                      ? 'bg-n-orange-9 text-white'
-                      : 'text-n-slate-11 hover:bg-n-alpha-2'
+                      ? 'bg-n-orange-9 text-white shadow-sm ring-2 ring-n-orange-9/30'
+                      : 'bg-n-orange-2 text-n-orange-11 hover:bg-n-orange-3'
                   "
+                  :aria-pressed="routeMode === 'shared'"
                   @click="routeMode = 'shared'"
                 >
                   Aproveitamento logístico
                 </button>
                 <button
                   type="button"
-                  class="px-3 py-2 text-xs font-semibold rounded-md"
+                  class="px-3 py-2 text-xs font-semibold transition-colors rounded-md"
                   :class="
                     routeMode === 'exclusive'
-                      ? 'bg-n-orange-9 text-white'
-                      : 'text-n-slate-11 hover:bg-n-alpha-2'
+                      ? 'bg-n-orange-9 text-white shadow-sm ring-2 ring-n-orange-9/30'
+                      : 'bg-n-orange-2 text-n-orange-11 hover:bg-n-orange-3'
                   "
+                  :aria-pressed="routeMode === 'exclusive'"
                   @click="routeMode = 'exclusive'"
                 >
                   Exclusivo
@@ -644,7 +656,7 @@ onBeforeUnmount(() => {
               </div>
               <Button
                 label="Calcular rota"
-                color="blue"
+                color="orange"
                 icon="i-lucide-route"
                 :is-loading="isCalculating"
                 data-testid="calculator-route-calculate"
@@ -654,11 +666,9 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <div
-          class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]"
-        >
+        <div class="grid grid-cols-1 items-start gap-3 xl:contents">
           <section
-            class="flex flex-col gap-3 p-3 border-l-4 rounded-xl border-n-orange-5 bg-n-orange-1/50 xl:col-start-2 xl:row-start-1"
+            class="flex flex-col self-start gap-3 p-3 border-l-4 rounded-xl border-n-orange-5 bg-n-orange-1/50 xl:col-start-1 xl:row-start-2"
           >
             <div>
               <h2 class="text-base font-semibold text-n-slate-12">
@@ -702,7 +712,7 @@ onBeforeUnmount(() => {
           </section>
 
           <section
-            class="flex flex-col gap-3 p-3 border-l-4 rounded-xl border-n-teal-5 bg-n-teal-1/40 xl:col-start-1 xl:row-start-1"
+            class="flex flex-col self-start gap-3 p-3 border-l-4 rounded-xl border-n-teal-5 bg-n-teal-1/40 xl:col-start-1 xl:row-start-4"
           >
             <div>
               <h2 class="text-base font-semibold text-n-slate-12">
@@ -746,7 +756,9 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </section>
-          <section class="flex flex-col gap-3 xl:col-start-1 xl:row-start-2">
+          <section
+            class="flex flex-col self-start gap-3 xl:col-start-1 xl:row-start-3"
+          >
             <div class="flex items-end justify-between gap-3">
               <div>
                 <p
@@ -762,6 +774,151 @@ onBeforeUnmount(() => {
                 >Tudo começa em zero e só entra no preço quando
                 preenchido.</span
               >
+            </div>
+            <div
+              class="grid grid-cols-1 gap-2 p-2 border rounded-xl border-n-orange-5 bg-n-orange-1/40 sm:grid-cols-2"
+              data-testid="calculator-service-quantity-controls"
+            >
+              <div
+                class="flex items-center justify-between gap-3 p-2 rounded-lg bg-n-solid-1"
+              >
+                <div>
+                  <p class="text-xs font-semibold text-n-slate-12">
+                    Ajudantes · origem
+                  </p>
+                  <p class="text-[11px] text-n-slate-11">Quantidade</p>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    aria-label="Reduzir ajudantes na origem"
+                    data-testid="calculator-helpers-origin-decrement"
+                    @click="changeQuantity('helpers', 'origin', -1)"
+                  >
+                    −
+                  </button>
+                  <output
+                    class="w-8 text-sm font-bold text-center text-n-slate-12"
+                    >{{ pricing.helpers.origin }}</output
+                  >
+                  <button
+                    type="button"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    aria-label="Aumentar ajudantes na origem"
+                    data-testid="calculator-helpers-origin-increment"
+                    @click="changeQuantity('helpers', 'origin', 1)"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between gap-3 p-2 rounded-lg bg-n-solid-1"
+              >
+                <div>
+                  <p class="text-xs font-semibold text-n-slate-12">
+                    Ajudantes · destino
+                  </p>
+                  <p class="text-[11px] text-n-slate-11">Quantidade</p>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    aria-label="Reduzir ajudantes no destino"
+                    data-testid="calculator-helpers-destination-decrement"
+                    @click="changeQuantity('helpers', 'destination', -1)"
+                  >
+                    −
+                  </button>
+                  <output
+                    class="w-8 text-sm font-bold text-center text-n-slate-12"
+                    >{{ pricing.helpers.destination }}</output
+                  >
+                  <button
+                    type="button"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    aria-label="Aumentar ajudantes no destino"
+                    data-testid="calculator-helpers-destination-increment"
+                    @click="changeQuantity('helpers', 'destination', 1)"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between gap-3 p-2 rounded-lg bg-n-solid-1"
+              >
+                <div>
+                  <p class="text-xs font-semibold text-n-slate-12">
+                    Montador · desmontagem
+                  </p>
+                  <p class="text-[11px] text-n-slate-11">Origem</p>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    aria-label="Reduzir montadores na desmontagem"
+                    data-testid="calculator-assembly-origin-decrement"
+                    @click="changeQuantity('assembly', 'originDisassembly', -1)"
+                  >
+                    −
+                  </button>
+                  <output
+                    class="w-8 text-sm font-bold text-center text-n-slate-12"
+                    >{{ pricing.assembly.originDisassembly }}</output
+                  >
+                  <button
+                    type="button"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    aria-label="Aumentar montadores na desmontagem"
+                    data-testid="calculator-assembly-origin-increment"
+                    @click="changeQuantity('assembly', 'originDisassembly', 1)"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between gap-3 p-2 rounded-lg bg-n-solid-1"
+              >
+                <div>
+                  <p class="text-xs font-semibold text-n-slate-12">
+                    Montador · montagem
+                  </p>
+                  <p class="text-[11px] text-n-slate-11">Destino</p>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    aria-label="Reduzir montadores na montagem"
+                    data-testid="calculator-assembly-destination-decrement"
+                    @click="
+                      changeQuantity('assembly', 'destinationAssembly', -1)
+                    "
+                  >
+                    −
+                  </button>
+                  <output
+                    class="w-8 text-sm font-bold text-center text-n-slate-12"
+                    >{{ pricing.assembly.destinationAssembly }}</output
+                  >
+                  <button
+                    type="button"
+                    class="flex items-center justify-center w-8 h-8 text-lg font-bold border rounded-lg border-n-orange-6 text-n-orange-11 hover:bg-n-orange-2"
+                    aria-label="Aumentar montadores na montagem"
+                    data-testid="calculator-assembly-destination-increment"
+                    @click="
+                      changeQuantity('assembly', 'destinationAssembly', 1)
+                    "
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
               <section
@@ -780,22 +937,22 @@ onBeforeUnmount(() => {
                   >
                 </div>
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <label class="text-xs text-n-slate-11"
-                    >Origem<input
-                      v-model.number="pricing.helpers.origin"
-                      type="number"
-                      min="0"
-                      max="999"
-                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  /></label>
-                  <label class="text-xs text-n-slate-11"
-                    >Destino<input
-                      v-model.number="pricing.helpers.destination"
-                      type="number"
-                      min="0"
-                      max="999"
-                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  /></label>
+                  <div
+                    class="p-2 text-xs rounded-lg bg-n-blue-1 text-n-slate-11"
+                  >
+                    Origem:
+                    <strong class="text-n-slate-12">{{
+                      pricing.helpers.origin
+                    }}</strong>
+                  </div>
+                  <div
+                    class="p-2 text-xs rounded-lg bg-n-blue-1 text-n-slate-11"
+                  >
+                    Destino:
+                    <strong class="text-n-slate-12">{{
+                      pricing.helpers.destination
+                    }}</strong>
+                  </div>
                   <label class="text-xs text-n-slate-11"
                     >Valor unit.<input
                       v-model.number="pricing.helperUnit"
@@ -823,22 +980,22 @@ onBeforeUnmount(() => {
                   >
                 </div>
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <label class="text-xs text-n-slate-11"
-                    >Desmont. origem<input
-                      v-model.number="pricing.assembly.originDisassembly"
-                      type="number"
-                      min="0"
-                      max="999"
-                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  /></label>
-                  <label class="text-xs text-n-slate-11"
-                    >Montag. destino<input
-                      v-model.number="pricing.assembly.destinationAssembly"
-                      type="number"
-                      min="0"
-                      max="999"
-                      class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  /></label>
+                  <div
+                    class="p-2 text-xs rounded-lg bg-n-orange-1 text-n-slate-11"
+                  >
+                    Desmont. origem:
+                    <strong class="text-n-slate-12">{{
+                      pricing.assembly.originDisassembly
+                    }}</strong>
+                  </div>
+                  <div
+                    class="p-2 text-xs rounded-lg bg-n-orange-1 text-n-slate-11"
+                  >
+                    Montag. destino:
+                    <strong class="text-n-slate-12">{{
+                      pricing.assembly.destinationAssembly
+                    }}</strong>
+                  </div>
                   <label class="text-xs text-n-slate-11"
                     >Valor unit.<input
                       v-model.number="pricing.assemblerUnit"
@@ -911,51 +1068,8 @@ onBeforeUnmount(() => {
         </div>
 
         <section
-          class="grid grid-cols-1 gap-4 p-5 border rounded-2xl border-dashed border-n-strong bg-n-alpha-1 lg:grid-cols-2"
-        >
-          <div class="flex items-start gap-3">
-            <Icon
-              icon="i-lucide-sparkles"
-              class="flex-shrink-0 mt-0.5 size-5 text-n-brand"
-            />
-            <div>
-              <h2 class="text-base font-semibold text-n-slate-12">
-                {{ t('CALCULATOR.INTEGRATIONS.TITLE') }}
-              </h2>
-              <p class="mt-1 text-sm text-n-slate-11">
-                {{ t('CALCULATOR.INTEGRATIONS.DESCRIPTION') }}
-              </p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div class="p-3 border rounded-lg border-n-weak bg-n-solid-1">
-              <p class="text-sm font-medium text-n-slate-12">
-                {{ t('CALCULATOR.INTEGRATIONS.AI_TITLE') }}
-              </p>
-              <p class="mt-1 text-xs text-n-slate-11">
-                {{
-                  result?.ai_status === 'complete'
-                    ? t('CALCULATOR.INTEGRATIONS.CONNECTED')
-                    : result?.ai_status === 'degraded'
-                      ? t('CALCULATOR.INTEGRATIONS.DEGRADED')
-                      : t('CALCULATOR.INTEGRATIONS.READY')
-                }}
-              </p>
-            </div>
-            <div class="p-3 border rounded-lg border-n-weak bg-n-solid-1">
-              <p class="text-sm font-medium text-n-slate-12">
-                {{ t('CALCULATOR.INTEGRATIONS.MAPS_TITLE') }}
-              </p>
-              <p class="mt-1 text-xs text-n-slate-11">
-                {{ mapsBackendStatus }}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section
           v-if="result"
-          class="flex flex-col gap-5 p-5 border rounded-2xl border-n-brand/40 bg-n-brand/5"
+          class="flex flex-col self-start gap-5 p-4 border rounded-2xl border-n-brand/40 bg-n-brand/5 xl:col-start-2 xl:row-start-2"
           data-testid="calculator-result"
         >
           <div>
@@ -1027,7 +1141,7 @@ onBeforeUnmount(() => {
                     {{ t('CALCULATOR.RESULT.DURATION') }}
                   </p>
                   <p class="mt-1 text-sm font-semibold text-n-slate-12">
-                    {{ `${result.duration_minutes} min` }}
+                    {{ formatDuration(result.duration_minutes) }}
                   </p>
                 </div>
                 <div class="p-3 rounded-lg bg-n-solid-1">
@@ -1340,7 +1454,7 @@ onBeforeUnmount(() => {
               <div class="p-3 rounded-lg bg-n-solid-1">
                 <p class="text-xs text-n-slate-11">Tempo caminhão</p>
                 <p class="mt-1 text-sm font-semibold text-n-slate-12">
-                  {{ (financialDetail.truckDurationMinutes / 60).toFixed(2) }} h
+                  {{ formatDuration(financialDetail.truckDurationMinutes) }}
                 </p>
               </div>
             </div>
@@ -1360,7 +1474,7 @@ onBeforeUnmount(() => {
               <div class="p-3 rounded-lg bg-n-solid-1">
                 <p class="text-xs text-n-slate-11">Tempo da viagem</p>
                 <p class="mt-1 text-sm font-semibold text-n-slate-12">
-                  {{ (financialDetail.routeDurationMinutes / 60).toFixed(2) }} h
+                  {{ formatDuration(financialDetail.routeDurationMinutes) }}
                 </p>
               </div>
             </div>

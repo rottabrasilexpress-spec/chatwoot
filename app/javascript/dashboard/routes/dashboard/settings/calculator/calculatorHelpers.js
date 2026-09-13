@@ -6,6 +6,31 @@ const roundToThreeDecimals = value =>
 const roundToTwoDecimals = value =>
   Math.round((value + Number.EPSILON) * 100) / 100;
 
+export const adjustQuantity = (value, delta, maximum = 999) => {
+  const current = Math.trunc(Number(value) || 0);
+  const change = Math.trunc(Number(delta) || 0);
+
+  return Math.min(maximum, Math.max(0, current + change));
+};
+
+export const formatDuration = value => {
+  const totalMinutes = Math.max(0, Math.round(Number(value) || 0));
+  if (!totalMinutes) return 'Aguardando';
+
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+
+  if (days) parts.push(`${days} ${days === 1 ? 'dia' : 'dias'}`);
+  if (hours) parts.push(`${hours} ${hours === 1 ? 'hora' : 'horas'}`);
+  if (minutes && !days) {
+    parts.push(`${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`);
+  }
+
+  return parts.join(' e ');
+};
+
 const parseDimensions = line => {
   const dimensions = line.match(
     /(\d+(?:[.,]\d+)?)\s*(cm|m)?\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*(cm|m)?\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*(cm|m)?/i

@@ -8,6 +8,7 @@ import {
   decodeGooglePolyline,
   getGoogleMapEndpoints,
 } from './googleMapHelpers';
+import { formatDuration } from './calculatorHelpers';
 
 const props = defineProps({
   origin: { type: String, default: '' },
@@ -507,8 +508,8 @@ onBeforeUnmount(() => {
         <p class="mt-1 font-semibold text-n-slate-12">
           {{
             route?.duration_minutes
-              ? `${route.duration_minutes} min`
-              : 'Aguardando'
+              ? formatDuration(route.duration_minutes)
+              : formatDuration(0)
           }}
         </p>
       </div>
