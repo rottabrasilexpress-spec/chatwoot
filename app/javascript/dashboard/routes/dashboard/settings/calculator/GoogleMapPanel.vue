@@ -77,7 +77,7 @@ const loadGoogleMaps = () => {
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
       apiKey.value
-    )}&libraries=geometry&language=pt-BR&region=BR`;
+    )}&libraries=geometry&language=pt-BR&region=BR&loading=async`;
     script.async = true;
     script.defer = true;
     script.dataset.rottaGoogleMaps = 'true';
