@@ -592,6 +592,7 @@ onBeforeUnmount(() => {
                 data-testid="calculator-date"
               />
               <Input
+                id="calculator-origin"
                 v-model="freight.origin"
                 :label="t('CALCULATOR.FREIGHT.ORIGIN')"
                 :placeholder="t('CALCULATOR.FREIGHT.ORIGIN_PLACEHOLDER')"
@@ -599,6 +600,7 @@ onBeforeUnmount(() => {
                 data-testid="calculator-origin"
               />
               <Input
+                id="calculator-destination"
                 v-model="freight.destination"
                 :label="t('CALCULATOR.FREIGHT.DESTINATION')"
                 :placeholder="t('CALCULATOR.FREIGHT.DESTINATION_PLACEHOLDER')"
