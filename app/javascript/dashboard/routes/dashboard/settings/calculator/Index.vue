@@ -69,6 +69,12 @@ const pendingVisibility = ref(null);
 const isSavingVisibility = ref(false);
 const activeResultTab = ref('proposal');
 
+const mapsBackendStatus = computed(() =>
+  result.value?.api_status === 'complete'
+    ? 'Google Maps visual + motor de rotas do backend ativos'
+    : t('CALCULATOR.INTEGRATIONS.READY')
+);
+
 const calculatorSettings = computed(() => currentAccount.value?.settings || {});
 const canView = computed(() =>
   canViewCalculator({
@@ -756,14 +762,7 @@ watch(
                 {{ t('CALCULATOR.INTEGRATIONS.MAPS_TITLE') }}
               </p>
               <p class="mt-1 text-xs text-n-slate-11">
-                {{
-                  result?.api_status === 'complete'
-                    ? t(
-                        'CALCULATOR.INTEGRATIONS.MAPS_BACKEND_ACTIVE',
-                        'Google Maps visual + motor de rotas do backend ativos'
-                      )
-                    : t('CALCULATOR.INTEGRATIONS.READY')
-                }}
+                {{ mapsBackendStatus }}
               </p>
             </div>
           </div>
@@ -868,7 +867,7 @@ watch(
                 {{ t('CALCULATOR.INTEGRATIONS.MAPS_TITLE') }}
               </p>
               <p class="mt-1 text-xs text-n-slate-10">
-                {{ t('CALCULATOR.INTEGRATIONS.MAPS_BACKEND_ACTIVE') }}
+                {{ mapsBackendStatus }}
               </p>
             </div>
           </div>
