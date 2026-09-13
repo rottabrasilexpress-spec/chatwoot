@@ -91,3 +91,11 @@ Data: 2026-09-12
 - Mapa, Satélite e Relevo foram alternados; os links gerados confirmaram `t=m`, `t=k` e `t=p`. Os links de foto da origem/destino, Ver rota, GPS, proposta e inventário permaneceram presentes.
 - A leitura produziu oito itens, ajudantes `2/2`, montagem/desmontagem `2/2`, seis faixas comerciais e proposta copiável. Equilibrada recalculou e Padrão restaurou o preço de referência. O resultado visual agora está comprovadamente alinhado ao fluxo do Hub, com a ressalva de que valores de rota podem variar por waypoint/motor.
 - Nenhuma conversa, etiqueta, contato, mensagem ou credencial foi alterada durante essa comparação.
+
+## Fechamento da auditoria — Places e consistência de rota — 2026-09-13
+
+- O autocomplete real do Google foi reproduzido no Chatwoot: `Teresina` abriu sugestões e a seleção preencheu o input; `Campo Grande` também foi selecionado. O defeito era a ausência dos IDs que o inicializador procurava, corrigido no commit `29490f770`.
+- A restrição da chave browser existente foi atualizada no Google Cloud para incluir `Places API` junto com `Maps JavaScript API`, mantendo os referrers do Chatwoot. Não foi criada nova chave nem registrado segredo.
+- O resultado live final usou `Teresina - PI → Campo Grande - MS`, `Google Routes`, `2755,9 km`, `2168 min` e pedágios desativados. O mapa mostrou linha, A/B, controles e links operacionais. O Hub segue como referência visual/funcional, com diferenças de tempo/distância esperadas entre execuções do motor.
+- Foi corrigido o resumo textual da preparação: ele agora usa os campos atuais, não o endereço anterior de uma seleção Places. O resultado final mostrou `Rota Teresina - PI → Campo Grande - MS` de forma consistente.
+- Deploy final `1689e8c63` concluído no EasyPanel; `/health` HTTP 200; bundle público `dashboard-C8ZSmAfW.js`; Vitest focalizado `11/11`. Nenhum dado WhatsApp foi alterado.
