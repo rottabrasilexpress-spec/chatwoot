@@ -1,6 +1,6 @@
 module RottaCalculator
   class CalculateService
-    AI_WAIT_TIMEOUT = 8
+    AI_WAIT_TIMEOUT = 11
 
     def initialize(payload, routes_client: nil, ai_client: OpenRouterClient.new, ai_timeout: AI_WAIT_TIMEOUT)
       @payload = payload.stringify_keys

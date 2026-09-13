@@ -28,13 +28,13 @@ module RottaCalculator
         body: {
           model: MODEL,
           temperature: 0.2,
-          max_tokens: 2400,
+          max_tokens: 1200,
           messages: [
             { role: 'system', content: system_prompt },
             { role: 'user', content: context.to_json }
           ]
         }.to_json,
-        timeout: 30
+        timeout: 12
       )
 
       payload = response.parsed_response
