@@ -493,7 +493,7 @@ onBeforeUnmount(() => {
     <template #body>
       <div
         v-if="canView"
-        class="grid grid-cols-1 gap-3 p-2 mt-4 rounded-2xl bg-n-amber-1/20 xl:gap-4 xl:p-3 xl:grid-cols-[minmax(0,0.92fr)_minmax(24rem,1.08fr)]"
+        class="grid grid-cols-1 gap-3 p-2 mt-4 rounded-2xl bg-n-amber-1/50 xl:gap-4 xl:p-3 xl:grid-cols-[minmax(0,0.92fr)_minmax(24rem,1.08fr)]"
       >
         <section
           class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1 sm:flex-row sm:items-center sm:justify-between xl:col-span-2"
