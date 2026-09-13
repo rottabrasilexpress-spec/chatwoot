@@ -429,6 +429,24 @@ onBeforeUnmount(() => {
         </button>
       </div>
       <div
+        v-if="hasRoute"
+        class="absolute z-10 flex items-center gap-2 px-2 py-1 text-[11px] font-semibold border rounded-lg shadow-sm right-3 top-3 border-n-weak bg-n-solid-1/95 text-n-slate-12"
+        data-testid="calculator-map-endpoint-legend"
+      >
+        <span class="flex items-center gap-1"
+          ><span
+            class="flex items-center justify-center text-[10px] text-white bg-n-blue-9 rounded-full size-4"
+            >A</span
+          >Origem</span
+        >
+        <span class="flex items-center gap-1"
+          ><span
+            class="flex items-center justify-center text-[10px] text-white bg-n-ruby-9 rounded-full size-4"
+            >B</span
+          >Destino</span
+        >
+      </div>
+      <div
         v-if="isLoading"
         class="absolute inset-0 flex items-center justify-center bg-n-solid-1/80"
       >
