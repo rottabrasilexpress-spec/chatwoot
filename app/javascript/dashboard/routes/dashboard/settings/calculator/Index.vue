@@ -1090,8 +1090,8 @@ watch(
               <textarea
                 :value="result.proposal"
                 readonly
-                rows="8"
-                class="w-full p-4 text-sm border rounded-lg resize-y border-n-weak bg-n-solid-1 text-n-slate-12 focus:outline-none focus:ring-1 focus:ring-n-brand"
+                rows="14"
+                class="w-full min-h-[20rem] p-4 text-sm border rounded-lg resize-y border-n-weak bg-n-solid-1 text-n-slate-12 focus:outline-none focus:ring-1 focus:ring-n-brand"
                 data-testid="calculator-proposal"
               />
             </div>
@@ -1144,8 +1144,8 @@ watch(
               <textarea
                 :value="inventoryText || t('CALCULATOR.RESULT.INVENTORY_EMPTY')"
                 readonly
-                rows="8"
-                class="w-full p-4 text-sm border rounded-lg resize-y border-n-weak bg-n-solid-1 text-n-slate-12 focus:outline-none focus:ring-1 focus:ring-n-brand"
+                rows="14"
+                class="w-full min-h-[20rem] p-4 text-sm border rounded-lg resize-y border-n-weak bg-n-solid-1 text-n-slate-12 focus:outline-none focus:ring-1 focus:ring-n-brand"
                 data-testid="calculator-inventory-preview"
               />
             </div>
