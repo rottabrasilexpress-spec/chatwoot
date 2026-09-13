@@ -12,8 +12,13 @@ module RottaCalculator
 
     def call(origin:, destination:)
       raise ArgumentError, 'Origem e destino são obrigatórios' if origin.blank? || destination.blank?
-      origin_point = @geocoder.call(origin)
-      destination_point = @geocoder.call(destination)
+      # Nominatim is the slowest part of the unauthenticated fallback. The
+      # lookups are independent, so perform them concurrently and keep the
+      # same deterministic route request and response contract.
+      origin_lookup = Thread.new { @geocoder.call(origin) }
+      destination_lookup = Thread.new { @geocoder.call(destination) }
+      origin_point = origin_lookup.value
+      destination_point = destination_lookup.value
       uri = URI("#{ENDPOINT}/#{origin_point['longitude']},#{origin_point['latitude']};#{destination_point['longitude']},#{destination_point['latitude']}")
       uri.query = URI.encode_www_form(overview: 'full', geometries: 'polyline', alternatives: 'false', steps: 'false')
       response = Net::HTTP.get_response(uri)
