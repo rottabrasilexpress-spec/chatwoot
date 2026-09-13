@@ -33,5 +33,14 @@ RSpec.describe Api::V1::Accounts::CalculatorController, type: :controller do
       expect(response).to have_http_status(:forbidden)
       expect(response.parsed_body['error']).to include('responsável')
     end
+
+    it 'halts before running the calculation and avoids a double render' do
+      expect(RottaCalculator::CalculateService).not_to receive(:new)
+
+      post :calculate, params: { calculator: {} }
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.parsed_body['error']).to include('responsável')
+    end
   end
 end

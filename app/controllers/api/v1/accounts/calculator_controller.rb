@@ -1,6 +1,6 @@
 class Api::V1::Accounts::CalculatorController < Api::V1::Accounts::BaseController
   def calculate
-    authorize_calculator_access!
+    return unless authorize_calculator_access!
 
     calculation = ::RottaCalculator::CalculateService.new(calculator_params).call
     render json: calculation, status: :ok
@@ -25,9 +25,10 @@ class Api::V1::Accounts::CalculatorController < Api::V1::Accounts::BaseControlle
     settings = Current.account.settings || {}
     shared = ActiveModel::Type::Boolean.new.cast(settings['rotta_calculator_shared'])
     owner_id = settings['rotta_calculator_owner_id'].presence
-    return if shared || (owner_id.present? && owner_id.to_i == Current.user.id)
+    return true if shared || (owner_id.present? && owner_id.to_i == Current.user.id)
 
     render json: { error: 'A Calculadora está disponível somente para o agente responsável.' }, status: :forbidden
+    false
   end
 
   def calculator_params
