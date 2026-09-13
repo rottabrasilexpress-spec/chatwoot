@@ -82,7 +82,7 @@ const loadGoogleMaps = () => {
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
       apiKey.value
-    )}&libraries=geometry,places&language=pt-BR&region=BR&loading=async&callback=${callbackName}`;
+    )}&libraries=geometry,places,marker&language=pt-BR&region=BR&loading=async&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
     script.dataset.rottaGoogleMaps = 'true';
@@ -120,7 +120,7 @@ const drawRoute = () => {
   });
 
   const endpoints = getGoogleMapEndpoints(props.route?.route_polyline);
-  if (endpoints && window.google.maps.Marker) {
+  if (endpoints) {
     const markerIcon = fillColor => ({
       path: window.google.maps.SymbolPath.CIRCLE,
       scale: 12,
@@ -129,20 +129,22 @@ const drawRoute = () => {
       strokeColor: '#ffffff',
       strokeWeight: 3,
     });
-    originMarker.value = new window.google.maps.Marker({
-      position: endpoints.origin,
-      map: map.value,
-      icon: markerIcon('#2563eb'),
-      label: { text: 'A', color: '#ffffff', fontWeight: '700' },
-      title: 'Origem',
-    });
-    destinationMarker.value = new window.google.maps.Marker({
-      position: endpoints.destination,
-      map: map.value,
-      icon: markerIcon('#e11d48'),
-      label: { text: 'B', color: '#ffffff', fontWeight: '700' },
-      title: 'Destino',
-    });
+    if (window.google.maps.Marker) {
+      originMarker.value = new window.google.maps.Marker({
+        position: endpoints.origin,
+        map: map.value,
+        icon: markerIcon('#2563eb'),
+        label: { text: 'A', color: '#ffffff', fontWeight: '700' },
+        title: 'Origem',
+      });
+      destinationMarker.value = new window.google.maps.Marker({
+        position: endpoints.destination,
+        map: map.value,
+        icon: markerIcon('#e11d48'),
+        label: { text: 'B', color: '#ffffff', fontWeight: '700' },
+        title: 'Destino',
+      });
+    }
     originOverlay.value = createEndpointOverlay(
       endpoints.origin,
       'A',
