@@ -51,3 +51,11 @@ Data: 2026-09-12
 - Os cartões `Econômica` e `Padrão` foram alternados no live; `Satélite` e `Mapa` foram alternados e seus links `t=k`/`t=m` conferidos.
 - Commits publicados: `8cac7d376` (redesenho responsivo do mapa) e `7e3783e37` (saídas ampliadas). O último deploy verde do EasyPanel é `fix(calculator): enlarge proposal and inventory outputs`.
 - Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [transcrição do vídeo](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\research\rotta-calculator-video-transcript-20260913.md) ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments).
+
+## Auditoria de rota e persistência das integrações — 2026-09-13
+
+- No Hub, o teste Washington / Teresina - PI → Campo Grande - MS produziu `2760,7 km` e `1 dia 20h 31min`, com pedágios desativados.
+- No Chatwoot, o mesmo teste produziu `2713,4 km` e `2096 min`, com provider `osm-osrm-fallback`. A UI identifica isso como `Fallback de rota`; não foi apresentada falsa equivalência com Google Routes.
+- A diferença de `47,3 km` mostra que ainda não há paridade de motor entre Hub e Chatwoot. O layout e os controles estão alinhados, mas a quilometragem só deve ser considerada equivalente após uma chave server-side válida e persistida para Google Routes.
+- A configuração persistida do EasyPanel não contém as variáveis Google server/browser esperadas, embora o processo live ainda tenha servido a chave visual do mapa. Isso é drift de ambiente e precisa ser corrigido antes do próximo deploy para evitar regressão.
+- Não houve alteração de código ou de dados nesta rodada; nenhum segredo foi registrado nesta pesquisa.
