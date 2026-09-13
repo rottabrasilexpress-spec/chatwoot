@@ -24,11 +24,12 @@ export const formatDuration = value => {
 
   if (days) parts.push(`${days} ${days === 1 ? 'dia' : 'dias'}`);
   if (hours) parts.push(`${hours} ${hours === 1 ? 'hora' : 'horas'}`);
-  if (minutes && !days) {
+  if (minutes) {
     parts.push(`${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`);
   }
 
-  return parts.join(' e ');
+  if (parts.length <= 1) return parts[0];
+  return `${parts.slice(0, -1).join(', ')} e ${parts.at(-1)}`;
 };
 
 const parseDimensions = line => {

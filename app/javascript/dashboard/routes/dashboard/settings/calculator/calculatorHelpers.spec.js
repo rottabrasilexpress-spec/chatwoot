@@ -8,7 +8,7 @@ import {
 
 describe('calculatorHelpers', () => {
   it('formats route duration using 24-hour days', () => {
-    expect(formatDuration(2222)).toBe('1 dia e 13 horas');
+    expect(formatDuration(2222)).toBe('1 dia, 13 horas e 2 minutos');
     expect(formatDuration(60)).toBe('1 hora');
     expect(formatDuration(45)).toBe('45 minutos');
     expect(formatDuration(0)).toBe('Aguardando');

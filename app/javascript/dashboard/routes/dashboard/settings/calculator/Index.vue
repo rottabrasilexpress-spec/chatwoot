@@ -75,6 +75,7 @@ const inventoryText = ref('');
 const result = ref(null);
 const isCalculating = ref(false);
 const calculationError = ref('');
+const hasPendingQuantityCalculation = ref(false);
 const routeMode = ref('shared');
 const isShared = ref(false);
 const showVisibilityConfirmModal = ref(false);
@@ -82,12 +83,6 @@ const pendingVisibility = ref(null);
 const isSavingVisibility = ref(false);
 const activeResultTab = ref('proposal');
 const placeAutocompleteListeners = [];
-
-const mapsBackendStatus = computed(() =>
-  result.value?.api_status === 'complete'
-    ? 'Google Maps visual + motor de rotas do backend ativos'
-    : t('CALCULATOR.INTEGRATIONS.READY')
-);
 
 const routeProviderLabel = computed(() => {
   const provider = result.value?.route_provider;
@@ -325,6 +320,7 @@ const clearCalculator = () => {
   pricing.helpers.destination = 0;
   pricing.assembly.originDisassembly = 0;
   pricing.assembly.destinationAssembly = 0;
+  hasPendingQuantityCalculation.value = false;
   result.value = null;
   calculationError.value = '';
   activeResultTab.value = 'proposal';
@@ -379,6 +375,10 @@ const calculate = async () => {
     useAlert(calculationError.value);
   } finally {
     isCalculating.value = false;
+    if (hasPendingQuantityCalculation.value) {
+      hasPendingQuantityCalculation.value = false;
+      calculate();
+    }
   }
 };
 
@@ -395,6 +395,11 @@ const adjustPricePerKm = direction => {
 const changeQuantity = (service, field, delta) => {
   const target = service === 'helpers' ? pricing.helpers : pricing.assembly;
   target[field] = adjustQuantity(target[field], delta);
+  if (isCalculating.value) {
+    hasPendingQuantityCalculation.value = true;
+    return;
+  }
+  calculate();
 };
 
 const selectPricingCard = cardId => {
@@ -486,7 +491,10 @@ onBeforeUnmount(() => {
     </template>
 
     <template #body>
-      <div v-if="canView" class="flex flex-col gap-4 mt-4">
+      <div
+        v-if="canView"
+        class="grid grid-cols-1 gap-4 mt-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(24rem,1.08fr)]"
+      >
         <section
           class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1 sm:flex-row sm:items-center sm:justify-between xl:col-span-2"
         >
@@ -561,7 +569,7 @@ onBeforeUnmount(() => {
             <div class="flex flex-wrap justify-end gap-3">
               <Button
                 :label="t('CALCULATOR.ACTIONS.CLEAR')"
-                variant="outline"
+                variant="solid"
                 color="ruby"
                 icon="i-lucide-eraser"
                 data-testid="calculator-clear"
@@ -1162,11 +1170,9 @@ onBeforeUnmount(() => {
                 icon="i-lucide-map-pin"
                 class="mb-2 size-6 text-n-slate-10"
               />
-              <p class="text-xs text-n-slate-11">
-                {{ t('CALCULATOR.INTEGRATIONS.MAPS_TITLE') }}
-              </p>
+              <p class="text-xs text-n-slate-11">Mapa e rota</p>
               <p class="mt-1 text-xs text-n-slate-10">
-                {{ mapsBackendStatus }}
+                {{ routeProviderLabel }}
               </p>
             </div>
           </div>
