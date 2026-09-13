@@ -300,3 +300,15 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Houve apenas a janela transitória de serviço indisponível durante o restart; depois do healthcheck 200 o Chatwoot carregou normalmente e o reteste estável passou.
 - Nenhuma mensagem, conversa, etiqueta, contato, inbox, credencial ou dado persistente do WhatsApp foi criado ou alterado.
 - Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [[rotta-calculator-video-transcript-20260913]] ↔ [[rotta-calculator-hub-comparison-20260912]] ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot live](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/calculator?v=compact-audit-5cd).
+
+## Vigésima rodada — fundo pastel e compactação vertical — 13/09/2026
+
+- A causa do vão vertical foi isolada: a grade compartilhava a altura da coluna do mapa. O mapa agora fica em uma coluna direita independente; a coluna esquerda usa fluxo flex próprio.
+- Ordem visual live confirmada: Central de leitura → Dados do frete → Serviços adicionais (Quantidades e valores unitários) → Inventário e cubagem. As seções ficaram compactas e sem scroll interno forçado.
+- Fundo pastel final: `bg-n-amber-1/50`, escolhido para visibilidade com contraste preservado.
+- Validação local: Vitest `14/14`; build Vite `5092` módulos; detector de layout `[]`; ESLint direcionado `0` erros e `26` avisos existentes; bundle HTTP comprovado.
+- Commits publicados nas duas branches: `55a5b5ee3` (layout + bundle + fundo pastel) e `b2820cfe6` (tag Compose/deploy). EasyPanel concluiu `fix(deploy): publish stronger pastel calculator background`.
+- Pós-deploy: health e HTML HTTP `200`; JavaScript `dashboard-wWH-k9l4.js` HTTP `200` com o fundo pastel e sem `xl:contents`; CSS referenciado HTTP `200` como `text/css`; SHA-256 do JS `56E79A51F099A15F030D2489B94E99AF4CB609F3997C785ABA22219646408296`.
+- Houve apenas a janela transitória `Service is not reachable` durante o restart; após o healthcheck, Chatwoot carregou normalmente e o reteste visual passou.
+- Nenhuma mensagem, conversa, etiqueta, contato, inbox, credencial ou dado WhatsApp foi criado ou alterado.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [[rotta-calculator-video-transcript-20260913]] ↔ [[rotta-calculator-hub-comparison-20260912]] ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot live](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/calculator?v=pastel-layout-b2820cfe6).
