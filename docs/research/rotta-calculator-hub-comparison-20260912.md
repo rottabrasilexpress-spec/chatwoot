@@ -82,3 +82,12 @@ Data: 2026-09-12
 - A reconciliação de serviços usa os totais retornados pelo motor (`pricing.services`), evitando que ajudantes/montadores retornem visualmente a zero após o cálculo mesmo quando foram informados manualmente.
 - O parser contextualiza ano para expressões como `meados de outubro` e bloqueia acesso, pagamento, equipe, observações e instruções como inventário. O resolvedor continua exigindo item-fonte, portanto uma estimativa AI isolada não cria itens fantasmas.
 - Validações locais desta etapa: `12/12` testes Vitest focalizados, `0` erros ESLint, compilação dos dois SFCs e `git diff --check` aprovados. O teste live pós-deploy é o checkpoint seguinte; RSpec não pôde ser executado no host por ausência de Ruby/Bundler.
+
+## Reteste final de bundle, mapa e motor — 2026-09-13
+
+- A causa do bundle antigo foi confirmada no deploy: a imagem reutilizava uma tag fixa e o overlay copiava o `public/vite` anterior. O bundle foi recompilado localmente, o manifesto passou a referenciar `dashboard-CelZhuDD.js`, e os artefatos necessários foram publicados nas duas branches do GitHub.
+- Depois do deploy final do EasyPanel, `/health` respondeu `200` com `status=woot`; a página pública entregou `dashboard-CelZhuDD.js` contendo as duas legendas A/B. O deploy intermediário que tentou recompilar dentro da imagem falhou por ausência de `pnpm`, foi removido do Dockerfile e não derrubou o serviço anterior.
+- No Chatwoot, a mesma rota Washington / Teresina - PI → Campo Grande - MS exibiu `Google Routes`, `2755,9 km`, `2155 min`, pedágios desativados e integração respondendo. A linha laranja e os marcadores A/B apareceram sobre o mapa; a legenda A Origem / B Destino apareceu no cabeçalho e dentro do mapa.
+- Mapa, Satélite e Relevo foram alternados; os links gerados confirmaram `t=m`, `t=k` e `t=p`. Os links de foto da origem/destino, Ver rota, GPS, proposta e inventário permaneceram presentes.
+- A leitura produziu oito itens, ajudantes `2/2`, montagem/desmontagem `2/2`, seis faixas comerciais e proposta copiável. Equilibrada recalculou e Padrão restaurou o preço de referência. O resultado visual agora está comprovadamente alinhado ao fluxo do Hub, com a ressalva de que valores de rota podem variar por waypoint/motor.
+- Nenhuma conversa, etiqueta, contato, mensagem ou credencial foi alterada durante essa comparação.
