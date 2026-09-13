@@ -167,7 +167,7 @@ module RottaCalculator
         end || all.find do |entry|
           ([entry.name] + entry.aliases).any? do |candidate|
             candidate_normalized = normalize(candidate)
-            candidate_normalized.include?(needle) || needle.include?(candidate_normalized)
+            candidate_normalized.include?(needle)
           end
         end
       end
