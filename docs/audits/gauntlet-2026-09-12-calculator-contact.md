@@ -312,3 +312,16 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Houve apenas a janela transitória `Service is not reachable` durante o restart; após o healthcheck, Chatwoot carregou normalmente e o reteste visual passou.
 - Nenhuma mensagem, conversa, etiqueta, contato, inbox, credencial ou dado WhatsApp foi criado ou alterado.
 - Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [[rotta-calculator-video-transcript-20260913]] ↔ [[rotta-calculator-hub-comparison-20260912]] ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot live](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/calculator?v=pastel-layout-b2820cfe6).
+
+## Vigésima primeira rodada — redimensionamento manual e temas pastel — 13/09/2026
+
+- Vídeo de 67 segundos analisado com imagem e áudio. Pedido confirmado: arrastar as extremidades dos cards e do mapa/rota, ajustar todos os ângulos e escolher a cor do fundo no topo sem prejudicar a leitura.
+- Implementado `CalculatorResizablePanel`: alças esquerda, direita, superior, inferior e canto; arraste por ponteiro e ajuste por teclado; limites mínimos; mobile preservado sem overflow lateral.
+- As áreas Central de leitura, Dados do frete, Inventário e cubagem, Serviços adicionais, Mapa e rota e Resultado agora são ajustáveis. As dimensões ficam salvas por conta no navegador e há `Restaurar layout` para limpar tudo.
+- Seletor de fundo com seis temas pastel seguros, cor personalizada, contraste calculado e persistência local. O fundo interno padrão continua âmbar claro.
+- Validação live: azul névoa aplicado e persistido após recarga; leitura redimensionada de `1045px` para `1077px` por teclado e para `942px` por arraste real; mapa ajustado para `1194px × 497px`; restauração voltou a `#fff7ed` e removeu os estilos salvos.
+- Validação local: Vitest `17/17`; build Vite `5095` módulos; detector de layout `[]`; ESLint direcionado `0` erros e `38` avisos preexistentes de estilo/i18n; `git diff --check` aprovado.
+- Deploy EasyPanel concluído com `fix(deploy): publish resizable calculator layout`; health/HTML HTTP `200`; bundle `dashboard-Ba2mCxLV.js` HTTP `200`, contendo toolbar, painéis redimensionáveis e reset; CSS `dashboard-DjWZ2g0t.css` HTTP `200` como `text/css`.
+- Commits publicados nas duas branches: `061c40ca0` (funcional + bundle) e `aff6f8e1b` (tag Compose/deploy).
+- Nenhuma mensagem, conversa, etiqueta, contato, inbox, credencial ou dado WhatsApp foi criado ou alterado.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [[rotta-calculator-video-transcript-20260913]] ↔ [[rotta-calculator-hub-comparison-20260912]] ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot live](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/calculator?v=resize-test-aff6f8e1b).
