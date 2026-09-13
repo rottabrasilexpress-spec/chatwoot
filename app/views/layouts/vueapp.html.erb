@@ -47,6 +47,7 @@
         helpUrls: <%= feature_help_urls.to_json.html_safe %>,
         inboxEventsEnabled: '<%= ENV['ENABLE_INBOX_EVENTS'].present? %>',
         rottaAttentionRequesterUserId: '<%= ENV['ROTTABRASIL_ATTENTION_REQUESTER_USER_ID'] %>',
+        rottaGoogleMapsApiKey: <%= (ENV['NEXT_PUBLIC_GOOGLE_MAPS_API_KEY'].presence || ENV['GOOGLE_MAPS_BROWSER_API_KEY'].presence || '').to_json.html_safe %>,
         selectedLocale: '<%= I18n.locale %>'
       }
       window.globalConfig = <%= raw @global_config.to_json %>

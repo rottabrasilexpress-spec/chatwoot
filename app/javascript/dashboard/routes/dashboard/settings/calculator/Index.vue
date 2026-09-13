@@ -14,6 +14,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Switch from 'next/switch/Switch.vue';
 import Modal from 'dashboard/components/Modal.vue';
+import GoogleMapPanel from './GoogleMapPanel.vue';
 import {
   canViewCalculator,
   getRequestedCalculatorVisibility,
@@ -78,12 +79,20 @@ const canView = computed(() =>
 
 const inventorySummary = computed(() => parseInventory(inventoryText.value));
 
-const selectedServices = computed(() =>
-  serviceOptions.map(service => ({
-    label: service.label,
-    selected: services[service.key],
-  }))
-);
+const selectedServices = computed(() => [
+  {
+    label: 'Ajudantes',
+    selected: pricing.helpers.origin > 0 || pricing.helpers.destination > 0,
+  },
+  {
+    label: 'Desmontagem e montagem',
+    selected:
+      pricing.assembly.originDisassembly > 0 ||
+      pricing.assembly.destinationAssembly > 0,
+  },
+  { label: 'Material e embalagem', selected: pricing.materialsSelected },
+  { label: 'Taxas especiais', selected: pricing.specialFee > 0 },
+]);
 
 const money = value =>
   `R$ ${Number(value || 0).toLocaleString('pt-BR', {
@@ -340,58 +349,74 @@ watch(
         </section>
 
         <section
-          class="flex flex-col gap-4 p-5 border rounded-2xl border-n-weak bg-n-solid-1"
+          class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.02fr)_minmax(24rem,0.98fr)]"
         >
-          <div class="flex items-start gap-3">
-            <div
-              class="flex items-center justify-center flex-shrink-0 rounded-xl size-10 bg-n-blue-3 text-n-blue-11"
-            >
-              <Icon icon="i-lucide-book-open" class="size-5" />
-            </div>
-            <div>
-              <h2 class="text-base font-semibold text-n-slate-12">
-                {{ t('CALCULATOR.READING.TITLE') }}
-              </h2>
-              <p class="mt-1 text-sm text-n-slate-11">
-                {{ t('CALCULATOR.READING.DESCRIPTION') }}
-              </p>
-            </div>
-          </div>
-          <TextArea
-            id="calculator-reading"
-            v-model="readingText"
-            :label="t('CALCULATOR.READING.LABEL')"
-            :placeholder="t('CALCULATOR.READING.PLACEHOLDER')"
-            min-height="11rem"
-            max-height="22rem"
-            resize
-            data-testid="calculator-reading-input"
-          />
-          <div class="flex flex-wrap justify-end gap-3">
-            <Button
-              :label="t('CALCULATOR.ACTIONS.CLEAR')"
-              variant="outline"
-              color="slate"
-              icon="i-lucide-eraser"
-              data-testid="calculator-clear"
-              @click="clearCalculator"
-            />
-            <Button
-              :label="t('CALCULATOR.ACTIONS.CALCULATE')"
-              color="blue"
-              icon="i-lucide-calculator"
-              :is-loading="isCalculating"
-              data-testid="calculator-calculate"
-              @click="calculate"
-            />
-          </div>
-          <p
-            v-if="calculationError"
-            class="text-sm text-n-ruby-11"
-            data-testid="calculator-error"
+          <div
+            class="flex flex-col gap-4 p-5 border rounded-2xl border-n-weak bg-n-solid-1"
           >
-            {{ calculationError }}
-          </p>
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex items-center justify-center flex-shrink-0 rounded-xl size-10 bg-n-blue-3 text-n-blue-11"
+                >
+                  <Icon icon="i-lucide-book-open" class="size-5" />
+                </div>
+                <div>
+                  <h2 class="text-base font-semibold text-n-slate-12">
+                    {{ t('CALCULATOR.READING.TITLE') }}
+                  </h2>
+                  <p class="mt-1 text-sm text-n-slate-11">
+                    {{ t('CALCULATOR.READING.DESCRIPTION') }}
+                  </p>
+                </div>
+              </div>
+              <span
+                class="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-n-alpha-2 text-n-slate-11"
+              >
+                <Icon icon="i-lucide-sparkles" class="size-3" /> IA segura
+              </span>
+            </div>
+            <TextArea
+              id="calculator-reading"
+              v-model="readingText"
+              :label="t('CALCULATOR.READING.LABEL')"
+              :placeholder="t('CALCULATOR.READING.PLACEHOLDER')"
+              min-height="17rem"
+              max-height="28rem"
+              resize
+              data-testid="calculator-reading-input"
+            />
+            <div class="flex flex-wrap justify-end gap-3">
+              <Button
+                :label="t('CALCULATOR.ACTIONS.CLEAR')"
+                variant="outline"
+                color="slate"
+                icon="i-lucide-eraser"
+                data-testid="calculator-clear"
+                @click="clearCalculator"
+              />
+              <Button
+                :label="t('CALCULATOR.ACTIONS.CALCULATE')"
+                color="blue"
+                icon="i-lucide-calculator"
+                :is-loading="isCalculating"
+                data-testid="calculator-calculate"
+                @click="calculate"
+              />
+            </div>
+            <p
+              v-if="calculationError"
+              class="text-sm text-n-ruby-11"
+              data-testid="calculator-error"
+            >
+              {{ calculationError }}
+            </p>
+          </div>
+          <GoogleMapPanel
+            :origin="freight.origin"
+            :destination="freight.destination"
+            :route="result"
+          />
         </section>
 
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -432,109 +457,6 @@ watch(
                 :placeholder="t('CALCULATOR.FREIGHT.DESTINATION_PLACEHOLDER')"
                 data-testid="calculator-destination"
               />
-            </div>
-            <div>
-              <h3 class="mb-3 text-sm font-semibold text-n-slate-12">
-                {{ t('CALCULATOR.SERVICES.TITLE') }}
-              </h3>
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label
-                  v-for="service in serviceOptions"
-                  :key="service.key"
-                  class="flex items-center gap-3 p-3 text-sm border rounded-lg cursor-pointer border-n-weak text-n-slate-12 hover:bg-n-alpha-2"
-                >
-                  <input
-                    v-model="services[service.key]"
-                    type="checkbox"
-                    class="rounded border-n-strong text-n-brand focus:ring-n-brand"
-                  />
-                  <span>{{ service.label }}</span>
-                </label>
-              </div>
-              <div
-                class="grid grid-cols-1 gap-3 mt-4 sm:grid-cols-2 lg:grid-cols-4"
-              >
-                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-                  Ajudantes — origem
-                  <input
-                    v-model.number="pricing.helpers.origin"
-                    type="number"
-                    min="0"
-                    max="999"
-                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-                  Ajudantes — destino
-                  <input
-                    v-model.number="pricing.helpers.destination"
-                    type="number"
-                    min="0"
-                    max="999"
-                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-                  Desmontagem — origem
-                  <input
-                    v-model.number="pricing.assembly.originDisassembly"
-                    type="number"
-                    min="0"
-                    max="999"
-                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-                  Montagem — destino
-                  <input
-                    v-model.number="pricing.assembly.destinationAssembly"
-                    type="number"
-                    min="0"
-                    max="999"
-                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-                  Valor unitário ajudante
-                  <input
-                    v-model.number="pricing.helperUnit"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-                  Valor unitário montador
-                  <input
-                    v-model.number="pricing.assemblerUnit"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-                  Taxa especial
-                  <input
-                    v-model.number="pricing.specialFee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-                  Material/embalagem
-                  <input
-                    v-model.number="pricing.materialsTotal"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="w-full px-3 py-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
-                  />
-                </label>
-              </div>
             </div>
           </section>
 
@@ -583,6 +505,168 @@ watch(
             </div>
           </section>
         </div>
+
+        <section class="flex flex-col gap-4">
+          <div class="flex items-end justify-between gap-3">
+            <div>
+              <p
+                class="text-xs font-bold tracking-wider uppercase text-n-slate-11"
+              >
+                Serviços adicionais
+              </p>
+              <h2 class="mt-1 text-base font-semibold text-n-slate-12">
+                Quantidades e valores unitários
+              </h2>
+            </div>
+            <span class="text-xs text-n-slate-11"
+              >Tudo começa em zero e só entra no preço quando preenchido.</span
+            >
+          </div>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <section
+              class="flex flex-col gap-3 p-4 border-l-4 border rounded-xl border-n-blue-5 bg-n-solid-1"
+            >
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-n-slate-12">👥 Ajudantes</h3>
+                <span
+                  class="px-2 py-1 text-xs rounded-lg bg-n-blue-3 text-n-blue-11"
+                  >{{
+                    money(
+                      (pricing.helpers.origin + pricing.helpers.destination) *
+                        pricing.helperUnit
+                    )
+                  }}</span
+                >
+              </div>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label class="text-xs text-n-slate-11"
+                  >Origem<input
+                    v-model.number="pricing.helpers.origin"
+                    type="number"
+                    min="0"
+                    max="999"
+                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                /></label>
+                <label class="text-xs text-n-slate-11"
+                  >Destino<input
+                    v-model.number="pricing.helpers.destination"
+                    type="number"
+                    min="0"
+                    max="999"
+                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                /></label>
+                <label class="text-xs text-n-slate-11"
+                  >Valor unit.<input
+                    v-model.number="pricing.helperUnit"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                /></label>
+              </div>
+            </section>
+            <section
+              class="flex flex-col gap-3 p-4 border-l-4 border rounded-xl border-n-orange-5 bg-n-solid-1"
+            >
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-n-slate-12">🛠️ Montador</h3>
+                <span
+                  class="px-2 py-1 text-xs rounded-lg bg-n-orange-3 text-n-orange-11"
+                  >{{
+                    money(
+                      (pricing.assembly.originDisassembly +
+                        pricing.assembly.destinationAssembly) *
+                        pricing.assemblerUnit
+                    )
+                  }}</span
+                >
+              </div>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label class="text-xs text-n-slate-11"
+                  >Desmont. origem<input
+                    v-model.number="pricing.assembly.originDisassembly"
+                    type="number"
+                    min="0"
+                    max="999"
+                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                /></label>
+                <label class="text-xs text-n-slate-11"
+                  >Montag. destino<input
+                    v-model.number="pricing.assembly.destinationAssembly"
+                    type="number"
+                    min="0"
+                    max="999"
+                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                /></label>
+                <label class="text-xs text-n-slate-11"
+                  >Valor unit.<input
+                    v-model.number="pricing.assemblerUnit"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+                /></label>
+              </div>
+            </section>
+            <section
+              class="flex flex-col gap-3 p-4 border-l-4 border rounded-xl border-n-teal-5 bg-n-solid-1"
+            >
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-n-slate-12">
+                  📦 Material e embalagem
+                </h3>
+                <span
+                  class="px-2 py-1 text-xs rounded-lg bg-n-teal-3 text-n-teal-11"
+                  >{{
+                    money(
+                      pricing.materialsSelected ? pricing.materialsTotal : 0
+                    )
+                  }}</span
+                >
+              </div>
+              <label class="flex items-center gap-2 text-xs text-n-slate-11"
+                ><input
+                  v-model="pricing.materialsSelected"
+                  type="checkbox"
+                  class="rounded border-n-strong text-n-brand focus:ring-n-brand"
+                />
+                Somente material, sem mão de obra</label
+              >
+              <label class="text-xs text-n-slate-11"
+                >Valor total<input
+                  v-model.number="pricing.materialsTotal"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+              /></label>
+            </section>
+            <section
+              class="flex flex-col gap-3 p-4 border-l-4 border rounded-xl border-n-ruby-5 bg-n-solid-1"
+            >
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-n-slate-12">
+                  🚚 Taxas especiais
+                </h3>
+                <span
+                  class="px-2 py-1 text-xs rounded-lg bg-n-ruby-3 text-n-ruby-11"
+                  >{{ money(pricing.specialFee) }}</span
+                >
+              </div>
+              <p class="text-xs text-n-slate-11">
+                Motos, itens pesados, sensíveis ou fora do padrão.
+              </p>
+              <label class="text-xs text-n-slate-11"
+                >Valor da taxa<input
+                  v-model.number="pricing.specialFee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="w-full px-3 py-2 mt-1 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+              /></label>
+            </section>
+          </div>
+        </section>
 
         <section
           class="grid grid-cols-1 gap-4 p-5 border rounded-2xl border-dashed border-n-strong bg-n-alpha-1 lg:grid-cols-2"
