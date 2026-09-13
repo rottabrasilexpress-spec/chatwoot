@@ -59,3 +59,10 @@ Data: 2026-09-12
 - A diferença de `47,3 km` mostra que ainda não há paridade de motor entre Hub e Chatwoot. O layout e os controles estão alinhados, mas a quilometragem só deve ser considerada equivalente após uma chave server-side válida e persistida para Google Routes.
 - A configuração persistida do EasyPanel não contém as variáveis Google server/browser esperadas, embora o processo live ainda tenha servido a chave visual do mapa. Isso é drift de ambiente e precisa ser corrigido antes do próximo deploy para evitar regressão.
 - Não houve alteração de código ou de dados nesta rodada; nenhum segredo foi registrado nesta pesquisa.
+
+## Reteste após restauração das chaves Google — 2026-09-13
+
+- As chaves Google já existentes e dedicadas ao Chatwoot foram persistidas no EasyPanel, sem criação de credencial nova e sem registrar valores neste documento.
+- O Chatwoot passou a exibir `Google Routes` e retornou `2755,9 km` para Teresina - PI → Campo Grande - MS; o Hub retornou `2760,7 km`. A diferença ficou em `4,8 km` (aprox. `0,17%`), muito menor que os `47,3 km` do OSRM fallback.
+- Pedágios permaneceram `Desativados`; a proposta foi copiada (`591` caracteres); `Satélite`/`Mapa` alternaram `t=k`/`t=m`; cards e ajuste/km recalcularam e foram restaurados ao padrão.
+- Deploy concluído e health HTTP `200`. A IA deste reteste ficou em fallback determinístico por janela de resposta, isolado da rota Google e sem inventar dados de inventário.
