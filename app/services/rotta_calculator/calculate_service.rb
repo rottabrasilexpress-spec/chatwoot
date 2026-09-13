@@ -20,17 +20,25 @@ module RottaCalculator
       destination = freight['destination'].presence || parsed['destination'].to_s.strip
       raise ArgumentError, 'Origem e destino são obrigatórios' if origin.blank? || destination.blank?
 
-      route = @routes_client.call(origin: origin, destination: destination)
-      ai = @ai_client.call(
-        'reading_text' => @payload['reading_text'].to_s,
-        'freight' => freight,
-        'services' => @payload['services'],
-        'inventory' => inventory,
-        'parsed_data' => parsed,
-        'inventory_catalog' => InventoryCatalog.all.map { |entry| { 'name' => entry.name, 'aliases' => entry.aliases, 'mounted_m3' => entry.mounted_m3, 'disassembled_m3' => entry.disassembled_m3, 'weight_kg' => entry.weight_kg, 'disassemblable' => entry.disassemblable } },
-        'route' => route,
-        'toll' => { 'enabled' => false, 'calculated' => false }
-      ).stringify_keys
+      # Route lookup and factual extraction are independent. Running them in
+      # parallel keeps the synchronous request below the reverse-proxy limit.
+      # The AI receives route facts, never the large encoded polyline: the
+      # polyline is for the map and is not useful for language extraction.
+      route_lookup = Thread.new { @routes_client.call(origin: origin, destination: destination) }
+      ai_lookup = Thread.new do
+        @ai_client.call(
+          'reading_text' => @payload['reading_text'].to_s,
+          'freight' => freight,
+          'services' => @payload['services'],
+          'inventory' => inventory,
+          'parsed_data' => parsed,
+          'inventory_catalog' => InventoryCatalog.all.map { |entry| { 'name' => entry.name, 'aliases' => entry.aliases, 'mounted_m3' => entry.mounted_m3, 'disassembled_m3' => entry.disassembled_m3, 'weight_kg' => entry.weight_kg, 'disassemblable' => entry.disassemblable } },
+          'route' => { 'origin' => origin, 'destination' => destination, 'toll_status' => 'disabled', 'tolls' => 0.0 },
+          'toll' => { 'enabled' => false, 'calculated' => false }
+        )
+      end
+      route = route_lookup.value
+      ai = ai_lookup.value.stringify_keys
       extracted = parsed.deep_merge(ai['extracted_data'].is_a?(Hash) ? ai['extracted_data'].deep_stringify_keys : {})
       extracted['client_name'] = parsed['client_name'] if parsed['client_name'].present?
       extracted['date'] = parsed['date'] if parsed['date'].present?

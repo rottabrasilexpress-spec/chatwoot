@@ -35,6 +35,12 @@ RSpec.describe RottaCalculator::CalculateService do
     expect(result['proposal']).to include('Opção 1', 'Opção 2', 'Validade: 7 dias')
     expect(ai_client).to have_received(:call) do |context|
       expect(context['toll']).to eq('enabled' => false, 'calculated' => false)
+      expect(context['route']).to include(
+        'origin' => 'São Paulo - SP',
+        'destination' => 'Salvador - BA',
+        'toll_status' => 'disabled'
+      )
+      expect(context['route']).not_to have_key('polyline')
       expect(context.to_json).not_to include('pedágio', 'tollAmount', 'extraComputations')
     end
   end
