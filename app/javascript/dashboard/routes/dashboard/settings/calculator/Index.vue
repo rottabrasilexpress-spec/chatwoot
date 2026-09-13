@@ -118,6 +118,12 @@ const calculatorCanvasTextColor = computed(() =>
   getReadableTextColor(selectedBackground.value.color)
 );
 
+const calculatorContrastBadgeStyle = computed(() => ({
+  color: calculatorCanvasTextColor.value,
+  backgroundColor:
+    calculatorCanvasTextColor.value === '#ffffff' ? '#334155' : '#fef3c7',
+}));
+
 const calculatorPanelStorageKey = panelId =>
   `rotta-calculator:${accountId.value || 'default'}:${panelId}`;
 
@@ -623,8 +629,8 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <span
-              class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-n-amber-2 text-n-amber-11"
-              :style="{ color: calculatorCanvasTextColor }"
+              class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full"
+              :style="calculatorContrastBadgeStyle"
             >
               <Icon icon="i-lucide-check-circle-2" class="size-3.5" />
               Contraste
@@ -692,39 +698,48 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </section>
-        <section
-          class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1 sm:flex-row sm:items-center sm:justify-between xl:col-span-2"
+        <CalculatorResizablePanel
+          class="xl:col-span-2"
+          :storage-key="calculatorPanelStorageKey('visibility')"
+          label="Visibilidade da calculadora"
+          :min-width="360"
+          :min-height="110"
+          data-testid="calculator-resizable-visibility"
         >
-          <div class="flex items-start gap-3">
-            <div
-              class="flex items-center justify-center flex-shrink-0 rounded-xl size-10 bg-n-brand/10 text-n-brand"
-            >
-              <Icon icon="i-lucide-shield-check" class="size-5" />
+          <section
+            class="flex flex-col gap-3 p-4 border rounded-xl border-n-weak bg-n-solid-1 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div class="flex items-start gap-3">
+              <div
+                class="flex items-center justify-center flex-shrink-0 rounded-xl size-10 bg-n-brand/10 text-n-brand"
+              >
+                <Icon icon="i-lucide-shield-check" class="size-5" />
+              </div>
+              <div>
+                <h2 class="text-base font-semibold text-n-slate-12">
+                  {{ t('CALCULATOR.SHARING.TITLE') }}
+                </h2>
+                <p class="mt-1 text-sm text-n-slate-11">
+                  {{ t('CALCULATOR.SHARING.DESCRIPTION') }}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 class="text-base font-semibold text-n-slate-12">
-                {{ t('CALCULATOR.SHARING.TITLE') }}
-              </h2>
-              <p class="mt-1 text-sm text-n-slate-11">
-                {{ t('CALCULATOR.SHARING.DESCRIPTION') }}
-              </p>
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="text-sm font-medium text-n-slate-12">
+                {{
+                  isShared
+                    ? t('CALCULATOR.SHARING.SHARED')
+                    : t('CALCULATOR.SHARING.PRIVATE')
+                }}
+              </span>
+              <Switch
+                v-model="isShared"
+                data-testid="calculator-share-switch"
+                @change="requestVisibilityChange"
+              />
             </div>
-          </div>
-          <div class="flex items-center gap-3 shrink-0">
-            <span class="text-sm font-medium text-n-slate-12">
-              {{
-                isShared
-                  ? t('CALCULATOR.SHARING.SHARED')
-                  : t('CALCULATOR.SHARING.PRIVATE')
-              }}
-            </span>
-            <Switch
-              v-model="isShared"
-              data-testid="calculator-share-switch"
-              @change="requestVisibilityChange"
-            />
-          </div>
-        </section>
+          </section>
+        </CalculatorResizablePanel>
 
         <div
           class="grid grid-cols-1 items-start gap-3 xl:col-span-2 xl:grid-cols-[minmax(0,0.92fr)_minmax(24rem,1.08fr)]"
