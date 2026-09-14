@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_11_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_13_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -927,6 +927,29 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_11_000000) do
     t.index ["user_id"], name: "index_copilot_threads_on_user_id"
   end
 
+  create_table "global_ai_messages", force: :cascade do |t|
+    t.bigint "global_ai_thread_id", null: false
+    t.bigint "account_id", null: false
+    t.integer "message_type", default: 0, null: false
+    t.jsonb "message", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_global_ai_messages_on_account_id"
+    t.index ["global_ai_thread_id", "created_at"], name: "index_global_ai_messages_on_thread_created"
+    t.index ["global_ai_thread_id"], name: "index_global_ai_messages_on_global_ai_thread_id"
+  end
+
+  create_table "global_ai_threads", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "user_id", null: false
+    t.string "title", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "user_id", "updated_at"], name: "index_global_ai_threads_on_account_user_updated"
+    t.index ["account_id"], name: "index_global_ai_threads_on_account_id"
+    t.index ["user_id"], name: "index_global_ai_threads_on_user_id"
+  end
+
   create_table "csat_survey_responses", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "conversation_id", null: false
@@ -1637,6 +1660,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_11_000000) do
   add_foreign_key "campaign_recipients", "contacts", on_delete: :cascade
   add_foreign_key "campaign_recipients", "inboxes", on_delete: :cascade
   add_foreign_key "copilot_threads", "conversations"
+  add_foreign_key "global_ai_messages", "accounts"
+  add_foreign_key "global_ai_messages", "global_ai_threads"
+  add_foreign_key "global_ai_threads", "accounts"
+  add_foreign_key "global_ai_threads", "users"
   add_foreign_key "inboxes", "portals"
   add_foreign_key "message_stars", "accounts"
   add_foreign_key "message_stars", "messages"

@@ -18,9 +18,12 @@ const routeKey = computed(() =>
 );
 
 const isRottaWideSettings = computed(() =>
-  ['labels_list', 'rotta_follow_up', 'calculator_index'].includes(
-    String(route.name)
-  )
+  [
+    'labels_list',
+    'rotta_follow_up',
+    'calculator_index',
+    'global_ai_assistant',
+  ].includes(String(route.name))
 );
 </script>
 

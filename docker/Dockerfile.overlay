@@ -24,6 +24,7 @@ COPY db/migrate/20260908000000_create_message_stars.rb /app/db/migrate/202609080
 COPY db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb /app/db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb
 COPY db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb /app/db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb
 COPY db/migrate/20260911000100_create_deleted_message_contents.rb /app/db/migrate/20260911000100_create_deleted_message_contents.rb
+COPY db/migrate/20260913000000_create_global_ai_assistant.rb /app/db/migrate/20260913000000_create_global_ai_assistant.rb
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_deleted_message_content_retention_job.rb /app/app/jobs/rotta_deleted_message_content_retention_job.rb
@@ -35,6 +36,7 @@ COPY app/controllers/api/v1/accounts/conversations_controller.rb /app/app/contro
 COPY app/controllers/api/v1/accounts/conversations/audio_transcriptions_controller.rb /app/app/controllers/api/v1/accounts/conversations/audio_transcriptions_controller.rb
 COPY app/controllers/api/v1/accounts/conversations/messages_controller.rb /app/app/controllers/api/v1/accounts/conversations/messages_controller.rb
 COPY app/controllers/api/v1/accounts/calculator_controller.rb /app/app/controllers/api/v1/accounts/calculator_controller.rb
+COPY app/controllers/api/v1/accounts/global_ai /app/app/controllers/api/v1/accounts/global_ai
 COPY app/controllers/webhooks/uazapi_controller.rb /app/app/controllers/webhooks/uazapi_controller.rb
 COPY app/listeners/action_cable_listener.rb /app/app/listeners/action_cable_listener.rb
 COPY app/services/rotta_uazapi_call_event_service.rb /app/app/services/rotta_uazapi_call_event_service.rb
@@ -46,6 +48,7 @@ COPY app/services/messages/customer_deletion_service.rb /app/app/services/messag
 COPY app/services/messages/send_on_api_service.rb /app/app/services/messages/send_on_api_service.rb
 COPY app/services/messages/uazapi_action_service.rb /app/app/services/messages/uazapi_action_service.rb
 COPY app/services/messages/uazapi_customer_deletion_detector.rb /app/app/services/messages/uazapi_customer_deletion_detector.rb
+COPY app/services/global_ai_assistant /app/app/services/global_ai_assistant
 COPY app/jobs/send_reply_job.rb /app/app/jobs/send_reply_job.rb
 COPY app/services/action_service.rb /app/app/services/action_service.rb
 COPY app/services/auto_assignment/agent_assignment_service.rb /app/app/services/auto_assignment/agent_assignment_service.rb
@@ -57,6 +60,8 @@ COPY enterprise/app/models/copilot_message.rb /app/enterprise/app/models/copilot
 COPY app/models/message_star.rb /app/app/models/message_star.rb
 COPY app/models/uazapi_webhook_delivery.rb /app/app/models/uazapi_webhook_delivery.rb
 COPY app/models/account.rb /app/app/models/account.rb
+COPY app/models/global_ai_thread.rb /app/app/models/global_ai_thread.rb
+COPY app/models/global_ai_message.rb /app/app/models/global_ai_message.rb
 COPY app/models/user.rb /app/app/models/user.rb
 COPY app/models/label.rb /app/app/models/label.rb
 COPY app/policies/conversation_policy.rb /app/app/policies/conversation_policy.rb

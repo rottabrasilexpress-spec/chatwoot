@@ -15,6 +15,7 @@ import NoAccounts from './noAccounts/Index.vue';
 import OnboardingAccountDetails from './onboarding/Index.vue';
 import OnboardingInboxSetup from './onboarding/InboxSetup.vue';
 import calculator from './settings/calculator/calculator.routes';
+import globalAi from './settings/globalAi/globalAi.routes';
 
 export default {
   routes: [
@@ -26,6 +27,7 @@ export default {
         ...inboxRoutes,
         ...conversation.routes,
         ...calculator.routes,
+        ...globalAi.routes,
         ...settings.routes,
         ...callRoutes,
         ...contactRoutes,

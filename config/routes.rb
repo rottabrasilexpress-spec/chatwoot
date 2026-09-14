@@ -115,6 +115,13 @@ Rails.application.routes.draw do
               post :follow_up
             end
           end
+          namespace :global_ai do
+            resource :access, only: [:show, :update]
+            resources :threads, only: [:index, :create, :show], controller: :threads do
+              resources :messages, only: [:index, :create], controller: :messages
+            end
+            resource :actions, only: [:create], controller: :actions
+          end
           resource :saml_settings, only: [:show, :create, :update, :destroy]
           resources :agent_bots, only: [:index, :create, :show, :update, :destroy] do
             delete :avatar, on: :member

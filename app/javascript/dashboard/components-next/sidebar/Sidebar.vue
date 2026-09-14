@@ -29,6 +29,7 @@ import {
 } from '../../store/modules/labels';
 import { buildConversationPrefetchViews } from './rottaPrefetch';
 import { canViewCalculator } from 'dashboard/routes/dashboard/settings/calculator/calculatorVisibility';
+import { canViewGlobalAi } from 'dashboard/routes/dashboard/settings/globalAi/globalAiVisibility';
 
 const props = defineProps({
   isMobileSidebarOpen: {
@@ -66,6 +67,7 @@ const isMobile = computed(() => windowWidth.value < 768);
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
+const currentUser = useMapGetter('getCurrentUser');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
@@ -99,6 +101,13 @@ const showCalculator = computed(() => {
     currentUserId: currentUserId.value,
   });
 });
+
+const showGlobalAi = computed(() =>
+  canViewGlobalAi({
+    settings: currentAccount.value?.settings || {},
+    currentUser: currentUser.value || {},
+  })
+);
 
 const fetchConversationUnreadCounts = ([currentAccountId, isEnabled]) => {
   if (!currentAccountId || !isEnabled) return;
@@ -475,6 +484,17 @@ const menuItems = computed(() => {
       to: accountScopedRoute('rotta_follow_up'),
       activeOn: ['rotta_follow_up'],
     },
+    ...(showGlobalAi.value
+      ? [
+          {
+            name: 'GlobalAi',
+            label: 'Pergunte para IA',
+            icon: 'i-lucide-sparkles',
+            to: accountScopedRoute('global_ai_assistant'),
+            activeOn: ['global_ai_assistant'],
+          },
+        ]
+      : []),
     {
       name: 'Labels',
       label: 'Etiquetas',
