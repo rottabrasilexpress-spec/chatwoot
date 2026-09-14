@@ -382,6 +382,16 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Deploy ainda pendente nesta linha do registro; a próxima etapa é commit, publicação nas duas branches, migração no EasyPanel e teste live sem alterar mensagens/conversas reais.
 - Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
 
+## Trigésima rodada — auditoria live controlada — 14/09/2026
+
+- A URL live, `/health` e o HTML responderam HTTP 200. A tela global abriu autenticada para Kelvin e mostrou o sidebar, campo de pergunta, botão e área de cards.
+- Uma pergunta controlada, sem cliente ou dado sensível, foi enviada somente ao chat interno global. A UI exibiu `Não foi possível responder agora.`; o diagnóstico no container confirmou `CAPTAIN_OPEN_AI_API_KEY` ausente. A falha é de configuração da LLM, não de rota, bundle ou autorização.
+- O modelo foi confirmado como `deepseek/deepseek-v4-flash-0731`; o adaptador carregou com `dispatch_now`, `advance`, `delay` e `cancel`; a consulta read-only anterior encontrou 8 jobs de Follow-up.
+- Nenhuma operação externa foi executada: sem mensagem pública/privada, WhatsApp, etiqueta, status, arquivamento, disparo, atraso, cancelamento ou alteração em conversa/cliente.
+- Vitest focalizado `3/3`, `git diff --check`, health live e sincronização das duas branches passaram. O worktree ficou limpo.
+- Veredito: deploy estrutural aprovado, produto ainda não aprovado como “perfeito”. Bloqueios restantes: cadastrar a chave segura da LLM e expor na interface os controles/cartões das quatro ações de Follow-up; a tela atualmente oferece apenas `Marcar resolvida`.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\plans\pergunte-para-ia-conversa-2026-09-10.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
+
 ## Vigésima oitava rodada — adaptador global de Follow-up e provider DeepSeek — 14/09/2026
 
 - O Follow-up passou a ter um cliente compartilhado (RottaFollowUp::AdminClient), reaproveitado pela rota existente e pelo novo GlobalAiAssistant::FollowUpAdapter. Isso evita duplicação e preserva o painel atual.
