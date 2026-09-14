@@ -116,7 +116,7 @@ Rails.application.routes.draw do
             end
           end
           namespace :global_ai do
-            resource :access, only: [:show, :update]
+            resource :access, only: [:show, :update], controller: :access
             resources :threads, only: [:index, :create, :show], controller: :threads do
               resources :messages, only: [:index, :create], controller: :messages
             end
