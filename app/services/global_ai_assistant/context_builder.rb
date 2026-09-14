@@ -1,6 +1,7 @@
 class GlobalAiAssistant::ContextBuilder
   MAX_CARDS = 40
   MAX_FOLLOW_UP_CARDS = 12
+  MAX_FOLLOW_UP_SOURCE_MESSAGES = 12
   MAX_MESSAGES_PER_CONVERSATION = 8
   MAX_FOLLOW_UP_MESSAGES = 3
   MAX_DETAILED_MESSAGES = 80
@@ -116,7 +117,7 @@ class GlobalAiAssistant::ContextBuilder
           content: message.content.to_s.truncate(320)
         }
       end
-    end.first(80)
+    end.first(follow_up_question? ? MAX_FOLLOW_UP_SOURCE_MESSAGES : 80)
   end
 
   def pending_evidence(messages)

@@ -4,7 +4,7 @@ require 'net/http'
 class GlobalAiAssistant::OpenRouterClient
   MODEL = GlobalAiAssistant::ProviderConfig::MODEL
   DEFAULT_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'.freeze
-  MAX_TOKENS = 1200
+  MAX_TOKENS = 2000
 
   def initialize(api_key:, api_base:)
     @api_key = api_key.to_s.strip
@@ -29,7 +29,7 @@ class GlobalAiAssistant::OpenRouterClient
         max_tokens: MAX_TOKENS,
         messages: messages
       }.to_json,
-      timeout: 30
+      timeout: 40
     )
 
     payload = response.parsed_response

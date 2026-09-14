@@ -1,5 +1,6 @@
 class GlobalAiAssistant::AskService
   MODEL = GlobalAiAssistant::ProviderConfig::MODEL
+  FOLLOW_UP_QUERY = /follow[\s-]?up|lembrete|etiqueta|primeiro contato|segundo contato|terceiro contato|orçamento|orcamento|pendên|penden/i.freeze
 
   def initialize(account:, user:, thread:, question:, context_builder: nil)
     @account = account
@@ -86,10 +87,10 @@ class GlobalAiAssistant::AskService
       #{JSON.pretty_generate(thread_history)}
 
       CARTÕES DE CONVERSAS ENCONTRADOS
-      #{JSON.pretty_generate(context[:cards])}
+      #{JSON.pretty_generate(cards_for_prompt(context))}
 
       EVIDÊNCIAS TEXTUAIS RELEVANTES
-      #{JSON.pretty_generate(context[:source_messages])}
+      #{JSON.pretty_generate(source_messages_for_prompt(context))}
 
       REGRAS DE QUALIDADE
       - Diferencie cliente, equipe, bot e notas privadas quando essa informação estiver disponível.
@@ -111,5 +112,22 @@ class GlobalAiAssistant::AskService
         created_at: message.created_at.iso8601
       }
     end
+  end
+
+  def cards_for_prompt(context)
+    return context[:cards] unless follow_up_question?
+
+    Array(context[:cards]).map do |card|
+      card.except(:recent_history)
+    end
+  end
+
+  def source_messages_for_prompt(context)
+    messages = Array(context[:source_messages])
+    follow_up_question? ? messages.first(12) : messages
+  end
+
+  def follow_up_question?
+    @question.match?(FOLLOW_UP_QUERY)
   end
 end
