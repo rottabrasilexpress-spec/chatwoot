@@ -381,3 +381,11 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Validação local: Vitest focalizado `3/3`; build Vite concluído com `5099` módulos; ESLint direcionado `0` erros e `33` avisos conhecidos; `git diff --check` aprovado.
 - Deploy ainda pendente nesta linha do registro; a próxima etapa é commit, publicação nas duas branches, migração no EasyPanel e teste live sem alterar mensagens/conversas reais.
 - Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
+
+## Vigésima quinta rodada — correção da publicação dos assets Vite — 14/09/2026
+
+- O primeiro deploy do commit `8c61c7638` construiu a imagem e reiniciou os serviços com sucesso, mas o teste live encontrou tela branca: o manifesto apontava para `dashboard-CaR3V-tS.js`, que não estava versionado porque `public/vite/assets` é ignorado no Git.
+- O healthcheck permaneceu `200`; a falha estava limitada à publicação do bundle frontend, sem evidência de alteração ou perda de dados do Chatwoot.
+- Correção preparada: os 30 outputs Vite referenciados pelo manifesto atual, aproximadamente `15,4 MB`, foram adicionados explicitamente ao Git para que o Dockerfile overlay copie exatamente os assets que o HTML anuncia.
+- Próximo passo: commit/push dos assets, novo deploy EasyPanel, confirmação HTTP do bundle/CSS e reteste da tela global autenticada.
+- Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
