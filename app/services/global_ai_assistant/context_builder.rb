@@ -63,6 +63,7 @@ class GlobalAiAssistant::ContextBuilder
       status: conversation.status,
       labels: conversation.label_list,
       follow_up_stage: follow_up_stage(conversation.label_list),
+      follow_up_jobs: follow_up_jobs_for(conversation.display_id),
       last_activity_at: conversation.last_activity_at&.iso8601,
       last_message: last_message&.content.to_s.truncate(240),
       recent_history: recent_messages.map do |message|
@@ -161,7 +162,7 @@ class GlobalAiAssistant::ContextBuilder
   def follow_up_jobs
     return { available: false, reason: 'not_requested' } unless question.match?(/follow[\s-]?up|lembrete|etiqueta|primeiro contato|segundo contato|terceiro contato|orçamento|orcamento|pendên|penden/i)
 
-    payload = GlobalAiAssistant::FollowUpAdapter.list
+    payload = follow_up_payload
     jobs = Array(payload['jobs']).first(120)
     {
       available: payload['available'] != false,
@@ -173,5 +174,23 @@ class GlobalAiAssistant::ContextBuilder
         )
       end
     }
+  end
+
+  def follow_up_payload
+    @follow_up_payload ||= GlobalAiAssistant::FollowUpAdapter.list
+  end
+
+  def follow_up_jobs_for(conversation_id)
+    return [] unless question.match?(/follow[\s-]?up|lembrete|etiqueta|primeiro contato|segundo contato|terceiro contato|orçamento|orcamento|pendên|penden/i)
+
+    Array(follow_up_payload['jobs']).select do |job|
+      job['conversation_id'].to_s == conversation_id.to_s
+    end.first(10).map do |job|
+      job.slice(
+        'job_id', 'conversation_id', 'customer_name', 'phone', 'current_label',
+        'source_label', 'next_label', 'status', 'scheduled_at', 'history',
+        'active_labels'
+      )
+    end
   end
 end

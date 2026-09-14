@@ -1,5 +1,5 @@
 class GlobalAiAssistant::AskService
-  MODEL = 'deepseek/deepseek-v4-flash-0731'.freeze
+  MODEL = GlobalAiAssistant::ProviderConfig::MODEL
 
   def initialize(account:, user:, thread:, question:, context_builder: nil)
     @account = account
@@ -30,10 +30,10 @@ class GlobalAiAssistant::AskService
   private
 
   def ask_model(context)
-    credential = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_API_KEY')&.value.to_s.strip
-    raise 'A credencial da LLM global não está configurada.' if credential.blank?
+    credential = GlobalAiAssistant::ProviderConfig.api_key
+    raise 'A credencial DeepSeek/OpenRouter da IA global não está configurada.' if credential.blank?
 
-    Llm::Config.with_api_key(credential, api_base: api_base) do |llm_context|
+    Llm::Config.with_api_key(credential, api_base: GlobalAiAssistant::ProviderConfig.api_base) do |llm_context|
       chat = llm_context.chat(model: MODEL).with_instructions(system_prompt(context))
       add_thread_history(chat)
       chat.ask(@question).content
@@ -50,16 +50,6 @@ class GlobalAiAssistant::AskService
 
       chat.add_message(role: message.user? ? :user : :assistant, content: content)
     end
-  end
-
-  def api_base
-    configured = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value.to_s.strip
-    # The configured key is the existing Rotta/OpenRouter credential. Keep the
-    # provider explicit for the exact DeepSeek model instead of sending that
-    # key to api.openai.com by default.
-    configured = 'https://openrouter.ai/api/v1' if configured.blank?
-    configured = configured.chomp('/')
-    configured.end_with?('/v1') ? configured : "#{configured}/v1"
   end
 
   def system_prompt(context)

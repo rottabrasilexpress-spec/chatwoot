@@ -8,6 +8,12 @@ import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import globalAiAPI from 'dashboard/api/globalAi';
+import {
+  followUpActionLabel,
+  isExecutableFollowUpJob,
+  removeFollowUpJob,
+  requiresFollowUpHours,
+} from './globalAiFollowUp';
 
 const router = useRouter();
 const { accountId } = useAccount();
@@ -28,6 +34,7 @@ const access = ref({
 const selectedAgents = ref([]);
 const isSharing = ref(false);
 const expandedEvidence = ref(null);
+const followUpActionLoading = ref(null);
 
 const stateKey = computed(
   () =>
@@ -131,6 +138,60 @@ const executeStatusAction = async card => {
     useAlert(
       error.response?.data?.error || 'Não foi possível alterar o status.'
     );
+  }
+};
+
+const executeFollowUpAction = async (card, job, operation) => {
+  if (!isExecutableFollowUpJob(job) || followUpActionLoading.value) return;
+
+  let hours;
+  if (requiresFollowUpHours(operation)) {
+    const input = window.prompt(
+      `${followUpActionLabel(operation)} o follow-up em quantas horas?`,
+      '24'
+    );
+    if (input === null) return;
+    hours = Number(input);
+    if (!Number.isFinite(hours) || hours <= 0 || hours > 24 * 365) {
+      useAlert('Informe um prazo entre 1 e 8760 horas.');
+      return;
+    }
+  }
+
+  const target = card.customer_name || `conversa #${card.conversation_id}`;
+  const hoursText = hours ? ` para ${hours} horas` : '';
+  const confirmed = window.confirm(
+    `${followUpActionLabel(operation)} o follow-up de ${target}${hoursText}? Essa ação será aplicada no painel de Follow-up.`
+  );
+  if (!confirmed) return;
+
+  const actionKey = `${card.conversation_id}:${job.job_id}:${operation}`;
+  followUpActionLoading.value = actionKey;
+  try {
+    const response = await globalAiAPI.executeAction({
+      action: `follow_up_${operation}`,
+      conversation_id: card.conversation_id,
+      job_id: job.job_id,
+      ...(hours ? { hours } : {}),
+      confirmed: true,
+    });
+    const result = response.data?.result || {};
+    if (operation === 'cancel' || operation === 'dispatch_now') {
+      card.follow_up_jobs = removeFollowUpJob(card.follow_up_jobs, job.job_id);
+    } else {
+      Object.assign(job, result);
+    }
+    persistState();
+    useAlert(
+      `Follow-up: ${followUpActionLabel(operation).toLowerCase()} concluído.`
+    );
+  } catch (error) {
+    useAlert(
+      error.response?.data?.error ||
+        `Não foi possível ${followUpActionLabel(operation).toLowerCase()} o follow-up.`
+    );
+  } finally {
+    followUpActionLoading.value = null;
   }
 };
 
@@ -379,6 +440,63 @@ onMounted(loadAccess);
               >
                 {{ card.evidence?.reason }} · {{ card.evidence?.created_at }}
               </p>
+              <div
+                v-if="card.follow_up_jobs?.length"
+                class="p-3 mt-4 border rounded-lg border-n-weak bg-n-alpha-1"
+              >
+                <div
+                  class="flex items-center gap-2 text-xs font-medium text-n-slate-12"
+                >
+                  <span class="i-lucide-clock-3 size-4 text-n-blue-11" />
+                  Follow-up vinculado
+                </div>
+                <div
+                  v-for="job in card.follow_up_jobs"
+                  :key="job.job_id"
+                  class="pt-3 mt-3 border-t border-n-weak first:pt-2 first:mt-2 first:border-t-0"
+                >
+                  <div
+                    class="flex flex-wrap items-center justify-between gap-2"
+                  >
+                    <span class="text-xs text-n-slate-11">
+                      {{ job.current_label || job.source_label || 'Follow-up' }}
+                      <span v-if="job.scheduled_at">
+                        · {{ job.scheduled_at }}</span
+                      >
+                    </span>
+                    <span class="text-xs text-n-slate-10">{{
+                      job.status || 'ativo'
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="isExecutableFollowUpJob(job)"
+                    class="flex flex-wrap gap-1.5 mt-2"
+                  >
+                    <Button
+                      v-for="operation in [
+                        'dispatch_now',
+                        'advance',
+                        'delay',
+                        'cancel',
+                      ]"
+                      :key="operation"
+                      size="xs"
+                      color="slate"
+                      :disabled="Boolean(followUpActionLoading)"
+                      :is-loading="
+                        followUpActionLoading ===
+                        `${card.conversation_id}:${job.job_id}:${operation}`
+                      "
+                      @click="executeFollowUpAction(card, job, operation)"
+                    >
+                      {{ followUpActionLabel(operation) }}
+                    </Button>
+                  </div>
+                  <p v-else class="mt-2 text-xs text-n-slate-10">
+                    Aguardando sincronização do job remoto.
+                  </p>
+                </div>
+              </div>
               <div class="flex flex-wrap gap-2 mt-4">
                 <Button size="sm" color="blue" @click="openConversation(card)">
                   Abrir conversa
