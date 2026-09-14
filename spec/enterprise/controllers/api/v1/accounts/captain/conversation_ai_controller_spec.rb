@@ -216,6 +216,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
         **ORIGEM:** Patos, PB, Brasil
         **DESTINO:** Aracruz, ES, Brasil
         **COLETA:** 30/10/2026
+        👷 AJUDANTES: ✅ Incluso | TOTAL: [6] | ORIGEM: [3] | DESTINO: [3]
         • [01] Geladeira
         • [02] Espelhos
         • [03] Caixas
@@ -254,6 +255,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
       'disassembly_items' => '❌ NÃO'
     )
     expect(profile['items']).to include('Geladeira', 'Espelhos', 'Caixas')
+    expect(profile['items']).not_to include('ORIGEM', 'DESTINO')
     expect(JSON.parse(response.body)['changed_fields']).to include(
       'origin', 'destination', 'move_date', 'budget_value', 'items',
       'helpers_origin', 'helpers_destination', 'assembly_items', 'disassembly_items'

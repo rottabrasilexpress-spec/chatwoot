@@ -198,15 +198,17 @@ class ConversationAi::ProfileService
     end
 
     if (found = latest_message_with.call do |content|
+      item_pattern = /^\s*(?:[•*-]\s*)?\[\s*0*(\d+)\s*\]\s*(.+?)\s*$/
       entries = content.lines.filter_map do |line|
-        line.match(/(?:•\s*)?\[\s*0*(\d+)\s*\]\s*(.+?)\s*$/)
+        line.match(item_pattern)
       end
       entries.length >= 2 ? entries : nil
     end)
       message, entries = found
-      quote = message[:content].to_s.lines.select do |line|
-        line.match?(/(?:•\s*)?\[\s*0*\d+\s*\]\s*.+?\s*$/)
-      end.map(&:strip).join("\n")
+      # Keep the evidence quote as an exact contiguous line from the source.
+      # Joining separated inventory lines can make validation reject an otherwise
+      # safe deterministic result when structured summary lines sit between them.
+      quote = entries.first[0].strip
       items = entries.map { |entry| "• [#{entry[1].to_i}] #{entry[2].strip}" }.join("\n")
       fill_profile.call('items', items, message, quote)
     end
