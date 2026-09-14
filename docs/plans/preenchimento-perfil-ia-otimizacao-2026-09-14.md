@@ -27,6 +27,15 @@
 
 ## Teste pós-deploy
 
+O primeiro deploy revelou que o `Dockerfile.overlay` não copiava o novo
+`profile_context_builder.rb`; isso foi corrigido no commit `4d65239d`. O segundo
+deploy copiou o arquivo, mas o teste de Raul ainda atingiu o limite Rack de 45 s
+porque a chamada DeepSeek permaneceu aberta por 45 s. A próxima correção evita
+chamar a LLM quando a própria conversa já contém um orçamento estruturado com os
+campos operacionais essenciais, incluindo ajudantes de origem e destino. Para
+conversas que realmente precisarem da LLM, o timeout fica abaixo do limite Rack,
+evitando `Rack::Timeout::RequestTimeoutException` e retornando erro controlado.
+
 1. Abrir a conversa `#2085` e acionar `Preencher com IA`.
 2. Confirmar `200`, campos preenchidos e persistência no contato.
 3. Repetir a ação e verificar que o fluxo segue responsivo e não envia anexos/áudios no contexto.

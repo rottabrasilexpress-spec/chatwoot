@@ -8,6 +8,10 @@ class ConversationAi::ProfileService
     helpers_origin helpers_destination assembly_items disassembly_items
   ].freeze
   INTEGER_FIELDS = %w[helpers_origin helpers_destination].freeze
+  CORE_PROFILE_FIELDS = %w[
+    origin destination move_date budget_value items
+    helpers_origin helpers_destination
+  ].freeze
   EMPTY_VALUES = ['não informado', 'nao informado', 'não consta', 'nao consta', 'null', 'n/a'].freeze
 
   def initialize(conversation:, user:)
@@ -87,7 +91,7 @@ class ConversationAi::ProfileService
     GlobalAiAssistant::OpenRouterClient.new(
       api_key: api_key,
       api_base: GlobalAiAssistant::ProviderConfig.api_base,
-      timeout: 50
+      timeout: 40
     ).call([
       { role: 'system', content: system_prompt },
       { role: 'user', content: JSON.generate({
@@ -214,6 +218,15 @@ class ConversationAi::ProfileService
       fill_profile.call('observations', message[:content].to_s.strip, message, message[:content])
     end
 
+    if (found = latest_message_with.call do |content|
+      content.match(/AJUDANTES:.*?ORIGEM:\s*\[\s*(\d+)\s*\].*?DESTINO:\s*\[\s*(\d+)\s*\]/i)
+    end)
+      message, match = found
+      quote = match[0].strip
+      fill_profile.call('helpers_origin', match[1].to_i, message, quote)
+      fill_profile.call('helpers_destination', match[2].to_i, message, quote)
+    end
+
     %w[origin destination move_date assembly_items disassembly_items].each do |field|
       next unless (found = latest_message_with.call { |content| structured_field_match(field, content) })
 
@@ -251,7 +264,7 @@ class ConversationAi::ProfileService
 
   def deterministic_profile_complete?(extracted, messages)
     profile = extracted['profile'] || {}
-    %w[origin destination move_date budget_value items helpers_origin helpers_destination assembly_items disassembly_items].all? do |field|
+    CORE_PROFILE_FIELDS.all? do |field|
       normalise_field(field, profile[field]).present? && valid_evidence?(field, extracted['evidence'][field], messages)
     end
   end
