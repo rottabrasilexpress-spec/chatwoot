@@ -271,7 +271,7 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       message = conversation.messages.find_by!(source_id: 'uazapi-outgoing-ai-1')
       expect(message).to have_attributes(
         content: 'Resposta enviada pela IA',
-        status: 'delivered',
+        status: 'sent',
         sender: nil
       )
       expect(message.content_attributes['external_echo']).to be(true)
@@ -328,6 +328,47 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
 
       expect(chatwoot_message.reload.source_id).to eq('uazapi-chatwoot-echo-1')
       expect(response.parsed_body).to include('ok' => true, 'message_ids' => [chatwoot_message.id])
+    end
+
+    it 'promotes an outgoing message when Uazapi sends a separated key and update status' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      message = create(
+        :message,
+        account: account,
+        inbox: api_inbox,
+        conversation: conversation,
+        message_type: :outgoing,
+        status: :sent,
+        source_id: 'uazapi-status-separated-1',
+        content: 'Mensagem aguardando confirmação'
+      )
+
+      payload = {
+        event: 'messages_update',
+        data: {
+          key: { id: message.source_id, remoteJid: '5511999999999@s.whatsapp.net' },
+          update: { status: 3 }
+        }
+      }
+
+      post_uazapi(payload)
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include('ok' => true, 'message_ids' => [message.id], 'status' => 'delivered')
+      expect(message.reload).to have_attributes(status: 'delivered')
+      expect(message.additional_attributes).to include(
+        'uazapi_status' => 3,
+        'uazapi_message_id' => message.source_id
+      )
     end
 
     it 'creates a realtime voice call message from a Uazapi call event' do

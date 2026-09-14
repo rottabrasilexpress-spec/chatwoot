@@ -215,7 +215,7 @@ class Webhooks::UazapiController < ActionController::API
   def extract_event(payload)
     route_event = params[:event].to_s.split('/').first
     known_events = %w[
-      connection history message messages messages_update message_delete messages_delete
+      connection history message messages messages_update ack message_delete messages_delete
       messages_deleted message_deleted message_revoke messages_revoke message_revoked
       messages_revoked newsletter_messages call calls
       contacts contact presence groups labels chats chat_labels blocks sender
@@ -357,7 +357,7 @@ class Webhooks::UazapiController < ActionController::API
         account_id: conversation.account_id,
         inbox_id: conversation.inbox_id,
         message_type: :outgoing,
-        status: :delivered,
+        status: :sent,
         private: false,
         sender: nil,
         source_id: provider_id,
@@ -640,7 +640,78 @@ class Webhooks::UazapiController < ActionController::API
       values.compact
     end
 
-    (explicit_values + message_id_values + contextual_ids.flatten).compact_blank.map(&:to_s).uniq
+    status_event_ids = status_event?(payload) ? extract_status_event_provider_ids(payload) : []
+
+    (explicit_values + message_id_values + contextual_ids.flatten + status_event_ids).compact_blank.map(&:to_s).uniq
+  end
+
+  def status_event?(payload)
+    %w[messages_update ack].include?(extract_event(payload))
+  end
+
+  def extract_status_event_provider_ids(payload)
+    status_event_provider_ids(payload)
+  end
+
+  def status_event_provider_ids(value)
+    case value
+    when Hash
+      direct_status = value.any? do |key, candidate|
+        status_keys.include?(key.to_s.downcase) && !candidate.is_a?(Hash) && !candidate.is_a?(Array)
+      end
+      return provider_id_values(value) if direct_status
+
+      children_with_status = value.values.select { |candidate| status_event_contains_status?(candidate) }
+      return [] if children_with_status.empty?
+
+      local_ids = provider_id_values(value)
+      return local_ids if local_ids.present? && children_with_status.one?
+
+      children_with_status.flat_map { |candidate| status_event_provider_ids(candidate) }
+    when Array
+      value.flat_map { |candidate| status_event_provider_ids(candidate) }
+    else
+      []
+    end
+  end
+
+  def status_event_contains_status?(value)
+    case value
+    when Hash
+      value.any? do |key, candidate|
+        (status_keys.include?(key.to_s.downcase) && !candidate.is_a?(Hash) && !candidate.is_a?(Array)) ||
+          status_event_contains_status?(candidate)
+      end
+    when Array
+      value.any? { |candidate| status_event_contains_status?(candidate) }
+    else
+      false
+    end
+  end
+
+  def provider_id_values(value)
+    return [] unless value.is_a?(Hash) || value.is_a?(Array)
+
+    nodes = payload_hashes(value)
+    nodes.flat_map do |node|
+      node.filter_map do |key, candidate|
+        next unless provider_id_keys.include?(key.to_s.downcase)
+        next if candidate.is_a?(Hash) || candidate.is_a?(Array)
+
+        candidate
+      end
+    end
+  end
+
+  def status_keys
+    %w[
+      status ack messagestatus message_status message_state state ackstatus ack_status
+      acknowledgment acknowledgement statuscode status_code
+    ]
+  end
+
+  def provider_id_keys
+    %w[id messageid message_id source_id sourceid]
   end
 
   def array_values_for_keys(payload, keys)
