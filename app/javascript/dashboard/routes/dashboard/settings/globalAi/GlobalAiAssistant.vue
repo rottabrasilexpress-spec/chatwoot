@@ -165,7 +165,7 @@ onMounted(loadAccess);
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template -->
   <section
-    v-if="!isLoadingAccess"
+    v-if="!isLoadingAccess && access.allowed"
     class="flex flex-col w-full min-h-[calc(100vh-7rem)] gap-5 pb-8"
   >
     <header class="flex flex-wrap items-start justify-between gap-4 px-1">
@@ -409,5 +409,18 @@ onMounted(loadAccess);
         </div>
       </section>
     </div>
+  </section>
+  <section
+    v-else-if="!isLoadingAccess"
+    class="flex flex-col items-center justify-center w-full min-h-[calc(100vh-7rem)] px-6 text-center"
+  >
+    <span class="mb-4 i-lucide-lock-keyhole size-8 text-n-slate-9" />
+    <h1 class="text-xl font-semibold text-n-slate-12">
+      Pergunte para IA global indisponível
+    </h1>
+    <p class="max-w-lg mt-2 text-sm leading-6 text-n-slate-11">
+      Esta área interna é liberada somente para Kelvin ou para agentes que ele
+      compartilhar explicitamente.
+    </p>
   </section>
 </template>

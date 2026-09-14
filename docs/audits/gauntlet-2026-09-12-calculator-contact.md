@@ -389,3 +389,11 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Correção preparada: os 30 outputs Vite referenciados pelo manifesto atual, aproximadamente `15,4 MB`, foram adicionados explicitamente ao Git para que o Dockerfile overlay copie exatamente os assets que o HTML anuncia.
 - Próximo passo: commit/push dos assets, novo deploy EasyPanel, confirmação HTTP do bundle/CSS e reteste da tela global autenticada.
 - Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
+
+## Vigésima sexta rodada — bloqueio visual para agente sem concessão — 14/09/2026
+
+- Na sessão live autenticada como Caio, o item global não apareceu no sidebar, como exigido para a propriedade inicial de Kelvin.
+- A rota direta agora também respeita `access.allowed`: agente sem concessão recebe aviso de indisponibilidade e não renderiza o painel, mesmo que conheça a URL.
+- Build Vite passou novamente com `5099` módulos; Vitest de visibilidade `3/3`; ESLint direcionado `0` erros e `34` avisos conhecidos.
+- Um novo bundle foi gerado; os outputs referenciados pelo manifesto serão versionados explicitamente antes do próximo deploy.
+- Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
