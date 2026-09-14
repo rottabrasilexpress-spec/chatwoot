@@ -3,8 +3,8 @@ require 'net/http'
 
 module RottaCalculator
   class OpenRouterClient
-    ENDPOINT = "#{RottaAi::OpenRouterConfig::API_BASE}/chat/completions".freeze
-    MODEL = RottaAi::OpenRouterConfig::MODEL
+    ENDPOINT = "#{::RottaAi::OpenRouterConfig::API_BASE}/chat/completions".freeze
+    MODEL = ::RottaAi::OpenRouterConfig::MODEL
     MAX_TOKENS = 350
 
     def initialize(http_client: HTTParty)
@@ -12,9 +12,9 @@ module RottaCalculator
     end
 
     def call(context)
-      api_key = RottaAi::OpenRouterConfig.api_key
+      api_key = ::RottaAi::OpenRouterConfig.api_key
       raise ConfigurationError, 'OPENROUTER_API_KEY ausente' if api_key.blank?
-      RottaAi::OpenRouterConfig.model
+      ::RottaAi::OpenRouterConfig.model
 
       response = @http_client.post(
         ENDPOINT,
