@@ -1,7 +1,9 @@
 class GlobalAiAssistant::ContextBuilder
   MAX_CARDS = 40
   MAX_MESSAGES_PER_CONVERSATION = 8
+  MAX_FOLLOW_UP_MESSAGES = 3
   MAX_DETAILED_MESSAGES = 80
+  FOLLOW_UP_QUERY = /follow[\s-]?up|lembrete|etiqueta|primeiro contato|segundo contato|terceiro contato|orçamento|orcamento|pendên|penden/i.freeze
   FOLLOW_UP_LABEL_KEYS = %w[
     primeiro-contato segundo-contato terceiro-contato ultimo-contato
     orcamento-feito orcamento-tentativa-2 orcamento-tentativa-3 orcamento-tentativa-4
@@ -83,6 +85,8 @@ class GlobalAiAssistant::ContextBuilder
                   .compact
                   .map(&:to_s)
                   .reject { |value| value.length < 4 }
+    return MAX_FOLLOW_UP_MESSAGES if follow_up_question?
+
     identifiers.any? { |identifier| question.downcase.include?(identifier.downcase) } ? MAX_DETAILED_MESSAGES : MAX_MESSAGES_PER_CONVERSATION
   end
 
@@ -160,7 +164,7 @@ class GlobalAiAssistant::ContextBuilder
   end
 
   def follow_up_jobs
-    return { available: false, reason: 'not_requested' } unless question.match?(/follow[\s-]?up|lembrete|etiqueta|primeiro contato|segundo contato|terceiro contato|orçamento|orcamento|pendên|penden/i)
+    return { available: false, reason: 'not_requested' } unless follow_up_question?
 
     payload = follow_up_payload
     jobs = Array(payload['jobs']).first(120)
@@ -184,7 +188,7 @@ class GlobalAiAssistant::ContextBuilder
   end
 
   def follow_up_jobs_for(conversation_id)
-    return [] unless question.match?(/follow[\s-]?up|lembrete|etiqueta|primeiro contato|segundo contato|terceiro contato|orçamento|orcamento|pendên|penden/i)
+    return [] unless follow_up_question?
 
     Array(follow_up_payload['jobs']).select do |job|
       job['conversation_id'].to_s == conversation_id.to_s
@@ -195,5 +199,9 @@ class GlobalAiAssistant::ContextBuilder
         'active_labels'
       )
     end
+  end
+
+  def follow_up_question?
+    question.match?(FOLLOW_UP_QUERY)
   end
 end
