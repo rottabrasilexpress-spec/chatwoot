@@ -35,6 +35,7 @@ class GlobalAiAssistant::ContextBuilder
     scope = account.conversations.includes(:contact, :inbox).order(last_activity_at: :desc)
     return scope.none unless operational_question?
     return scope.limit(MAX_CARDS) if question.blank?
+    return scope.limit(MAX_CARDS) if follow_up_question?
 
     query = ActiveRecord::Base.sanitize_sql_like(question)
     contact_matches = scope.joins(:contact).where(
@@ -152,15 +153,18 @@ class GlobalAiAssistant::ContextBuilder
 
   def report_snapshot
     statuses = account.conversations.group(:status).count
+    cached_labels = account.conversations
+                            .where.not(status: :resolved)
+                            .pluck(:cached_label_list)
+                            .flat_map { |labels| labels.to_s.split(',').map(&:strip).compact_blank }
+
     {
       total_conversations: account.conversations.count,
       by_status: statuses,
       active: account.conversations.where.not(status: :resolved).count,
-      follow_up_labels: account.conversations
-                                  .where.not(status: :resolved)
-                                  .flat_map(&:label_list)
-                                  .tally
-                                  .select { |label, _count| FOLLOW_UP_LABEL_KEYS.include?(label_key(label)) },
+      follow_up_labels: cached_labels.tally.select do |label, _count|
+        FOLLOW_UP_LABEL_KEYS.include?(label_key(label))
+      end,
       follow_up_jobs: follow_up_jobs
     }
   end
