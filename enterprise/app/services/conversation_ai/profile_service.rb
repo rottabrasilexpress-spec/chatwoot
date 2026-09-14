@@ -19,7 +19,8 @@ class ConversationAi::ProfileService
   def call
     raise ArgumentError, 'O contato da conversa não está disponível.' if @contact.blank?
 
-    messages = conversation_messages
+    context = ConversationAi::ProfileContextBuilder.new(conversation: @conversation).call
+    messages = context[:messages]
     deterministic = merge_deterministic_evidence({ 'profile' => {}, 'evidence' => {} }, messages)
     extracted = if deterministic_profile_complete?(deterministic, messages)
                   deterministic
@@ -57,35 +58,14 @@ class ConversationAi::ProfileService
       changed_fields: changed_fields,
       contact_name_changed: name_changed,
       evidence: extracted['evidence'].is_a?(Hash) ? extracted['evidence'] : {},
-      message_count: messages.length
+      message_count: messages.length,
+      context_metrics: context[:metrics]
     }
+  ensure
+    log_context_metrics(context[:metrics]) if context && context[:metrics]
   end
 
   private
-
-  def conversation_messages
-    @conversation.messages
-                 .where.not(message_type: [:activity, :template])
-                 .includes(:sender)
-                 .order(created_at: :asc)
-                 .map do |message|
-      {
-        id: message.id,
-        created_at: message.created_at.iso8601,
-        content: message.content_for_llm.to_s,
-        sender: sender_label(message)
-      }
-    end
-  end
-
-  def sender_label(message)
-    label = case message.sender_type
-            when 'User' then 'agente humano'
-            when 'Contact' then 'cliente'
-            else 'bot'
-            end
-    message.private? ? "nota privada / #{label}" : label
-  end
 
   def extract_profile(messages)
     attempts = 0
@@ -106,7 +86,8 @@ class ConversationAi::ProfileService
 
     GlobalAiAssistant::OpenRouterClient.new(
       api_key: api_key,
-      api_base: GlobalAiAssistant::ProviderConfig.api_base
+      api_base: GlobalAiAssistant::ProviderConfig.api_base,
+      timeout: 50
     ).call([
       { role: 'system', content: system_prompt },
       { role: 'user', content: JSON.generate({
@@ -338,6 +319,15 @@ class ConversationAi::ProfileService
         contact_name: contact_name,
         profile: profile
       }.deep_stringify_keys
+    )
+  end
+
+  def log_context_metrics(metrics)
+    Rails.logger.info(
+      "[ConversationAi::Profile] account_id=#{@conversation.account_id} " \
+      "conversation_id=#{@conversation.display_id} messages=#{metrics[:message_count]} " \
+      "selected=#{metrics[:selected_message_count]} chars=#{metrics[:selected_characters]} " \
+      "truncated=#{metrics[:truncated]}"
     )
   end
 end

@@ -259,4 +259,21 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
       'helpers_origin', 'helpers_destination', 'assembly_items', 'disassembly_items'
     )
   end
+
+  it 'returns a controlled gateway timeout when the profile provider is slow' do
+    allow(ConversationAi::ProfileService).to receive(:new).and_raise(
+      GlobalAiAssistant::OpenRouterClient::TimeoutError
+    )
+
+    post profile_endpoint,
+         params: { conversation_id: conversation.display_id },
+         headers: admin.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:gateway_timeout)
+    expect(JSON.parse(response.body)).to include(
+      'ok' => false,
+      'error' => 'A leitura da conversa demorou mais que o limite seguro.'
+    )
+  end
 end

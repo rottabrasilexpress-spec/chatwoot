@@ -24,4 +24,23 @@ RSpec.describe GlobalAiAssistant::OpenRouterClient do
 
     expect { client.call([]) }.to raise_error(/OpenRouter respondeu HTTP 401: invalid key/)
   end
+
+  it 'allows the profile flow to use a longer bounded timeout' do
+    timed_client = described_class.new(
+      api_key: 'test-key',
+      api_base: 'https://openrouter.ai/api/v1',
+      timeout: 50
+    )
+    response = instance_double(HTTParty::Response, success?: true, parsed_response: {
+      'choices' => [{ 'message' => { 'content' => 'OK' } }]
+    })
+    allow(HTTParty).to receive(:post).and_return(response)
+
+    timed_client.call([{ role: 'user', content: 'teste' }])
+
+    expect(HTTParty).to have_received(:post).with(
+      anything,
+      hash_including(timeout: 50)
+    )
+  end
 end

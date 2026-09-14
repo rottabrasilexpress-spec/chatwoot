@@ -62,12 +62,14 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
     ).call
 
     render json: result
+  rescue GlobalAiAssistant::OpenRouterClient::TimeoutError
+    render json: { ok: false, error: 'A leitura da conversa demorou mais que o limite seguro.' }, status: :gateway_timeout
   rescue ActiveRecord::RecordNotFound
     render json: { ok: false, error: 'Conversa não encontrada.' }, status: :not_found
   rescue ArgumentError => e
     render json: { ok: false, error: e.message }, status: :unprocessable_entity
   rescue StandardError => e
-    Rails.logger.error("[ConversationAi::Profile] #{e.class}: #{e.message}")
+    Rails.logger.error("[ConversationAi::Profile] error=#{e.class}")
     render json: { ok: false, error: 'Não foi possível preencher o perfil agora.' }, status: :bad_gateway
   end
 

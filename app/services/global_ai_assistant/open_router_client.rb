@@ -5,10 +5,14 @@ class GlobalAiAssistant::OpenRouterClient
   MODEL = GlobalAiAssistant::ProviderConfig::MODEL
   DEFAULT_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'.freeze
   MAX_TOKENS = 2000
+  DEFAULT_TIMEOUT_SECONDS = 40
 
-  def initialize(api_key:, api_base:)
+  class TimeoutError < StandardError; end
+
+  def initialize(api_key:, api_base:, timeout: DEFAULT_TIMEOUT_SECONDS)
     @api_key = api_key.to_s.strip
     @endpoint = "#{api_base.to_s.chomp('/')}/chat/completions"
+    @timeout = timeout
   end
 
   def call(messages)
@@ -30,7 +34,7 @@ class GlobalAiAssistant::OpenRouterClient
         reasoning: { effort: 'low' },
         messages: messages
       }.to_json,
-      timeout: 40
+      timeout: @timeout
     )
 
     payload = response.parsed_response
@@ -38,6 +42,8 @@ class GlobalAiAssistant::OpenRouterClient
 
     raise "OpenRouter respondeu HTTP #{response.code}: #{error_message(payload)}"
   rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, Timeout::Error => e
+    raise TimeoutError, 'A leitura da conversa excedeu o limite seguro.' if e.is_a?(Net::OpenTimeout) || e.is_a?(Net::ReadTimeout) || e.is_a?(Timeout::Error)
+
     raise "Falha de rede no OpenRouter: #{e.message}"
   end
 
