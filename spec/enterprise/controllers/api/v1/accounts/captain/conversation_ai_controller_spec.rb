@@ -204,4 +204,59 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
     expect(response).to have_http_status(:success)
     expect(JSON.parse(response.body)).to include('changed_fields' => include('origin', 'destination'))
   end
+
+  it 'recovers explicit inventory, budget and service markers from a structured quote' do
+    message = conversation.messages.create!(
+      account: account,
+      inbox: conversation.inbox,
+      sender: conversation.contact,
+      message_type: :incoming,
+      content: <<~TEXT
+        ORÇAMENTO FINAL
+        ORIGEM: Patos, PB, Brasil
+        DESTINO: Aracruz, ES, Brasil
+        COLETA: 30/10/2026
+        • [01] Geladeira
+        • [02] Espelhos
+        • [03] Caixas
+        Valor: ✅ R$ 3.655,37
+        Carga (origem): Por conta do cliente
+        Descarga (destino): Por conta do cliente
+        DESMONTAGEM: ❌ NÃO
+        MONTAGEM: ❌ NÃO
+      TEXT
+    )
+    empty_profile = {
+      'contact_name' => nil,
+      'profile' => ConversationAi::ProfileService::PROFILE_FIELDS.index_with { nil },
+      'evidence' => {}
+    }
+    client = instance_double(GlobalAiAssistant::OpenRouterClient)
+    allow(GlobalAiAssistant::ProviderConfig).to receive(:api_key).and_return('test-key')
+    allow(GlobalAiAssistant::OpenRouterClient).to receive(:new).and_return(client)
+    allow(client).to receive(:call).and_return(empty_profile.to_json)
+
+    post profile_endpoint,
+         params: { conversation_id: conversation.display_id },
+         headers: admin.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    profile = conversation.contact.reload.custom_attributes['rotta_move_profile']
+    expect(profile).to include(
+      'origin' => 'Patos, PB, Brasil',
+      'destination' => 'Aracruz, ES, Brasil',
+      'move_date' => '30/10/2026',
+      'budget_value' => 'R$ 3.655,37',
+      'helpers_origin' => 0,
+      'helpers_destination' => 0,
+      'assembly_items' => '❌ NÃO',
+      'disassembly_items' => '❌ NÃO'
+    )
+    expect(profile['items']).to include('Geladeira', 'Espelhos', 'Caixas')
+    expect(JSON.parse(response.body)['changed_fields']).to include(
+      'origin', 'destination', 'move_date', 'budget_value', 'items',
+      'helpers_origin', 'helpers_destination', 'assembly_items', 'disassembly_items'
+    )
+  end
 end

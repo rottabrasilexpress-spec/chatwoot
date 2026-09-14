@@ -20,7 +20,7 @@ class ConversationAi::ProfileService
     raise ArgumentError, 'O contato da conversa não está disponível.' if @contact.blank?
 
     messages = conversation_messages
-    extracted = extract_profile(messages)
+    extracted = merge_deterministic_evidence(extract_profile(messages), messages)
     profile = existing_profile
     changed_fields = []
 
@@ -174,6 +174,92 @@ class ConversationAi::ProfileService
     parsed
   rescue JSON::ParserError
     raise ArgumentError, 'A IA não retornou o perfil em JSON válido.'
+  end
+
+  # Structured quote messages are deliberately used as a narrow safety net. The model
+  # remains the source of interpretation, while these explicit markers prevent a long
+  # operational summary from dropping fields such as the inventory or quoted amount.
+  def merge_deterministic_evidence(extracted, messages)
+    result = extracted.is_a?(Hash) ? extracted.deep_stringify_keys : {}
+    result['profile'] = result['profile'].is_a?(Hash) ? result['profile'] : {}
+    result['evidence'] = result['evidence'].is_a?(Hash) ? result['evidence'] : {}
+
+    latest_message_with = lambda do |&matcher|
+      messages.reverse_each do |message|
+        match = matcher.call(message[:content].to_s)
+        return [message, match] if match
+      end
+      nil
+    end
+
+    fill_profile = lambda do |field, value, message, quote|
+      return if value.blank? ||
+                (normalise_field(field, result['profile'][field]).present? &&
+                 valid_evidence?(field, result['evidence'][field], messages))
+
+      result['profile'][field] = value
+      result['evidence'][field] = { 'message_id' => message[:id], 'quote' => quote }
+    end
+
+    if (found = latest_message_with.call { |content| content.match(/R\$[\s\u00a0]*[\d.]+,\d{2}/) })
+      message, match = found
+      quote = message[:content].to_s.lines.find { |line| line.include?(match[0]) }&.strip || match[0]
+      fill_profile.call('budget_value', match[0], message, quote)
+    end
+
+    if (found = latest_message_with.call do |content|
+      entries = content.lines.filter_map do |line|
+        line.match(/(?:•\s*)?\[\s*0*(\d+)\s*\]\s*(.+?)\s*$/)
+      end
+      entries.length >= 2 ? entries : nil
+    end)
+      message, entries = found
+      quote = message[:content].to_s.lines.select do |line|
+        line.match?(/(?:•\s*)?\[\s*0*\d+\s*\]\s*.+?\s*$/)
+      end.map(&:strip).join("\n")
+      items = entries.map { |entry| "• [#{entry[1].to_i}] #{entry[2].strip}" }.join("\n")
+      fill_profile.call('items', items, message, quote)
+    end
+
+    if (found = latest_message_with.call { |content| content.match(/não precisa de ajudante|nao precisa de ajudante/i) })
+      message, = found
+      fill_profile.call('helpers_origin', 0, message, message[:content])
+      fill_profile.call('helpers_destination', 0, message, message[:content])
+      fill_profile.call('observations', message[:content].to_s.strip, message, message[:content])
+    end
+
+    %w[origin destination move_date assembly_items disassembly_items].each do |field|
+      next unless (found = latest_message_with.call { |content| structured_field_match(field, content) })
+
+      message, match = found
+      fill_profile.call(field, match[:value], message, match[:quote])
+    end
+
+    if (found = latest_message_with.call { |content| content.match(/Carga \(origem\):\s*Por conta do cliente/i) })
+      message, = found
+      fill_profile.call('helpers_origin', 0, message, message[:content].to_s.lines.find { |line| line.match?(/Carga \(origem\):\s*Por conta do cliente/i) }&.strip || message[:content])
+    end
+
+    if (found = latest_message_with.call { |content| content.match(/Descarga \(destino\):\s*Por conta do cliente/i) })
+      message, = found
+      fill_profile.call('helpers_destination', 0, message, message[:content].to_s.lines.find { |line| line.match?(/Descarga \(destino\):\s*Por conta do cliente/i) }&.strip || message[:content])
+    end
+
+    result
+  end
+
+  def structured_field_match(field, content)
+    patterns = {
+      'origin' => /(?:^|\n)\s*(?:📍\s*)?ORIGEM:\s*(.+)$/i,
+      'destination' => /(?:^|\n)\s*(?:📍\s*)?DESTINO:\s*(.+)$/i,
+      'move_date' => /(?:^|\n)\s*(?:🗓️\s*)?(?:COLETA|DATA):\s*(.+)$/i,
+      'assembly_items' => /(?:^|\n)\s*(?:🪛\s*)?MONTAGEM:\s*(.+)$/i,
+      'disassembly_items' => /(?:^|\n)\s*(?:🪛\s*)?DESMONTAGEM:\s*(.+)$/i
+    }
+    match = content.match(patterns[field])
+    return unless match
+
+    { value: match[1].strip, quote: match[0].strip }
   end
 
   def existing_profile
