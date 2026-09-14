@@ -54,7 +54,10 @@ class GlobalAiAssistant::AskService
 
   def api_base
     configured = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value.to_s.strip
-    configured = 'https://api.openai.com' if configured.blank?
+    # The configured key is the existing Rotta/OpenRouter credential. Keep the
+    # provider explicit for the exact DeepSeek model instead of sending that
+    # key to api.openai.com by default.
+    configured = 'https://openrouter.ai/api/v1' if configured.blank?
     configured = configured.chomp('/')
     configured.end_with?('/v1') ? configured : "#{configured}/v1"
   end

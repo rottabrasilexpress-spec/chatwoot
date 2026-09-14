@@ -1,6 +1,7 @@
 class GlobalAiAssistant::ActionService
   ALLOWED_ACTIONS = %w[
     add_label remove_label set_status create_private_note send_public_message assign_agent
+    follow_up_dispatch_now follow_up_advance follow_up_delay follow_up_cancel
   ].freeze
   ALLOWED_STATUSES = %w[open pending resolved].freeze
 
@@ -51,6 +52,11 @@ class GlobalAiAssistant::ActionService
       "Criar uma nota privada em #{conversation.contact&.name || 'a conversa'}: #{@params['content']}"
     when 'set_status'
       "Alterar o status da conversa para #{@params['status']}"
+    when /\Afollow_up_/
+      operation = @action.delete_prefix('follow_up_')
+      hours = @params['hours'].presence
+      detail = hours ? " para #{hours} horas" : ''
+      "Executar o follow-up #{operation}#{detail} na conversa #{conversation.display_id}"
     else
       "Executar #{@action} na conversa #{conversation.display_id}"
     end
@@ -64,7 +70,19 @@ class GlobalAiAssistant::ActionService
     when 'create_private_note' then create_message(conversation, private: true)
     when 'send_public_message' then create_message(conversation, private: false)
     when 'assign_agent' then assign_agent(conversation)
+    when /\Afollow_up_/ then update_follow_up(conversation)
     end
+  end
+
+  def update_follow_up(conversation)
+    operation = @action.delete_prefix('follow_up_')
+    GlobalAiAssistant::FollowUpAdapter.new(
+      account: @account,
+      conversation: conversation,
+      operation: operation,
+      job_id: @params['job_id'],
+      hours: @params['hours']
+    ).call
   end
 
   def update_labels(conversation, add: nil, remove: nil)

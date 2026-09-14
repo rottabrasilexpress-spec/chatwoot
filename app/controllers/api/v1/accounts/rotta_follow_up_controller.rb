@@ -1,5 +1,4 @@
 class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseController
-  ADMIN_URL = 'https://saas.via-cargo.com/webhook/rotta-chatwoot-followup-admin-v1'.freeze
   ALLOWED_ACTIONS = %w[list config dispatch_now advance delay cancel remove_label].freeze
 
   def proxy
@@ -14,21 +13,13 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
 
     return remove_label(payload) if action == 'remove_label'
 
-    response = HTTParty.post(
-      ADMIN_URL,
-      headers: {
-        'Accept' => 'application/json',
-        'Content-Type' => 'application/json'
-      },
-      body: payload.slice('action', 'job_id', 'hours', 'config').to_json,
-      timeout: 20
-    )
-
-    body = JSON.parse(response.body)
+    response = RottaFollowUp::AdminClient.request(payload.slice('action', 'job_id', 'hours', 'config'))
+    body = response.body
     body = add_delivery_evidence(body) if action == 'list' && body.is_a?(Hash)
-    render json: body, status: response.code.to_i
-  rescue JSON::ParserError
-    render json: { ok: false, error: 'A resposta do painel de follow-up não era JSON válido.' }, status: :bad_gateway
+    render json: body, status: response.status
+  rescue RottaFollowUp::AdminClient::Error => e
+    Rails.logger.error("[RottaFollowUp] #{e.class}: #{e.message}")
+    render json: { ok: false, error: e.message }, status: :bad_gateway
   rescue StandardError => e
     Rails.logger.error("[RottaFollowUp] #{e.class}: #{e.message}")
     render json: { ok: false, error: 'Não foi possível comunicar com o painel de follow-up.' }, status: :bad_gateway
@@ -69,19 +60,10 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   end
 
   def cancel_remote_job!(job_id)
-    response = HTTParty.post(
-      ADMIN_URL,
-      headers: {
-        'Accept' => 'application/json',
-        'Content-Type' => 'application/json'
-      },
-      body: { action: 'cancel', job_id: job_id }.to_json,
-      timeout: 20
-    )
-    body = JSON.parse(response.body)
-    return if response.code.to_i.between?(200, 299) && body['ok'] != false
+    response = RottaFollowUp::AdminClient.request(action: 'cancel', job_id: job_id)
+    return if response.success?
 
-    raise "O painel não confirmou o cancelamento da etiqueta (HTTP #{response.code})."
+    raise "O painel não confirmou o cancelamento da etiqueta (HTTP #{response.status})."
   end
 
   def follow_up_label_key(label)

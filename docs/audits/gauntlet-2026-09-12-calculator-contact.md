@@ -382,6 +382,17 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Deploy ainda pendente nesta linha do registro; a próxima etapa é commit, publicação nas duas branches, migração no EasyPanel e teste live sem alterar mensagens/conversas reais.
 - Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
 
+## Vigésima oitava rodada — adaptador global de Follow-up e provider DeepSeek — 14/09/2026
+
+- O Follow-up passou a ter um cliente compartilhado (RottaFollowUp::AdminClient), reaproveitado pela rota existente e pelo novo GlobalAiAssistant::FollowUpAdapter. Isso evita duplicação e preserva o painel atual.
+- A IA global agora pode consultar a fila de Follow-up quando a pergunta tratar de follow-up, lembretes, etiquetas, contatos, orçamentos ou pendências; a lista é filtrada e limitada a 120 jobs para não carregar histórico desnecessário.
+- Ações confirmadas adicionadas ao núcleo global: dispatch_now, advance, delay e cancel, sempre com conversation_id, job_id, validação do prazo e auditoria existente. Jobs provisórios pending: são recusados para impedir ação ambígua.
+- O modelo continua fixado exatamente em deepseek/deepseek-v4-flash-0731. Como a credencial encontrada no n8n é OpenRouter e os segredos não são exportáveis pela API, o Chatwoot usa a configuração segura CAPTAIN_OPEN_AI_API_KEY; o endpoint padrão do módulo foi corrigido para https://openrouter.ai/api/v1.
+- Validação local: Vitest focalizado 3/3; git diff --check aprovado. Ruby/RSpec continua indisponível no host Windows e será verificado no container EasyPanel durante o deploy.
+- Bloqueio operacional ainda aberto: a instalação live continua com CAPTAIN_OPEN_AI_API_KEY vazio. Nenhuma chave foi exposta, commitada ou copiada do n8n; para o teste real da LLM, a mesma chave OpenRouter/DeepSeek precisa ser cadastrada no Chatwoot/EasyPanel.
+- Nenhuma mensagem, conversa, etiqueta, contato, inbox, credencial ou dado WhatsApp foi alterado nesta etapa; não houve envio para cliente.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\plans\pergunte-para-ia-conversa-2026-09-10.md) ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
+
 ## Vigésima sétima rodada — rota global, deploy e auditoria live — 14/09/2026
 
 - Causa raiz encontrada no teste real: `resource :access` gerava a rota `accesses#show`, mas o controller implementado era `AccessController`; o endpoint de autorização retornava `404`.

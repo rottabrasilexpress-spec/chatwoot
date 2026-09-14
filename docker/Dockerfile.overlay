@@ -49,6 +49,7 @@ COPY app/services/messages/send_on_api_service.rb /app/app/services/messages/sen
 COPY app/services/messages/uazapi_action_service.rb /app/app/services/messages/uazapi_action_service.rb
 COPY app/services/messages/uazapi_customer_deletion_detector.rb /app/app/services/messages/uazapi_customer_deletion_detector.rb
 COPY app/services/global_ai_assistant /app/app/services/global_ai_assistant
+COPY app/services/rotta_follow_up /app/app/services/rotta_follow_up
 COPY app/jobs/send_reply_job.rb /app/app/jobs/send_reply_job.rb
 COPY app/services/action_service.rb /app/app/services/action_service.rb
 COPY app/services/auto_assignment/agent_assignment_service.rb /app/app/services/auto_assignment/agent_assignment_service.rb

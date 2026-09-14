@@ -153,7 +153,25 @@ class GlobalAiAssistant::ContextBuilder
                                   .where.not(status: :resolved)
                                   .flat_map(&:label_list)
                                   .tally
-                                  .select { |label, _count| FOLLOW_UP_LABEL_KEYS.include?(label_key(label)) }
+                                  .select { |label, _count| FOLLOW_UP_LABEL_KEYS.include?(label_key(label)) },
+      follow_up_jobs: follow_up_jobs
+    }
+  end
+
+  def follow_up_jobs
+    return { available: false, reason: 'not_requested' } unless question.match?(/follow[\s-]?up|lembrete|etiqueta|primeiro contato|segundo contato|terceiro contato|orçamento|orcamento|pendên|penden/i)
+
+    payload = GlobalAiAssistant::FollowUpAdapter.list
+    jobs = Array(payload['jobs']).first(120)
+    {
+      available: payload['available'] != false,
+      jobs: jobs.map do |job|
+        job.slice(
+          'job_id', 'conversation_id', 'customer_name', 'phone', 'current_label',
+          'source_label', 'next_label', 'status', 'scheduled_at', 'history',
+          'active_labels'
+        )
+      end
     }
   end
 end
