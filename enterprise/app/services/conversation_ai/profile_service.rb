@@ -255,11 +255,11 @@ class ConversationAi::ProfileService
 
   def structured_field_match(field, content)
     patterns = {
-      'origin' => /(?:^|\n)\s*\*{0,3}\s*(?:📍\s*)?ORIGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
-      'destination' => /(?:^|\n)\s*\*{0,3}\s*(?:📍\s*)?DESTINO(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
-      'move_date' => /(?:^|\n)\s*\*{0,3}\s*(?:🗓️\s*)?(?:COLETA|DATA)(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
-      'assembly_items' => /(?:^|\n)\s*\*{0,3}\s*(?:🪛\s*)?MONTAGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
-      'disassembly_items' => /(?:^|\n)\s*\*{0,3}\s*(?:🪛\s*)?DESMONTAGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i
+      'origin' => /(?:^|\n)\s*\*{0,3}\s*(?:📍\s*)?\*{0,3}\s*ORIGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
+      'destination' => /(?:^|\n)\s*\*{0,3}\s*(?:📍\s*)?\*{0,3}\s*DESTINO(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
+      'move_date' => /(?:^|\n)\s*\*{0,3}\s*(?:🗓️\s*)?\*{0,3}\s*(?:COLETA|DATA)(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
+      'assembly_items' => /(?:^|\n)\s*\*{0,3}\s*(?:🪛\s*)?\*{0,3}\s*MONTAGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
+      'disassembly_items' => /(?:^|\n)\s*\*{0,3}\s*(?:🪛\s*)?\*{0,3}\s*DESMONTAGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i
     }
     match = content.match(patterns[field])
     return unless match
