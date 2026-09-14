@@ -4,11 +4,16 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useAlert } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
+import ConversationAiAPI from 'dashboard/api/captain/conversationAi';
 
 const props = defineProps({
   contact: {
     type: Object,
     default: () => ({}),
+  },
+  conversationId: {
+    type: [Number, String],
+    default: undefined,
   },
 });
 
@@ -16,6 +21,7 @@ const PROFILE_KEY = 'rotta_move_profile';
 
 const store = useStore();
 const isSaving = ref(false);
+const isFillingWithAi = ref(false);
 const isDirty = ref(false);
 
 const createEmptyProfile = () => ({
@@ -131,6 +137,38 @@ const save = async () => {
     isSaving.value = false;
   }
 };
+
+const fillWithAi = async () => {
+  if (!props.contact?.id || !props.conversationId || isFillingWithAi.value)
+    return;
+  if (isDirty.value) {
+    useAlert('Salve as alterações manuais antes de usar a IA.');
+    return;
+  }
+
+  isFillingWithAi.value = true;
+  try {
+    const response = await ConversationAiAPI.profile(props.conversationId);
+    const payload = response.data || {};
+    Object.assign(form, createEmptyProfile(), payload.profile || {});
+    isDirty.value = false;
+    await store.dispatch('contacts/show', { id: props.contact.id });
+    const changed = payload.changed_fields?.length || 0;
+    useAlert(
+      changed || payload.contact_name_changed
+        ? 'Perfil preenchido e salvo pela IA.'
+        : 'Nenhuma informação nova com evidência foi encontrada.'
+    );
+  } catch (error) {
+    useAlert(
+      error.response?.data?.error ||
+        error.message ||
+        'Não foi possível preencher o perfil com IA.'
+    );
+  } finally {
+    isFillingWithAi.value = false;
+  }
+};
 </script>
 
 <template>
@@ -143,10 +181,20 @@ const save = async () => {
         <h3 id="rotta-contact-profile-title">Perfil da mudança</h3>
         <p>Dados operacionais deste contato.</p>
       </div>
-      <span
-        class="i-lucide-clipboard-list size-5 text-n-brand"
-        aria-hidden="true"
-      />
+      <button
+        type="button"
+        class="rotta-contact-profile__ai"
+        aria-label="Preencher perfil da mudança com IA"
+        title="Ler a conversa e preencher o perfil com IA"
+        :disabled="isFillingWithAi || !contact.id || !conversationId"
+        :aria-busy="isFillingWithAi"
+        @click="fillWithAi"
+      >
+        <span class="i-lucide-sparkles size-4" aria-hidden="true" />
+        <span>{{
+          isFillingWithAi ? 'Lendo conversa…' : 'Preencher com IA'
+        }}</span>
+      </button>
     </div>
 
     <form
@@ -354,6 +402,28 @@ const save = async () => {
 .rotta-contact-profile__header {
   padding: 0.9rem 1rem 0.75rem;
   @apply border-b border-n-weak;
+}
+
+.rotta-contact-profile__ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.55rem;
+  @apply text-n-brand bg-n-solid-1 border border-n-brand;
+  border-radius: 0.5rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rotta-contact-profile__ai:hover:not(:disabled),
+.rotta-contact-profile__ai:focus-visible {
+  @apply bg-n-brand text-white;
+}
+
+.rotta-contact-profile__ai:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
 .rotta-contact-profile__header h3,

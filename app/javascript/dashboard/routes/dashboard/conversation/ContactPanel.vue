@@ -149,7 +149,7 @@ onMounted(() => {
       @close="closeContactPanel"
     />
     <ContactInfo :contact="contact" :channel-type="channelType" />
-    <RottaContactProfile :contact="contact" />
+    <RottaContactProfile :contact="contact" :conversation-id="conversationId" />
     <div class="px-2 pb-8 list-group">
       <Draggable
         :list="conversationSidebarItems"

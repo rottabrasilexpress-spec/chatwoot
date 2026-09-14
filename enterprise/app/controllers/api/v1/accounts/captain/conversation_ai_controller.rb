@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::BaseController
-  ALLOWED_ACTIONS = %w[add_label remove_label send_public_message create_private_note set_status].freeze
+  ALLOWED_ACTIONS = %w[add_label remove_label send_public_message create_private_note set_status update_contact_name].freeze
   ALLOWED_STATUSES = %w[open pending resolved].freeze
 
   def actions
@@ -32,6 +32,8 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
                         create_message(conversation, content: permitted_params[:content], private: true)
                       when 'set_status'
                         update_status(conversation, permitted_params[:status])
+                      when 'update_contact_name'
+                        update_contact_name(conversation, permitted_params[:name])
                       end
 
       record_action_audit!(
@@ -48,6 +50,25 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
     render json: { ok: false, error: 'Conversa não encontrada.' }, status: :not_found
   rescue ArgumentError => e
     render json: { ok: false, error: e.message }, status: :unprocessable_entity
+  end
+
+  def profile
+    conversation = Current.account.conversations.find_by!(display_id: params[:conversation_id])
+    authorize conversation, :show?
+
+    result = ConversationAi::ProfileService.new(
+      conversation: conversation,
+      user: Current.user
+    ).call
+
+    render json: result
+  rescue ActiveRecord::RecordNotFound
+    render json: { ok: false, error: 'Conversa não encontrada.' }, status: :not_found
+  rescue ArgumentError => e
+    render json: { ok: false, error: e.message }, status: :unprocessable_entity
+  rescue StandardError => e
+    Rails.logger.error("[ConversationAi::Profile] #{e.class}: #{e.message}")
+    render json: { ok: false, error: 'Não foi possível preencher o perfil agora.' }, status: :bad_gateway
   end
 
   private
@@ -100,10 +121,20 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
     { status: conversation.status }
   end
 
+  def update_contact_name(conversation, name)
+    normalized_name = name.to_s.strip
+    raise ArgumentError, 'Nome do contato é obrigatório.' if normalized_name.blank?
+    raise ArgumentError, 'Nome do contato é muito longo.' if normalized_name.length > 120
+
+    conversation.contact.update!(name: normalized_name)
+    { contact_id: conversation.contact.id, contact_name: conversation.contact.name }
+  end
+
   def conversation_state(conversation)
     {
       labels: conversation.label_list,
-      status: conversation.status
+      status: conversation.status,
+      contact_name: conversation.contact&.name
     }
   end
 
@@ -128,6 +159,6 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
   end
 
   def permitted_params
-    params.permit(:conversation_id, :label, :content, :status, :operation)
+    params.permit(:conversation_id, :label, :content, :status, :operation, :name)
   end
 end

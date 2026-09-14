@@ -6,6 +6,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
   let(:endpoint) { "/api/v1/accounts/#{account.id}/captain/conversation_ai/actions" }
+  let(:profile_endpoint) { "/api/v1/accounts/#{account.id}/captain/conversation_ai/profile" }
 
   it 'records the actor, target, state transition and result in the audit log' do
     expect do
@@ -74,5 +75,103 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
 
     expect(response).to have_http_status(:success)
     expect(conversation.reload.label_list).not_to include('caio-atencao')
+  end
+
+  it 'updates the current contact name and records the action' do
+    post endpoint,
+         params: {
+           conversation_id: conversation.display_id,
+           action: 'update_contact_name',
+           name: 'Luciana'
+         },
+         headers: admin.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(conversation.contact.reload.name).to eq('Luciana')
+    expect(Enterprise::AuditLog.last.audited_changes).to include(
+      'action' => 'update_contact_name',
+      'before' => include('contact_name' => be_present),
+      'after' => include('contact_name' => 'Luciana')
+    )
+  end
+
+  it 'fills the move profile from the current conversation and persists only evidenced values' do
+    message = conversation.messages.create!(
+      account: account,
+      inbox: conversation.inbox,
+      sender: conversation.contact,
+      message_type: :incoming,
+      content: 'Meu nome é Luciana. A mudança será de Brasília para Salvador em 25/10/2026.'
+    )
+    response_body = {
+      'contact_name' => 'Luciana',
+      'profile' => {
+        'origin' => 'Brasília',
+        'destination' => 'Salvador',
+        'move_date' => '25/10/2026',
+        'budget_value' => nil,
+        'items' => nil,
+        'observations' => nil,
+        'helpers_origin' => nil,
+        'helpers_destination' => nil,
+        'assembly_items' => nil,
+        'disassembly_items' => nil
+      },
+      'evidence' => {
+        'contact_name' => { 'message_id' => message.id, 'quote' => 'Meu nome é Luciana' },
+        'origin' => { 'message_id' => message.id, 'quote' => 'de Brasília' },
+        'destination' => { 'message_id' => message.id, 'quote' => 'para Salvador' },
+        'move_date' => { 'message_id' => message.id, 'quote' => '25/10/2026' }
+      }
+    }
+    client = instance_double(GlobalAiAssistant::OpenRouterClient)
+    allow(GlobalAiAssistant::ProviderConfig).to receive(:api_key).and_return('test-key')
+    allow(GlobalAiAssistant::OpenRouterClient).to receive(:new).and_return(client)
+    allow(client).to receive(:call).and_return(response_body.to_json)
+
+    post profile_endpoint,
+         params: { conversation_id: conversation.display_id },
+         headers: admin.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(conversation.contact.reload.name).to eq('Luciana')
+    expect(conversation.contact.custom_attributes['rotta_move_profile']).to include(
+      'origin' => 'Brasília',
+      'destination' => 'Salvador',
+      'move_date' => '25/10/2026'
+    )
+    expect(JSON.parse(response.body)).to include('ok' => true, 'changed_fields' => include('origin', 'destination'))
+  end
+
+  it 'does not replace an existing profile value when the model evidence is not in the conversation' do
+    conversation.contact.update!(custom_attributes: {
+      'rotta_move_profile' => { 'origin' => 'São Paulo' }
+    })
+    message = conversation.messages.create!(
+      account: account,
+      inbox: conversation.inbox,
+      sender: conversation.contact,
+      message_type: :incoming,
+      content: 'Ainda estou verificando a data da mudança.'
+    )
+    client = instance_double(GlobalAiAssistant::OpenRouterClient)
+    allow(GlobalAiAssistant::ProviderConfig).to receive(:api_key).and_return('test-key')
+    allow(GlobalAiAssistant::OpenRouterClient).to receive(:new).and_return(client)
+    allow(client).to receive(:call).and_return({
+      'contact_name' => nil,
+      'profile' => { 'origin' => 'Rio de Janeiro' },
+      'evidence' => { 'origin' => { 'message_id' => message.id, 'quote' => 'Rio de Janeiro' } }
+    }.to_json)
+
+    post profile_endpoint,
+         params: { conversation_id: conversation.display_id },
+         headers: admin.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(conversation.contact.reload.custom_attributes['rotta_move_profile']['origin']).to eq('São Paulo')
+    expect(JSON.parse(response.body)).to include('changed_fields' => [])
   end
 end
