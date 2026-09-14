@@ -33,22 +33,25 @@ class GlobalAiAssistant::AskService
     credential = GlobalAiAssistant::ProviderConfig.api_key
     raise 'A credencial DeepSeek/OpenRouter da IA global não está configurada.' if credential.blank?
 
-    Llm::Config.with_api_key(credential, api_base: GlobalAiAssistant::ProviderConfig.api_base) do |llm_context|
-      chat = llm_context.chat(model: MODEL).with_instructions(system_prompt(context))
-      add_thread_history(chat)
-      chat.ask(@question).content
-    end
+    messages = [{ role: 'system', content: system_prompt(context) }]
+    messages.concat(thread_messages)
+    messages << { role: 'user', content: @question }
+
+    GlobalAiAssistant::OpenRouterClient.new(
+      api_key: credential,
+      api_base: GlobalAiAssistant::ProviderConfig.api_base
+    ).call(messages)
   end
 
-  def add_thread_history(chat)
+  def thread_messages
     @thread.global_ai_messages
            .order(created_at: :asc)
            .last(12)
-           .each do |message|
+           .filter_map do |message|
       content = (message.message['content'].presence || message.message['answer']).to_s.strip
       next if content.blank? || content == @question
 
-      chat.add_message(role: message.user? ? :user : :assistant, content: content)
+      { role: message.user? ? 'user' : 'assistant', content: content }
     end
   end
 
