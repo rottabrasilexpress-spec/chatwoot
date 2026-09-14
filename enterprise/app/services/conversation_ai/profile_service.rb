@@ -20,7 +20,7 @@ class ConversationAi::ProfileService
     raise ArgumentError, 'O contato da conversa não está disponível.' if @contact.blank?
 
     messages = conversation_messages
-    extracted = parse_response(ask_model(messages))
+    extracted = extract_profile(messages)
     profile = existing_profile
     changed_fields = []
 
@@ -82,7 +82,20 @@ class ConversationAi::ProfileService
     message.private? ? "nota privada / #{label}" : label
   end
 
-  def ask_model(messages)
+  def extract_profile(messages)
+    attempts = 0
+
+    begin
+      attempts += 1
+      parse_response(ask_model(messages, retry_request: attempts > 1))
+    rescue ArgumentError => e
+      raise unless attempts < 2 && e.message.match?(/JSON|formato de perfil/i)
+
+      retry
+    end
+  end
+
+  def ask_model(messages, retry_request: false)
     api_key = GlobalAiAssistant::ProviderConfig.api_key
     raise ArgumentError, 'A credencial DeepSeek/OpenRouter da IA global não está configurada.' if api_key.blank?
 
@@ -94,7 +107,8 @@ class ConversationAi::ProfileService
       { role: 'user', content: JSON.generate({
         current_contact_name: @contact.name,
         current_profile: existing_profile,
-        conversation_messages: messages
+        conversation_messages: messages,
+        retry_instruction: retry_request ? 'Responda novamente agora, somente com o objeto JSON obrigatório e sem texto adicional.' : nil
       }) }
     ])
   end
@@ -112,6 +126,16 @@ class ConversationAi::ProfileService
       curta dessa mensagem. A citação precisa ser copiável do conteúdo da mensagem.
       O nome só pode ser alterado quando o nome real estiver explicitamente informado na conversa.
       Inclua notas privadas no raciocínio, mas não invente informação a partir delas.
+
+      Antes de responder, faça uma auditoria campo a campo em todas as mensagens. Procure
+      explicitamente por: origem e destino; data ou janela de mudança; cada valor em reais;
+      inventário completo com quantidades; ajudantes na origem e no destino; montagem;
+      desmontagem; e observações operacionais. Mensagens da equipe com orçamento, resumo ou
+      inventário estruturado também são evidências textuais válidas. Se o cliente disser que
+      não precisa de ajudantes, montagem ou desmontagem, isso é uma declaração explícita e
+      pode ser representado por zero ou por "não precisa", conforme o campo. Nunca retorne
+      null para um campo apenas porque a informação está em uma mensagem longa: extraia a
+      frase literal e registre-a em evidence. Faça uma última varredura antes de responder.
 
       O JSON obrigatório tem este formato:
       {

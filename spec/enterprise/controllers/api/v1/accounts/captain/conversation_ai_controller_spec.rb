@@ -174,4 +174,34 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
     expect(conversation.contact.reload.custom_attributes['rotta_move_profile']['origin']).to eq('São Paulo')
     expect(JSON.parse(response.body)).to include('changed_fields' => [])
   end
+
+  it 'retries once when the model returns an empty JSON response' do
+    message = conversation.messages.create!(
+      account: account,
+      inbox: conversation.inbox,
+      sender: conversation.contact,
+      message_type: :incoming,
+      content: 'A mudança será de Campinas para Santos.'
+    )
+    valid_response = {
+      'contact_name' => nil,
+      'profile' => { 'origin' => 'Campinas', 'destination' => 'Santos' },
+      'evidence' => {
+        'origin' => { 'message_id' => message.id, 'quote' => 'de Campinas' },
+        'destination' => { 'message_id' => message.id, 'quote' => 'para Santos' }
+      }
+    }.to_json
+    client = instance_double(GlobalAiAssistant::OpenRouterClient)
+    allow(GlobalAiAssistant::ProviderConfig).to receive(:api_key).and_return('test-key')
+    allow(GlobalAiAssistant::OpenRouterClient).to receive(:new).and_return(client)
+    allow(client).to receive(:call).and_return('', valid_response)
+
+    post profile_endpoint,
+         params: { conversation_id: conversation.display_id },
+         headers: admin.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(JSON.parse(response.body)).to include('changed_fields' => include('origin', 'destination'))
+  end
 end
