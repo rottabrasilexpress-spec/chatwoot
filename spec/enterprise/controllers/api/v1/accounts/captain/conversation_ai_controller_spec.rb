@@ -222,8 +222,8 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
         Valor: ✅ R$ 3.655,37
         Carga (origem): Por conta do cliente
         Descarga (destino): Por conta do cliente
-        **DESMONTAGEM:** ❌ NÃO
-        **MONTAGEM:** ❌ NÃO
+        **DESMONTAGEM: ❌ NÃO**
+        **MONTAGEM: ❌ NÃO**
       TEXT
     )
     empty_profile = {
