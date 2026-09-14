@@ -393,6 +393,16 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Nenhuma mensagem, conversa, etiqueta, contato, inbox, credencial ou dado WhatsApp foi alterado nesta etapa; não houve envio para cliente.
 - Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\plans\pergunte-para-ia-conversa-2026-09-10.md) ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
 
+## Vigésima nona rodada — deploy e validação Rails do adaptador — 14/09/2026
+
+- Commits publicados nas duas branches: 91a4a67f6 (adaptador/clientes/testes) e d53bbd732 (tag Compose da imagem).
+- EasyPanel concluiu o deploy chore: pin follow-up adapter image; o healthcheck live respondeu HTTP 200 e o HTML do Chatwoot respondeu HTTP 200.
+- No container Rails: os dois arquivos novos retornaram Syntax OK; o runner carregou o adaptador, exibiu as quatro operações permitidas e confirmou o modelo deepseek/deepseek-v4-flash-0731 com endpoint padrão OpenRouter.
+- Teste read-only real do cliente compartilhado retornou 8 jobs de Follow-up. Nenhum disparo, cancelamento, etiqueta, mensagem, conversa ou alteração de cliente foi executado.
+- O ambiente ainda confirmou key_configured: false; portanto a integração de LLM está pronta, mas a resposta real do DeepSeek permanece bloqueada até cadastrar CAPTAIN_OPEN_AI_API_KEY no segredo do Chatwoot/EasyPanel.
+- Vitest focalizado 3/3, git diff --check e health live aprovados. O warning de depreciação do RubyLLM é preexistente e não impediu o carregamento.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\plans\pergunte-para-ia-conversa-2026-09-10.md) ↔ [ledger](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
+
 ## Vigésima sétima rodada — rota global, deploy e auditoria live — 14/09/2026
 
 - Causa raiz encontrada no teste real: `resource :access` gerava a rota `accesses#show`, mas o controller implementado era `AccessController`; o endpoint de autorização retornava `404`.
