@@ -20,7 +20,12 @@ class ConversationAi::ProfileService
     raise ArgumentError, 'O contato da conversa não está disponível.' if @contact.blank?
 
     messages = conversation_messages
-    extracted = merge_deterministic_evidence(extract_profile(messages), messages)
+    deterministic = merge_deterministic_evidence({ 'profile' => {}, 'evidence' => {} }, messages)
+    extracted = if deterministic_profile_complete?(deterministic, messages)
+                  deterministic
+                else
+                  merge_deterministic_evidence(extract_profile(messages), messages)
+                end
     profile = existing_profile
     changed_fields = []
 
@@ -260,6 +265,13 @@ class ConversationAi::ProfileService
     return unless match
 
     { value: match[1].strip, quote: match[0].strip }
+  end
+
+  def deterministic_profile_complete?(extracted, messages)
+    profile = extracted['profile'] || {}
+    %w[origin destination move_date budget_value items helpers_origin helpers_destination assembly_items disassembly_items].all? do |field|
+      normalise_field(field, profile[field]).present? && valid_evidence?(field, extracted['evidence'][field], messages)
+    end
   end
 
   def existing_profile

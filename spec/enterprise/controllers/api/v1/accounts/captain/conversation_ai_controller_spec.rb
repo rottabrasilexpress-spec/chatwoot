@@ -234,7 +234,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
     client = instance_double(GlobalAiAssistant::OpenRouterClient)
     allow(GlobalAiAssistant::ProviderConfig).to receive(:api_key).and_return('test-key')
     allow(GlobalAiAssistant::OpenRouterClient).to receive(:new).and_return(client)
-    allow(client).to receive(:call).and_return(empty_profile.to_json)
+    expect(client).not_to receive(:call)
 
     post profile_endpoint,
          params: { conversation_id: conversation.display_id },
