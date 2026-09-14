@@ -27,6 +27,7 @@ class GlobalAiAssistant::OpenRouterClient
         model: MODEL,
         temperature: 0.1,
         max_tokens: MAX_TOKENS,
+        reasoning: { effort: 'low' },
         messages: messages
       }.to_json,
       timeout: 40

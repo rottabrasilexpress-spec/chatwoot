@@ -57,6 +57,8 @@ class GlobalAiAssistant::AskService
   end
 
   def system_prompt(context)
+    model_context = context_for_model(context)
+
     <<~PROMPT
       Você é o assistente global interno da Rotta Brasil Express. Você responde somente para agentes autenticados,
       nunca para clientes. Este módulo é diferente do Pergunte para IA dentro de uma conversa: aqui o escopo é toda a
@@ -79,18 +81,18 @@ class GlobalAiAssistant::AskService
       receber confirmação do resultado da aplicação.
 
       RELATÓRIO DA CONTA
-      #{JSON.pretty_generate(context[:reports])}
+      #{JSON.pretty_generate(model_context[:reports])}
 
       HISTÓRICO DESTE ASSISTENTE GLOBAL
       O histórico abaixo pertence somente a este chat global e pode ser usado para
       manter continuidade entre perguntas. Ele não substitui as evidências da conta.
-      #{JSON.pretty_generate(thread_history)}
+      #{JSON.pretty_generate(thread_history_for_model)}
 
       CARTÕES DE CONVERSAS ENCONTRADOS
-      #{JSON.pretty_generate(cards_for_prompt(context))}
+      #{JSON.pretty_generate(model_context[:cards])}
 
       EVIDÊNCIAS TEXTUAIS RELEVANTES
-      #{JSON.pretty_generate(source_messages_for_prompt(context))}
+      #{JSON.pretty_generate(model_context[:source_messages])}
 
       REGRAS DE QUALIDADE
       - Diferencie cliente, equipe, bot e notas privadas quando essa informação estiver disponível.
@@ -114,11 +116,46 @@ class GlobalAiAssistant::AskService
     end
   end
 
+  def thread_history_for_model
+    return thread_history unless follow_up_question?
+
+    thread_history.last(4).map do |message|
+      message.merge(content: message[:content].to_s.truncate(600))
+    end
+  end
+
+  def context_for_model(context)
+    return context unless follow_up_question?
+
+    reports = context[:reports].dup
+    reports[:follow_up_jobs] = compact_follow_up_report(reports[:follow_up_jobs]) if reports[:follow_up_jobs]
+
+    {
+      reports: reports,
+      cards: cards_for_prompt(context),
+      source_messages: source_messages_for_prompt(context)
+    }
+  end
+
+  def compact_follow_up_report(report)
+    return report unless report.is_a?(Hash)
+
+    report.merge(
+      jobs: Array(report[:jobs]).first(40).map do |job|
+        job.except('history', 'active_labels')
+      end
+    )
+  end
+
   def cards_for_prompt(context)
     return context[:cards] unless follow_up_question?
 
     Array(context[:cards]).map do |card|
-      card.except(:recent_history)
+      card.except(:recent_history).merge(
+        follow_up_jobs: Array(card[:follow_up_jobs]).map do |job|
+          job.except('history', 'active_labels')
+        end
+      )
     end
   end
 
