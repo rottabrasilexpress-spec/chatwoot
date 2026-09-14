@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.overlay
-    image: rotta-chatwoot:v4.17.0-custom-v1-238560bc0
+    image: rotta-chatwoot:v4.17.0-custom-v1-11481007d
     env_file:
       - .env
     volumes:
@@ -20,7 +20,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.overlay
-    image: rotta-chatwoot:v4.17.0-custom-v1-238560bc0
+    image: rotta-chatwoot:v4.17.0-custom-v1-11481007d
     env_file:
       - .env
     volumes:
@@ -36,7 +36,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.overlay
-    image: rotta-chatwoot:v4.17.0-custom-v1-238560bc0
+    image: rotta-chatwoot:v4.17.0-custom-v1-11481007d
     env_file:
       - .env
     volumes:
