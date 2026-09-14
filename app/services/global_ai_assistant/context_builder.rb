@@ -4,6 +4,7 @@ class GlobalAiAssistant::ContextBuilder
   MAX_FOLLOW_UP_MESSAGES = 3
   MAX_DETAILED_MESSAGES = 80
   FOLLOW_UP_QUERY = /follow[\s-]?up|lembrete|etiqueta|primeiro contato|segundo contato|terceiro contato|orçamento|orcamento|pendên|penden/i.freeze
+  OPERATIONAL_QUERY = /cliente|contato|conversa|follow[\s-]?up|lembrete|etiqueta|status|relat[oó]rio|pendên|penden|financeir|orçamento|orcamento|hist[oó]rico|mensagem|telefone|quem|quantos|qual/i.freeze
   FOLLOW_UP_LABEL_KEYS = %w[
     primeiro-contato segundo-contato terceiro-contato ultimo-contato
     orcamento-feito orcamento-tentativa-2 orcamento-tentativa-3 orcamento-tentativa-4
@@ -32,6 +33,7 @@ class GlobalAiAssistant::ContextBuilder
 
   def matching_conversations
     scope = account.conversations.includes(:contact, :inbox).order(last_activity_at: :desc)
+    return scope.none unless operational_question?
     return scope.limit(MAX_CARDS) if question.blank?
 
     query = ActiveRecord::Base.sanitize_sql_like(question)
@@ -203,5 +205,9 @@ class GlobalAiAssistant::ContextBuilder
 
   def follow_up_question?
     question.match?(FOLLOW_UP_QUERY)
+  end
+
+  def operational_question?
+    question.match?(OPERATIONAL_QUERY)
   end
 end
