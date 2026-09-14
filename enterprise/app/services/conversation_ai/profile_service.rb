@@ -264,7 +264,8 @@ class ConversationAi::ProfileService
     match = content.match(patterns[field])
     return unless match
 
-    { value: match[1].strip, quote: match[0].strip }
+    value = match[1].strip.sub(/\A\*+\s*/, '').sub(/\s*\*+\z/, '')
+    { value: value, quote: match[0].strip }
   end
 
   def deterministic_profile_complete?(extracted, messages)
