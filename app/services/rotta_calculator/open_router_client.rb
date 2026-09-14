@@ -1,5 +1,6 @@
 require 'json'
 require 'net/http'
+require_relative '../rotta_ai/open_router_config'
 
 module RottaCalculator
   class OpenRouterClient

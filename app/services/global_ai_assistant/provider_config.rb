@@ -1,3 +1,5 @@
+require_relative '../rotta_ai/open_router_config'
+
 class GlobalAiAssistant::ProviderConfig
   MODEL = ::RottaAi::OpenRouterConfig::MODEL
   DEFAULT_API_BASE = ::RottaAi::OpenRouterConfig::API_BASE
