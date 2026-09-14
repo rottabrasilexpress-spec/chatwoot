@@ -382,6 +382,19 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Deploy ainda pendente nesta linha do registro; a próxima etapa é commit, publicação nas duas branches, migração no EasyPanel e teste live sem alterar mensagens/conversas reais.
 - Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
 
+## Vigésima sétima rodada — rota global, deploy e auditoria live — 14/09/2026
+
+- Causa raiz encontrada no teste real: `resource :access` gerava a rota `accesses#show`, mas o controller implementado era `AccessController`; o endpoint de autorização retornava `404`.
+- Correção aplicada em `config/routes.rb` com `controller: :access`. Commits publicados nas duas branches: `d97289875` (rota) e `a4ca53320` (imagem Compose `rotta-chatwoot:v4.17.0-custom-v1-d97289875`).
+- EasyPanel concluiu o deploy com sucesso às `02:41:39 GMT`; containers Rails/Sidekiq/UAZAPI foram recriados e iniciados.
+- Prova live: `/api/v1/accounts/1/global_ai/access` respondeu HTTP `200`; Kelvin (`user_id=1`) foi reconhecido como proprietário e o painel amplo abriu com sidebar e formulário globais.
+- Banco live confirmado: `global_ai_threads` e `global_ai_messages` existem; Kelvin permitido; Caio negado (`owner_id=1`, compartilhamento vazio). No navegador do Caio, o item não aparece e a rota direta mostra o bloqueio interno.
+- O teste de pergunta não enviou WhatsApp, mensagem pública, nota, etiqueta, status ou alteração de conversa. Foram criados somente `2` threads e `2` mensagens internas de teste do assistente global.
+- Pendência bloqueadora para a resposta da LLM: `CAPTAIN_OPEN_AI_API_KEY` está cadastrado, porém vazio; `CAPTAIN_OPEN_AI_ENDPOINT` não está configurado e não há variável `OPENAI/DEEPSEEK/CAPTAIN` no processo. O modelo permanece fixado em `deepseek/deepseek-v4-flash-0731`; é necessário cadastrar uma chave DeepSeek/OpenRouter compatível antes de considerar a resposta LLM aprovada.
+- Pendência funcional já registrada: horários/cancelamento do Follow-up ainda precisam do adaptador nativo; a primeira fatia somente lê os sinais existentes e não deve ser apresentada como sincronização de horário concluída.
+- Validação: Vitest focalizado `3/3`, ESLint direcionado `0` erros e `34` avisos conhecidos, `git diff --check` aprovado; Ruby/RSpec não estão disponíveis no host Windows, então as verificações Rails foram executadas no container EasyPanel via `rails runner`.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
+
 ## Vigésima quinta rodada — correção da publicação dos assets Vite — 14/09/2026
 
 - O primeiro deploy do commit `8c61c7638` construiu a imagem e reiniciou os serviços com sucesso, mas o teste live encontrou tela branca: o manifesto apontava para `dashboard-CaR3V-tS.js`, que não estava versionado porque `public/vite/assets` é ignorado no Git.
