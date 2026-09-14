@@ -11,16 +11,17 @@ RSpec.describe GlobalAiAssistant::ProviderConfig do
       original.each { |name, value| ENV[name] = value }
     end
 
-    it 'uses the dedicated DeepSeek/OpenRouter key and never the Captain key' do
+    it 'uses the same OpenRouter key as the individual calculator and ignores DeepSeek/Captain fallbacks' do
       create(:installation_config, name: 'CAPTAIN_OPEN_AI_API_KEY', value: 'captain-key')
       create(:installation_config, name: 'DEEPSEEK_API_KEY', value: 'deepseek-key')
+      ENV['OPENROUTER_API_KEY'] = 'openrouter-key'
 
-      expect(described_class.api_key).to eq('deepseek-key')
+      expect(described_class.api_key).to eq('openrouter-key')
     end
 
     it 'prefers the live environment secret over persisted configuration' do
       create(:installation_config, name: 'OPENROUTER_API_KEY', value: 'persisted-key')
-      ENV['DEEPSEEK_API_KEY'] = 'live-key'
+      ENV['OPENROUTER_API_KEY'] = 'live-key'
 
       expect(described_class.api_key).to eq('live-key')
     end

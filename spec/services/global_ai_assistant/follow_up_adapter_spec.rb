@@ -52,5 +52,55 @@ RSpec.describe GlobalAiAssistant::FollowUpAdapter do
         ).call
       end.to raise_error(ArgumentError, /Prazo de follow-up inválido/)
     end
+
+    it 'cancels the remote job when removing a linked label' do
+      response = RottaFollowUp::AdminClient::Response.new(
+        status: 200,
+        body: { 'ok' => true, 'job_id' => 'job-1' }
+      )
+      expect(RottaFollowUp::AdminClient).to receive(:request).with(
+        action: 'cancel',
+        job_id: 'job-1',
+        hours: nil,
+        conversation_id: '2165'
+      ).and_return(response)
+
+      result = described_class.new(
+        account: account,
+        conversation: conversation,
+        operation: 'remove_label',
+        job_id: 'job-1',
+        label: 'Primeiro contato'
+      ).call
+
+      expect(result).to include('ok' => true)
+    end
+
+    it 'allows removing a label before the remote job is created' do
+      expect(RottaFollowUp::AdminClient).not_to receive(:request)
+
+      result = described_class.new(
+        account: account,
+        conversation: conversation,
+        operation: 'remove_label',
+        job_id: 'pending:2165:primeiro-contato',
+        label: 'Primeiro contato'
+      ).call
+
+      expect(result).to include('ok' => true, 'cancelled' => false)
+    end
+
+    it 'keeps local label removal safe when no remote job id exists yet' do
+      expect(RottaFollowUp::AdminClient).not_to receive(:request)
+
+      result = described_class.new(
+        account: account,
+        conversation: conversation,
+        operation: 'remove_label',
+        label: 'Primeiro contato'
+      ).call
+
+      expect(result).to include('ok' => true, 'cancelled' => false)
+    end
   end
 end

@@ -9,6 +9,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import globalAiAPI from 'dashboard/api/globalAi';
 import {
+  canRemoveFollowUpLabel,
   followUpActionLabel,
   isExecutableFollowUpJob,
   removeFollowUpJob,
@@ -142,7 +143,9 @@ const executeStatusAction = async card => {
 };
 
 const executeFollowUpAction = async (card, job, operation) => {
-  if (!isExecutableFollowUpJob(job) || followUpActionLoading.value) return;
+  const executable = isExecutableFollowUpJob(job);
+  const removable = operation === 'remove_label' && canRemoveFollowUpLabel(job);
+  if ((!executable && !removable) || followUpActionLoading.value) return;
 
   let hours;
   if (requiresFollowUpHours(operation)) {
@@ -172,11 +175,18 @@ const executeFollowUpAction = async (card, job, operation) => {
       action: `follow_up_${operation}`,
       conversation_id: card.conversation_id,
       job_id: job.job_id,
+      ...(operation === 'remove_label'
+        ? { label: job.current_label || job.source_label }
+        : {}),
       ...(hours ? { hours } : {}),
       confirmed: true,
     });
     const result = response.data?.result || {};
-    if (operation === 'cancel' || operation === 'dispatch_now') {
+    if (
+      operation === 'cancel' ||
+      operation === 'dispatch_now' ||
+      operation === 'remove_label'
+    ) {
       card.follow_up_jobs = removeFollowUpJob(card.follow_up_jobs, job.job_id);
     } else {
       Object.assign(job, result);
@@ -469,28 +479,40 @@ onMounted(loadAccess);
                     }}</span>
                   </div>
                   <div
-                    v-if="isExecutableFollowUpJob(job)"
+                    v-if="
+                      isExecutableFollowUpJob(job) ||
+                      canRemoveFollowUpLabel(job)
+                    "
                     class="flex flex-wrap gap-1.5 mt-2"
                   >
-                    <Button
+                    <template
                       v-for="operation in [
                         'dispatch_now',
                         'advance',
                         'delay',
                         'cancel',
+                        'remove_label',
                       ]"
                       :key="operation"
-                      size="xs"
-                      color="slate"
-                      :disabled="Boolean(followUpActionLoading)"
-                      :is-loading="
-                        followUpActionLoading ===
-                        `${card.conversation_id}:${job.job_id}:${operation}`
-                      "
-                      @click="executeFollowUpAction(card, job, operation)"
                     >
-                      {{ followUpActionLabel(operation) }}
-                    </Button>
+                      <Button
+                        v-if="
+                          operation === 'remove_label'
+                            ? canRemoveFollowUpLabel(job)
+                            : isExecutableFollowUpJob(job)
+                        "
+                        size="xs"
+                        color="slate"
+                        :disabled="Boolean(followUpActionLoading)"
+                        :is-loading="
+                          followUpActionLoading ===
+                          `${card.conversation_id}:${job.job_id}:${operation}`
+                        "
+                        @click="executeFollowUpAction(card, job, operation)"
+                      >
+                        {{ followUpActionLabel(operation) }}
+                      </Button>
+                    </template>
                   </div>
                   <p v-else class="mt-2 text-xs text-n-slate-10">
                     Aguardando sincronização do job remoto.

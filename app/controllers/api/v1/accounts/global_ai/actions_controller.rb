@@ -16,5 +16,7 @@ class Api::V1::Accounts::GlobalAi::ActionsController < Api::V1::Accounts::BaseCo
     render json: { error: 'Conversa, agente ou etiqueta não encontrada.' }, status: :not_found
   rescue ArgumentError => e
     render json: { error: e.message }, status: :unprocessable_entity
+  rescue RottaFollowUp::AdminClient::Error => e
+    render json: { error: e.message }, status: :bad_gateway
   end
 end

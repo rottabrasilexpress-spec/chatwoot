@@ -1,7 +1,7 @@
 class GlobalAiAssistant::ActionService
   ALLOWED_ACTIONS = %w[
     add_label remove_label set_status create_private_note send_public_message assign_agent
-    follow_up_dispatch_now follow_up_advance follow_up_delay follow_up_cancel
+    follow_up_dispatch_now follow_up_advance follow_up_delay follow_up_cancel follow_up_remove_label
   ].freeze
   ALLOWED_STATUSES = %w[open pending resolved].freeze
 
@@ -76,13 +76,18 @@ class GlobalAiAssistant::ActionService
 
   def update_follow_up(conversation)
     operation = @action.delete_prefix('follow_up_')
-    GlobalAiAssistant::FollowUpAdapter.new(
+    follow_up = GlobalAiAssistant::FollowUpAdapter.new(
       account: @account,
       conversation: conversation,
       operation: operation,
       job_id: @params['job_id'],
-      hours: @params['hours']
+      hours: @params['hours'],
+      label: @params['label']
     ).call
+
+    return follow_up unless operation == 'remove_label'
+
+    update_labels(conversation, remove: @params['label']).merge(follow_up: follow_up)
   end
 
   def update_labels(conversation, add: nil, remove: nil)

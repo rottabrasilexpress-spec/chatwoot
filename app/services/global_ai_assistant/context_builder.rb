@@ -166,6 +166,9 @@ class GlobalAiAssistant::ContextBuilder
     jobs = Array(payload['jobs']).first(120)
     {
       available: payload['available'] != false,
+      config: payload['config'] || payload['meta'] || {},
+      labels: payload['labels'] || {},
+      timezone: payload['timezone'],
       jobs: jobs.map do |job|
         job.slice(
           'job_id', 'conversation_id', 'customer_name', 'phone', 'current_label',

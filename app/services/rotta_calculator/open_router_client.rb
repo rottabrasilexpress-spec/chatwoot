@@ -3,8 +3,8 @@ require 'net/http'
 
 module RottaCalculator
   class OpenRouterClient
-    ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'.freeze
-    MODEL = 'deepseek/deepseek-v4-flash-0731'.freeze
+    ENDPOINT = "#{RottaAi::OpenRouterConfig::API_BASE}/chat/completions".freeze
+    MODEL = RottaAi::OpenRouterConfig::MODEL
     MAX_TOKENS = 350
 
     def initialize(http_client: HTTParty)
@@ -12,10 +12,9 @@ module RottaCalculator
     end
 
     def call(context)
-      api_key = ENV['OPENROUTER_API_KEY'].presence
+      api_key = RottaAi::OpenRouterConfig.api_key
       raise ConfigurationError, 'OPENROUTER_API_KEY ausente' if api_key.blank?
-      configured_model = ENV['OPENROUTER_MODEL'].presence
-      raise ConfigurationError, "OPENROUTER_MODEL deve ser #{MODEL}" if configured_model.present? && configured_model != MODEL
+      RottaAi::OpenRouterConfig.model
 
       response = @http_client.post(
         ENDPOINT,
