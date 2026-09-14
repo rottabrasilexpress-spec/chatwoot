@@ -213,17 +213,17 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
       message_type: :incoming,
       content: <<~TEXT
         ORÇAMENTO FINAL
-        ORIGEM: Patos, PB, Brasil
-        DESTINO: Aracruz, ES, Brasil
-        COLETA: 30/10/2026
+        **ORIGEM:** Patos, PB, Brasil
+        **DESTINO:** Aracruz, ES, Brasil
+        **COLETA:** 30/10/2026
         • [01] Geladeira
         • [02] Espelhos
         • [03] Caixas
         Valor: ✅ R$ 3.655,37
         Carga (origem): Por conta do cliente
         Descarga (destino): Por conta do cliente
-        DESMONTAGEM: ❌ NÃO
-        MONTAGEM: ❌ NÃO
+        **DESMONTAGEM:** ❌ NÃO
+        **MONTAGEM:** ❌ NÃO
       TEXT
     )
     empty_profile = {

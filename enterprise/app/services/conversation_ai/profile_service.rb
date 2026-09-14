@@ -255,11 +255,11 @@ class ConversationAi::ProfileService
 
   def structured_field_match(field, content)
     patterns = {
-      'origin' => /(?:^|\n)\s*(?:📍\s*)?ORIGEM:\s*(.+)$/i,
-      'destination' => /(?:^|\n)\s*(?:📍\s*)?DESTINO:\s*(.+)$/i,
-      'move_date' => /(?:^|\n)\s*(?:🗓️\s*)?(?:COLETA|DATA):\s*(.+)$/i,
-      'assembly_items' => /(?:^|\n)\s*(?:🪛\s*)?MONTAGEM:\s*(.+)$/i,
-      'disassembly_items' => /(?:^|\n)\s*(?:🪛\s*)?DESMONTAGEM:\s*(.+)$/i
+      'origin' => /(?:^|\n)\s*\*{0,3}\s*(?:📍\s*)?ORIGEM\s*\*{0,3}\s*:\s*(.+)$/i,
+      'destination' => /(?:^|\n)\s*\*{0,3}\s*(?:📍\s*)?DESTINO\s*\*{0,3}\s*:\s*(.+)$/i,
+      'move_date' => /(?:^|\n)\s*\*{0,3}\s*(?:🗓️\s*)?(?:COLETA|DATA)\s*\*{0,3}\s*:\s*(.+)$/i,
+      'assembly_items' => /(?:^|\n)\s*\*{0,3}\s*(?:🪛\s*)?MONTAGEM\s*\*{0,3}\s*:\s*(.+)$/i,
+      'disassembly_items' => /(?:^|\n)\s*\*{0,3}\s*(?:🪛\s*)?DESMONTAGEM\s*\*{0,3}\s*:\s*(.+)$/i
     }
     match = content.match(patterns[field])
     return unless match
