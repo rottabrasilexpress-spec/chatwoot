@@ -1,5 +1,6 @@
 class GlobalAiAssistant::ContextBuilder
   MAX_CARDS = 40
+  MAX_FOLLOW_UP_CARDS = 12
   MAX_MESSAGES_PER_CONVERSATION = 8
   MAX_FOLLOW_UP_MESSAGES = 3
   MAX_DETAILED_MESSAGES = 80
@@ -35,7 +36,7 @@ class GlobalAiAssistant::ContextBuilder
     scope = account.conversations.includes(:contact, :inbox).order(last_activity_at: :desc)
     return scope.none unless operational_question?
     return scope.limit(MAX_CARDS) if question.blank?
-    return scope.limit(MAX_CARDS) if follow_up_question?
+    return scope.limit(MAX_FOLLOW_UP_CARDS) if follow_up_question?
 
     query = ActiveRecord::Base.sanitize_sql_like(question)
     contact_matches = scope.joins(:contact).where(
