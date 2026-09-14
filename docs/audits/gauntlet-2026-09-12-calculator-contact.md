@@ -446,6 +446,17 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Próximo passo: commit/push dos assets, novo deploy EasyPanel, confirmação HTTP do bundle/CSS e reteste da tela global autenticada.
 - Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
 
+## Atualização conectada C114 — auditoria live de desempenho do follow-up — 2026-09-14
+
+- Causa raiz confirmada: o provedor retornava HTTP 200, mas gastava todo o limite de saída em raciocínio (`finish_reason=length`), deixando a resposta textual vazia; o prompt anterior tinha aproximadamente `9.848` tokens e podia ultrapassar o timeout Rack de 15 segundos.
+- Commits `ee11011ee` e `55269b281` compactam o contexto de follow-up, removem histórico redundante do prompt, limitam fontes, reduzem o histórico do thread, retiram `history`/`active_labels` dos jobs enviados ao modelo, ativam `reasoning.effort=low` e mantêm o modelo exato `deepseek/deepseek-v4-flash-0731`.
+- EasyPanel concluiu o deploy de `55269b281` com `RACK_TIMEOUT_SERVICE_TIMEOUT=45`; o serviço voltou a estado estável.
+- Teste real autenticado: `Responda apenas OK` retornou `OK`; a consulta somente leitura de follow-up retornou resposta não vazia com `8` registros e `12` cartões selecionáveis. Não houve novo erro 500 após a correção.
+- Validação local: Vitest `7/7`, build Vite com `5100` módulos e `git diff --check` aprovados. Permanecem apenas avisos conhecidos do Browserslist/chunks grandes.
+- Segurança: nenhum cliente, conversa, etiqueta, status, Follow-up, mensagem ou WhatsApp foi alterado; a rodada foi somente de leitura.
+- Veredito: o fluxo testado está aprovado em produção; o follow-up ainda pode levar dezenas de segundos quando precisa consultar toda a operação, porém o timeout e o retorno vazio reproduzidos foram corrigidos.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
+
 ## Vigésima sexta rodada — bloqueio visual para agente sem concessão — 14/09/2026
 
 - Na sessão live autenticada como Caio, o item global não apareceu no sidebar, como exigido para a propriedade inicial de Kelvin.
