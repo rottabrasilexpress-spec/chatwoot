@@ -382,6 +382,18 @@ O bloqueio P1 de evidência end-to-end da primeira revisão foi coberto nesta ro
 - Deploy ainda pendente nesta linha do registro; a próxima etapa é commit, publicação nas duas branches, migração no EasyPanel e teste live sem alterar mensagens/conversas reais.
 - Linha conectada: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\audits\gauntlet-2026-09-12-calculator-contact.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
 
+## Trigésima primeira rodada — auditoria live final da IA global — 14/09/2026
+
+- `f394d992d` foi publicado e o deploy EasyPanel foi concluído com sucesso.
+- Provider direto live confirmado: credencial configurada, OpenRouter e `deepseek/deepseek-v4-flash-0731`; resposta controlada retornou `OK`.
+- Fluxo completo Rails equivalente ao controller passou com persistência interna e JSON de `189897` bytes; resposta continha `40` cartões.
+- Na interface real de Kelvin, a pergunta controlada retornou `OK`; os `40` cartões apareceram. `Abrir conversa` abriu `/app/accounts/1/conversations/2411`, e o retorno/reload preservou estado e cards. Console do navegador: zero erros.
+- Follow-up read-only: `8` jobs encontrados; `dispatch_now`, `advance`, `delay` e `cancel` carregados. Nenhum job, cliente, conversa, etiqueta, status ou mensagem foi alterado.
+- Vitest focalizado: `6/6`; `git diff --check`: aprovado. RSpec não executável no host Windows por ausência de Ruby/Bundler; Rails foi verificado no container.
+- O erro antigo permanece apenas como histórico do teste realizado antes do último deploy; o teste posterior pela mesma tela passou.
+- Veredito: escopo da IA global aprovado em produção após reteste; não houve envio externo nem alteração de dados reais.
+- Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [plano global](C:\Users\User\Documents\Codex\rotta-custom-v1-source\docs\plans\pergunte-para-ia-conversa-2026-09-10.md) ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot global](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/ask-ai).
+
 ## Trigésima rodada — auditoria live controlada — 14/09/2026
 
 - A URL live, `/health` e o HTML responderam HTTP 200. A tela global abriu autenticada para Kelvin e mostrou o sidebar, campo de pergunta, botão e área de cards.
