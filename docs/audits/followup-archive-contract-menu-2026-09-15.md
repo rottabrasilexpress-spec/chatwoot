@@ -39,7 +39,7 @@ A interface agora usa `next_label` enviado pelo workflow como fonte de verdade, 
 
 ## Publicação e estado do deploy
 
-- O push para `rotta-custom-v1` foi concluído; o branch aponta para `639ab1c3` (`docs(audit): record follow-up and contract menu review`). Inclui `08d3935f` (atalho Emitir Contrato), `9244f776` (próxima etapa do follow-up) e `42034801` (assets Vite de produção).
+- O push para `rotta-custom-v1` foi concluído. Inclui `08d3935f` (atalho Emitir Contrato), `9244f776` (próxima etapa do follow-up), `42034801` (assets Vite de produção) e commits de auditoria com o estado do deploy.
 - Checagem pública pós-push: `/health` e `/app/login` responderam HTTP 200, mas o manifesto continua apontando para `assets/dashboard-Ce8OUdV2.js` e `assets/dashboard-C4l69tM3.css`.
 - O bundle atualmente servido não contém `rotta_include_agent_name_in_whatsapp`, `issue-contract` nem `issueContract`. Portanto, o GitHub está atualizado, mas o deploy dos commits ainda não foi confirmado e as alterações não devem ser consideradas ativas em produção.
 - O acionamento do deploy pelo painel EasyPanel não foi concluído nesta rodada; não houve mutação do serviço. É necessário executar/reexecutar o deploy do serviço `chatwoot-rotta` e repetir a checagem do manifesto e dos marcadores do bundle.
