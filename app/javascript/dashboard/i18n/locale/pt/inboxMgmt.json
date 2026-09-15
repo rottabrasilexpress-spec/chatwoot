@@ -629,8 +629,6 @@
         "ENABLED_DESCRIPTION": "When a contact messages again, the previous conversation will be reopened.",
         "DISABLED_DESCRIPTION": "A new conversation will be created each time after the previous one is resolved."
       },
-      "INCLUDE_AGENT_NAME_IN_WHATSAPP": "Incluir nome do agente no texto do WhatsApp",
-      "INCLUDE_AGENT_NAME_IN_WHATSAPP_SUB_TEXT": "Desligado: o cliente recebe somente a mensagem, em nome da empresa. Ligado: o nome do agente será adicionado antes do texto.",
       "ENABLE_HMAC": {
         "LABEL": "Ativar"
       }
@@ -896,6 +894,8 @@
       "FORWARD_EMAIL_NOT_CONFIGURED": "Forwarding emails to your inbox is currently disabled on this installation. To use this feature, it must be enabled by your administrator. Please get in touch with them to proceed.",
       "ALLOW_MESSAGES_AFTER_RESOLVED": "Permitir mensagens após a resolução da conversa",
       "ALLOW_MESSAGES_AFTER_RESOLVED_SUB_TEXT": "Permitir que os utilizadores finais enviem mensagens após a conversa estar resolvida.",
+      "INCLUDE_AGENT_NAME_IN_WHATSAPP": "Incluir nome do agente no texto do WhatsApp",
+      "INCLUDE_AGENT_NAME_IN_WHATSAPP_SUB_TEXT": "Desligado: o cliente recebe somente a mensagem, em nome da empresa. Ligado: o nome do agente será adicionado antes do texto.",
       "WHATSAPP_SECTION_SUBHEADER": "Esta chave de API é usada para a integração com as APIs do WhatsApp.",
       "WHATSAPP_SECTION_UPDATE_SUBHEADER": "Insira a nova chave da API a ser usada para a integração com as APIs do WhatsApp.",
       "WHATSAPP_SECTION_TITLE": "Chave da API",
