@@ -37,11 +37,13 @@ A interface agora usa `next_label` enviado pelo workflow como fonte de verdade, 
 - `verify:manifest-assets`: passou, validando 240 assets referenciados.
 - O bundle compilado local contém a opção do nome do agente, o rótulo de contrato e os marcadores das etapas de orçamento.
 
-## Situação de publicação (antes do deploy desta rodada)
+## Publicação e estado do deploy
 
-- `/health` e `/app/login` responderam HTTP 200.
-- O manifesto servido ainda apontava para `assets/dashboard-Ce8OUdV2.js` e `assets/dashboard-C4l69tM3.css`; o bundle público ainda não continha `rotta_include_agent_name_in_whatsapp`.
-- Os ajustes desta auditoria ainda não tinham sido publicados/deployados quando este registro foi iniciado. Atualizar esta seção com os commits, o resultado do EasyPanel e a verificação dos assets públicos antes de declarar concluído.
+- O push para `rotta-custom-v1` foi concluído; o branch aponta para `639ab1c3` (`docs(audit): record follow-up and contract menu review`). Inclui `08d3935f` (atalho Emitir Contrato), `9244f776` (próxima etapa do follow-up) e `42034801` (assets Vite de produção).
+- Checagem pública pós-push: `/health` e `/app/login` responderam HTTP 200, mas o manifesto continua apontando para `assets/dashboard-Ce8OUdV2.js` e `assets/dashboard-C4l69tM3.css`.
+- O bundle atualmente servido não contém `rotta_include_agent_name_in_whatsapp`, `issue-contract` nem `issueContract`. Portanto, o GitHub está atualizado, mas o deploy dos commits ainda não foi confirmado e as alterações não devem ser consideradas ativas em produção.
+- O acionamento do deploy pelo painel EasyPanel não foi concluído nesta rodada; não houve mutação do serviço. É necessário executar/reexecutar o deploy do serviço `chatwoot-rotta` e repetir a checagem do manifesto e dos marcadores do bundle.
+- Não foi possível abrir o painel Obsidian nesta rodada; as notas locais foram atualizadas diretamente, sem alegar que a interface foi aberta.
 
 ## Artefatos relacionados
 
