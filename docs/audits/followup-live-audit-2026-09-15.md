@@ -40,3 +40,12 @@ Teste real autorizado na conversa `#2143`, contato Kelvin, telefone `55119659278
 ## Linhas conectadas
 
 [[Chatwoot Rotta — contexto e estado]] ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [commit de bundles](https://github.com/rottabrasilexpress-spec/chatwoot/commit/6f851edf) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot #2143](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/conversations/2143).
+
+## Correções pós-revisão AAA
+
+- A revisão independente apontou risco de isolamento multi-conta. O proxy Rails agora injeta `account_id` da conta autenticada, filtra jobs retornados, exige `job_id + conversation_id` compatíveis antes de `dispatch_now`, `advance`, `delay`, `cancel` e `remove_label`, e rejeita jobs remotos que não estejam em status mutável. Commit [`1f57449e`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/1f57449e).
+- O helper não classifica mais job desconhecido como trilha de contato; aliases decorados são canonicalizados para ordenação, atraso e remoção. Foram adicionadas regressões para job desconhecido, prefixo numérico e atraso por alias.
+- Um erro de histórico foi reproduzido na aba antiga, com `dashboard-BXxGu2Jo.js`: `loadAllPreviousMessages` acessava `messages.length` antes de `messages` ser um array. A guarda foi adicionada com teste de regressão; commit [`9034e37f`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/9034e37f).
+- A suíte focalizada final passou `19/19`; build Vite aprovado; sessão Edge nova carregou a conversa e o histórico com bundle `dashboard-DSDag_WY.js`, console sem erros e Follow-up em `Na fila 0`, `Prontos agora 0`, `Etapas ativas 0`. A aba antiga ainda conserva o log histórico do erro anterior; isso não foi reproduzido na sessão nova.
+- No console do container Rails, `ruby -c app/controllers/api/v1/accounts/rotta_follow_up_controller.rb` retornou `Syntax OK`. Os specs Rails foram adicionados ao repositório, mas não são copiados pelo `Dockerfile.overlay`, então não foram executáveis dentro da imagem publicada; isso permanece como validação pendente no ambiente de CI/container completo.
+- O CSS ausente do primeiro redeploy foi corrigido no commit [`f178d26c`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/f178d26c); o deploy final validou HTML `200`, 29 assets e zero `404`.
