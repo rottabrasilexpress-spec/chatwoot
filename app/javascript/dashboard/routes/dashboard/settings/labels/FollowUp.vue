@@ -737,11 +737,15 @@ const runAction = async (job, action, hours = undefined) => {
   if (busyJobId.value === job.job_id) return;
   busyJobId.value = job.job_id;
   try {
-    const payload = { action, job_id: job.job_id };
+    const payload = {
+      action,
+      job_id: job.job_id,
+      conversation_id: job.conversation_id,
+    };
     if (hours !== undefined) payload.hours = hours;
     if (action === 'remove_label') {
       payload.conversation_id = job.conversation_id;
-      payload.label = currentStage(job);
+      payload.label = canonicalFollowUpStage(currentStage(job));
     }
     await request(payload);
     pendingEnrollments.value = pendingEnrollments.value.filter(

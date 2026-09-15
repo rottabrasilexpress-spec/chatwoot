@@ -124,9 +124,13 @@ export const followUpTrailForJob = job => {
     job?.next_label,
     ...historyLabelsFor(job),
   ];
-  return stages.some(stage => followUpTrailForStage(stage) === 'budget')
-    ? 'budget'
-    : 'contact';
+  if (stages.some(stage => followUpTrailForStage(stage) === 'budget')) {
+    return 'budget';
+  }
+  if (stages.some(stage => followUpTrailForStage(stage) === 'contact')) {
+    return 'contact';
+  }
+  return null;
 };
 
 export const FOLLOW_UP_STAGE_ORDER = [
@@ -147,7 +151,9 @@ export const orderedTrailStages = (stages, trailKey) => {
 };
 
 export const orderedFollowUpStages = stages => {
-  const uniqueStages = [...new Set(stages.filter(Boolean))];
+  const uniqueStages = [
+    ...new Set(stages.filter(Boolean).map(canonicalFollowUpStage)),
+  ];
   const knownStages = FOLLOW_UP_STAGE_ORDER.filter(stage =>
     uniqueStages.includes(stage)
   );
@@ -236,7 +242,8 @@ export const delayHoursFor = job => {
     return { hours: parsed, source: 'api' };
   }
 
-  const configured = CONFIGURED_DELAY_HOURS[currentStageFor(job)];
+  const configured =
+    CONFIGURED_DELAY_HOURS[canonicalFollowUpStage(currentStageFor(job))];
   return Number.isFinite(configured)
     ? { hours: configured, source: 'configured' }
     : { hours: null, source: 'unavailable' };

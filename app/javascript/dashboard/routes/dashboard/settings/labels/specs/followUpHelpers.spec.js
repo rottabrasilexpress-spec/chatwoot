@@ -1,5 +1,6 @@
 import {
   CONFIGURED_DELAY_HOURS,
+  canonicalFollowUpStage,
   countdownPartsFor,
   dispatchWindowFor,
   effectiveDispatchAt,
@@ -143,6 +144,10 @@ describe('follow-up helpers', () => {
     expect(
       delayHoursFor({ source_label: 'primeiro-contato', delay: '1.5 days' })
     ).toEqual({ hours: 36, source: 'api' });
+    expect(delayHoursFor({ source_label: '[1] Primeiro contato' })).toEqual({
+      hours: 36,
+      source: 'configured',
+    });
   });
 
   it('computes an exact countdown from a provided target', () => {
@@ -248,6 +253,9 @@ describe('follow-up helpers', () => {
       'etapa-customizada',
     ]);
     expect(FOLLOW_UP_STAGE_ORDER[0]).toBe('primeiro-contato');
+    expect(
+      orderedFollowUpStages(['[1] Primeiro contato', 'orcamento-instantaneo'])
+    ).toEqual(['primeiro-contato', 'orcamento-feito']);
   });
 
   it('orders every visible contact and budget stage without treating archive as a stage', () => {
@@ -291,6 +299,12 @@ describe('follow-up helpers', () => {
     ).toBe('budget');
     expect(followUpTrailForJob({ current_label: 'segundo-contato' })).toBe(
       'contact'
+    );
+    expect(followUpTrailForJob({ current_label: 'etapa-desconhecida' })).toBe(
+      null
+    );
+    expect(canonicalFollowUpStage('[1] Primeiro contato')).toBe(
+      'primeiro-contato'
     );
   });
 

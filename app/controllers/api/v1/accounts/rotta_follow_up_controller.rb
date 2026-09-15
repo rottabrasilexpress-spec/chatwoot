@@ -1,5 +1,7 @@
 class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseController
   ALLOWED_ACTIONS = %w[list config dispatch_now advance delay cancel remove_label].freeze
+  MUTATING_ACTIONS = %w[dispatch_now advance delay cancel].freeze
+  MUTABLE_REMOTE_STATUSES = %w[pending queued processing syncing sync_failed failed_send failed_labels].freeze
 
   def proxy
     payload = JSON.parse(request.raw_post.presence || '{}').slice(
@@ -11,10 +13,21 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       return render json: { ok: false, error: 'Ação de follow-up inválida.' }, status: :unprocessable_entity
     end
 
-    return remove_label(payload) if action == 'remove_label'
+    payload['account_id'] = Current.account.id
 
-    response = RottaFollowUp::AdminClient.request(payload.slice('action', 'job_id', 'hours', 'config'))
+    if action == 'remove_label'
+      return remove_label(payload)
+    end
+
+    if MUTATING_ACTIONS.include?(action)
+      return unless authorize_remote_job(payload)
+    end
+
+    response = RottaFollowUp::AdminClient.request(
+      payload.slice('action', 'job_id', 'hours', 'conversation_id', 'account_id', 'config')
+    )
     body = response.body
+    body = scope_list_body(body) if action == 'list' && body.is_a?(Hash)
     body = add_delivery_evidence(body) if action == 'list' && body.is_a?(Hash)
     render json: body, status: response.status
   rescue RottaFollowUp::AdminClient::Error => e
@@ -37,7 +50,12 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     conversation = Current.account.conversations.find_by(display_id: conversation_id)
     return render json: { ok: false, error: 'Conversa não encontrada.' }, status: :not_found unless conversation
 
-    cancel_remote_job!(payload['job_id']) if remote_job_id?(payload['job_id'])
+    if remote_job_id?(payload['job_id'])
+      remote_job = authorize_remote_job(payload)
+      return unless remote_job
+
+      cancel_remote_job!(payload['job_id'], conversation_id: conversation_id) if mutable_remote_job?(remote_job)
+    end
 
     current_labels = conversation.label_list
     updated_labels = current_labels.reject do |label|
@@ -59,11 +77,58 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     job_id.present? && !job_id.to_s.start_with?('pending:')
   end
 
-  def cancel_remote_job!(job_id)
-    response = RottaFollowUp::AdminClient.request(action: 'cancel', job_id: job_id)
+  def authorize_remote_job(payload)
+    job_id = payload['job_id'].to_s.strip
+    conversation_id = payload['conversation_id'].to_s.strip
+    if job_id.blank? || conversation_id.blank?
+      render json: { ok: false, error: 'Job e conversa são obrigatórios.' }, status: :unprocessable_entity
+      return nil
+    end
+
+    response = RottaFollowUp::AdminClient.request(
+      action: 'list',
+      account_id: Current.account.id
+    )
+    remote_job = Array(response.body['jobs']).find do |job|
+      job['job_id'].to_s == job_id &&
+        job['account_id'].to_s == Current.account.id.to_s &&
+        job['conversation_id'].to_s == conversation_id
+    end
+
+    unless remote_job
+      render json: { ok: false, error: 'Job de follow-up não pertence a esta conta e conversa.' }, status: :not_found
+      return nil
+    end
+
+    unless mutable_remote_job?(remote_job)
+      render json: { ok: false, error: 'Este job de follow-up não está ativo para alteração.' }, status: :unprocessable_entity
+      return nil
+    end
+
+    remote_job
+  end
+
+  def mutable_remote_job?(job)
+    MUTABLE_REMOTE_STATUSES.include?(job['status'].to_s)
+  end
+
+  def cancel_remote_job!(job_id, conversation_id:)
+    response = RottaFollowUp::AdminClient.request(
+      action: 'cancel',
+      job_id: job_id,
+      conversation_id: conversation_id,
+      account_id: Current.account.id
+    )
     return if response.success?
 
     raise "O painel não confirmou o cancelamento da etiqueta (HTTP #{response.status})."
+  end
+
+  def scope_list_body(body)
+    jobs = Array(body['jobs']).select do |job|
+      job['account_id'].to_s == Current.account.id.to_s
+    end
+    body.merge('jobs' => jobs, 'total' => jobs.length)
   end
 
   def follow_up_label_key(label)
