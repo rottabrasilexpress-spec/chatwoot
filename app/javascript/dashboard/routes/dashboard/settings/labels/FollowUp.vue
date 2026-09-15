@@ -86,6 +86,11 @@ let openingConversationKey = '';
 
 const REALTIME_REFRESH_DEBOUNCE_MS = 400;
 const REALTIME_SETTLE_REFRESH_MS = 1200;
+// The n8n worker can update labels outside the browser's ActionCable stream.
+// Keep a short reconciliation window so the board does not wait 30 seconds
+// for an external worker transition while retaining the in-flight guard in
+// loadQueue to avoid overlapping requests.
+const QUEUE_RECONCILIATION_INTERVAL_MS = 5000;
 const FAST_REFRESH_DELAYS_MS = [300, 1000, 2500, 5000];
 
 const labelInfo = slug => {
@@ -800,7 +805,10 @@ onMounted(async () => {
   clockTimer = window.setInterval(() => {
     now.value = Date.now();
   }, 1000);
-  refreshTimer = window.setInterval(loadQueue, 30000);
+  refreshTimer = window.setInterval(
+    loadQueue,
+    QUEUE_RECONCILIATION_INTERVAL_MS
+  );
 });
 
 onUnmounted(() => {
