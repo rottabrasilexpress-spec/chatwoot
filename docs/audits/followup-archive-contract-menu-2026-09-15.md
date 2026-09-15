@@ -44,8 +44,20 @@ A interface agora usa `next_label` enviado pelo workflow como fonte de verdade, 
 - A validação visual em produção encontrou que a sidebar mostrava “Emitir Contrato”, mas o menu contextual mostrava o slug `emitir-contrato`. O teste de regressão reproduziu exatamente `esperado: Emitir Contrato; recebido: emitir-contrato`.
 - Causa: `ConversationItem.vue` passava `label.title` técnico diretamente para o menu. A correção agora usa `getLabelPresentationTitle`, o formatador compartilhado que já produz o nome de exibição.
 - A correção local passou 22 testes focados, ESLint e Prettier; build Vite de 5.101 módulos concluído. O manifesto local valida 240 assets e o novo bundle é `assets/dashboard-B7HXAyoV.js`.
-- **Estado atual:** o primeiro deploy está ativo, mas contém o defeito visual reproduzido. O commit corretivo e o bundle `dashboard-B7HXAyoV.js` ainda precisam ser publicados e redeployados; repetir a checagem pública e a verificação visual antes de declarar resolvido.
-- O log do EasyPanel avisou sobre containers órfãos antigos (`ui_proxy`, `redis`, `postgres`); nenhum container foi removido. As notas locais do Obsidian foram atualizadas diretamente; a interface do Obsidian ainda não foi aberta nesta rodada.
+- **Estado no momento desta anotação:** o primeiro deploy estava ativo, mas continha o defeito visual reproduzido. A publicação corretiva e a verificação posterior estão registradas abaixo.
+- O log do EasyPanel avisou sobre containers órfãos antigos (`ui_proxy`, `redis`, `postgres`); nenhum container foi removido.
+
+## Resultado final — segundo deploy e validação em produção
+
+- O commit corretivo `d9e58b9e` (`fix(conversations): render contract shortcut name`) foi publicado na branch `rotta-custom-v1` do GitHub.
+- O segundo deploy foi executado pelo EasyPanel. O log sincronizou exatamente esse commit, construiu a imagem, recriou e iniciou Rails, Sidekiq e Sidekiq UAZAPI e terminou com `Success`.
+- Smoke tests após o deploy: `/health` e `/app/login` retornaram HTTP `200`. O HTML do Chatwoot passou a carregar `/vite/assets/dashboard-B7HXAyoV.js` e `/vite/assets/dashboard-B0hRD4UQ.css`; ambos responderam HTTP `200`. O JS público contém `Emitir Contrato` e `rotta_include_agent_name_in_whatsapp`.
+- Após recarga da sessão de produção, o menu contextual foi aberto sem executar nenhuma ação. A opção aparece como **Emitir Contrato**, em roxo, e não como `emitir-contrato`. Nenhuma etiqueta, arquivamento ou estado de conversa foi alterado durante essa conferência.
+- A regressão que reproduzia o slug técnico agora passa; suíte Vitest focalizada: `22/22`. ESLint, Prettier, build Vite (5.101 módulos) e `verify:manifest-assets` (240 referências) também passaram.
+- O popup de `Enviar para FINALIZADOS` permanece conectado ao fluxo: o código aguarda confirmação antes de remover/atribuir etiquetas ou resolver a conversa. Não foi clicado em produção, para não finalizar uma conversa real sem uma conversa descartável designada.
+- As trilhas do workflow n8n permaneceram sem alterações: as janelas de 5/10/15 dias seguem independentes (120/240/360 h) e voltam para `orcamento-feito`; transições de contato/orçamento e arquivamento foram auditadas na seção acima.
+- O EasyPanel ainda reportou containers órfãos antigos. O deploy não usou `--remove-orphans`; nenhum foi removido.
+- Estado final: **correção de exibição implantada e comprovada visualmente em produção; health e assets públicos saudáveis**. Única validação não feita em produção é clicar para finalizar uma conversa real; o modal e a guarda estão presentes no código.
 
 ## Artefatos relacionados
 
