@@ -162,10 +162,26 @@ describe('ConversationItem contract shortcut', () => {
     await flushPromises();
 
     expect(dependencies.removeLabels).toHaveBeenCalledWith(
-      ['Emitir Contrato'],
+      ['emitir-contrato'],
       [2441]
     );
     expect(dependencies.assignLabels).not.toHaveBeenCalled();
+  });
+
+  it('assigns the canonical label slug while keeping the friendly menu title', async () => {
+    const { wrapper, dependencies } = mountConversationItem();
+    await openContextMenu(wrapper);
+
+    const action = findMenuAction(wrapper, 'issue-contract');
+    expect(action.text()).toBe('Emitir Contrato');
+    await action.trigger('click');
+    await flushPromises();
+
+    expect(dependencies.assignLabels).toHaveBeenCalledWith(
+      ['emitir-contrato'],
+      [2441]
+    );
+    expect(dependencies.removeLabels).not.toHaveBeenCalled();
   });
 });
 

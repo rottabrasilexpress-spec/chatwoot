@@ -90,6 +90,9 @@ const contractLabelTitle = computed(() =>
     contractLabel.value || contractLabelDefinition.fallbackTitle
   )
 );
+const contractLabelMutationTitle = computed(
+  () => contractLabel.value?.title || contractLabelDefinition.fallbackTitle
+);
 const sourceLabelTitles = computed(() =>
   (props.source.labels || [])
     .map(label => (typeof label === 'string' ? label : label?.title))
@@ -203,9 +206,9 @@ const onAssignLabel = label => {
 const onIssueContract = async () => {
   if (!canIssueContract.value) return;
   if (contractLabelAssigned.value) {
-    await removeLabels([contractLabelTitle.value], [props.source.id]);
+    await removeLabels([contractLabelMutationTitle.value], [props.source.id]);
   } else {
-    await assignLabels([contractLabelTitle.value], [props.source.id]);
+    await assignLabels([contractLabelMutationTitle.value], [props.source.id]);
   }
   closeContextMenu();
 };
