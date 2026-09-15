@@ -188,6 +188,29 @@ export function useBulkActions() {
   // Same method used in context menu, conversationId being passed from there.
   async function onAssignLabels(newLabels, conversationId = null) {
     const labelsToAssign = Array.isArray(newLabels) ? newLabels : [newLabels];
+    if (conversationId) {
+      try {
+        const updated = await store.dispatch('conversationLabels/mutate', {
+          conversationId,
+          add: labelsToAssign,
+        });
+        if (!updated) throw new Error('Conversation labels were not updated');
+        await store.dispatch('labels/get', { forceNetwork: true });
+        emitter.emit('fetch_conversation_stats');
+        useAlert(
+          t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_ASSIGNMENT.SUCCESFUL', {
+            labelName: labelsToAssign[0],
+            conversationId,
+          }),
+          labelsToAssign.some(isArchivedLabel) ? { variant: 'danger' } : null
+        );
+        return true;
+      } catch (err) {
+        useAlert(t('BULK_ACTION.LABELS.ASSIGN_FAILED'));
+        return false;
+      }
+    }
+
     const conversationIds = conversationId
       ? [conversationId]
       : [...selectedConversations.value];
@@ -237,6 +260,28 @@ export function useBulkActions() {
 
   // Used by both context menu and bulk action bar.
   async function onRemoveLabels(labelsToRemove, conversationId = null) {
+    if (conversationId) {
+      try {
+        const updated = await store.dispatch('conversationLabels/mutate', {
+          conversationId,
+          remove: labelsToRemove,
+        });
+        if (!updated) throw new Error('Conversation labels were not updated');
+        await store.dispatch('labels/get', { forceNetwork: true });
+        emitter.emit('fetch_conversation_stats');
+        useAlert(
+          t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_REMOVAL.SUCCESFUL', {
+            labelName: labelsToRemove[0],
+            conversationId,
+          })
+        );
+        return true;
+      } catch (err) {
+        useAlert(t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_REMOVAL.FAILED'));
+        return false;
+      }
+    }
+
     const conversationIds = conversationId
       ? [conversationId]
       : [...selectedConversations.value];

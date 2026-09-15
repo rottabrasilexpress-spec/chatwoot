@@ -133,6 +133,67 @@ describe('#actions', () => {
     });
   });
 
+  describe('#mutate', () => {
+    it('reads the saved labels before applying an additive change', async () => {
+      axios.get.mockResolvedValue({
+        data: { payload: ['primeiro-contato'] },
+      });
+      axios.post.mockResolvedValue({
+        data: { payload: ['primeiro-contato', 'emitir-contrato'] },
+      });
+
+      await expect(
+        actions.mutate(
+          {
+            commit,
+            dispatch: vi.fn(),
+            rootGetters: { getConversationById: () => null },
+          },
+          { conversationId: 'mutation-301', add: ['emitir-contrato'] }
+        )
+      ).resolves.toBe(true);
+
+      expect(axios.get).toHaveBeenCalledWith(
+        '/api/v1/conversations/mutation-301/labels'
+      );
+      expect(axios.post).toHaveBeenCalledWith(
+        '/api/v1/conversations/mutation-301/labels',
+        { labels: ['primeiro-contato', 'emitir-contrato'] }
+      );
+    });
+
+    it('serializes a rapid add then remove against the latest persisted state', async () => {
+      axios.get
+        .mockResolvedValueOnce({ data: { payload: [] } })
+        .mockResolvedValueOnce({ data: { payload: ['emitir-contrato'] } });
+      axios.post
+        .mockResolvedValueOnce({ data: { payload: ['emitir-contrato'] } })
+        .mockResolvedValueOnce({ data: { payload: [] } });
+
+      const dependencies = {
+        commit,
+        dispatch: vi.fn(),
+        rootGetters: { getConversationById: () => null },
+      };
+      const add = actions.mutate(dependencies, {
+        conversationId: 'mutation-302',
+        add: ['emitir-contrato'],
+      });
+      const remove = actions.mutate(dependencies, {
+        conversationId: 'mutation-302',
+        remove: ['emitir-contrato'],
+      });
+
+      await Promise.all([add, remove]);
+
+      expect(axios.get).toHaveBeenCalledTimes(2);
+      expect(axios.post.mock.calls.map(([, body]) => body.labels)).toEqual([
+        ['emitir-contrato'],
+        [],
+      ]);
+    });
+  });
+
   describe('#setBulkConversationLabels', () => {
     it('it send correct mutations', () => {
       actions.setBulkConversationLabels({ commit }, [
