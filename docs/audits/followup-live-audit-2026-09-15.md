@@ -60,3 +60,13 @@ Teste real autorizado na conversa `#2143`, contato Kelvin, telefone `55119659278
 - Resultado: indisponibilidade não reproduzida; serviço e frontend publicados estão respondendo normalmente no momento da auditoria.
 - No console do container Rails, `ruby -c app/controllers/api/v1/accounts/rotta_follow_up_controller.rb` retornou `Syntax OK`. Os specs Rails foram adicionados ao repositório, mas não são copiados pelo `Dockerfile.overlay`, então não foram executáveis dentro da imagem publicada; isso permanece como validação pendente no ambiente de CI/container completo.
 - O CSS ausente do primeiro redeploy foi corrigido no commit [`f178d26c`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/f178d26c); o deploy final validou HTML `200`, 29 assets e zero `404`.
+
+## Quadragésima segunda rodada — correção do carregamento inicial e recuperação visual — 2026-09-15
+
+- Diagnóstico confirmado: o `IntersectionObserver` da lista era ativado no primeiro layout e disparava a paginação em cadeia; por isso o Chatwoot podia buscar as `2.281` conversas sem uma rolagem intencional. Durante a primeira publicação, o CSS principal também não foi levado para o overlay porque os bundles em `public/vite` são ignorados pelo Git.
+- Correção de paginação: a próxima página só é habilitada depois de um scroll confiável do agente; o carregamento inicial permanece limitado à primeira página virtualizada. O observer continua suspenso enquanto a lista está carregando.
+- Correção de deploy: o CSS `dashboard-C4l69tM3.css` foi publicado junto com os bundles JS referenciados; isso restaurou o layout de três colunas, o painel lateral e a área de conversas.
+- Commits: [`052d00d5`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/052d00d5) e [`7f319e92`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/7f319e92).
+- Deploy: EasyPanel concluiu as duas publicações. Houve um `502` transitório no console durante a reinicialização, mas `/health` voltou a `200` e não houve persistência do erro.
+- Verificações: spec focalizado da `ConversationList` `3/3`; ESLint e `git diff --check` aprovados; build Vite com `5.101` módulos; manifesto com `240` assets; JS, CSS e `commandbar` live em HTTP `200`; abertura real parou na primeira página; scroll manual carregou a página seguinte; não houve carregamento automático das `2.281` conversas; layout visual correto e sem banner persistente de desconexão.
+- Nota residual: foi registrado um `AxiosError 502` às `05:02:45` durante o rollout. Após a recuperação, o erro não foi reproduzido; uma nova abertura do dashboard carregou normalmente.
