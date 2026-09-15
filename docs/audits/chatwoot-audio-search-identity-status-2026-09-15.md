@@ -45,6 +45,12 @@ Foram revisados integralmente os três vídeos. O primeiro registra o envio de �
 ## Limites e próximos passos
 
 - Primeiro deploy do commit `a8529b1b` concluído pelo EasyPanel com log `Success` às 21:39:39 GMT; Rails, Sidekiq e Sidekiq UAZAPI foram iniciados. Smoke `/health` e `/app/login`: HTTP 200. O aviso de containers órfãos foi observado, mas nenhum foi removido.
-- No smoke read-only pós-deploy, a busca por “Tati Leal” retornou a conversa; a variação acentuada “Heloísa Brizolari” não encontrou o contato local “Heloisa Brizolari” porque o resultado remoto vazio substituía os resultados locais. A correção subsequente agora combina e deduplica resultados remotos e locais; regressões passaram localmente e aguardam o próximo commit/deploy para confirmação visual.
+- No smoke read-only pós-deploy, a busca por “Tati Leal” retornou a conversa; “Heloísa Brizolari” não encontrou “Heloisa Brizolari”. A correção que combina e deduplica resultados remotos e locais foi commitada em `beddad06`; o segundo deploy terminou `Success` às 21:50:13 GMT, mas o teste ainda carregou o bundle antigo. A causa foi o pacote de deploy: `docker/Dockerfile.overlay` copia `public/vite` para a imagem, enquanto os novos bundles gerados estavam ignorados/não commitados. Portanto, o sucesso do segundo deploy não significou que a interface nova estava publicada.
 - Não usar botão de envio para simular mensagem a clientes.
 - A correção remove o prefixo inserido pelo Chatwoot. Se o nome do agente ainda aparecer no WhatsApp depois disso, revisar o comportamento da instância/configuração UAZAPI sem fazer envio real.
+
+### Publicação dos bundles Vite
+
+- Build de produção executado novamente a partir do código incluindo `beddad06`: 5.100 módulos transformados, concluído em 1m13s; o bundle de Dashboard gerado é `dashboard-t7cB-ix7.js`. O build terminou com sucesso (avisos de tamanho de chunk e Browserslist, sem erro).
+- O manifesto atual referencia 240 assets; todos estão presentes localmente e versionados/staged. Para a imagem overlay efetivamente servir esta versão, estão sendo publicados o manifesto e os 51 assets novos que faltavam no Git (52 arquivos ao todo; cerca de 31,8 MB). Assets Vite minificados preservam espaços de comentários/licenças de terceiros; por isso `git diff --check` aponta whitespace somente nos bundles gerados, não em alterações-fonte.
+- Até o novo deploy e a verificação do bundle servido pela instância, busca com acentos e demais alterações de interface ainda não devem ser tratadas como confirmadas em produção.
