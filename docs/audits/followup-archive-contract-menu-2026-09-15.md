@@ -70,6 +70,14 @@ A interface agora usa `next_label` enviado pelo workflow como fonte de verdade, 
 - Os únicos anexos desta continuação são duas capturas PNG. Nenhum vídeo/áudio estava disponível para revisão ou transcrição; isso permanece pendente até o usuário anexá-lo.
 - Nenhuma conversa foi finalizada, nenhuma etiqueta alterada e nenhuma mensagem enviada. Não houve alteração de workflow nem novo deploy nesta revalidação.
 
+## Publicação solicitada e smoke pós-deploy — 15/09/2026 16:05 UTC
+
+- A pedido do usuário, foi executado um novo deploy do estado sincronizado de `origin/rotta-custom-v1`. O EasyPanel identificou o commit `3971681b` (`docs(audit): revalidate follow-up tracks and menu`) e o log terminou em `Success` às 16:05:11 UTC.
+- O deploy recriou os serviços necessários; Rails, Sidekiq e Sidekiq UAZAPI ficaram `Running`. O alerta de containers órfãos antigos reapareceu; não foi usado `--remove-orphans` e nenhum container foi removido.
+- Pós-deploy: `/health` e `/app/login` responderam HTTP `200`; os 17 assets Vite encontrados no login responderam HTTP `200` (17/17, sem falhas).
+- O commit implantado é documental e não contém alteração funcional posterior ao código já publicado. A preferência de nome do agente no WhatsApp, em especial, já está incluída no histórico funcional publicado anteriormente; este deploy sincroniza o estado atual solicitado, sem alegar um novo delta de código nessa preferência.
+- Não foram enviadas mensagens nem alterados dados de conversas. O registro também foi sincronizado às duas notas locais do Obsidian.
+
 ## Artefatos relacionados
 
 - GitHub: [branch rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1)
