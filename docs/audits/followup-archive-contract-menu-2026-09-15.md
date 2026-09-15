@@ -59,6 +59,17 @@ A interface agora usa `next_label` enviado pelo workflow como fonte de verdade, 
 - O EasyPanel ainda reportou containers órfãos antigos. O deploy não usou `--remove-orphans`; nenhum foi removido.
 - Estado final: **correção de exibição implantada e comprovada visualmente em produção; health e assets públicos saudáveis**. Única validação não feita em produção é clicar para finalizar uma conversa real; o modal e a guarda estão presentes no código.
 
+## Revalidação da continuação — 15/09/2026
+
+- Worktree de auditoria `rotta-profile-context-cap` estava limpo antes desta atualização documental. Nenhum arquivo funcional ou workflow foi alterado nesta revalidação.
+- Regressões focadas executadas: `ConversationItem.spec.js` (4), `contextMenu/specs/Index.spec.js` (2) e `followUpHelpers.spec.js` (18): **24/24 passaram**. Cobrem o rótulo do atalho, a classe roxa `text-violet-600` (cor sidebar `#7c3aed`), popup antes de mutação, cancelamento sem efeito, confirmação e transições/ordenação das trilhas.
+- O Vitest padrão inicialmente não coletou os testes porque a junction local de `node_modules` aponta para `work/chatwoot-source`, fora do root do Vite. As suítes passaram usando um config temporário que permitiu esse caminho; o arquivo temporário foi removido depois.
+- EasyPanel confirmou o deploy mais recente `fix(deploy): include all manifested Vite assets`, commit funcional `ad452c07`, com log final `Success` (15/09/2026 15:34:39 UTC). Esse deploy sucede e contém o ajuste de exibição do commit `d9e58b9e`; não foi necessário disparar outro deploy.
+- Smoke test atual: `/health` e `/app/login` HTTP `200`; os 17 assets referenciados pela página de login responderam `200`. O `DashboardIcon` publicado contém as chaves da confirmação; a classe `text-violet-600` está no CSS publicado. A inspeção visual anterior pós-deploy continua registrada acima; a aba Chatwoot não abriu via automação nesta continuação, então não se reivindica nova conferência visual aqui.
+- Consulta somente leitura ao `rotta_n8n_mcp`: workflow `utaNsnFUZYBYDf5S` continua ativo na versão `1e1e93fd-15fe-4b15-a3f2-860a60139b9c` (28 nós; `activeVersionId` igual à versão atual). Contato: 36/55/72/96 h até `arquivado`; orçamento: mesmas etapas até `arquivado`. As janelas `orcamento-5-dias`, `orcamento-10-dias` e `orcamento-15-dias` estão na trilha de orçamento, com 120/240/360 h, e retornam a `orcamento-feito`; são janelas independentes, não passos lineares depois da tentativa 4.
+- Os únicos anexos desta continuação são duas capturas PNG. Nenhum vídeo/áudio estava disponível para revisão ou transcrição; isso permanece pendente até o usuário anexá-lo.
+- Nenhuma conversa foi finalizada, nenhuma etiqueta alterada e nenhuma mensagem enviada. Não houve alteração de workflow nem novo deploy nesta revalidação.
+
 ## Artefatos relacionados
 
 - GitHub: [branch rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1)
