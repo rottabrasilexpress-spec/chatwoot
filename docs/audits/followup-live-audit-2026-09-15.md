@@ -47,5 +47,16 @@ Teste real autorizado na conversa `#2143`, contato Kelvin, telefone `55119659278
 - O helper não classifica mais job desconhecido como trilha de contato; aliases decorados são canonicalizados para ordenação, atraso e remoção. Foram adicionadas regressões para job desconhecido, prefixo numérico e atraso por alias.
 - Um erro de histórico foi reproduzido na aba antiga, com `dashboard-BXxGu2Jo.js`: `loadAllPreviousMessages` acessava `messages.length` antes de `messages` ser um array. A guarda foi adicionada com teste de regressão; commit [`9034e37f`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/9034e37f).
 - A suíte focalizada final passou `19/19`; build Vite aprovado; sessão Edge nova carregou a conversa e o histórico com bundle `dashboard-DSDag_WY.js`, console sem erros e Follow-up em `Na fila 0`, `Prontos agora 0`, `Etapas ativas 0`. A aba antiga ainda conserva o log histórico do erro anterior; isso não foi reproduzido na sessão nova.
+
+## Quadragésima primeira rodada — verificação do Chatwoot sem carregar — 2026-09-15
+
+- Sintoma relatado: Chatwoot aparentemente não carregando.
+- Diagnóstico live: `/health` respondeu `200 {"status":"woot"}`; `/app/login` e `/app/accounts/1/dashboard` responderam `200`; o HTML live referencia `dashboard-DSDag_WY.js` e `dashboard-BJMQ3UB9.css`.
+- Integridade de assets: 29 assets Vite referenciados no HTML foram verificados, com `0` respostas inválidas/`404`.
+- Reprodução visual: Edge e Chrome renderizaram o painel, a lista de conversas e a conversa `#2143`; o histórico apareceu e os consoles das sessões verificadas ficaram sem `error`/`warn`.
+- Causa mais provável: aba/cache antigo mantendo o bundle anterior ou conexão realtime presa durante publicação. O erro histórico `messages.length` indefinido já foi corrigido em `9034e37f`; não foi reproduzido no bundle atual.
+- EasyPanel: o Compose permaneceu em execução; os logs disponíveis mostraram checkpoints normais do PostgreSQL, sem evidência de crash do Chatwoot nesta verificação. Nenhum dado, mensagem, etiqueta, Follow-up, credencial ou código funcional foi alterado nesta rodada.
+- Procedimento seguro se o sintoma persistir no dispositivo: abrir `https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/login` em uma nova aba ou executar recarga forçada; a URL sem `/app` também permanece válida para redirecionamento.
+- Resultado: indisponibilidade não reproduzida; serviço e frontend publicados estão respondendo normalmente no momento da auditoria.
 - No console do container Rails, `ruby -c app/controllers/api/v1/accounts/rotta_follow_up_controller.rb` retornou `Syntax OK`. Os specs Rails foram adicionados ao repositório, mas não são copiados pelo `Dockerfile.overlay`, então não foram executáveis dentro da imagem publicada; isso permanece como validação pendente no ambiente de CI/container completo.
 - O CSS ausente do primeiro redeploy foi corrigido no commit [`f178d26c`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/f178d26c); o deploy final validou HTML `200`, 29 assets e zero `404`.
