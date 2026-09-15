@@ -17,15 +17,24 @@ defineProps({
 <template>
   <div class="menu group text-n-slate-12 min-h-7 min-w-0" role="button">
     <Icon
-      v-if="variant === 'icon' && option.icon?.startsWith('i-lucide-')"
+      v-if="
+        ['icon', 'contract'].includes(variant) &&
+        option.icon?.startsWith('i-lucide-')
+      "
       :icon="option.icon"
       class="size-3.5 flex-shrink-0"
+      :class="
+        variant === 'contract' && 'text-violet-600 group-hover:text-white'
+      "
     />
     <fluent-icon
-      v-else-if="variant === 'icon' && option.icon"
+      v-else-if="['icon', 'contract'].includes(variant) && option.icon"
       :icon="option.icon"
       size="14"
       class="flex-shrink-0"
+      :class="
+        variant === 'contract' && 'text-violet-600 group-hover:text-white'
+      "
     />
     <span
       v-if="
@@ -54,8 +63,11 @@ defineProps({
     <p
       class="menu-label truncate min-w-0 flex-1"
       :class="
-        variant === 'attention' &&
-        'text-n-amber-11 dark:text-n-amber-11 font-semibold'
+        variant === 'attention'
+          ? 'text-n-amber-11 dark:text-n-amber-11 font-semibold'
+          : variant === 'contract'
+            ? 'text-violet-600 font-semibold group-hover:text-white'
+            : ''
       "
     >
       {{ option.label }}

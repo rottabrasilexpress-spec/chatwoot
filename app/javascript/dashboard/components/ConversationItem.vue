@@ -73,10 +73,19 @@ const allLabels = useMapGetter('labels/getLabels');
 const finalizedLabelDefinition = SIDEBAR_LABEL_DEFINITIONS.find(
   definition => definition.key === 'finalized'
 );
+const contractLabelDefinition = SIDEBAR_LABEL_DEFINITIONS.find(
+  definition => definition.key === 'contractIssuance'
+);
 const finalizedLabelTitle = computed(
   () =>
     findSidebarLabel(allLabels.value, finalizedLabelDefinition)?.title ||
     'FINALIZADOS'
+);
+const contractLabel = computed(() =>
+  findSidebarLabel(allLabels.value, contractLabelDefinition)
+);
+const contractLabelTitle = computed(
+  () => contractLabel.value?.title || 'Emitir Contrato'
 );
 const sourceLabelTitles = computed(() =>
   (props.source.labels || [])
@@ -87,6 +96,12 @@ const canFinalize = computed(
   () =>
     !sourceLabelTitles.value.some(label =>
       isSidebarLabelTitle(label, 'finalized')
+    )
+);
+const canIssueContract = computed(
+  () =>
+    !sourceLabelTitles.value.some(label =>
+      isSidebarLabelTitle(label, 'contractIssuance')
     )
 );
 
@@ -178,6 +193,11 @@ const closeContextMenu = () => {
 
 const onAssignLabel = label => {
   assignLabels([label.title], [props.source.id]);
+};
+
+const onIssueContract = () => {
+  if (!canIssueContract.value) return;
+  assignLabels([contractLabelTitle.value], [props.source.id]);
 };
 
 const onRemoveLabel = label => {
@@ -333,6 +353,8 @@ const onFinalizeConversation = async () => {
       :conversation-url="conversationPath"
       :can-request-attention="canRequestAttention"
       :can-finalize="canFinalize && !isFinalizing"
+      :can-issue-contract="canIssueContract"
+      :contract-label-title="contractLabelTitle"
       @assign-label="onAssignLabel"
       @remove-label="onRemoveLabel"
       @mark-as-unread="onMarkAsUnread"
@@ -343,6 +365,7 @@ const onFinalizeConversation = async () => {
       @archive-conversation="onArchiveConversation"
       @request-attention="onRequestAttention"
       @finalize-conversation="onFinalizeConversation"
+      @issue-contract="onIssueContract"
       @close="closeContextMenu"
     />
   </ContextMenu>

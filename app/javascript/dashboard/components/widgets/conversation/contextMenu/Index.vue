@@ -21,6 +21,7 @@ const MENU = {
   ARCHIVE: 'archive',
   REQUEST_ATTENTION: 'request-attention',
   FINALIZE: 'finalize',
+  ISSUE_CONTRACT: 'issue-contract',
 };
 
 export default {
@@ -67,6 +68,14 @@ export default {
       type: Boolean,
       default: false,
     },
+    canIssueContract: {
+      type: Boolean,
+      default: false,
+    },
+    contractLabelTitle: {
+      type: String,
+      default: 'Emitir Contrato',
+    },
   },
   emits: [
     'assignPriority',
@@ -79,6 +88,7 @@ export default {
     'archiveConversation',
     'requestAttention',
     'finalizeConversation',
+    'issueContract',
     'close',
   ],
   setup() {
@@ -161,6 +171,10 @@ export default {
         icon: 'i-lucide-circle-check-big',
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE'),
       },
+      issueContractOption: {
+        key: MENU.ISSUE_CONTRACT,
+        icon: 'i-lucide-file-signature',
+      },
     };
   },
   computed: {
@@ -220,6 +234,10 @@ export default {
       this.$emit('finalizeConversation', this.chatId);
       this.$emit('close');
     },
+    issueContract() {
+      this.$emit('issueContract', this.chatId);
+      this.$emit('close');
+    },
     generateMenuLabelConfig(option, type = 'text') {
       return {
         key: option.id,
@@ -270,6 +288,19 @@ export default {
     />
     <hr
       v-if="canFinalize && isAllowed([MENU.FINALIZE])"
+      class="m-1 rounded border-b border-n-weak dark:border-n-weak"
+    />
+    <MenuItem
+      v-if="canIssueContract && isAllowed([MENU.ISSUE_CONTRACT])"
+      :option="{
+        ...issueContractOption,
+        label: contractLabelTitle,
+      }"
+      variant="contract"
+      @click.stop="issueContract"
+    />
+    <hr
+      v-if="canIssueContract && isAllowed([MENU.ISSUE_CONTRACT])"
       class="m-1 rounded border-b border-n-weak dark:border-n-weak"
     />
     <MenuItem
