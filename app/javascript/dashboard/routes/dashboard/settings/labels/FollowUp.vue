@@ -156,7 +156,8 @@ const nextStageFor = job => {
   return isArchivedStage(nextStage) ? '' : nextStage;
 };
 
-const pendingJobKey = item => `${item.conversation_id}:${item.label}`;
+const pendingJobKey = item =>
+  `${item.conversation_id}:${canonicalFollowUpStage(item.label)}`;
 
 const pendingJobs = computed(() =>
   pendingEnrollments.value.map(item => ({
@@ -598,11 +599,42 @@ const registerPendingEnrollment = data => {
   const conversationId = data?.conversation_id || data?.id || conversation.id;
   if (!conversationId) return;
 
-  const labels = data?.labels || conversation.labels || data?.label_list || [];
-  const linkedLabels = Array.isArray(labels)
-    ? labels.map(slugForLabel).filter(label => linkedLabelSlugs.has(label))
-    : [];
-  if (!linkedLabels.length) return;
+  const previousChanges =
+    data?.previous_changes ||
+    data?.changed_attributes ||
+    data?.changedAttributes;
+  const changedLabelValue =
+    previousChanges && typeof previousChanges === 'object'
+      ? previousChanges.label_list ||
+        previousChanges.cached_label_list ||
+        previousChanges.labels
+      : undefined;
+  const changedCurrentValue = Array.isArray(changedLabelValue)
+    ? changedLabelValue[1]
+    : (changedLabelValue?.current_value ?? changedLabelValue?.currentValue);
+  const hasLabelSnapshot =
+    data?.labels !== undefined ||
+    conversation.labels !== undefined ||
+    data?.label_list !== undefined ||
+    changedLabelValue !== undefined;
+  if (!hasLabelSnapshot) return;
+
+  const labels =
+    data?.labels ??
+    conversation.labels ??
+    data?.label_list ??
+    changedCurrentValue ??
+    [];
+  const labelValues = Array.isArray(labels)
+    ? labels
+    : String(labels || '')
+        .split(',')
+        .map(label => label.trim())
+        .filter(Boolean);
+  const linkedLabels = labelValues
+    .map(slugForLabel)
+    .filter(label => linkedLabelSlugs.has(label));
+  const linkedLabelSet = new Set(linkedLabels);
 
   const details = {
     conversation_id: conversationId,
@@ -618,7 +650,13 @@ const registerPendingEnrollment = data => {
     created_at: Date.now(),
   };
   const current = new Map(
-    pendingEnrollments.value.map(item => [pendingJobKey(item), item])
+    pendingEnrollments.value
+      .filter(
+        item =>
+          String(item.conversation_id) !== String(conversationId) ||
+          linkedLabelSet.has(canonicalFollowUpStage(item.label))
+      )
+      .map(item => [pendingJobKey(item), item])
   );
   linkedLabels.forEach(label => {
     const item = { ...details, label };
@@ -672,7 +710,8 @@ loadQueue = async () => {
     };
     const returnedKeys = new Set(
       reconciledJobs.value.map(
-        job => `${job.conversation_id}:${currentStage(job)}`
+        job =>
+          `${job.conversation_id}:${canonicalFollowUpStage(currentStage(job))}`
       )
     );
     pendingEnrollments.value = pendingEnrollments.value.filter(
@@ -695,6 +734,7 @@ loadQueue = async () => {
 const runAction = async (job, action, hours = undefined) => {
   if (isHistoricalJob(job)) return;
   if (job.pending_enrollment && action !== 'remove_label') return;
+  if (busyJobId.value === job.job_id) return;
   busyJobId.value = job.job_id;
   try {
     const payload = { action, job_id: job.job_id };
@@ -706,8 +746,10 @@ const runAction = async (job, action, hours = undefined) => {
     await request(payload);
     pendingEnrollments.value = pendingEnrollments.value.filter(
       item =>
-        pendingJobKey(item) !== `${job.conversation_id}:${currentStage(job)}`
+        pendingJobKey(item) !==
+        `${job.conversation_id}:${canonicalFollowUpStage(currentStage(job))}`
     );
+    scheduleFastRefresh();
     await loadQueue();
   } catch (error) {
     useAlert(error.message || 'Não foi possível atualizar este follow-up.');

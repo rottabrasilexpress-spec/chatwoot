@@ -73,6 +73,13 @@ describe('follow-up helpers', () => {
         current_label: 'primeiro-contato',
       })
     ).toBe(true);
+    expect(
+      isStaleHistoricalJob({
+        status: 'sent_history',
+        current_label: 'primeiro-contato',
+        active_labels: ['[1] Primeiro contato'],
+      })
+    ).toBe(false);
   });
 
   it('counts the same conversation and stage only once', () => {
@@ -106,6 +113,23 @@ describe('follow-up helpers', () => {
     ];
 
     expect(deduplicateFollowUpJobs(jobs)).toEqual(jobs);
+  });
+
+  it('deduplicates human-readable labels with numeric prefixes', () => {
+    expect(
+      deduplicateFollowUpJobs([
+        {
+          job_id: 'one',
+          conversation_id: 42,
+          current_label: 'primeiro-contato',
+        },
+        {
+          job_id: 'two',
+          conversation_id: 42,
+          current_label: '[1] Primeiro contato',
+        },
+      ])
+    ).toHaveLength(1);
   });
 
   it('prefers delay metadata from the API and falls back to the published label schedule', () => {

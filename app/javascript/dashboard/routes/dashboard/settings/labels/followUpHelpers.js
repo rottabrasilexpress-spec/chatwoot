@@ -78,6 +78,7 @@ const normaliseStage = value =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+    .replace(/^\[\d+\]\s*/, '')
     .replace(/[✅❌🫶💰🤝]/gu, '')
     .trim()
     .replace(/\s+/g, '-');
