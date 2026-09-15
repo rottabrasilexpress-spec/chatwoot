@@ -78,6 +78,15 @@ A interface agora usa `next_label` enviado pelo workflow como fonte de verdade, 
 - O commit implantado é documental e não contém alteração funcional posterior ao código já publicado. A preferência de nome do agente no WhatsApp, em especial, já está incluída no histórico funcional publicado anteriormente; este deploy sincroniza o estado atual solicitado, sem alegar um novo delta de código nessa preferência.
 - Não foram enviadas mensagens nem alterados dados de conversas. O registro também foi sincronizado às duas notas locais do Obsidian.
 
+## Revalidação visual e do workflow após o redeploy — 15/09/2026
+
+- Conferência visual na produção: `Emitir Contrato` aparece no menu contextual em roxo, combinando com o item do sidebar. `Enviar para FINALIZADOS` abre o modal `Finalizar frete` com a explicação de que a conversa sairá dos demais chats e ficará em FINALIZADOS. O modal foi cancelado; nenhuma conversa foi finalizada.
+- Na caixa WhatsApp Rotta, a opção `Incluir nome do agente no texto do WhatsApp` e sua descrição aparecem traduzidas em português; o switch está desligado (`0`). Uma aba preexistente exibiu as chaves internas, mas ao abrir a lista de caixas e entrar novamente na WhatsApp Rotta os textos carregaram corretamente. A causa dessa diferença entre estados de carregamento não foi confirmada e não foi feita mudança funcional.
+- Consulta ao workflow publicado `utaNsnFUZYBYDf5S`: ativo, versão `1e1e93fd-15fe-4b15-a3f2-860a60139b9c`, 28 nós. Contato: `primeiro-contato` → `segundo-contato` → `terceiro-contato` → `ultimo-contato` → `arquivado`, com 36/55/72/96 horas. Orçamento padrão: `orcamento-feito` → tentativas 2/3/4 → `arquivado`, com os mesmos intervalos. As janelas independentes de orçamento 5/10/15 dias usam 120/240/360 horas e retornam a `orcamento-feito`; não são etapas lineares após a tentativa 4. O caminho de arquivamento só resolve a conversa quando a atualização de etiquetas foi aceita.
+- Regressões focadas executadas novamente: `ConversationItem.spec.js` (4), `contextMenu/specs/Index.spec.js` (2), `followUpHelpers.spec.js` (18): **24/24 passaram**. A suíte cobriu o nome/cor do item, a guarda de confirmação, cancelamento sem efeitos e os mapeamentos/ordenação das trilhas.
+- O ambiente de anexos contém apenas `image-1.png` e `image-2.png`; nenhum arquivo de vídeo/áudio foi recebido. Assistir o vídeo integralmente e transcrever seu áudio continua pendente do envio do MP4.
+- Não foi feita nova publicação nesta revalidação: o último deploy funcional continua sendo o build de `3971681b`, `Success` às 16:05:11 UTC; a atualização atual deste registro é documental.
+
 ## Artefatos relacionados
 
 - GitHub: [branch rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1)
