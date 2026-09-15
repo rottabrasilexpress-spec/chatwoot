@@ -288,12 +288,31 @@ describe('follow-up helpers', () => {
     ).toEqual(BUDGET_TRAIL_STAGES);
   });
 
-  it('routes jobs to the trail represented by their current or historical labels', () => {
+  it('routes jobs by the current trail before inspecting mixed history', () => {
     expect(followUpTrailForStage('primeiro-contato')).toBe('contact');
     expect(followUpTrailForStage('orcamento-tentativa-3')).toBe('budget');
     expect(
       followUpTrailForJob({
         current_label: 'primeiro-contato',
+        history: [{ label: 'orcamento-feito' }],
+      })
+    ).toBe('contact');
+    expect(
+      followUpTrailForJob({
+        current_label: 'orcamento-feito',
+        history: [{ label: 'terceiro-contato' }],
+      })
+    ).toBe('budget');
+    expect(
+      followUpTrailForJob({
+        current_label: 'etapa-desconhecida',
+        next_label: 'segundo-contato',
+        history: [{ label: 'orcamento-feito' }],
+      })
+    ).toBe('contact');
+    expect(
+      followUpTrailForJob({
+        current_label: 'etapa-desconhecida',
         history: [{ label: 'orcamento-feito' }],
       })
     ).toBe('budget');

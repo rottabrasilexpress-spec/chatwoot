@@ -118,12 +118,21 @@ export const followUpTrailForJob = job => {
   );
   if (isArchivedStage(currentStage)) return null;
 
-  const stages = [
-    currentStage,
-    job?.source_label,
-    job?.next_label,
-    ...historyLabelsFor(job),
-  ];
+  // The same conversation can legitimately have historical entries from
+  // both trails. The active/current label is the source of truth for the
+  // board; history is only a fallback when the current payload is not
+  // classifiable. Otherwise an old budget dispatch could move a live contact
+  // job into the budget tab (and vice versa).
+  const currentTrail = followUpTrailForStage(currentStage);
+  if (currentTrail) return currentTrail;
+
+  const sourceTrail = followUpTrailForStage(job?.source_label);
+  if (sourceTrail) return sourceTrail;
+
+  const nextTrail = followUpTrailForStage(job?.next_label);
+  if (nextTrail) return nextTrail;
+
+  const stages = historyLabelsFor(job);
   if (stages.some(stage => followUpTrailForStage(stage) === 'budget')) {
     return 'budget';
   }
