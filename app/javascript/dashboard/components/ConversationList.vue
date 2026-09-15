@@ -26,6 +26,7 @@ const emit = defineEmits(['loadMore']);
 const conversationListRef = ref(null);
 const virtualListRef = ref(null);
 const isContextMenuOpen = ref(false);
+const hasUserScrolled = ref(false);
 
 provide('contextMenuElementTarget', virtualListRef);
 
@@ -52,6 +53,13 @@ const loadMoreConversations = () => {
   emit('loadMore');
 };
 
+const onConversationListScroll = event => {
+  // Do not let the initial layout or a programmatic scroll walk through every
+  // page. Pagination should start only after the agent intentionally scrolls.
+  if (event?.isTrusted === false) return;
+  hasUserScrolled.value = true;
+};
+
 provide('toggleContextMenu', onContextMenuToggle);
 
 defineExpose({ conversationListRef });
@@ -62,6 +70,7 @@ defineExpose({ conversationListRef });
     ref="conversationListRef"
     class="flex-1 min-h-0 overflow-y-auto conversations-list"
     :class="{ '!overflow-hidden': isContextMenuOpen }"
+    @scroll.passive="onConversationListScroll"
   >
     <Virtualizer
       ref="virtualListRef"
@@ -86,7 +95,7 @@ defineExpose({ conversationListRef });
       {{ $t('CHAT_LIST.EOF') }}
     </p>
     <IntersectionObserver
-      v-else
+      v-else-if="hasUserScrolled"
       :options="intersectionObserverOptions"
       @observed="loadMoreConversations"
     />
