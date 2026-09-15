@@ -14,7 +14,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     content_attributes = message.content_attributes.to_h.with_indifferent_access
     body = {
       number: recipient_number,
-      text: message.outgoing_content.to_s,
+      text: outgoing_text,
       delay: 2,
       readchat: true,
       linkPreview: false
@@ -54,7 +54,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       number: recipient_number,
       type: 'ptt',
       file: file_url,
-      text: message.outgoing_content.to_s,
+      text: outgoing_text,
       delay: 2,
       readchat: true,
       track_source: 'chatwoot',
@@ -80,6 +80,17 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def uazapi_base_url
     ENV.fetch('ROTTABRASIL_UAZAPI_BASE_URL', 'https://transportadoras.uazapi.com').delete_suffix('/')
+  end
+
+  def outgoing_text
+    content = message.outgoing_content.to_s
+    return content unless channel.respond_to?(:include_agent_name_in_whatsapp?)
+    return content unless channel.include_agent_name_in_whatsapp?
+
+    agent_name = message.sender&.available_name.presence
+    return content if agent_name.blank? || content.blank?
+
+    "#{agent_name}: #{content}"
   end
 
   def uazapi_headers

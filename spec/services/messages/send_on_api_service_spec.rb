@@ -4,7 +4,8 @@ RSpec.describe Messages::SendOnApiService do
   let(:api_channel) { create(:channel_api) }
   let(:contact_inbox) { create(:contact_inbox, inbox: api_channel.inbox, source_id: '5511965927865@s.whatsapp.net') }
   let(:conversation) { create(:conversation, inbox: api_channel.inbox, contact_inbox: contact_inbox) }
-  let(:message) { create(:message, message_type: :outgoing, content: 'Teste Uazapi', conversation: conversation) }
+  let(:agent) { create(:user, account: conversation.account, name: 'Caio') }
+  let(:message) { create(:message, message_type: :outgoing, content: 'Teste Uazapi', conversation: conversation, sender: agent) }
 
   before do
     stub_const('ENV', ENV.to_h.merge(
@@ -38,6 +39,27 @@ RSpec.describe Messages::SendOnApiService do
 
     expect(message.reload.source_id).to eq('3EBTESTE123')
     expect(message.status).to eq('sent')
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text').with do |request|
+      JSON.parse(request.body).fetch('text') == 'Teste Uazapi'
+    end).to have_been_made
+  end
+
+  it 'can opt in to the agent name without changing the default company-only text' do
+    api_channel.update!(additional_attributes: {
+      Channel::Api::AGENT_NAME_IN_WHATSAPP_KEY => true
+    })
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .with(body: hash_including('text' => 'Caio: Teste Uazapi'))
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBNAMED123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.source_id).to eq('3EBNAMED123')
   end
 
   it 'marks the message as failed when Uazapi rejects the request' do

@@ -630,6 +630,8 @@
         "ENABLED_DESCRIPTION": "When a contact messages again, the previous conversation will be reopened.",
         "DISABLED_DESCRIPTION": "A new conversation will be created each time after the previous one is resolved."
       },
+      "INCLUDE_AGENT_NAME_IN_WHATSAPP": "Include agent name in WhatsApp text",
+      "INCLUDE_AGENT_NAME_IN_WHATSAPP_SUB_TEXT": "Off: the customer receives only the message from the company. On: the agent name is added before the text.",
       "ENABLE_HMAC": {
         "LABEL": "Enable"
       }
