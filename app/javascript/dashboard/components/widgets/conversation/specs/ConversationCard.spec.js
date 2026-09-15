@@ -81,4 +81,18 @@ describe('ConversationCard', () => {
     expect(wrapper.emitted('openContact')).toHaveLength(1);
     expect(wrapper.emitted('selectConversation')).toBeUndefined();
   });
+
+  it('falls back to the WhatsApp phone number when the contact has no name', () => {
+    const wrapper = mountComponent(
+      {
+        meta: { sender: { phone_number: '+5511965927865' } },
+      },
+      { name: undefined }
+    );
+
+    expect(wrapper.find('.conversation--user').text()).toBe('+5511965927865');
+    expect(wrapper.find('.rotta-contact-avatar').attributes('aria-label')).toBe(
+      'Abrir perfil de +5511965927865'
+    );
+  });
 });

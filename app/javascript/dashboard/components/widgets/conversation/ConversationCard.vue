@@ -46,6 +46,21 @@ const hovered = ref(false);
 const { t } = useI18n();
 
 const hasUnread = computed(() => hasUnreadIncomingMessage(props.chat));
+const currentContactDisplayName = computed(() => {
+  const candidates = [
+    props.currentContact?.name,
+    props.chat?.meta?.sender?.name,
+    props.currentContact?.phone_number,
+    props.chat?.meta?.sender?.phone_number,
+    props.chat?.contact_inbox?.source_id?.split('@')[0],
+  ];
+  const displayName = candidates.find(value => {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    return !['undefined', 'null'].includes(value.trim().toLowerCase());
+  });
+
+  return displayName?.trim() || `#${props.chat?.display_id || props.chat?.id}`;
+});
 const unreadCount = computed(() =>
   hasUnread.value ? Number(props.chat.unread_count || 0) : 0
 );
@@ -180,11 +195,11 @@ watch(
         v-if="!hideThumbnail"
         type="button"
         class="rotta-contact-avatar"
-        :aria-label="`Abrir perfil de ${currentContact.name}`"
+        :aria-label="`Abrir perfil de ${currentContactDisplayName}`"
         @click.stop="emit('openContact')"
       >
         <Avatar
-          :name="currentContact.name"
+          :name="currentContactDisplayName"
           :src="currentContactAvatarUrl"
           :size="44"
           :status="currentContact.availability_status"
@@ -248,7 +263,7 @@ watch(
             class="conversation--user text-sm my-0 mx-2 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap min-w-0 text-n-slate-12"
             :class="hasUnread ? 'font-semibold' : 'font-medium'"
           >
-            {{ currentContact.name }}
+            {{ currentContactDisplayName }}
           </h4>
         </div>
         <div class="rotta-card-meta">
