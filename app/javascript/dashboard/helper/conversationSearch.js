@@ -46,3 +46,22 @@ export const conversationMatchesSearch = (conversation, query) => {
     digitsOnly(phone).includes(phoneQuery)
   );
 };
+
+export const getConversationSearchResults = ({
+  remoteResults = [],
+  localResults = [],
+  query,
+}) => {
+  const conversationsById = new Map();
+
+  [...remoteResults, ...localResults].forEach(conversation => {
+    const key = conversation.id ?? conversation;
+    if (!conversationsById.has(key)) {
+      conversationsById.set(key, conversation);
+    }
+  });
+
+  return [...conversationsById.values()].filter(conversation =>
+    conversationMatchesSearch(conversation, query)
+  );
+};

@@ -36,7 +36,7 @@ Foram revisados integralmente os três vídeos. O primeiro registra o envio de �
 
 ## Validação
 
-- Vitest focalizado: **124 testes passaram** (ReplyBox, busca, atalhos em lote e command bar). O teste específico do hook de conversa que proíbe “adiar conversa” também passou.
+- Vitest focalizado: **126 testes passaram** (ReplyBox, busca, atalhos em lote e command bar), incluindo regressões de busca com acentos, fusão de resultados locais/remotos e deduplicação. O teste específico do hook de conversa que proíbe “adiar conversa” também passou.
 - ESLint nos arquivos JavaScript/Vue alterados: **0 erros**, 6 avisos de tradução dinâmica já usados pelo projeto.
 - Há 2 falhas preexistentes em outros casos de `useConversationHotKeys.spec.js`, que esperam ações de atribuição de agente/time ausentes na implementação-base; não foram alteradas por este escopo.
 - Os RSpecs de busca, serviço UAZAPI e webhook foram adicionados/atualizados, mas não puderam ser executados localmente: esta estação não tem Ruby/Bundler e o Docker Desktop está sem daemon Linux ativo. A execução desses specs e a confirmação do deploy ficam pendentes no pipeline/ambiente.
@@ -44,6 +44,7 @@ Foram revisados integralmente os três vídeos. O primeiro registra o envio de �
 
 ## Limites e próximos passos
 
-- Confirmar no GitHub os checks de Rails/RSpec e o build/deploy da branch.
-- Após o deploy, fazer smoke read-only em `/health`, abrir a conversa e confirmar busca/status/identidade visual. Não usar botão de envio para simular mensagem a clientes.
+- Primeiro deploy do commit `a8529b1b` concluído pelo EasyPanel com log `Success` às 21:39:39 GMT; Rails, Sidekiq e Sidekiq UAZAPI foram iniciados. Smoke `/health` e `/app/login`: HTTP 200. O aviso de containers órfãos foi observado, mas nenhum foi removido.
+- No smoke read-only pós-deploy, a busca por “Tati Leal” retornou a conversa; a variação acentuada “Heloísa Brizolari” não encontrou o contato local “Heloisa Brizolari” porque o resultado remoto vazio substituía os resultados locais. A correção subsequente agora combina e deduplica resultados remotos e locais; regressões passaram localmente e aguardam o próximo commit/deploy para confirmação visual.
+- Não usar botão de envio para simular mensagem a clientes.
 - A correção remove o prefixo inserido pelo Chatwoot. Se o nome do agente ainda aparecer no WhatsApp depois disso, revisar o comportamento da instância/configuração UAZAPI sem fazer envio real.

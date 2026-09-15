@@ -43,7 +43,7 @@ import languages from 'dashboard/components/widgets/conversation/advancedFilterI
 import countries from 'shared/constants/countries';
 import { generateValuesForEditCustomViews } from 'dashboard/helper/customViewsHelper';
 import { getLabelFilterOptions } from 'dashboard/helper/rottaLabelPresentation';
-import { conversationMatchesSearch } from 'dashboard/helper/conversationSearch';
+import { getConversationSearchResults } from 'dashboard/helper/conversationSearch';
 import { conversationListPageURL } from '../helper/URLHelper';
 import ConversationApi from 'dashboard/api/inbox/conversation';
 import {
@@ -428,14 +428,14 @@ const conversationList = computed(() => {
 });
 
 const filteredConversationList = computed(() => {
-  const query = conversationSearchQuery.value.trim().toLocaleLowerCase('pt-BR');
+  const query = conversationSearchQuery.value.trim();
   if (!query) return conversationList.value;
 
-  const sourceList = remoteSearchResults.value || conversationList.value;
-
-  return sourceList.filter(conversation =>
-    conversationMatchesSearch(conversation, query)
-  );
+  return getConversationSearchResults({
+    remoteResults: remoteSearchResults.value || [],
+    localResults: conversationList.value,
+    query,
+  });
 });
 
 const showRottaConversationShortcuts = computed(() => {
