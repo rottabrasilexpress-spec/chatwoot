@@ -54,6 +54,22 @@ describe('MessagesView', () => {
     expect(context.isLoadingPrevious).toBe(false);
   });
 
+  it('does not crash while a ready conversation has no message array yet', async () => {
+    const dispatch = vi.fn();
+    const context = {
+      currentChat: { id: 42, dataFetched: true, messages: undefined },
+      conversationPanel: { scrollHeight: 1000, scrollTop: 800 },
+      historyLoadPromise: null,
+      isLoadingPrevious: false,
+      $store: { dispatch },
+    };
+
+    await MessagesView.methods.loadAllPreviousMessages.call(context);
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(context.isLoadingPrevious).toBe(false);
+  });
+
   it('deduplicates renderable echoes for API inboxes used by UAZAPI', () => {
     const stub = { id: 20, source_id: 'uazapi-echo', content: '' };
     const renderableEcho = {

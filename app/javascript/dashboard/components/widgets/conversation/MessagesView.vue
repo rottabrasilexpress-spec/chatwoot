@@ -492,6 +492,8 @@ export default {
         !this.conversationPanel ||
         !this.currentChat?.id ||
         this.currentChat.dataFetched !== true ||
+        !Array.isArray(this.currentChat.messages) ||
+        !this.currentChat.messages.length ||
         this.currentChat.allMessagesLoaded
       ) {
         return;
