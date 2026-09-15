@@ -35,3 +35,10 @@ Garantir que mensagens enviadas pelas caixas API/UAZAPI não incluam automaticam
 - A ausência da chave é interpretada como `false`, mantendo o padrão seguro para caixas existentes.
 - O restante de `additional_attributes` é preservado ao salvar a configuração.
 - A configuração não afeta e-mail, WhatsApp Cloud, histórico ou mensagens já entregues.
+
+## Publicação e estado live
+
+- Commit publicado na branch `rotta-custom-v1`: `06ea9d38` (`fix(whatsapp): make agent name opt-in`).
+- O GitHub confirma o commit no remoto. O Chatwoot público continua respondendo `/health` e login com HTTP `200`.
+- Até a última verificação, o HTML público ainda referenciava o bundle anterior e nenhum bundle servido continha a chave `rotta_include_agent_name_in_whatsapp`. Portanto, o rollout no EasyPanel ainda não foi confirmado; a implementação está pronta no GitHub, mas não deve ser considerada ativa em produção até o painel concluir o deploy.
+- A checagem RSpec continua pendente no container Rails porque Ruby/Bundler não estão instalados nesta estação.
