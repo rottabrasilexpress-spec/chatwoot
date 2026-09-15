@@ -98,6 +98,7 @@ const mountConversationItem = ({ source, labels = [] } = {}) => {
       stubs: {
         ConversationCard: ConversationCardStub,
         ConversationCardExpanded: true,
+        TeleportWithDirection: { template: '<div><slot /></div>' },
         ContextMenu: { template: '<div><slot /></div>' },
         Modal: {
           props: ['show'],
@@ -144,6 +145,28 @@ describe('ConversationItem contract shortcut', () => {
 
     expect(action.text()).toBe('Emitir Contrato');
   });
+
+  it('offers removal and highlights a conversation already routed to contracts', async () => {
+    const { wrapper, dependencies } = mountConversationItem({
+      labels: [{ title: 'emitir-contrato' }],
+    });
+    await openContextMenu(wrapper);
+
+    const action = findMenuAction(wrapper, 'issue-contract');
+    expect(action.text()).toBe('Remover etiqueta Emitir Contrato');
+    expect(wrapper.findComponent(ConversationCard).classes()).toContain(
+      'ring-2'
+    );
+
+    await action.trigger('click');
+    await flushPromises();
+
+    expect(dependencies.removeLabels).toHaveBeenCalledWith(
+      ['Emitir Contrato'],
+      [2441]
+    );
+    expect(dependencies.assignLabels).not.toHaveBeenCalled();
+  });
 });
 
 describe('ConversationItem finalize confirmation', () => {
@@ -169,6 +192,7 @@ describe('ConversationItem finalize confirmation', () => {
     expect(confirmation.props('description')).toBe(
       'CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CONFIRM_DESCRIPTION'
     );
+    expect(confirmation.vm.$attrs.size).toBe('medium');
     expect(confirmation.vm.show).toBe(true);
     expect(dialog.text()).toContain(
       'CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CANCEL'
@@ -196,7 +220,7 @@ describe('ConversationItem finalize confirmation', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it('moves the conversation to FINALIZADOS and resolves it after confirmation', async () => {
+  it('moves the conversation to FINALIZADOS without changing native status', async () => {
     const { wrapper, dependencies, dispatch } = mountConversationItem({
       labels: [{ title: 'primeiro-contato' }],
     });
@@ -215,11 +239,22 @@ describe('ConversationItem finalize confirmation', () => {
       ['FINALIZADOS'],
       [2441]
     );
-    expect(dispatch).toHaveBeenCalledOnce();
-    expect(dispatch).toHaveBeenCalledWith('toggleStatus', {
-      conversationId: 2441,
-      status: 'resolved',
-      snoozedUntil: null,
-    });
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(dependencies.updateConversationStatus).not.toHaveBeenCalled();
+  });
+
+  it('archives by label only and leaves the native status untouched', async () => {
+    const { wrapper, dependencies, dispatch } = mountConversationItem();
+    await openContextMenu(wrapper);
+
+    await findMenuAction(wrapper, 'archive').trigger('click');
+    await flushPromises();
+
+    expect(dependencies.assignLabels).toHaveBeenCalledWith(
+      ['arquivado'],
+      [2441]
+    );
+    expect(dependencies.updateConversationStatus).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalled();
   });
 });

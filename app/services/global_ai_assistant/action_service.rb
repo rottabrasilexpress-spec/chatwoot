@@ -1,9 +1,8 @@
 class GlobalAiAssistant::ActionService
   ALLOWED_ACTIONS = %w[
-    add_label remove_label set_status create_private_note send_public_message assign_agent
+    add_label remove_label create_private_note send_public_message assign_agent
     follow_up_dispatch_now follow_up_advance follow_up_delay follow_up_cancel follow_up_remove_label
   ].freeze
-  ALLOWED_STATUSES = %w[open pending resolved].freeze
 
   def initialize(account:, user:, action:, conversation_id:, confirmed:, params: {})
     @account = account
@@ -50,8 +49,6 @@ class GlobalAiAssistant::ActionService
       "Enviar mensagem pública para #{conversation.contact&.name || 'o cliente'}: #{@params['content']}"
     when 'create_private_note'
       "Criar uma nota privada em #{conversation.contact&.name || 'a conversa'}: #{@params['content']}"
-    when 'set_status'
-      "Alterar o status da conversa para #{@params['status']}"
     when /\Afollow_up_/
       operation = @action.delete_prefix('follow_up_')
       hours = @params['hours'].presence
@@ -66,7 +63,6 @@ class GlobalAiAssistant::ActionService
     case @action
     when 'add_label' then update_labels(conversation, add: @params['label'])
     when 'remove_label' then update_labels(conversation, remove: @params['label'])
-    when 'set_status' then update_status(conversation)
     when 'create_private_note' then create_message(conversation, private: true)
     when 'send_public_message' then create_message(conversation, private: false)
     when 'assign_agent' then assign_agent(conversation)
@@ -105,14 +101,6 @@ class GlobalAiAssistant::ActionService
     end
     conversation.update_labels(labels)
     { labels: conversation.label_list }
-  end
-
-  def update_status(conversation)
-    status = @params['status'].to_s
-    raise ArgumentError, 'Status inválido.' unless ALLOWED_STATUSES.include?(status)
-
-    conversation.update!(status: status)
-    { status: conversation.status }
   end
 
   def create_message(conversation, private:)

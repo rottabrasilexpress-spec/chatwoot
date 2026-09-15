@@ -34,4 +34,17 @@ RSpec.describe GlobalAiAssistant::ActionService do
       conversation_id: '2165'
     )
   end
+
+  it 'rejects status changes because status remains under native Chatwoot controls' do
+    service = described_class.new(
+      account: account,
+      user: instance_double(User),
+      action: 'set_status',
+      conversation_id: '2165',
+      confirmed: true,
+      params: { 'status' => 'resolved' }
+    )
+
+    expect { service.call }.to raise_error(ArgumentError, 'Ação não permitida.')
+  end
 end

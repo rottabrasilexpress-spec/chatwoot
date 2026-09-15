@@ -13,6 +13,7 @@ import ConversationContextMenu from './widgets/conversation/contextMenu/Index.vu
 import ConversationAPI from 'dashboard/api/inbox/conversation';
 import { useAlert } from 'dashboard/composables';
 import ConfirmationModal from 'dashboard/components/widgets/modal/ConfirmationModal.vue';
+import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 import {
   SIDEBAR_LABEL_DEFINITIONS,
   findSidebarLabel,
@@ -37,7 +38,6 @@ const selectConversation = inject('selectConversation');
 const deSelectConversation = inject('deSelectConversation');
 const assignLabels = inject('assignLabels');
 const removeLabels = inject('removeLabels');
-const updateConversationStatus = inject('updateConversationStatus');
 const toggleContextMenu = inject('toggleContextMenu');
 const markAsUnread = inject('markAsUnread');
 const markAsRead = inject('markAsRead');
@@ -101,11 +101,13 @@ const canFinalize = computed(
       isSidebarLabelTitle(label, 'finalized')
     )
 );
+const contractLabelAssigned = computed(() =>
+  sourceLabelTitles.value.some(label =>
+    isSidebarLabelTitle(label, 'contractIssuance')
+  )
+);
 const canIssueContract = computed(
-  () =>
-    !sourceLabelTitles.value.some(label =>
-      isSidebarLabelTitle(label, 'contractIssuance')
-    )
+  () => Boolean(contractLabel.value) || contractLabelAssigned.value
 );
 
 const chatMetadata = computed(() => props.source.meta || {});
@@ -198,9 +200,14 @@ const onAssignLabel = label => {
   assignLabels([label.title], [props.source.id]);
 };
 
-const onIssueContract = () => {
+const onIssueContract = async () => {
   if (!canIssueContract.value) return;
-  assignLabels([contractLabelTitle.value], [props.source.id]);
+  if (contractLabelAssigned.value) {
+    await removeLabels([contractLabelTitle.value], [props.source.id]);
+  } else {
+    await assignLabels([contractLabelTitle.value], [props.source.id]);
+  }
+  closeContextMenu();
 };
 
 const onRemoveLabel = label => {
@@ -232,9 +239,8 @@ const onTogglePinned = () => {
   closeContextMenu();
 };
 
-const onArchiveConversation = () => {
-  assignLabels(['arquivado'], [props.source.id]);
-  updateConversationStatus(props.source.id, 'resolved', null);
+const onArchiveConversation = async () => {
+  await assignLabels(['arquivado'], [props.source.id]);
   closeContextMenu();
 };
 
@@ -285,14 +291,6 @@ const onFinalizeConversation = async () => {
       [props.source.id]
     );
     if (!assigned) return;
-    // Finalization is an explicit workflow action. Resolve directly so the
-    // conversation cannot remain open behind the generic required-attributes
-    // guard used by the regular resolve button.
-    await store.dispatch('toggleStatus', {
-      conversationId: props.source.id,
-      status: 'resolved',
-      snoozedUntil: null,
-    });
     useAlert(t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_SUCCESS'));
   } catch (error) {
     useAlert(t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_FAILED'));
@@ -314,6 +312,9 @@ const onFinalizeConversation = async () => {
     :is-active-chat="isActiveChat"
     :show-assignee="showAssigneeForExpandedCard"
     :show-inbox-name="showInboxName"
+    :class="{
+      'ring-2 ring-inset ring-violet-500': contractLabelAssigned,
+    }"
     :is-inbox-view="isInboxView"
     @select-conversation="onExpandedSelect"
     @de-select-conversation="onExpandedSelect"
@@ -333,6 +334,9 @@ const onFinalizeConversation = async () => {
     :is-active-chat="isActiveChat"
     :show-assignee="showAssignee"
     :show-inbox-name="showInboxName"
+    :class="{
+      'ring-2 ring-inset ring-violet-500': contractLabelAssigned,
+    }"
     @click="onCardClick"
     @open-contact="onContactClick"
     @contextmenu="openContextMenu"
@@ -357,6 +361,7 @@ const onFinalizeConversation = async () => {
       :can-request-attention="canRequestAttention"
       :can-finalize="canFinalize && !isFinalizing"
       :can-issue-contract="canIssueContract"
+      :contract-label-assigned="contractLabelAssigned"
       :contract-label-title="contractLabelTitle"
       @assign-label="onAssignLabel"
       @remove-label="onRemoveLabel"
@@ -373,13 +378,16 @@ const onFinalizeConversation = async () => {
     />
   </ContextMenu>
 
-  <ConfirmationModal
-    ref="finalizeConfirmation"
-    :title="t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CONFIRM_TITLE')"
-    :description="
-      t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CONFIRM_DESCRIPTION')
-    "
-    :confirm-label="t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CONFIRM')"
-    :cancel-label="t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CANCEL')"
-  />
+  <TeleportWithDirection to="body">
+    <ConfirmationModal
+      ref="finalizeConfirmation"
+      size="medium"
+      :title="t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CONFIRM_TITLE')"
+      :description="
+        t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CONFIRM_DESCRIPTION')
+      "
+      :confirm-label="t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CONFIRM')"
+      :cancel-label="t('CONVERSATION.CARD_CONTEXT_MENU.FINALIZE_CANCEL')"
+    />
+  </TeleportWithDirection>
 </template>

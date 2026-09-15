@@ -7,6 +7,12 @@ global.axios = axios;
 vi.mock('axios');
 
 describe('#actions', () => {
+  beforeEach(() => {
+    commit.mockClear();
+    axios.get.mockReset();
+    axios.post.mockReset();
+  });
+
   describe('#get', () => {
     it('sends correct actions if API is success', async () => {
       axios.get.mockResolvedValue({
@@ -36,7 +42,7 @@ describe('#actions', () => {
   describe('#update', () => {
     it('updates correct actions if API is success', async () => {
       axios.post.mockResolvedValue({
-        data: { payload: { conversationId: '1', labels: ['on-hold'] } },
+        data: { payload: ['on-hold'] },
       });
       await actions.update(
         { commit },
@@ -45,17 +51,10 @@ describe('#actions', () => {
 
       expect(commit.mock.calls).toEqual([
         [types.default.SET_CONVERSATION_LABELS_UI_FLAG, { isUpdating: true }],
-        [
-          types.default.SET_CONVERSATION_LABELS,
-          {
-            id: '1',
-            data: { conversationId: '1', labels: ['on-hold'] },
-          },
-        ],
-        [
-          types.default.SET_CONVERSATION_LABELS_UI_FLAG,
-          { isUpdating: false, isError: false },
-        ],
+        [types.default.SET_CONVERSATION_LABELS, { id: '1', data: ['on-hold'] }],
+        [types.default.SET_CONVERSATION_LABELS, { id: '1', data: ['on-hold'] }],
+        [types.default.SET_CONVERSATION_LABELS_UI_FLAG, { isError: false }],
+        [types.default.SET_CONVERSATION_LABELS_UI_FLAG, { isUpdating: false }],
       ]);
     });
 
@@ -75,13 +74,14 @@ describe('#actions', () => {
         { commit },
         { conversationId: '1', labels: ['on-hold'] }
       );
-      expect(commit.mock.calls).toEqual([
-        [types.default.SET_CONVERSATION_LABELS_UI_FLAG, { isUpdating: true }],
-        [
-          types.default.SET_CONVERSATION_LABELS_UI_FLAG,
-          { isUpdating: false, isError: true },
-        ],
-      ]);
+      expect(commit).toHaveBeenCalledWith(
+        types.default.SET_CONVERSATION_LABELS_UI_FLAG,
+        { isError: true }
+      );
+      expect(commit).toHaveBeenCalledWith(
+        types.default.SET_CONVERSATION_LABELS_UI_FLAG,
+        { isUpdating: false }
+      );
     });
 
     it('returns false when the server rejects the update', async () => {
@@ -90,6 +90,46 @@ describe('#actions', () => {
       await expect(
         actions.update({ commit }, { conversationId: '1', labels: ['on-hold'] })
       ).resolves.toBe(false);
+    });
+
+    it('serializes rapid replacements and does not let an old response overwrite the latest intent', async () => {
+      let resolveFirst;
+      const records = {};
+      const commitState = (type, payload) => {
+        if (type === types.default.SET_CONVERSATION_LABELS) {
+          records[payload.id] = payload.data;
+        }
+      };
+      axios.post
+        .mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              resolveFirst = resolve;
+            })
+        )
+        .mockResolvedValueOnce({ data: { payload: ['final-label'] } });
+
+      const first = actions.update(
+        { commit: commitState },
+        { conversationId: 'rapid-9042', labels: ['first-label'] }
+      );
+      const second = actions.update(
+        { commit: commitState },
+        { conversationId: 'rapid-9042', labels: ['final-label'] }
+      );
+
+      await vi.waitFor(() => expect(axios.post).toHaveBeenCalledTimes(1));
+      expect(records['rapid-9042']).toEqual(['final-label']);
+
+      resolveFirst({ data: { payload: ['first-label'] } });
+      await Promise.all([first, second]);
+
+      expect(axios.post).toHaveBeenCalledTimes(2);
+      expect(axios.post.mock.calls.map(([, body]) => body.labels)).toEqual([
+        ['first-label'],
+        ['final-label'],
+      ]);
+      expect(records['rapid-9042']).toEqual(['final-label']);
     });
   });
 

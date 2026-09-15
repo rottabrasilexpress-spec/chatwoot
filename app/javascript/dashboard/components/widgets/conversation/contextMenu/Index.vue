@@ -72,6 +72,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    contractLabelAssigned: {
+      type: Boolean,
+      default: false,
+    },
     contractLabelTitle: {
       type: String,
       default: 'Emitir Contrato',
@@ -294,7 +298,12 @@ export default {
       v-if="canIssueContract && isAllowed([MENU.ISSUE_CONTRACT])"
       :option="{
         ...issueContractOption,
-        label: contractLabelTitle,
+        label: contractLabelAssigned
+          ? `Remover etiqueta ${contractLabelTitle}`
+          : contractLabelTitle,
+        icon: contractLabelAssigned
+          ? 'i-lucide-tag-x'
+          : issueContractOption.icon,
       }"
       variant="contract"
       @click.stop="issueContract"

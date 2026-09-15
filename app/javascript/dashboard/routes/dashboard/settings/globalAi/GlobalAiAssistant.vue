@@ -118,30 +118,6 @@ const openConversation = card => {
   router.push(card.open_url);
 };
 
-const executeStatusAction = async card => {
-  const confirmed = window.confirm(
-    `Marcar a conversa de ${card.customer_name || 'este cliente'} como resolvida? Isso remove a conversa das pendências abertas.`
-  );
-  if (!confirmed) return;
-
-  try {
-    await globalAiAPI.executeAction({
-      action: 'set_status',
-      conversation_id: card.conversation_id,
-      status: 'resolved',
-      confirmed: true,
-    });
-    card.status = 'resolved';
-    resultCards.value = resultCards.value.filter(item => item !== card);
-    persistState();
-    useAlert('Conversa marcada como resolvida.');
-  } catch (error) {
-    useAlert(
-      error.response?.data?.error || 'Não foi possível alterar o status.'
-    );
-  }
-};
-
 const executeFollowUpAction = async (card, job, operation) => {
   const executable = isExecutableFollowUpJob(job);
   const removable = operation === 'remove_label' && canRemoveFollowUpLabel(job);
@@ -534,14 +510,6 @@ onMounted(loadAccess);
                   "
                 >
                   Ver evidência
-                </Button>
-                <Button
-                  v-if="card.status !== 'resolved'"
-                  size="sm"
-                  color="slate"
-                  @click="executeStatusAction(card)"
-                >
-                  Marcar resolvida
                 </Button>
               </div>
             </article>

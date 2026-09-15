@@ -2,6 +2,35 @@ import * as types from '../mutation-types';
 import ConversationAPI from '../../api/conversations';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { emitter } from 'shared/helpers/mitt';
+import {
+  beginConversationLabelMutation,
+  isLatestConversationLabelMutation,
+  withConversationLabelMutationLock,
+} from 'dashboard/helper/conversationLabelMutationQueue';
+
+let pendingLabelUpdates = 0;
+
+const labelTitles = value => {
+  let labels = [];
+  if (Array.isArray(value)) {
+    labels = value;
+  } else if (Array.isArray(value?.labels)) {
+    labels = value.labels;
+  }
+  return labels
+    .map(label => (typeof label === 'string' ? label : label?.title))
+    .filter(Boolean);
+};
+
+const updateRootConversationLabels = (dispatch, rootGetters, id, value) => {
+  const conversation = rootGetters?.getConversationById?.(Number(id));
+  if (!conversation) return;
+  dispatch(
+    'updateConversation',
+    { ...conversation, labels: labelTitles(value) },
+    { root: true }
+  );
+};
 
 const state = {
   records: {},
@@ -24,7 +53,7 @@ export const getters = {
 };
 
 export const actions = {
-  get: async ({ commit }, conversationId) => {
+  get: async ({ commit, dispatch, rootGetters }, conversationId) => {
     commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
       isFetching: true,
     });
@@ -34,6 +63,12 @@ export const actions = {
         id: conversationId,
         data: response.data.payload,
       });
+      updateRootConversationLabels(
+        dispatch,
+        rootGetters,
+        conversationId,
+        response.data.payload
+      );
       commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
         isFetching: false,
       });
@@ -43,34 +78,85 @@ export const actions = {
       });
     }
   },
-  update: async ({ commit }, { conversationId, labels }) => {
+  update: async (
+    { commit, dispatch, rootGetters },
+    { conversationId, labels }
+  ) => {
+    const version = beginConversationLabelMutation([conversationId]);
+    const previousLabels =
+      state.records[Number(conversationId)] ||
+      rootGetters?.getConversationById?.(Number(conversationId))?.labels ||
+      [];
+    pendingLabelUpdates += 1;
     commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
       isUpdating: true,
     });
+    commit(types.default.SET_CONVERSATION_LABELS, {
+      id: conversationId,
+      data: labels,
+    });
+    updateRootConversationLabels(dispatch, rootGetters, conversationId, labels);
     try {
-      const response = await ConversationAPI.updateLabels(
-        conversationId,
-        labels
+      const response = await withConversationLabelMutationLock(
+        [conversationId],
+        () => ConversationAPI.updateLabels(conversationId, labels)
       );
-      commit(types.default.SET_CONVERSATION_LABELS, {
-        id: conversationId,
-        data: response.data.payload,
-      });
-      commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
-        isUpdating: false,
-        isError: false,
-      });
-      emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, {
-        conversation_id: conversationId,
-        labels: response.data.payload,
-      });
+      if (isLatestConversationLabelMutation(conversationId, version)) {
+        commit(types.default.SET_CONVERSATION_LABELS, {
+          id: conversationId,
+          data: response.data.payload,
+        });
+        updateRootConversationLabels(
+          dispatch,
+          rootGetters,
+          conversationId,
+          response.data.payload
+        );
+        commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
+          isError: false,
+        });
+        emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, {
+          conversation_id: conversationId,
+          labels: response.data.payload,
+        });
+      }
       return true;
     } catch (error) {
-      commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
-        isUpdating: false,
-        isError: true,
-      });
+      if (isLatestConversationLabelMutation(conversationId, version)) {
+        try {
+          const response = await ConversationAPI.getLabels(conversationId);
+          commit(types.default.SET_CONVERSATION_LABELS, {
+            id: conversationId,
+            data: response.data.payload,
+          });
+          updateRootConversationLabels(
+            dispatch,
+            rootGetters,
+            conversationId,
+            response.data.payload
+          );
+        } catch {
+          commit(types.default.SET_CONVERSATION_LABELS, {
+            id: conversationId,
+            data: previousLabels || [],
+          });
+          updateRootConversationLabels(
+            dispatch,
+            rootGetters,
+            conversationId,
+            previousLabels || []
+          );
+        }
+        commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
+          isError: true,
+        });
+      }
       return false;
+    } finally {
+      pendingLabelUpdates -= 1;
+      commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
+        isUpdating: pendingLabelUpdates > 0,
+      });
     }
   },
   setBulkConversationLabels({ commit }, conversations) {

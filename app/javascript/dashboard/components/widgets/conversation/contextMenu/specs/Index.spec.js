@@ -48,13 +48,13 @@ describe('ConversationContextMenu', () => {
     expect(wrapper.emitted('close')).toEqual([[]]);
   });
 
-  it('does not show the contract shortcut when the conversation already has its label', () => {
-    const wrapper = mountComponent({ canIssueContract: false });
+  it('shows a remove action when the conversation already has its label', () => {
+    const wrapper = mountComponent({ contractLabelAssigned: true });
 
-    expect(
-      wrapper
-        .findAllComponents(MenuItem)
-        .some(item => item.props('option').key === 'issue-contract')
-    ).toBe(false);
+    const action = wrapper
+      .findAllComponents(MenuItem)
+      .find(item => item.props('option').key === 'issue-contract');
+
+    expect(action.text()).toBe('Remover etiqueta Emitir Contrato');
   });
 });

@@ -205,7 +205,7 @@
       "REQUEST_ATTENTION": "Solicitar Atenção",
       "FINALIZE": "Enviar para FINALIZADOS",
       "FINALIZE_CONFIRM_TITLE": "Finalizar frete",
-      "FINALIZE_CONFIRM_DESCRIPTION": "Tem certeza que deseja marcar este frete como finalizado (acabou, concluiu etc.)? A conversa sairá de todos os chats e ficará somente em FINALIZADOS.",
+      "FINALIZE_CONFIRM_DESCRIPTION": "Tem certeza que deseja enviar este frete para FINALIZADOS? As etiquetas atuais serão removidas e a etiqueta FINALIZADOS será aplicada. O status nativo da conversa não será alterado.",
       "FINALIZE_CONFIRM": "Sim, finalizar frete",
       "FINALIZE_CANCEL": "Cancelar",
       "FINALIZE_SUCCESS": "Frete marcado como finalizado e enviado para FINALIZADOS.",

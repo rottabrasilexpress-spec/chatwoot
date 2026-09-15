@@ -4,6 +4,12 @@ import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
+import ConversationAPI from 'dashboard/api/conversations';
+import {
+  beginConversationLabelMutation,
+  isLatestConversationLabelMutation,
+  withConversationLabelMutationLock,
+} from 'dashboard/helper/conversationLabelMutationQueue';
 import { emitter } from 'shared/helpers/mitt';
 import wootConstants from 'dashboard/constants/globals';
 
@@ -92,17 +98,63 @@ export function useBulkActions() {
     return selectedConversations.value.includes(id);
   }
 
-  async function updateConversationLabelsLocally(ids, change) {
-    const conversationIds = Array.isArray(ids) ? ids : [ids];
-    await Promise.all(
-      conversationIds.map(async conversationId => {
-        const conversation = store.getters.getConversationById(conversationId);
-        if (!conversation) return;
+  const getConversationLabels = conversation =>
+    Array.isArray(conversation?.labels)
+      ? conversation.labels
+          .map(label => (typeof label === 'string' ? label : label?.title))
+          .filter(Boolean)
+      : [];
 
-        await store.dispatch('updateConversation', {
-          ...conversation,
-          labels: mergeConversationLabels(conversation, change),
-        });
+  const prepareConversationLabelChanges = (ids, change) => {
+    const previous = new Map();
+    const next = new Map();
+    ids.forEach(id => {
+      const conversation = store.getters.getConversationById(id);
+      if (!conversation) return;
+      previous.set(String(id), getConversationLabels(conversation));
+      next.set(String(id), mergeConversationLabels(conversation, change));
+    });
+    return { previous, next };
+  };
+
+  async function updateConversationLabelsLocally(labelsById, versions) {
+    await Promise.all(
+      [...labelsById.entries()].map(async ([id, labels]) => {
+        if (!isLatestConversationLabelMutation(id, versions)) return;
+        const conversation = store.getters.getConversationById(Number(id));
+        if (!conversation) return;
+        await store.dispatch('updateConversation', { ...conversation, labels });
+      })
+    );
+  }
+
+  async function reconcileConversationLabels(ids, fallback, versions) {
+    await Promise.all(
+      ids.map(async id => {
+        if (!isLatestConversationLabelMutation(id, versions)) return;
+        let labels = fallback.get(String(id)) || [];
+        try {
+          const response = await ConversationAPI.getLabels(id);
+          const payload = response.data.payload;
+          if (Array.isArray(payload)) {
+            labels = payload
+              .map(label => (typeof label === 'string' ? label : label?.title))
+              .filter(Boolean);
+          } else if (Array.isArray(payload?.labels)) {
+            labels = payload.labels
+              .map(label => (typeof label === 'string' ? label : label?.title))
+              .filter(Boolean);
+          }
+        } catch {
+          // Preserve the last known labels if the reconciliation request also fails.
+        }
+        const conversation = store.getters.getConversationById(Number(id));
+        if (conversation && isLatestConversationLabelMutation(id, versions)) {
+          await store.dispatch('updateConversation', {
+            ...conversation,
+            labels,
+          });
+        }
       })
     );
   }
@@ -136,21 +188,28 @@ export function useBulkActions() {
   // Same method used in context menu, conversationId being passed from there.
   async function onAssignLabels(newLabels, conversationId = null) {
     const labelsToAssign = Array.isArray(newLabels) ? newLabels : [newLabels];
+    const conversationIds = conversationId
+      ? [conversationId]
+      : [...selectedConversations.value];
+    const versions = beginConversationLabelMutation(conversationIds);
+    const { previous, next } = prepareConversationLabelChanges(
+      conversationIds,
+      { add: labelsToAssign }
+    );
+    await updateConversationLabelsLocally(next, versions);
     try {
-      await store.dispatch('bulkActions/process', {
-        type: 'Conversation',
-        ids: conversationId || selectedConversations.value,
-        labels: {
-          add: labelsToAssign,
-        },
+      await withConversationLabelMutationLock(conversationIds, async () => {
+        await store.dispatch('bulkActions/process', {
+          type: 'Conversation',
+          ids: conversationIds,
+          labels: { add: labelsToAssign },
+        });
+        if (conversationIds.length === 1) {
+          await reconcileConversationLabels(conversationIds, next, versions);
+        } else {
+          await updateConversationLabelsLocally(next, versions);
+        }
       });
-      // Apply the server-confirmed label change in place. A full list requery
-      // can return the same conversations in a different order, making a
-      // contact jump to the top even though no message was sent.
-      await updateConversationLabelsLocally(
-        conversationId || selectedConversations.value,
-        { add: labelsToAssign }
-      );
       await store.dispatch('labels/get', { forceNetwork: true });
       emitter.emit('fetch_conversation_stats');
       store.dispatch('bulkActions/clearSelectedConversationIds');
@@ -170,6 +229,7 @@ export function useBulkActions() {
       }
       return true;
     } catch (err) {
+      await reconcileConversationLabels(conversationIds, previous, versions);
       useAlert(t('BULK_ACTION.LABELS.ASSIGN_FAILED'));
       return false;
     }
@@ -177,18 +237,28 @@ export function useBulkActions() {
 
   // Used by both context menu and bulk action bar.
   async function onRemoveLabels(labelsToRemove, conversationId = null) {
+    const conversationIds = conversationId
+      ? [conversationId]
+      : [...selectedConversations.value];
+    const versions = beginConversationLabelMutation(conversationIds);
+    const { previous, next } = prepareConversationLabelChanges(
+      conversationIds,
+      { remove: labelsToRemove }
+    );
+    await updateConversationLabelsLocally(next, versions);
     try {
-      await store.dispatch('bulkActions/process', {
-        type: 'Conversation',
-        ids: conversationId || selectedConversations.value,
-        labels: {
-          remove: labelsToRemove,
-        },
+      await withConversationLabelMutationLock(conversationIds, async () => {
+        await store.dispatch('bulkActions/process', {
+          type: 'Conversation',
+          ids: conversationIds,
+          labels: { remove: labelsToRemove },
+        });
+        if (conversationIds.length === 1) {
+          await reconcileConversationLabels(conversationIds, next, versions);
+        } else {
+          await updateConversationLabelsLocally(next, versions);
+        }
       });
-      await updateConversationLabelsLocally(
-        conversationId || selectedConversations.value,
-        { remove: labelsToRemove }
-      );
       await store.dispatch('labels/get', { forceNetwork: true });
       emitter.emit('fetch_conversation_stats');
 
@@ -206,6 +276,7 @@ export function useBulkActions() {
       }
       return true;
     } catch (err) {
+      await reconcileConversationLabels(conversationIds, previous, versions);
       useAlert(
         conversationId
           ? t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_REMOVAL.FAILED')
