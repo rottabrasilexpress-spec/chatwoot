@@ -14,6 +14,10 @@ class ConversationApi extends ApiClient {
     return axios.post(`${this.url}/${conversationID}/labels`, { labels });
   }
 
+  mutateLabels(conversationID, { add = [], remove = [] } = {}) {
+    return axios.post(`${this.url}/${conversationID}/labels`, { add, remove });
+  }
+
   getUnreadCounts() {
     return axios.get(`${this.url}/unread_counts`);
   }

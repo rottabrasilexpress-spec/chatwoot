@@ -3,6 +3,8 @@ import { defineComponent } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import { useBulkActions } from '../useBulkActions';
+import { beginConversationLabelMutation } from 'dashboard/helper/conversationLabelMutationQueue';
+import { emitter } from 'shared/helpers/mitt';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
@@ -111,6 +113,62 @@ describe('single-conversation label updates', () => {
       add: ['emitir-contrato'],
     });
     expect(bulkProcess).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('suppresses a context-menu success toast when a newer mutation starts during refresh', async () => {
+    let finishLabelRefresh;
+    const version = beginConversationLabelMutation([2442]).get('2442');
+    const labelMutation = vi
+      .fn()
+      .mockResolvedValue({ status: 'success', version });
+    const store = createStore({
+      modules: {
+        bulkActions: {
+          namespaced: true,
+          getters: { getSelectedConversationIds: () => [] },
+          actions: {
+            process: vi.fn(),
+            clearSelectedConversationIds: vi.fn(),
+          },
+        },
+        conversationLabels: {
+          namespaced: true,
+          actions: { mutate: labelMutation },
+        },
+        labels: {
+          namespaced: true,
+          actions: {
+            get: vi.fn(
+              () =>
+                new Promise(resolve => {
+                  finishLabelRefresh = resolve;
+                })
+            ),
+          },
+        },
+      },
+    });
+    const Harness = defineComponent({
+      setup() {
+        return useBulkActions();
+      },
+      template: '<div />',
+    });
+    const wrapper = mount(Harness, { global: { plugins: [store] } });
+    const alerts = [];
+    const collectAlert = payload => alerts.push(payload);
+    emitter.on('newToastMessage', collectAlert);
+
+    const update = wrapper.vm.onAssignLabels(['emitir-contrato'], 2442);
+    await vi.waitFor(() => expect(finishLabelRefresh).toBeTypeOf('function'));
+    beginConversationLabelMutation([2442]);
+    finishLabelRefresh();
+    await update;
+    await flushPromises();
+
+    emitter.off('newToastMessage', collectAlert);
+    expect(alerts).toEqual([]);
     wrapper.unmount();
   });
 });

@@ -32,6 +32,13 @@ const updateRootConversationLabels = (dispatch, rootGetters, id, value) => {
   );
 };
 
+const mutationResult = (conversationId, version, success) => {
+  const isLatest = isLatestConversationLabelMutation(conversationId, version);
+  let status = 'superseded';
+  if (isLatest) status = success ? 'success' : 'failed';
+  return { status, version: version.get(String(conversationId)) };
+};
+
 const mergeLabels = (currentLabels, { add = [], remove = [] } = {}) => {
   const labelsToAdd = labelTitles(add);
   const labelsToRemove = new Set(labelTitles(remove));
@@ -103,13 +110,21 @@ export const actions = {
   },
   update: async (
     { commit, dispatch, rootGetters },
-    { conversationId, labels }
+    { conversationId, labels = [] }
   ) => {
     const version = beginConversationLabelMutation([conversationId]);
     const previousLabels =
       state.records[Number(conversationId)] ||
       rootGetters?.getConversationById?.(Number(conversationId))?.labels ||
       [];
+    const currentLabelTitles = labelTitles(previousLabels);
+    const nextLabelTitles = labelTitles(labels);
+    const labelsToAdd = nextLabelTitles.filter(
+      label => !currentLabelTitles.includes(label)
+    );
+    const labelsToRemove = currentLabelTitles.filter(
+      label => !nextLabelTitles.includes(label)
+    );
     pendingLabelUpdates += 1;
     commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
       isUpdating: true,
@@ -122,7 +137,11 @@ export const actions = {
     try {
       const response = await withConversationLabelMutationLock(
         [conversationId],
-        () => ConversationAPI.updateLabels(conversationId, labels)
+        () =>
+          ConversationAPI.mutateLabels(conversationId, {
+            add: labelsToAdd,
+            remove: labelsToRemove,
+          })
       );
       if (isLatestConversationLabelMutation(conversationId, version)) {
         commit(types.default.SET_CONVERSATION_LABELS, {
@@ -143,7 +162,7 @@ export const actions = {
           labels: response.data.payload,
         });
       }
-      return true;
+      return mutationResult(conversationId, version, true);
     } catch (error) {
       if (isLatestConversationLabelMutation(conversationId, version)) {
         try {
@@ -174,7 +193,7 @@ export const actions = {
           isError: true,
         });
       }
-      return false;
+      return mutationResult(conversationId, version, false);
     } finally {
       pendingLabelUpdates -= 1;
       commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
@@ -218,10 +237,10 @@ export const actions = {
             );
           }
 
-          const response = await ConversationAPI.updateLabels(
-            conversationId,
-            nextLabels
-          );
+          const response = await ConversationAPI.mutateLabels(conversationId, {
+            add,
+            remove,
+          });
           if (isLatestConversationLabelMutation(conversationId, version)) {
             commit(types.default.SET_CONVERSATION_LABELS, {
               id: conversationId,
@@ -241,7 +260,7 @@ export const actions = {
               labels: response.data.payload,
             });
           }
-          return true;
+          return mutationResult(conversationId, version, true);
         }
       );
     } catch (error) {
@@ -274,7 +293,7 @@ export const actions = {
           isError: true,
         });
       }
-      return false;
+      return mutationResult(conversationId, version, false);
     } finally {
       pendingLabelUpdates -= 1;
       commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {

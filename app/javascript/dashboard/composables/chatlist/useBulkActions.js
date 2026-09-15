@@ -7,6 +7,7 @@ import { useConversationRequiredAttributes } from 'dashboard/composables/useConv
 import ConversationAPI from 'dashboard/api/conversations';
 import {
   beginConversationLabelMutation,
+  isConversationLabelMutationCurrent,
   isLatestConversationLabelMutation,
   withConversationLabelMutationLock,
 } from 'dashboard/helper/conversationLabelMutationQueue';
@@ -194,8 +195,17 @@ export function useBulkActions() {
           conversationId,
           add: labelsToAssign,
         });
-        if (!updated) throw new Error('Conversation labels were not updated');
+        if (updated?.status === 'superseded') return true;
+        if (updated?.status !== 'success' && updated !== true) {
+          throw new Error('Conversation labels were not updated');
+        }
         await store.dispatch('labels/get', { forceNetwork: true });
+        if (
+          updated?.version != null &&
+          !isConversationLabelMutationCurrent(conversationId, updated.version)
+        ) {
+          return true;
+        }
         emitter.emit('fetch_conversation_stats');
         useAlert(
           t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_ASSIGNMENT.SUCCESFUL', {
@@ -266,8 +276,17 @@ export function useBulkActions() {
           conversationId,
           remove: labelsToRemove,
         });
-        if (!updated) throw new Error('Conversation labels were not updated');
+        if (updated?.status === 'superseded') return true;
+        if (updated?.status !== 'success' && updated !== true) {
+          throw new Error('Conversation labels were not updated');
+        }
         await store.dispatch('labels/get', { forceNetwork: true });
+        if (
+          updated?.version != null &&
+          !isConversationLabelMutationCurrent(conversationId, updated.version)
+        ) {
+          return true;
+        }
         emitter.emit('fetch_conversation_stats');
         useAlert(
           t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_REMOVAL.SUCCESFUL', {

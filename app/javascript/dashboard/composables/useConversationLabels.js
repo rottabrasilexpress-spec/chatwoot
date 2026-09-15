@@ -1,6 +1,7 @@
 import { computed } from 'vue';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
+import { isConversationLabelMutationCurrent } from 'dashboard/helper/conversationLabelMutationQueue';
 
 const ARCHIVED_LABEL_KEYS = new Set(['arquivado', 'arquivados']);
 
@@ -102,9 +103,16 @@ export function useConversationLabels() {
       labels: normalizedSelectedLabels,
     });
 
-    if (!updated) return false;
+    if (updated?.status === 'superseded') return true;
+    if (updated?.status !== 'success' && updated !== true) return false;
 
     await store.dispatch('labels/get', { forceNetwork: true });
+    if (
+      updated?.version != null &&
+      !isConversationLabelMutationCurrent(conversationId.value, updated.version)
+    ) {
+      return true;
+    }
 
     const addedLabels = normalizedSelectedLabels.filter(
       label => !previousLabels.includes(label)

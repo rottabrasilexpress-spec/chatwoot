@@ -65,7 +65,7 @@ describe('#actions', () => {
 
       await expect(
         actions.update({ commit }, { conversationId: '1', labels: ['on-hold'] })
-      ).resolves.toBe(true);
+      ).resolves.toEqual(expect.objectContaining({ status: 'success' }));
     });
 
     it('sends correct actions if API is error', async () => {
@@ -89,7 +89,7 @@ describe('#actions', () => {
 
       await expect(
         actions.update({ commit }, { conversationId: '1', labels: ['on-hold'] })
-      ).resolves.toBe(false);
+      ).resolves.toEqual(expect.objectContaining({ status: 'failed' }));
     });
 
     it('serializes rapid replacements and does not let an old response overwrite the latest intent', async () => {
@@ -110,26 +110,44 @@ describe('#actions', () => {
         .mockResolvedValueOnce({ data: { payload: ['final-label'] } });
 
       const first = actions.update(
-        { commit: commitState },
-        { conversationId: 'rapid-9042', labels: ['first-label'] }
+        {
+          commit: commitState,
+          dispatch: vi.fn(),
+          rootGetters: {
+            getConversationById: id =>
+              records[id] ? { labels: records[id] } : null,
+          },
+        },
+        { conversationId: 9042, labels: ['first-label'] }
       );
       const second = actions.update(
-        { commit: commitState },
-        { conversationId: 'rapid-9042', labels: ['final-label'] }
+        {
+          commit: commitState,
+          dispatch: vi.fn(),
+          rootGetters: {
+            getConversationById: id =>
+              records[id] ? { labels: records[id] } : null,
+          },
+        },
+        { conversationId: 9042, labels: ['final-label'] }
       );
 
       await vi.waitFor(() => expect(axios.post).toHaveBeenCalledTimes(1));
-      expect(records['rapid-9042']).toEqual(['final-label']);
+      expect(records[9042]).toEqual(['final-label']);
 
       resolveFirst({ data: { payload: ['first-label'] } });
-      await Promise.all([first, second]);
+      const results = await Promise.all([first, second]);
 
       expect(axios.post).toHaveBeenCalledTimes(2);
-      expect(axios.post.mock.calls.map(([, body]) => body.labels)).toEqual([
-        ['first-label'],
-        ['final-label'],
+      expect(axios.post.mock.calls.map(([, body]) => body)).toEqual([
+        { add: ['first-label'], remove: [] },
+        { add: ['final-label'], remove: ['first-label'] },
       ]);
-      expect(records['rapid-9042']).toEqual(['final-label']);
+      expect(records[9042]).toEqual(['final-label']);
+      expect(results.map(({ status }) => status)).toEqual([
+        'superseded',
+        'success',
+      ]);
     });
   });
 
@@ -151,14 +169,14 @@ describe('#actions', () => {
           },
           { conversationId: 'mutation-301', add: ['emitir-contrato'] }
         )
-      ).resolves.toBe(true);
+      ).resolves.toEqual(expect.objectContaining({ status: 'success' }));
 
       expect(axios.get).toHaveBeenCalledWith(
         '/api/v1/conversations/mutation-301/labels'
       );
       expect(axios.post).toHaveBeenCalledWith(
         '/api/v1/conversations/mutation-301/labels',
-        { labels: ['primeiro-contato', 'emitir-contrato'] }
+        { add: ['emitir-contrato'], remove: [] }
       );
     });
 
@@ -184,12 +202,16 @@ describe('#actions', () => {
         remove: ['emitir-contrato'],
       });
 
-      await Promise.all([add, remove]);
+      const results = await Promise.all([add, remove]);
 
       expect(axios.get).toHaveBeenCalledTimes(2);
-      expect(axios.post.mock.calls.map(([, body]) => body.labels)).toEqual([
-        ['emitir-contrato'],
-        [],
+      expect(axios.post.mock.calls.map(([, body]) => body)).toEqual([
+        { add: ['emitir-contrato'], remove: [] },
+        { add: [], remove: ['emitir-contrato'] },
+      ]);
+      expect(results.map(({ status }) => status)).toEqual([
+        'superseded',
+        'success',
       ]);
     });
   });

@@ -71,6 +71,34 @@ RSpec.describe 'Conversation Label API', type: :request do
         expect(response.body).to include('label3')
         expect(response.body).to include('label4')
       end
+
+      it 'applies label deltas without replacing labels added by another session' do
+        post api_v1_account_conversation_labels_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { add: ['label3'], remove: [] },
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(conversation.reload.label_list).to match_array(%w[label1 label2 label3])
+
+        post api_v1_account_conversation_labels_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { add: ['label4'], remove: [] },
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(conversation.reload.label_list).to match_array(%w[label1 label2 label3 label4])
+      end
+
+      it 'removes only the labels named by a delta' do
+        post api_v1_account_conversation_labels_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { add: [], remove: ['label1'] },
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(conversation.reload.label_list).to match_array(['label2'])
+      end
     end
   end
 end

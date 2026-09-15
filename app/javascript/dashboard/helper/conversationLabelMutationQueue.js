@@ -19,6 +19,9 @@ export const beginConversationLabelMutation = ids => {
 export const isLatestConversationLabelMutation = (id, versions) =>
   versions?.get(String(id)) === conversationVersions.get(String(id));
 
+export const isConversationLabelMutationCurrent = (id, version) =>
+  version === conversationVersions.get(String(id));
+
 export const withConversationLabelMutationLock = (ids, operation) => {
   const keys = normalizeIds(ids);
   if (!keys.length) return Promise.resolve().then(operation);

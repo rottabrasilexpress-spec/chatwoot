@@ -1,6 +1,7 @@
 import { useConversationLabels } from '../useConversationLabels';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
+import { beginConversationLabelMutation } from 'dashboard/helper/conversationLabelMutationQueue';
 
 vi.mock('dashboard/composables/store');
 
@@ -80,6 +81,35 @@ describe('useConversationLabels', () => {
       'Etiqueta "Label 3" adicionada à conversa.',
       'Etiqueta "Label 2" removida da conversa.',
     ]);
+  });
+
+  it('does not announce a success that became stale while refreshing label counts', async () => {
+    let finishLabelRefresh;
+    const version = beginConversationLabelMutation([1]).get('1');
+    store.dispatch
+      .mockResolvedValueOnce({ status: 'success', version })
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            finishLabelRefresh = resolve;
+          })
+      );
+    store.getters['conversationLabels/getConversationLabels'].mockReturnValue([
+      'Label 1',
+    ]);
+    const alerts = [];
+    const collectAlert = ({ message }) => alerts.push(message);
+    emitter.on('newToastMessage', collectAlert);
+
+    const { onUpdateLabels } = useConversationLabels();
+    const update = onUpdateLabels(['Label 1', 'Label 2']);
+    await vi.waitFor(() => expect(finishLabelRefresh).toBeTypeOf('function'));
+    beginConversationLabelMutation([1]);
+    finishLabelRefresh();
+    await update;
+    emitter.off('newToastMessage', collectAlert);
+
+    expect(alerts).toEqual([]);
   });
 
   it('uses labels from the selected conversation until the cache is hydrated', () => {

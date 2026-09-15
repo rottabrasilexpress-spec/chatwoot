@@ -17,6 +17,8 @@ Um teste de regressão para a conversa individual foi executado antes da correç
 
 - Atalhos adicionar/remover no menu para uma conversa agora usam `conversationLabels/mutate`, que consulta as etiquetas atuais e grava a lista resultante pela API síncrona do Chatwoot.
 - A mutação usa a fila/lock por ID de conversa já existente. Cada operação lê o estado persistido depois de adquirir o lock, e um contador de versão impede que uma resposta antiga substitua visualmente a intenção mais recente.
+- A camada de API agora recebe deltas `add/remove` e os aplica sob `conversation.with_lock`. O seletor de etiquetas também calcula deltas em vez de enviar uma lista inteira; duas sessões que alterem etiquetas diferentes não apagam as mudanças uma da outra. Substituições completas ainda são aceitas pelo endpoint legado para compatibilidade.
+- A ação retorna `success`, `failed` ou `superseded`. Se outra ação começar durante o refresh dos contadores, a ação antiga não mostra toast nem atualiza contagens com estado obsoleto.
 - A UI só confirma sucesso depois da resposta de persistência; em erro, reconcilia o estado com o servidor e mostra falha.
 - Ações de seleção em lote permanecem no endpoint assíncrono original; este ajuste é para o caminho de uma conversa do menu contextual.
 - Não houve mudança no estado nativo de resolver/reabrir conversa. “Resolver” permanece ação nativa separada; a remoção da ação customizada de IA já constava dos commits anteriores.
@@ -34,8 +36,9 @@ Não foi alterado o workflow nesta rodada. Limite inerente: depois que a chamada
 ## Verificações locais
 
 - Regressão red antes da correção e verde após ela.
-- Vitest direcionado: 15/15 (11 testes do módulo de etiquetas; 4 do fluxo do menu/contexto).
-- ESLint nos quatro arquivos alterados: passou.
+- Vitest direcionado: 24/24 (11 testes de store/API, 8 do seletor/composable e 5 do menu contextual), incluindo add→remove serializado e ausência de toast obsoleto.
+- ESLint nas fontes e specs alterados: 0 erros; 2 avisos conhecidos `vue/one-component-per-file` no spec de `useBulkActions`. Prettier aprovado.
+- Spec Rails da rota de etiquetas foi ampliada para cobrir deltas aditivos/removidos sem substituir etiquetas preexistentes. Não foi possível executá-la localmente: Ruby/Bundler não estão instalados nesta máquina; a rota precisa ser validada após o deploy.
 - Build Vite: 5.102 módulos transformados; concluído. Persistem avisos conhecidos de Browserslist desatualizado e chunks grandes.
 - `verify:manifest-assets`: passou com 240 referências do manifesto.
 
@@ -52,7 +55,10 @@ Os itens visuais do popup centralizado e do atalho roxo `Emitir Contrato` foram 
 
 ## Publicação e teste real
 
-Preencher após publicar: commit GitHub, deploy EasyPanel, smoke tests, verificação visual do atalho e sequência real adicionar→remover com o contato restaurado à condição inicial.
+- Deploy anterior do commit `394fe5d1` terminou `Success`; `/health` voltou HTTP 200 depois de uma breve janela 502 durante a recriação dos serviços.
+- O teste visual anterior usou a conversa `#2143` do contato `+5511965927865`: o estado nativo estava aberto (`Resolver` visível). `Emitir Contrato` persistiu após reload; em seguida removi a etiqueta e confirmei condição limpa após novo reload. Nenhuma mensagem foi enviada.
+- A alternância rápida revelou aviso de sucesso obsoleto; por isso acrescentei supressão por versão e uma atualização atômica por linha no endpoint. Esta revisão do frontend/backend está construída localmente; commit, novo deploy e teste real da nova rota ainda pendentes.
+- O teste de UI precedente add→remove levou cerca de 3,8 s devido à latência da ferramenta; o teste de unidade modela ações concorrentes imediatamente. Não apresento o tempo da automação visual como teste de sub-segundo.
 
 ## Contexto conectado
 
