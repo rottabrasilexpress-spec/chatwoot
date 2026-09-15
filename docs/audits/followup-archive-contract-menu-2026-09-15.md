@@ -39,11 +39,13 @@ A interface agora usa `next_label` enviado pelo workflow como fonte de verdade, 
 
 ## Publicação e estado do deploy
 
-- O push para `rotta-custom-v1` foi concluído. Inclui `08d3935f` (atalho Emitir Contrato), `9244f776` (próxima etapa do follow-up), `42034801` (assets Vite de produção) e commits de auditoria com o estado do deploy.
-- Checagem pública pós-push: `/health` e `/app/login` responderam HTTP 200, mas o manifesto continua apontando para `assets/dashboard-Ce8OUdV2.js` e `assets/dashboard-C4l69tM3.css`.
-- O bundle atualmente servido não contém `rotta_include_agent_name_in_whatsapp`, `issue-contract` nem `issueContract`. Portanto, o GitHub está atualizado, mas o deploy dos commits ainda não foi confirmado e as alterações não devem ser consideradas ativas em produção.
-- O acionamento do deploy pelo painel EasyPanel não foi concluído nesta rodada; não houve mutação do serviço. É necessário executar/reexecutar o deploy do serviço `chatwoot-rotta` e repetir a checagem do manifesto e dos marcadores do bundle.
-- Não foi possível abrir o painel Obsidian nesta rodada; as notas locais foram atualizadas diretamente, sem alegar que a interface foi aberta.
+- A implantação inicial foi executada no EasyPanel após conferir repositório `rottabrasilexpress-spec/chatwoot`, branch `rotta-custom-v1`, caminho `/` e `docker-compose.yml`. O painel confirmou “Compose implantado”; o build sincronizou o commit `e883571b`.
+- Pós-implantação inicial, `/health` e `/app/login` responderam HTTP 200 e o manifesto passou a servir `assets/dashboard-BVX23J0I.js` e `assets/dashboard-B0hRD4UQ.css`; os marcadores do recurso de nome do agente e do atalho de contrato estavam no bundle.
+- A validação visual em produção encontrou que a sidebar mostrava “Emitir Contrato”, mas o menu contextual mostrava o slug `emitir-contrato`. O teste de regressão reproduziu exatamente `esperado: Emitir Contrato; recebido: emitir-contrato`.
+- Causa: `ConversationItem.vue` passava `label.title` técnico diretamente para o menu. A correção agora usa `getLabelPresentationTitle`, o formatador compartilhado que já produz o nome de exibição.
+- A correção local passou 22 testes focados, ESLint e Prettier; build Vite de 5.101 módulos concluído. O manifesto local valida 240 assets e o novo bundle é `assets/dashboard-B7HXAyoV.js`.
+- **Estado atual:** o primeiro deploy está ativo, mas contém o defeito visual reproduzido. O commit corretivo e o bundle `dashboard-B7HXAyoV.js` ainda precisam ser publicados e redeployados; repetir a checagem pública e a verificação visual antes de declarar resolvido.
+- O log do EasyPanel avisou sobre containers órfãos antigos (`ui_proxy`, `redis`, `postgres`); nenhum container foi removido. As notas locais do Obsidian foram atualizadas diretamente; a interface do Obsidian ainda não foi aberta nesta rodada.
 
 ## Artefatos relacionados
 

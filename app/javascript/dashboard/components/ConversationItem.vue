@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
 import { hasUnreadIncomingMessage } from 'dashboard/helper/conversationHelper';
+import { getLabelPresentationTitle } from 'dashboard/helper/rottaLabelPresentation';
 import ConversationCard from './widgets/conversation/ConversationCard.vue';
 import ConversationCardExpanded from 'dashboard/components-next/Conversation/ConversationCard/ConversationCardExpanded.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
@@ -84,8 +85,10 @@ const finalizedLabelTitle = computed(
 const contractLabel = computed(() =>
   findSidebarLabel(allLabels.value, contractLabelDefinition)
 );
-const contractLabelTitle = computed(
-  () => contractLabel.value?.title || 'Emitir Contrato'
+const contractLabelTitle = computed(() =>
+  getLabelPresentationTitle(
+    contractLabel.value || contractLabelDefinition.fallbackTitle
+  )
 );
 const sourceLabelTitles = computed(() =>
   (props.source.labels || [])
