@@ -66,6 +66,13 @@ export const FOLLOW_UP_TRAILS = Object.freeze({
   budget: BUDGET_TRAIL_STAGES,
 });
 
+// Archive is a terminal milestone in the conversation's visual trail, not an
+// operational follow-up stage (it must stay out of board columns and counts).
+export const displayTrailStagesFor = trailKey => {
+  const stages = FOLLOW_UP_TRAILS[trailKey];
+  return stages ? [...stages, ...ARCHIVED_FOLLOW_UP_STAGES] : [];
+};
+
 const LEGACY_STAGE_ALIASES = Object.freeze({
   'contato-instantaneo': 'primeiro-contato',
   'orcamento-instantaneo': 'orcamento-feito',
@@ -178,6 +185,31 @@ export const isHistoricalJob = job => HISTORICAL_STATUSES.has(job?.status);
 
 export const currentStageFor = job =>
   job?.current_label || job?.source_label || '';
+
+const DEFAULT_NEXT_STAGES = Object.freeze({
+  'contato-instantaneo': 'primeiro-contato',
+  'primeiro-contato': 'segundo-contato',
+  'segundo-contato': 'terceiro-contato',
+  'terceiro-contato': 'ultimo-contato',
+  'ultimo-contato': 'arquivado',
+  'orcamento-instantaneo': 'orcamento-feito',
+  'orcamento-feito': 'orcamento-tentativa-2',
+  'orcamento-tentativa-2': 'orcamento-tentativa-3',
+  'orcamento-tentativa-3': 'orcamento-tentativa-4',
+  'orcamento-tentativa-4': 'arquivado',
+  'orcamento-5-dias': 'orcamento-feito',
+  'orcamento-10-dias': 'orcamento-feito',
+  'orcamento-15-dias': 'orcamento-feito',
+});
+
+export const nextFollowUpStageFor = job => {
+  const configuredNextStage = canonicalFollowUpStage(job?.next_label);
+  if (configuredNextStage) return configuredNextStage;
+
+  return (
+    DEFAULT_NEXT_STAGES[canonicalFollowUpStage(currentStageFor(job))] || ''
+  );
+};
 
 export const activeFollowUpStageCount = jobs => {
   const activeStages = (Array.isArray(jobs) ? jobs : [])

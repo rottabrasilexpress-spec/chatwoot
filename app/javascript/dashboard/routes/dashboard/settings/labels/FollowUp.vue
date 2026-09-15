@@ -30,6 +30,8 @@ import {
   activeFollowUpStageCount,
   deduplicateFollowUpJobs,
   orderedFollowUpStages,
+  displayTrailStagesFor,
+  nextFollowUpStageFor,
 } from './followUpHelpers';
 
 const TIMEZONE = 'America/Sao_Paulo';
@@ -146,20 +148,10 @@ const displayStageFor = job => {
 
 const trailFor = job => {
   const trail = followUpTrailForJob(job);
-  if (trail === 'budget') return budgetTrail;
-  if (trail === 'contact') return contactTrail;
-  return [];
+  return displayTrailStagesFor(trail);
 };
 
-const nextStageFor = job => {
-  const stage = displayStageFor(job);
-  const trail = trailFor(job);
-  const index = trail.indexOf(stage);
-
-  if (index >= 0 && index < trail.length - 1) return trail[index + 1];
-  const nextStage = canonicalFollowUpStage(job.next_label);
-  return isArchivedStage(nextStage) ? '' : nextStage;
-};
+const nextStageFor = nextFollowUpStageFor;
 
 const pendingJobKey = item =>
   `${item.conversation_id}:${canonicalFollowUpStage(item.label)}`;

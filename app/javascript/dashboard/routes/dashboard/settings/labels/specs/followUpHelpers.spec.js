@@ -20,6 +20,8 @@ import {
   compactDispatchText,
   orderedTrailStages,
   orderedFollowUpStages,
+  displayTrailStagesFor,
+  nextFollowUpStageFor,
 } from '../followUpHelpers';
 
 const WINDOW = {
@@ -148,6 +150,11 @@ describe('follow-up helpers', () => {
       hours: 36,
       source: 'configured',
     });
+    expect(
+      ['orcamento-5-dias', 'orcamento-10-dias', 'orcamento-15-dias'].map(
+        source_label => delayHoursFor({ source_label }).hours
+      )
+    ).toEqual([120, 240, 360]);
   });
 
   it('computes an exact countdown from a provided target', () => {
@@ -286,6 +293,11 @@ describe('follow-up helpers', () => {
         'budget'
       )
     ).toEqual(BUDGET_TRAIL_STAGES);
+    expect(
+      ['orcamento-5-dias', 'orcamento-10-dias', 'orcamento-15-dias'].map(
+        followUpTrailForStage
+      )
+    ).toEqual(['budget', 'budget', 'budget']);
   });
 
   it('routes jobs by the current trail before inspecting mixed history', () => {
@@ -337,5 +349,44 @@ describe('follow-up helpers', () => {
     expect(
       orderedTrailStages(['orcamento-feito', 'clientes-fechados'], 'budget')
     ).toEqual(['orcamento-feito']);
+  });
+
+  it('renders archive as the terminal milestone without making it an active stage', () => {
+    expect(displayTrailStagesFor('contact')).toEqual([
+      ...CONTACT_TRAIL_STAGES,
+      'arquivado',
+    ]);
+    expect(displayTrailStagesFor('budget')).toEqual([
+      ...BUDGET_TRAIL_STAGES,
+      'arquivado',
+    ]);
+    expect(followUpTrailForStage('arquivado')).toBeNull();
+    expect(isArchivedStage('arquivado')).toBe(true);
+  });
+
+  it('uses the workflow next label instead of assuming adjacent budget steps', () => {
+    const workflowTransitions = [
+      ['primeiro-contato', 'segundo-contato'],
+      ['segundo-contato', 'terceiro-contato'],
+      ['terceiro-contato', 'ultimo-contato'],
+      ['ultimo-contato', 'arquivado'],
+      ['orcamento-feito', 'orcamento-tentativa-2'],
+      ['orcamento-tentativa-2', 'orcamento-tentativa-3'],
+      ['orcamento-tentativa-3', 'orcamento-tentativa-4'],
+      ['orcamento-tentativa-4', 'arquivado'],
+      ['orcamento-5-dias', 'orcamento-feito'],
+      ['orcamento-10-dias', 'orcamento-feito'],
+      ['orcamento-15-dias', 'orcamento-feito'],
+    ];
+
+    workflowTransitions.forEach(([current_label, next_label]) => {
+      expect(nextFollowUpStageFor({ current_label, next_label })).toBe(
+        next_label
+      );
+    });
+
+    expect(nextFollowUpStageFor({ current_label: 'orcamento-5-dias' })).toBe(
+      'orcamento-feito'
+    );
   });
 });
