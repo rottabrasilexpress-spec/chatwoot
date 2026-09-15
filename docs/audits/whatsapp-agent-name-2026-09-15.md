@@ -42,3 +42,12 @@ Garantir que mensagens enviadas pelas caixas API/UAZAPI não incluam automaticam
 - O GitHub confirma o commit no remoto. O Chatwoot público continua respondendo `/health` e login com HTTP `200`.
 - Até a última verificação, o HTML público ainda referenciava o bundle anterior e nenhum bundle servido continha a chave `rotta_include_agent_name_in_whatsapp`. Portanto, o rollout no EasyPanel ainda não foi confirmado; a implementação está pronta no GitHub, mas não deve ser considerada ativa em produção até o painel concluir o deploy.
 - A checagem RSpec continua pendente no container Rails porque Ruby/Bundler não estão instalados nesta estação.
+
+## Verificação live e correção de tradução — 15/09/2026
+
+- A caixa única `WhatsApp Rotta` está cadastrada como Canal da API e é compartilhada por Kelvin e Caio; a preferência vale para os dois, não é individual por agente.
+- A opção de incluir nome foi localizada na tela de configurações da caixa e estava desligada (`0`). O backend interpreta chave ausente como falso, e o spec do adaptador verifica o texto da empresa por padrão e o prefixo apenas no opt-in.
+- Nenhuma configuração foi salva e nenhuma mensagem foi enviada durante esta verificação.
+- Defeito visual encontrado: o locale genérico `pt` não tinha as duas chaves, embora `pt_BR` tivesse; a tela mostrava os identificadores `INBOX_MGMT.SETTINGS_POPUP...` em vez do rótulo e da explicação. As traduções foram adicionadas ao locale `pt`.
+- Após a correção, os testes Vitest focados passaram `25/25`; ESLint passou; build Vite transformou 5.101 módulos e `verify:manifest-assets` confirmou 240 referências. O RSpec do adaptador não foi executado localmente porque Ruby/Bundler não estão instalados.
+- O deploy da tradução e a conferência visual pós-deploy ainda ficam pendentes até a publicação desta atualização. O valor live permaneceu desligado; não foi alterado o estado persistido do canal.

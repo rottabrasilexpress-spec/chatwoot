@@ -629,6 +629,8 @@
         "ENABLED_DESCRIPTION": "When a contact messages again, the previous conversation will be reopened.",
         "DISABLED_DESCRIPTION": "A new conversation will be created each time after the previous one is resolved."
       },
+      "INCLUDE_AGENT_NAME_IN_WHATSAPP": "Incluir nome do agente no texto do WhatsApp",
+      "INCLUDE_AGENT_NAME_IN_WHATSAPP_SUB_TEXT": "Desligado: o cliente recebe somente a mensagem, em nome da empresa. Ligado: o nome do agente será adicionado antes do texto.",
       "ENABLE_HMAC": {
         "LABEL": "Ativar"
       }
