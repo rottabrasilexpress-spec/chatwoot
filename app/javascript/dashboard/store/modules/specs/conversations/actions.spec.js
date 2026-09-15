@@ -466,6 +466,23 @@ describe('#actions', () => {
     });
   });
 
+  describe('#fetchAllConversations', () => {
+    it('clears the loading state if the initial request fails', async () => {
+      axios.get.mockRejectedValue(new Error('Request failed'));
+
+      await actions.fetchAllConversations({
+        commit,
+        dispatch,
+        state: { conversationFilters: dataToSend },
+      });
+
+      expect(commit.mock.calls).toEqual([
+        ['SET_LIST_LOADING_STATUS'],
+        ['CLEAR_LIST_LOADING_STATUS'],
+      ]);
+    });
+  });
+
   describe('#setConversationFilter', () => {
     it('commits the correct mutation and sets filter state', () => {
       const filters = [

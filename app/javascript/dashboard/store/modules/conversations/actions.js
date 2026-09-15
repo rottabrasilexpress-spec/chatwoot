@@ -101,7 +101,9 @@ const actions = {
         params.assigneeType
       );
     } catch (error) {
-      // Handle error
+      // Do not leave the conversation list in a permanent loading state when
+      // the initial request fails (for example, during a transient outage).
+      commit(types.CLEAR_LIST_LOADING_STATUS);
     }
   },
 
