@@ -19,11 +19,7 @@ import {
 } from 'dashboard/helper/AnalyticsHelper/events';
 import { generateSnoozeSuggestions } from 'dashboard/helper/snoozeHelpers';
 import { ICON_SNOOZE_CONVERSATION } from 'dashboard/helper/commandbar/icons';
-import {
-  CMD_SNOOZE_CONVERSATION,
-  CMD_SNOOZE_NOTIFICATION,
-  CMD_BULK_ACTION_SNOOZE_CONVERSATION,
-} from 'dashboard/helper/commandbar/events';
+import { CMD_SNOOZE_NOTIFICATION } from 'dashboard/helper/commandbar/events';
 import { emitter } from 'shared/helpers/mitt';
 
 const props = defineProps({
@@ -68,11 +64,7 @@ watch(pendingAttributes, pending => {
   }
 });
 
-const SNOOZE_PARENT_IDS = [
-  'snooze_conversation',
-  'snooze_notification',
-  'bulk_action_snooze_conversation',
-];
+const SNOOZE_PARENT_IDS = ['snooze_notification'];
 const DYNAMIC_SNOOZE_PREFIX = 'dynamic_snooze_';
 
 const CUSTOM_SNOOZE = wootConstants.SNOOZE_OPTIONS.UNTIL_CUSTOM_TIME;
@@ -114,15 +106,11 @@ const setCommandBarData = () => {
 };
 
 const SNOOZE_EVENT_MAP = {
-  snooze_conversation: CMD_SNOOZE_CONVERSATION,
   snooze_notification: CMD_SNOOZE_NOTIFICATION,
-  bulk_action_snooze_conversation: CMD_BULK_ACTION_SNOOZE_CONVERSATION,
 };
 
 const SNOOZE_SECTION_MAP = {
-  snooze_conversation: 'COMMAND_BAR.SECTIONS.SNOOZE_CONVERSATION',
   snooze_notification: 'COMMAND_BAR.SECTIONS.SNOOZE_NOTIFICATION',
-  bulk_action_snooze_conversation: 'COMMAND_BAR.SECTIONS.BULK_ACTIONS',
 };
 
 const snoozeTranslations = computed(() => {

@@ -36,6 +36,8 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     provider_id = provider_message_id(response)
     message.update!(source_id: provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] message=#{message.id} sent provider_id_present=#{provider_id.present?}")
+  rescue Net::ReadTimeout => e
+    mark_delivery_confirmation_pending(e)
   rescue StandardError => e
     fail_message("Falha ao enviar pela Uazapi: #{e.message}")
   end
@@ -74,6 +76,8 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     provider_id = provider_message_id(response)
     message.update!(source_id: provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] voice message=#{message.id} sent provider_id_present=#{provider_id.present?}")
+  rescue Net::ReadTimeout => e
+    mark_delivery_confirmation_pending(e)
   rescue StandardError => e
     fail_message("Falha ao enviar áudio pela Uazapi: #{e.message}")
   end
@@ -83,14 +87,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   end
 
   def outgoing_text
-    content = message.outgoing_content.to_s
-    return content unless channel.respond_to?(:include_agent_name_in_whatsapp?)
-    return content unless channel.include_agent_name_in_whatsapp?
-
-    agent_name = message.sender&.available_name.presence
-    return content if agent_name.blank? || content.blank?
-
-    "#{agent_name}: #{content}"
+    message.outgoing_content.to_s
   end
 
   def uazapi_headers
@@ -137,5 +134,18 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   def fail_message(error)
     message.update!(status: :failed, external_error: error.to_s.truncate(500))
     Rails.logger.error("[ROTTABRASIL_API] message=#{message.id} failed #{error}")
+  end
+
+  def mark_delivery_confirmation_pending(error)
+    status = message.status.in?(%w[delivered read]) ? message.status : :sent
+    attributes = message.additional_attributes.to_h
+    if %w[delivered read].include?(status.to_s)
+      attributes.delete('rotta_uazapi_confirmation_pending')
+    else
+      attributes['rotta_uazapi_confirmation_pending'] = true
+    end
+
+    message.update!(status: status, external_error: nil, additional_attributes: attributes)
+    Rails.logger.warn("[ROTTABRASIL_API] message=#{message.id} confirmation_pending error=#{error.class.name}")
   end
 end

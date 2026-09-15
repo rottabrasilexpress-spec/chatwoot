@@ -33,6 +33,57 @@ describe ConversationFinder do
       end
     end
 
+    context 'with a phone query containing only digits' do
+      let(:params) { { q: '5511965927865', assignee_type: 'all' } }
+
+      it 'finds a contact whose phone number is formatted with punctuation' do
+        contact = create(
+          :contact,
+          account: account,
+          name: 'Cliente de teste',
+          phone_number: '+55 (11) 96592-7865'
+        )
+        contact_inbox = create(
+          :contact_inbox,
+          inbox: inbox,
+          contact: contact,
+          source_id: '5511965927865@s.whatsapp.net'
+        )
+        conversation = create(
+          :conversation,
+          account: account,
+          inbox: inbox,
+          contact: contact,
+          contact_inbox: contact_inbox
+        )
+
+        result = conversation_finder.perform
+
+        expect(result[:conversations]).to include(conversation)
+      end
+
+      it 'finds a conversation by its WhatsApp source id when the contact has no phone number' do
+        contact = create(:contact, account: account, name: 'Contato sem telefone')
+        contact_inbox = create(
+          :contact_inbox,
+          inbox: inbox,
+          contact: contact,
+          source_id: '5511965927865@s.whatsapp.net'
+        )
+        conversation = create(
+          :conversation,
+          account: account,
+          inbox: inbox,
+          contact: contact,
+          contact_inbox: contact_inbox
+        )
+
+        result = conversation_finder.perform
+
+        expect(result[:conversations]).to include(conversation)
+      end
+    end
+
     context 'with inbox' do
       let!(:restricted_conversation) { create(:conversation, account: account, inbox_id: restricted_inbox.id) }
 

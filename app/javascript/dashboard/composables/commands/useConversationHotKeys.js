@@ -8,8 +8,6 @@ import { useCaptain } from 'dashboard/composables/useCaptain';
 import { CMD_AI_ASSIST } from 'dashboard/helper/commandbar/events';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 
-import wootConstants from 'dashboard/constants/globals';
-
 import {
   ICON_ADD_LABEL,
   ICON_ASSIGN_PRIORITY,
@@ -27,9 +25,6 @@ import {
 } from 'dashboard/helper/commandbar/icons';
 
 import {
-  OPEN_CONVERSATION_ACTIONS,
-  SNOOZE_CONVERSATION_ACTIONS,
-  RESOLVED_CONVERSATION_ACTIONS,
   SEND_TRANSCRIPT_ACTION,
   UNMUTE_ACTION,
   MUTE_ACTION,
@@ -147,7 +142,6 @@ export function useConversationHotKeys() {
 
   const currentChat = useMapGetter('getSelectedChat');
   const replyMode = useMapGetter('draftMessages/getReplyEditorMode');
-  const contextMenuChatId = useMapGetter('getContextMenuChatId');
   const getDraftMessage = useMapGetter('draftMessages/get');
 
   const conversationId = computed(() => currentChat.value?.id);
@@ -163,22 +157,6 @@ export function useConversationHotKeys() {
       priority: action.priority.key,
     });
   };
-
-  const statusActions = computed(() => {
-    const isOpen = currentChat.value?.status === wootConstants.STATUS_TYPE.OPEN;
-    const isSnoozed =
-      currentChat.value?.status === wootConstants.STATUS_TYPE.SNOOZED;
-    const isResolved =
-      currentChat.value?.status === wootConstants.STATUS_TYPE.RESOLVED;
-
-    let actions = [];
-    if (isOpen) {
-      actions = [...OPEN_CONVERSATION_ACTIONS, ...SNOOZE_CONVERSATION_ACTIONS];
-    } else if (isResolved || isSnoozed) {
-      actions = RESOLVED_CONVERSATION_ACTIONS;
-    }
-    return prepareActions(actions, t);
-  });
 
   const priorityOptions = computed(() =>
     createPriorityOptions(t, currentChat.value?.priority)
@@ -294,15 +272,8 @@ export function useConversationHotKeys() {
     return isAConversationRoute(route.name) || isAInboxViewRoute(route.name);
   });
 
-  const shouldShowSnoozeOption = computed(() => {
-    return (
-      isAConversationRoute(route.name, true, false) && contextMenuChatId.value
-    );
-  });
-
   const getDefaultConversationHotKeys = computed(() => {
     const defaultConversationHotKeys = [
-      ...statusActions.value,
       ...conversationAdditionalActions.value,
       ...labelActions.value,
       ...assignPriorityActions.value,
@@ -314,9 +285,6 @@ export function useConversationHotKeys() {
   });
 
   const conversationHotKeys = computed(() => {
-    if (shouldShowSnoozeOption.value) {
-      return prepareActions(SNOOZE_CONVERSATION_ACTIONS, t);
-    }
     if (isConversationOrInboxRoute.value) {
       return getDefaultConversationHotKeys.value;
     }

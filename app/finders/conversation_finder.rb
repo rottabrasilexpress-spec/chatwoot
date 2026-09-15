@@ -170,10 +170,20 @@ class ConversationFinder
     return unless params[:q]
 
     allowed_message_types = [Message.message_types[:incoming], Message.message_types[:outgoing]]
+    query = 'messages.content ILIKE :search OR contacts.name ILIKE :search OR contacts.phone_number ILIKE :search'
+    query_parameters = { search: "%#{params[:q]}%" }
+    phone_query = params[:q].to_s.gsub(/\D/, '')
+    if phone_query.length >= 4
+      query << " OR regexp_replace(COALESCE(contacts.phone_number, ''), '[^0-9]', '', 'g') LIKE :phone_search"
+      query << " OR regexp_replace(COALESCE(contact_inboxes.source_id, ''), '[^0-9]', '', 'g') LIKE :phone_search"
+      query_parameters[:phone_search] = "%#{phone_query}%"
+    end
+
     @conversations = conversations.joins(:messages).left_joins(:contact)
+                                  .left_joins(:contact_inbox)
                                   .where(
-                                    'messages.content ILIKE :search OR contacts.name ILIKE :search OR contacts.phone_number ILIKE :search',
-                                    search: "%#{params[:q]}%"
+                                    "(#{query})",
+                                    query_parameters
                                   )
                                   .where(messages: { message_type: allowed_message_types })
                                   .distinct

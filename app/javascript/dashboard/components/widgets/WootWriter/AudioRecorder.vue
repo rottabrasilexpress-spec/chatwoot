@@ -28,6 +28,7 @@ const isRecording = ref(false);
 const isPlaying = ref(false);
 const hasRecording = ref(false);
 const recordedAudioUrl = ref(null);
+let pendingRecordingEnd = null;
 
 const formatTimeProgress = time => {
   const duration = intervalToDuration({ start: 0, end: time });
@@ -98,17 +99,22 @@ const initWaveSurfer = () => {
       if (recordedAudioUrl.value) URL.revokeObjectURL(recordedAudioUrl.value);
       recordedAudioUrl.value = URL.createObjectURL(audioBlob);
       wavesurfer.value.load(recordedAudioUrl.value);
-      emit('finishRecord', {
+      const recordedFile = {
         name: file.name,
         type: file.type,
         size: file.size,
         file,
-      });
+      };
+      emit('finishRecord', recordedFile);
       hasRecording.value = true;
       isRecording.value = false;
+      pendingRecordingEnd?.resolve(recordedFile);
+      pendingRecordingEnd = null;
     } catch (error) {
       isRecording.value = false;
       hasRecording.value = false;
+      pendingRecordingEnd?.reject(error);
+      pendingRecordingEnd = null;
       emit('recordError', { error });
     }
   });
@@ -118,11 +124,29 @@ const initWaveSurfer = () => {
   });
 };
 
-const stopRecording = () => {
-  if (isRecording.value) {
+function stopRecordingAndGetFile() {
+  if (pendingRecordingEnd) return pendingRecordingEnd.promise;
+  if (!isRecording.value) return Promise.resolve(null);
+
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  pendingRecordingEnd = { promise, resolve, reject };
+  try {
     record.value.stopRecording();
-    isRecording.value = false;
+  } catch (error) {
+    pendingRecordingEnd.reject(error);
+    pendingRecordingEnd = null;
   }
+  isRecording.value = false;
+  return promise;
+}
+
+const stopRecording = () => {
+  stopRecordingAndGetFile().catch(() => {});
 };
 
 const startRecording = async () => {
@@ -157,7 +181,7 @@ onUnmounted(() => {
   }
 });
 
-defineExpose({ playPause, stopRecording, record });
+defineExpose({ playPause, stopRecording, stopRecordingAndGetFile, record });
 </script>
 
 <template>

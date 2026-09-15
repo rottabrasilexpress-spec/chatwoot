@@ -23,7 +23,6 @@ class Channel::Api < ApplicationRecord
   include Channelable
 
   self.table_name = 'channel_api'
-  AGENT_NAME_IN_WHATSAPP_KEY = 'rotta_include_agent_name_in_whatsapp'.freeze
   EDITABLE_ATTRS = [:webhook_url, :hmac_mandatory, { additional_attributes: {} }].freeze
 
   has_secure_token :identifier
@@ -34,11 +33,6 @@ class Channel::Api < ApplicationRecord
 
   def name
     'API'
-  end
-
-  def include_agent_name_in_whatsapp?
-    value = (additional_attributes || {})[AGENT_NAME_IN_WHATSAPP_KEY]
-    ActiveModel::Type::Boolean.new.cast(value)
   end
 
   private

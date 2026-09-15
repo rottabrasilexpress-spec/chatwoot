@@ -99,7 +99,6 @@ export default {
       emailCollectEnabled: false,
       senderNameType: 'friendly',
       businessName: '',
-      includeAgentNameInWhatsApp: false,
       locktoSingleConversation: false,
       allowMessagesAfterResolved: true,
       continuityViaEmail: true,
@@ -553,9 +552,6 @@ export default {
       this.emailCollectEnabled = this.inbox.enable_email_collect;
       this.senderNameType = this.inbox.sender_name_type;
       this.businessName = this.inbox.business_name;
-      this.includeAgentNameInWhatsApp = Boolean(
-        this.inbox.additional_attributes?.rotta_include_agent_name_in_whatsapp
-      );
       this.allowMessagesAfterResolved =
         this.inbox.allow_messages_after_resolved;
       this.continuityViaEmail = this.inbox.continuity_via_email;
@@ -709,8 +705,6 @@ export default {
               this.isInboundEmailEnabled && this.continuityViaEmail,
             additional_attributes: {
               ...(this.inbox.additional_attributes || {}),
-              rotta_include_agent_name_in_whatsapp:
-                this.includeAgentNameInWhatsApp,
             },
           },
         };
@@ -1354,19 +1348,6 @@ export default {
                 :hide-toggle="isContinuityDisabled"
                 :class="
                   isContinuityDisabled ? 'cursor-not-allowed opacity-50' : ''
-                "
-              />
-
-              <SettingsToggleSection
-                v-if="isAPIInbox"
-                v-model="includeAgentNameInWhatsApp"
-                :header="
-                  $t('INBOX_MGMT.SETTINGS_POPUP.INCLUDE_AGENT_NAME_IN_WHATSAPP')
-                "
-                :description="
-                  $t(
-                    'INBOX_MGMT.SETTINGS_POPUP.INCLUDE_AGENT_NAME_IN_WHATSAPP_SUB_TEXT'
-                  )
                 "
               />
             </SettingsAccordion>

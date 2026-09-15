@@ -105,7 +105,7 @@ describe('useConversationHotKeys', () => {
     }
   });
 
-  it('should return snooze actions when in snooze context', () => {
+  it('does not offer snooze actions for a conversation context', () => {
     store.getters.getContextMenuChatId = 1;
     useMapGetter.mockImplementation(key => ({
       value: store.getters[key],
@@ -113,10 +113,11 @@ describe('useConversationHotKeys', () => {
     useRoute.mockReturnValue({ name: 'inbox_conversation' });
 
     const { conversationHotKeys } = useConversationHotKeys();
-    const snoozeAction = conversationHotKeys.value.find(action =>
-      action.id.includes('snooze_conversation')
-    );
-    expect(snoozeAction).toBeDefined();
+    expect(
+      conversationHotKeys.value.some(action =>
+        action.id.includes('snooze_conversation')
+      )
+    ).toBe(false);
   });
 
   it('should return the correct label actions when there are active labels', () => {

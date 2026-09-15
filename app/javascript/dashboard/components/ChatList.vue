@@ -23,7 +23,6 @@ import SaveCustomView from 'next/filter/SaveCustomView.vue';
 import DeleteCustomViews from 'dashboard/routes/dashboard/customviews/DeleteCustomViews.vue';
 import ConversationBulkActions from './widgets/conversation/conversationBulkActions/Index.vue';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
-import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
 
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
@@ -36,7 +35,6 @@ import {
   useSnakeCase,
 } from 'dashboard/composables/useTransformKeys';
 import { useEmitter } from 'dashboard/composables/emitter';
-import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
 
 import wootConstants from 'dashboard/constants/globals';
 import advancedFilterOptions from './widgets/conversation/advancedFilterItems';
@@ -45,6 +43,7 @@ import languages from 'dashboard/components/widgets/conversation/advancedFilterI
 import countries from 'shared/constants/countries';
 import { generateValuesForEditCustomViews } from 'dashboard/helper/customViewsHelper';
 import { getLabelFilterOptions } from 'dashboard/helper/rottaLabelPresentation';
+import { conversationMatchesSearch } from 'dashboard/helper/conversationSearch';
 import { conversationListPageURL } from '../helper/URLHelper';
 import ConversationApi from 'dashboard/api/inbox/conversation';
 import {
@@ -74,8 +73,6 @@ const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const store = useStore();
-
-const resolveAttributesModalRef = ref(null);
 
 const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ALL);
 const defaultConversationStatus = (() => {
@@ -115,6 +112,7 @@ const remoteSearchResults = ref(null);
 const isSearchingConversations = ref(false);
 const conversationsPerPage = 50;
 let conversationSearchTimer = null;
+let conversationSearchRequestId = 0;
 const advancedFilterTypes = ref(
   advancedFilterOptions.map(filter => ({
     ...filter,
@@ -160,8 +158,6 @@ const {
   filteri18nKey: 'FILTER',
   attributeModel: 'conversation_attribute',
 });
-
-const { checkMissingAttributes } = useConversationRequiredAttributes();
 
 // computed
 
@@ -431,27 +427,6 @@ const conversationList = computed(() => {
   return sortByRottaOrder(localConversationList);
 });
 
-const searchableConversationText = conversation => {
-  const labelsText = (conversation.labels || [])
-    .map(label => (typeof label === 'string' ? label : label?.title))
-    .filter(Boolean);
-
-  return [
-    conversation.id,
-    conversation.display_id,
-    conversation.meta?.sender?.name,
-    conversation.meta?.sender?.phone_number,
-    conversation.meta?.sender?.email,
-    conversation.contact?.name,
-    conversation.contact?.phone_number,
-    conversation.last_non_activity_message?.content,
-    ...labelsText,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLocaleLowerCase('pt-BR');
-};
-
 const filteredConversationList = computed(() => {
   const query = conversationSearchQuery.value.trim().toLocaleLowerCase('pt-BR');
   if (!query) return conversationList.value;
@@ -459,7 +434,7 @@ const filteredConversationList = computed(() => {
   const sourceList = remoteSearchResults.value || conversationList.value;
 
   return sourceList.filter(conversation =>
-    searchableConversationText(conversation).includes(query)
+    conversationMatchesSearch(conversation, query)
   );
 });
 
@@ -911,8 +886,10 @@ async function markAllVisibleAsRead() {
   }
 }
 
-async function searchConversationsRemotely(query) {
+async function searchConversationsRemotely(query, requestId) {
   const normalizedQuery = query.trim();
+  if (requestId !== conversationSearchRequestId) return;
+
   if (normalizedQuery.length < 2) {
     remoteSearchResults.value = null;
     isSearchingConversations.value = false;
@@ -924,96 +901,32 @@ async function searchConversationsRemotely(query) {
     const { data } = await ConversationApi.get({
       ...conversationFilters.value,
       page: 1,
+      per_page: 100,
       q: normalizedQuery,
     });
-    remoteSearchResults.value = data.data?.payload || [];
+    if (requestId === conversationSearchRequestId) {
+      remoteSearchResults.value = data.data?.payload || [];
+    }
   } catch (error) {
-    remoteSearchResults.value = [];
-    useAlert('Não foi possível pesquisar as conversas. Tente novamente.');
+    if (requestId === conversationSearchRequestId) {
+      remoteSearchResults.value = [];
+      useAlert('Não foi possível pesquisar as conversas. Tente novamente.');
+    }
   } finally {
-    isSearchingConversations.value = false;
+    if (requestId === conversationSearchRequestId) {
+      isSearchingConversations.value = false;
+    }
   }
 }
 
 function scheduleConversationSearch(query) {
+  conversationSearchRequestId += 1;
+  const requestId = conversationSearchRequestId;
   clearTimeout(conversationSearchTimer);
   conversationSearchTimer = setTimeout(
-    () => searchConversationsRemotely(query),
-    300
+    () => searchConversationsRemotely(query, requestId),
+    200
   );
-}
-
-function toggleConversationStatus(
-  conversationId,
-  status,
-  snoozedUntil,
-  customAttributes = null
-) {
-  const payload = {
-    conversationId,
-    status,
-    snoozedUntil,
-  };
-
-  if (customAttributes) {
-    payload.customAttributes = customAttributes;
-  }
-
-  store.dispatch('toggleStatus', payload).then(() => {
-    useAlert(t('CONVERSATION.CHANGE_STATUS'));
-  });
-}
-
-function handleResolveConversation(conversationId, status, snoozedUntil) {
-  if (status !== wootConstants.STATUS_TYPE.RESOLVED) {
-    toggleConversationStatus(conversationId, status, snoozedUntil);
-    return;
-  }
-
-  // Check for required attributes before resolving
-  const conversation = getConversationById.value(conversationId);
-  const currentCustomAttributes = conversation?.custom_attributes || {};
-  const { hasMissing, missing } = checkMissingAttributes(
-    currentCustomAttributes
-  );
-
-  if (hasMissing) {
-    // Pass conversation context through the modal's API
-    const conversationContext = {
-      id: conversationId,
-      snoozedUntil,
-    };
-    resolveAttributesModalRef.value?.open(
-      missing,
-      currentCustomAttributes,
-      conversationContext
-    );
-  } else {
-    toggleConversationStatus(conversationId, status, snoozedUntil);
-  }
-}
-
-function handleResolveWithAttributes({ attributes, context }) {
-  if (context) {
-    const existingConversation = getConversationById.value(context.id);
-    const currentCustomAttributes =
-      existingConversation?.custom_attributes || {};
-    const mergedAttributes = { ...currentCustomAttributes, ...attributes };
-
-    toggleConversationStatus(
-      context.id,
-      wootConstants.STATUS_TYPE.RESOLVED,
-      context.snoozedUntil,
-      mergedAttributes
-    );
-  }
-}
-
-function allSelectedConversationsStatus(status) {
-  if (!selectedConversations.value.length) return false;
-  return selectedConversations.value.every(item => {
-    return getConversationById.value(item)?.status === status;
-  });
 }
 
 function toggleSelectAll(check) {
@@ -1115,7 +1028,6 @@ provide('selectConversation', selectConversation);
 provide('deSelectConversation', deSelectConversation);
 provide('assignLabels', onAssignLabels);
 provide('removeLabels', onRemoveLabels);
-provide('updateConversationStatus', handleResolveConversation);
 provide('markAsUnread', markAsUnread);
 provide('markAsRead', markAsRead);
 provide('assignPriority', assignPriority);
@@ -1252,9 +1164,6 @@ watch(conversationSearchQuery, searchQuery => {
     <ConversationBulkActions
       :conversations="selectedConversations"
       :all-conversations-selected="allConversationsSelected"
-      :show-open-action="allSelectedConversationsStatus('open')"
-      :show-resolved-action="allSelectedConversationsStatus('resolved')"
-      :show-snoozed-action="allSelectedConversationsStatus('snoozed')"
       :class="isOnExpandedLayout && 'sm:!w-[24rem] !w-full'"
       @select-all-conversations="toggleSelectAll"
     />
@@ -1296,10 +1205,6 @@ watch(conversationSearchQuery, searchQuery => {
         @close="closeAdvanceFiltersModal"
       />
     </TeleportWithDirection>
-    <ConversationResolveAttributesModal
-      ref="resolveAttributesModalRef"
-      @submit="handleResolveWithAttributes"
-    />
   </div>
 </template>
 

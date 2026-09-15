@@ -330,6 +330,53 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(response.parsed_body).to include('ok' => true, 'message_ids' => [chatwoot_message.id])
     end
 
+    it 'corrects a timed-out outgoing message when the successful Uazapi echo arrives' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      chatwoot_message = create(
+        :message,
+        account: account,
+        inbox: api_inbox,
+        conversation: conversation,
+        message_type: :outgoing,
+        status: :failed,
+        external_error: 'Net::ReadTimeout',
+        sender: create(:user, account: account),
+        source_id: nil,
+        content: 'Mensagem aceita pela Uazapi'
+      )
+
+      post_uazapi(
+        event: 'messages',
+        data: {
+          message: {
+            messageId: 'uazapi-late-echo-1',
+            chatid: '5511999999999@s.whatsapp.net',
+            fromMe: true,
+            wasSentByApi: true,
+            track_source: 'chatwoot',
+            track_id: "message-#{chatwoot_message.id}",
+            type: 'text',
+            text: chatwoot_message.content
+          }
+        }
+      )
+
+      expect(chatwoot_message.reload).to have_attributes(
+        source_id: 'uazapi-late-echo-1',
+        status: 'sent',
+        external_error: nil
+      )
+    end
+
     it 'promotes an outgoing message when Uazapi sends a separated key and update status' do
       api_channel = create(:channel_api, account: account)
       api_inbox = create(:inbox, channel: api_channel, account: account)

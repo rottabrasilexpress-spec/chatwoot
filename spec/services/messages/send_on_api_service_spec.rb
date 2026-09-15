@@ -44,13 +44,13 @@ RSpec.describe Messages::SendOnApiService do
     end).to have_been_made
   end
 
-  it 'can opt in to the agent name without changing the default company-only text' do
+  it 'never includes the agent name in WhatsApp message text, even when the legacy flag is enabled' do
     api_channel.update!(additional_attributes: {
-      Channel::Api::AGENT_NAME_IN_WHATSAPP_KEY => true
+      'rotta_include_agent_name_in_whatsapp' => true
     })
 
     stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
-      .with(body: hash_including('text' => 'Caio: Teste Uazapi'))
+      .with(body: hash_including('text' => 'Teste Uazapi'))
       .to_return(
         status: 200,
         body: { 'key' => { 'id' => '3EBNAMED123' } }.to_json,
@@ -60,6 +60,17 @@ RSpec.describe Messages::SendOnApiService do
     described_class.new(message: message).perform
 
     expect(message.reload.source_id).to eq('3EBNAMED123')
+  end
+
+  it 'keeps a read-timeout unconfirmed instead of marking an accepted send as failed' do
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_raise(Net::ReadTimeout.new('response timed out'))
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.status).to eq('sent')
+    expect(message.external_error).to be_blank
+    expect(message.additional_attributes).to include('rotta_uazapi_confirmation_pending' => true)
   end
 
   it 'marks the message as failed when Uazapi rejects the request' do

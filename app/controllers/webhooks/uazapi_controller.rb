@@ -336,7 +336,17 @@ class Webhooks::UazapiController < ActionController::API
     existing_message = find_existing_echo_message(payload, provider_id)
     if existing_message
       associate_uazapi_delivery(existing_message.conversation)
-      existing_message.update!(source_id: provider_id) if existing_message.source_id.blank?
+      updates = {}
+      updates[:source_id] = provider_id if existing_message.source_id.blank?
+      if existing_message.failed?
+        updates[:status] = :sent
+        updates[:external_error] = nil
+      end
+      attributes = existing_message.additional_attributes.to_h
+      if attributes.delete('rotta_uazapi_confirmation_pending')
+        updates[:additional_attributes] = attributes
+      end
+      existing_message.update!(updates) if updates.present?
       return render json: { ok: true, message_ids: [existing_message.id], source_id: provider_id }
     end
 
@@ -496,6 +506,16 @@ class Webhooks::UazapiController < ActionController::API
                end
     return messages if messages.present?
 
+    track_id = value_for_keys(payload, %w[track_id trackId])&.to_s
+    if track_id&.match?(/\Amessage-\d+\z/)
+      tracked_message = Message.find_by(
+        account_id: ACCOUNT_ID,
+        message_type: Message.message_types[:outgoing],
+        id: track_id.delete_prefix('message-')
+      )
+      return [tracked_message] if tracked_message
+    end
+
     conversation = find_conversation(payload)
     return [] unless conversation
 
@@ -571,9 +591,14 @@ class Webhooks::UazapiController < ActionController::API
       'uazapi_status' => raw_status,
       'uazapi_event_at' => Time.current.iso8601
     )
+    attributes.delete('rotta_uazapi_confirmation_pending') unless normalized_status == :failed
     attributes['uazapi_message_id'] = provider_id if provider_id.present?
 
-    { status: normalized_status, additional_attributes: attributes }
+    {
+      status: normalized_status,
+      additional_attributes: attributes,
+      external_error: normalized_status == :failed ? message.external_error : nil
+    }
   end
 
   def promote_status(current_status, incoming_status)

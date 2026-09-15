@@ -529,5 +529,69 @@ describe('ReplyBox', () => {
       expect(wrapper.vm.hasRecordedAudio).toBe(true);
       expect(wrapper.vm.showAudioRecorderEditor).toBe(true);
     });
+
+    it('allows sending while an audio recording is still active', async () => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Api' },
+      });
+      wrapper.vm.isRecordingAudio = true;
+      await nextTick();
+
+      expect(bottomPanel(wrapper).isSendDisabled).toBe(false);
+    });
+
+    it('does not enable send when recording upload failed and no attachment exists', async () => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Api' },
+      });
+      wrapper.vm.hasRecordedAudio = true;
+      wrapper.vm.audioFileUploadPromise = Promise.resolve(false);
+      await nextTick();
+
+      expect(bottomPanel(wrapper).isSendDisabled).toBe(true);
+    });
+
+    it('stops the active recording and waits for upload before sending', async () => {
+      let resolveUpload;
+      const upload = new Promise(resolve => {
+        resolveUpload = resolve;
+      });
+      const stopRecordingAndGetFile = vi.fn().mockResolvedValue({
+        name: 'voice.mp3',
+      });
+      const context = {
+        $refs: { audioRecorderInput: { stopRecordingAndGetFile } },
+        isFinalizingAudioForSend: false,
+        hasRecordedAudio: true,
+        attachedFiles: [{ isVoiceMessage: true }],
+        audioFileUploadPromise: upload,
+      };
+
+      const ready = ReplyBox.methods.finishAudioRecordingForSend.call(context);
+      expect(context.isFinalizingAudioForSend).toBe(true);
+      expect(stopRecordingAndGetFile).toHaveBeenCalledOnce();
+
+      resolveUpload(true);
+      await expect(ready).resolves.toBe(true);
+      expect(context.isFinalizingAudioForSend).toBe(false);
+    });
+
+    it('only confirms an audio send after finalizing the active recording', async () => {
+      const confirmOnSendReply = vi.fn();
+      const finishAudioRecordingForSend = vi.fn().mockResolvedValueOnce(true);
+      const context = {
+        isRecordingAudio: true,
+        finishAudioRecordingForSend,
+        message: '',
+        messageVariables: [],
+        $t: key => key,
+        confirmOnSendReply,
+      };
+
+      await ReplyBox.methods.onSendReply.call(context);
+
+      expect(finishAudioRecordingForSend).toHaveBeenCalledOnce();
+      expect(confirmOnSendReply).toHaveBeenCalledOnce();
+    });
   });
 });

@@ -142,6 +142,9 @@ export default {
       recordingAudioState: '',
       recordingAudioDurationText: '',
       audioRecorderKey: 0,
+      audioFileUploadPromise: null,
+      isUploadingAudio: false,
+      isFinalizingAudioForSend: false,
       replyType: REPLY_EDITOR_MODES.REPLY,
       draftConversationId: null,
       draftReplyMode: null,
@@ -293,7 +296,9 @@ export default {
       if (this.isEditorDisabled) return true;
       if (this.isATwitterInbox) return true;
       if (this.isDictating || this.isTranscribing) return true;
-      if (this.hasAttachments || this.hasRecordedAudio) return false;
+      if (this.isUploadingAudio || this.isFinalizingAudioForSend) return true;
+      if (this.isRecordingAudio) return false;
+      if (this.hasAttachments) return false;
 
       return (
         this.isMessageEmpty ||
@@ -988,6 +993,13 @@ export default {
           });
     },
     async onSendReply() {
+      if (this.isFinalizingAudioForSend) return;
+
+      if (this.isRecordingAudio) {
+        const audioReady = await this.finishAudioRecordingForSend();
+        if (!audioReady) return;
+      }
+
       const undefinedVariables = getUndefinedVariablesInMessage({
         message: this.message,
         variables: this.messageVariables,
@@ -1009,6 +1021,27 @@ export default {
         }
       } else {
         this.confirmOnSendReply();
+      }
+    },
+    async finishAudioRecordingForSend() {
+      const recorder = this.$refs.audioRecorderInput;
+      if (!recorder?.stopRecordingAndGetFile) return false;
+
+      this.isFinalizingAudioForSend = true;
+      try {
+        const file = await recorder.stopRecordingAndGetFile();
+        if (!file) return false;
+
+        const uploadResult = await this.audioFileUploadPromise;
+        return (
+          uploadResult !== false &&
+          this.hasRecordedAudio &&
+          this.attachedFiles.some(attachment => attachment.isVoiceMessage)
+        );
+      } catch (error) {
+        return false;
+      } finally {
+        this.isFinalizingAudioForSend = false;
       }
     },
     async sendMessage(
@@ -1109,6 +1142,8 @@ export default {
       this.showEmojiPicker = !this.showEmojiPicker;
     },
     toggleAudioRecorder() {
+      if (this.isUploadingAudio || this.isFinalizingAudioForSend) return;
+
       if (!this.isRecordingAudio && this.hasRecordedAudio) {
         this.resetAudioRecorderInput();
       }
@@ -1161,13 +1196,19 @@ export default {
       this.recordingAudioState = 'stopped';
       this.hasRecordedAudio = true;
       this.isRecordingAudio = false;
+      this.isUploadingAudio = true;
       // Added a new key isVoiceMessage to the file to identify recorded audio
       // Because to filter and show only non recorded audio and other attachments
       const autoRecordedFile = {
         ...file,
         isVoiceMessage: true,
       };
-      return file && this.onFileUpload(autoRecordedFile);
+      this.audioFileUploadPromise = Promise.resolve()
+        .then(() => file && this.onFileUpload(autoRecordedFile))
+        .catch(() => false);
+      return this.audioFileUploadPromise.finally(() => {
+        this.isUploadingAudio = false;
+      });
     },
     onRecordError({ error } = {}) {
       this.toggleAudioRecorder();
@@ -1255,20 +1296,31 @@ export default {
       });
     },
     attachFile({ blob, file }) {
-      if (!this.showFileUpload && !this.isOnPrivateNote) return;
+      if (!this.showFileUpload && !this.isOnPrivateNote) {
+        return Promise.resolve(false);
+      }
 
-      const reader = new FileReader();
-      reader.readAsDataURL(file.file);
-      reader.onloadend = () => {
-        this.attachedFiles.push({
-          currentChatId: this.currentChat.id,
-          resource: blob || file,
-          isPrivate: this.isPrivate,
-          thumb: reader.result,
-          blobSignedId: blob ? blob.signed_id : undefined,
-          isVoiceMessage: file?.isVoiceMessage || false,
-        });
-      };
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.error) {
+            resolve(false);
+            return;
+          }
+
+          this.attachedFiles.push({
+            currentChatId: this.currentChat.id,
+            resource: blob || file,
+            isPrivate: this.isPrivate,
+            thumb: reader.result,
+            blobSignedId: blob ? blob.signed_id : undefined,
+            isVoiceMessage: file?.isVoiceMessage || false,
+          });
+          resolve(true);
+        };
+        reader.onerror = () => resolve(false);
+        reader.readAsDataURL(file.file);
+      });
     },
     removeAttachment(attachments) {
       this.attachedFiles = attachments;
@@ -1441,6 +1493,9 @@ export default {
       this.isRecordingAudio = false;
       this.recordingAudioState = '';
       this.hasRecordedAudio = false;
+      this.isUploadingAudio = false;
+      this.isFinalizingAudioForSend = false;
+      this.audioFileUploadPromise = null;
       this.audioRecorderKey += 1;
       this.dictationBaseMessage = '';
       this.dictationStarted = false;
