@@ -28,6 +28,10 @@ Após recarregar o Chatwoot, a lista podia permanecer em `Carregando conversas` 
 - Saúde live: `/health` respondeu `200` com `{\"status\":\"woot\"}`.
 - Smoke visual real no Chatwoot: três recarregamentos completos terminaram com a lista/histórico carregados em aproximadamente `0,96 s`, `1,93 s` e `2,57 s`; o spinner apareceu apenas durante a carga e não permaneceu preso.
 
+## Revisão independente
+
+Parecer: aprovado com ressalvas. O revisor confirmou que o commit documental está coerente com o código, que o bundle live coincide com o bundle local e que `/health` está saudável. Risco residual: depois de `2.500 ms`, o carregamento principal pode concorrer com o pré-carregamento tardio e um cache atrasado pode exigir reconciliação; o teste automatizado não foi executado por causa da resolução ambiental de `fake-indexeddb/auto`, e ainda não foi simulado throttling real de rede.
+
 ## Escopo e limite
 
 Nenhuma mensagem foi enviada e nenhuma conversa, etiqueta, Follow-up, contato ou dado de cliente foi alterado. A correção trata carregamento pendente da lista; uma indisponibilidade transitória durante reinício do EasyPanel pode continuar exibindo `502` até os containers subirem, como ocorreu por alguns segundos durante este deploy.
