@@ -21,6 +21,7 @@ import {
 
 const conversationPrefetchCache = new Map();
 const conversationPrefetchInFlight = new Map();
+const PREFETCH_HANDOFF_TIMEOUT_MS = 2500;
 
 const conversationPrefetchKey = params =>
   JSON.stringify(params, Object.keys(params).sort());
@@ -45,6 +46,17 @@ const prefetchConversationList = params => {
 
   conversationPrefetchInFlight.set(key, request);
   return request;
+};
+
+const waitForPrefetchHandoff = request => {
+  let timeoutId;
+  const timeout = new Promise(resolve => {
+    timeoutId = setTimeout(resolve, PREFETCH_HANDOFF_TIMEOUT_MS);
+  });
+
+  return Promise.race([request, timeout]).finally(() => {
+    clearTimeout(timeoutId);
+  });
 };
 
 export const hasMessageFailedWithExternalError = pendingMessage => {
@@ -83,7 +95,10 @@ const actions = {
 
       if (!force) {
         const runningRequest = conversationPrefetchInFlight.get(key);
-        if (runningRequest) await runningRequest;
+        // Prefetch is an optimization, never a prerequisite for rendering.
+        // If it stalls, continue with the foreground request instead of
+        // keeping the entire conversation list in a permanent loading state.
+        if (runningRequest) await waitForPrefetchHandoff(runningRequest);
         data = conversationPrefetchCache.get(key);
         conversationPrefetchCache.delete(key);
       }

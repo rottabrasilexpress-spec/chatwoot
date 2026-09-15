@@ -481,6 +481,37 @@ describe('#actions', () => {
         ['CLEAR_LIST_LOADING_STATUS'],
       ]);
     });
+
+    it('does not block the foreground load on a stalled prefetch', async () => {
+      vi.useFakeTimers();
+      commit.mockClear();
+      dispatch.mockClear();
+      axios.get.mockReset();
+
+      let requestCount = 0;
+      axios.get.mockImplementation(() => {
+        requestCount += 1;
+        if (requestCount === 1) return new Promise(() => {});
+        return Promise.resolve({ data: dataReceived });
+      });
+
+      // Start the background request and let the foreground request take
+      // over after the bounded handoff window.
+      actions.prefetchConversationViews({}, [dataToSend]);
+      await Promise.resolve();
+      const foreground = actions.fetchAllConversations({
+        commit,
+        dispatch,
+        state: { conversationFilters: dataToSend },
+      });
+
+      await vi.advanceTimersByTimeAsync(2500);
+      await foreground;
+
+      expect(requestCount).toBe(2);
+      expect(commit).toHaveBeenCalledWith(types.CLEAR_LIST_LOADING_STATUS);
+      vi.useRealTimers();
+    });
   });
 
   describe('#setConversationFilter', () => {

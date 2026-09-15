@@ -60,6 +60,7 @@ describe('#ConversationAPI', () => {
           updated_within: 20,
           per_page: 50,
         },
+        timeout: 20000,
       });
     });
 

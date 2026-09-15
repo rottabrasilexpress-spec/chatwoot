@@ -18,7 +18,7 @@ class ConversationApi extends ApiClient {
     updatedWithin,
     q,
     perPage,
-  }) {
+  }, requestConfig = {}) {
     const params = {
       inbox_id: inboxId,
       team_id: teamId,
@@ -34,7 +34,13 @@ class ConversationApi extends ApiClient {
     if (q) params.q = q;
     if (perPage) params.per_page = perPage;
 
-    return axios.get(this.url, { params });
+    return axios.get(this.url, {
+      ...requestConfig,
+      params,
+      // A stalled conversation request must not leave the inbox spinner
+      // visible forever. Callers can still override this for special cases.
+      timeout: requestConfig.timeout ?? 20000,
+    });
   }
 
   filter(payload) {
