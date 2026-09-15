@@ -93,3 +93,13 @@ A interface agora usa `next_label` enviado pelo workflow como fonte de verdade, 
 - EasyPanel: [deploy do serviço Chatwoot](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments)
 - Chatwoot: [caixa de entrada](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/dashboard)
 - Contexto Obsidian: [[Chatwoot Rotta — contexto e estado]]
+
+## Revisão da gravação e transcrição — 15/09/2026
+
+- Foi localizada e revisada a gravação `20260915-1329-36.7139200.mp4` (27,6 s; tela 2552×912). A transcrição foi feita localmente com reconhecimento de fala em português; o arquivo de áudio/vídeo não foi enviado a serviço externo.
+- Transcrição: “Vamos lá, na etapa de follow-up, note que nós temos duas trilhas: trilha de contato e trilha de orçamento, sendo a trilha completa até a etapa de arquivamento, ok? Preciso que você faça uma revisão para ver se o orçamento de 5, 10 e 15 dias está aqui também. Cada uma das trilhas está, e se estão organizados e não tem bug.” A formulação “Cada uma das trilhas está...” ficou truncada/incompleta na fala; mantida sem completar por inferência.
+- Revisão visual ao longo do vídeo: a tela mostra `Trilha de contato` e `Trilha de orçamento`, com contadores 0; o filtro lista `Orçamento feito`, `Segundo orçamento`, `Terceiro orçamento`, `Quarto orçamento`, `Orçamento 5 dias`, `Orçamento 10 dias` e `Orçamento 15 dias`. Após a breve indicação de carregamento, a tela termina no estado vazio “Nenhum follow-up nesta visão”.
+- Cruzamento com o workflow ativo `utaNsnFUZYBYDf5S` (28 nós): os caminhos 5/10/15 dias existem, esperam 120/240/360 horas e retornam a `orcamento-feito`; são janelas separadas, não continuação linear após a tentativa 4. A trilha de contato e a trilha padrão de orçamento chegam a `arquivado` conforme as transições documentadas acima.
+- Resultado: não foi encontrada divergência entre as opções visíveis e o workflow ativo. A gravação não mostra clientes ativos nem contagens diferentes de zero; portanto, ela não comprova execução de ponta a ponta de cada etapa em registros reais. As regressões focadas previamente executadas continuam em 24/24.
+- Deploy já ativo: EasyPanel confirmou sucesso do commit `3971681b`; a checagem atual repetiu `/health` e `/app/login` HTTP 200 e 17/17 assets do login HTTP 200. Desde o código funcional implantado, o diff é apenas documental; nenhum novo deploy de container foi disparado para evitar reinício sem delta funcional.
+- Esta revisão apenas atualiza documentação/contexto. Nenhuma conversa, etiqueta, mensagem ou configuração de workflow foi alterada.
