@@ -55,10 +55,13 @@ Os itens visuais do popup centralizado e do atalho roxo `Emitir Contrato` foram 
 
 ## Publicação e teste real
 
-- Deploy anterior do commit `394fe5d1` terminou `Success`; `/health` voltou HTTP 200 depois de uma breve janela 502 durante a recriação dos serviços.
-- O teste visual anterior usou a conversa `#2143` do contato `+5511965927865`: o estado nativo estava aberto (`Resolver` visível). `Emitir Contrato` persistiu após reload; em seguida removi a etiqueta e confirmei condição limpa após novo reload. Nenhuma mensagem foi enviada.
-- A alternância rápida revelou aviso de sucesso obsoleto; por isso acrescentei supressão por versão e uma atualização atômica por linha no endpoint. Esta revisão do frontend/backend está construída localmente; commit, novo deploy e teste real da nova rota ainda pendentes.
-- O teste de UI precedente add→remove levou cerca de 3,8 s devido à latência da ferramenta; o teste de unidade modela ações concorrentes imediatamente. Não apresento o tempo da automação visual como teste de sub-segundo.
+- Commit funcional `5c8efa96b63e1aca3aa1f7b13bb5f987f59f6b93` foi enviado à branch `rotta-custom-v1` e implantado no EasyPanel. O log do deploy terminou `Success` em 15/09/2026 às 20:05:32 UTC; `/health` respondeu `200` (`{"status":"woot"}`) depois da recriação de Rails/Sidekiq. O smoke test atual permanece HTTP `200`.
+- Teste real no Chatwoot publicado com a conversa `#2143`, contato Kelvin `+5511965927865`: estado aberto confirmado pelo botão nativo `Resolver`; antes do teste, `Emitir Contrato` estava em `0`. Adicionei pela interface e o seletor passou a `1`; removi pela interface, voltou a `0`; recarreguei e confirmei `0 selecionada(s)` e `Emitir Contrato 0`. A conversa permaneceu aberta. Nenhuma mensagem foi enviada.
+- A IA global `/app/accounts/1/ask-ai` foi conferida em produção: cartões de resultado não mostram ações customizadas “Marcar resolvida”/“Pendente”. A ação nativa `Resolver` permanece no cabeçalho do Chatwoot e é distinta; não foi acionada nem removida. A trilha da conversa mostra que a última transição nativa é reabertura por Kelvin.
+- A tentativa de teste no seletor ocorreu com a barra lateral expandida e foi inicialmente bloqueada porque o popover ficava recortado atrás dela. Recolhi a barra apenas durante o teste, completei add→remove, restaurei a lateral expandida e recarreguei a conversa. Nenhuma preferência ou dado de negócio ficou alterado pelo teste.
+- Limite de evidência: o fluxo real de uma conversa validou a persistência e restauração; a concorrência entre duas sessões/agentes é protegida pelo lock de linha no código e coberta por testes de frontend/API, mas o RSpec Rails dessa rota não foi executado localmente (Ruby/Bundler ausentes), e não foi feito teste de carga em produção. Portanto, não afirmo garantia absoluta nem concorrência multiagente validada ao vivo.
+- O teste de UI anterior add→remove levou cerca de 3,8 s devido à latência da ferramenta; isso não é uma medida da latência do backend nem um teste visual sub-segundo. O Vitest modela interleavings concorrentes imediatamente.
+- A leitura da sidebar também mostrou o contador de `Clientes Fechados` variar entre `2` e `1` durante a recarga/atualização da tela, enquanto `Emitir Contrato` ficou em `0`. Não foi alterado nem investigado nesta rodada; registrar como possível questão independente de sincronização de contadores, sem atribuir causalidade ao teste.
 
 ## Contexto conectado
 
