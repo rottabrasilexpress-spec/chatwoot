@@ -26,7 +26,7 @@ Após recarregar o Chatwoot, a lista podia permanecer em `Carregando conversas` 
 - GitHub: commit [`032dd4f9`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/032dd4f9) publicado em `origin/rotta-custom-v1`.
 - EasyPanel: deploy `fix(chatwoot): bound conversation loading requests` concluído; após a janela de reinicialização, a produção passou a servir `dashboard-Bqg3r3F9.js`.
 - Saúde live: `/health` respondeu `200` com `{\"status\":\"woot\"}`.
-- Smoke visual real no Chatwoot: três recarregamentos completos terminaram com a lista/histórico carregados em aproximadamente `0,96 s`, `1,93 s` e `2,57 s`; o spinner apareceu apenas durante a carga e não permaneceu preso.
+- Smoke visual real no Chatwoot: três recarregamentos completos terminaram com uma conversa renderizada e o histórico carregado em aproximadamente `3,10 s`, `6,87 s` e `5,25 s`; nos dois últimos o spinner apareceu durante a carga e não permaneceu preso.
 
 ## Revisão independente
 
