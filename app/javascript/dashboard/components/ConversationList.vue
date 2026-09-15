@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, provide } from 'vue';
+import { ref, computed, provide, watch } from 'vue';
 import { Virtualizer } from 'virtua/vue';
 import { useBreakpoints } from '@vueuse/core';
 import { useChatListKeyboardEvents } from 'dashboard/composables/chatlist/useChatListKeyboardEvents';
@@ -59,6 +59,16 @@ const onConversationListScroll = event => {
   if (event?.isTrusted === false) return;
   hasUserScrolled.value = true;
 };
+
+watch(
+  () => [props.label, props.teamId, props.foldersId, props.conversationType],
+  () => {
+    // A new inbox/filter must wait for a fresh intentional scroll before
+    // asking for another page. Reusing the previous gate can paginate a new
+    // result set automatically as soon as its sentinel mounts.
+    hasUserScrolled.value = false;
+  }
+);
 
 provide('toggleContextMenu', onContextMenuToggle);
 

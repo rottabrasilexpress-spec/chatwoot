@@ -47,6 +47,22 @@ describe('ConversationList', () => {
     ).toBe(true);
   });
 
+  it('resets the pagination gate when the conversation scope changes', async () => {
+    const wrapper = mountConversationList({ label: 'primeiro-contato' });
+
+    wrapper.vm.onConversationListScroll({ isTrusted: true });
+    await wrapper.vm.$nextTick();
+    expect(
+      wrapper.findComponent({ name: 'IntersectionObserver' }).exists()
+    ).toBe(true);
+
+    await wrapper.setProps({ label: 'segundo-contato' });
+
+    expect(
+      wrapper.findComponent({ name: 'IntersectionObserver' }).exists()
+    ).toBe(false);
+  });
+
   it('keeps the pagination sentinel hidden while the list is loading', () => {
     const wrapper = mountConversationList({ isLoading: true });
 
