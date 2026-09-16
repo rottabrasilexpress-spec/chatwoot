@@ -55,7 +55,7 @@ Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [GitHub rotta-cu
 ## Verificação complementar — 16/09/2026
 
 - Obsidian: o MCP específico do Obsidian não está exposto nesta sessão; a nota local foi conferida diretamente e permanece a fonte de contexto operacional.
-- GitHub: `origin/rotta-custom-v1` aponta para `04c3fc453f55f0f120b8032fcee2a7d1a5795b33` (`docs(rotta): reconcile audit evidence`), filho direto do commit funcional `1bb6f05f934971a1b7683e0b43cec18b0c33938c`; não há divergência entre `HEAD` local e o branch remoto; os pushes foram fast-forward, sem force push.
+- GitHub: o commit funcional `1bb6f05f934971a1b7683e0b43cec18b0c33938c` e as atualizações documentais desta auditoria estão publicados em `origin/rotta-custom-v1`; a conferência final confirmou `HEAD` local igual ao branch remoto, com pushes fast-forward e sem force push.
 - n8n: o workflow `utaNsnFUZYBYDf5S` está ativo, com draft e versão publicada iguais em `b9821cb7-2908-4c32-81bc-2092596ed1a6`, 28 nós.
 - EasyPanel: `/health` respondeu HTTP 200, mas o histórico visual do painel não pôde ser lido nesta sessão (timeout nas sessões Chrome e Edge). Portanto, o deploy/redeploy do commit `1bb6f05f` continua não confirmado no painel; não deve ser tratado como implantado só por o commit estar no GitHub.
 - Reclassificação de histórico: as pendências antigas de calculadora/Google/IA/preço dos checkpoints C86, C87, C90 e C96 foram superadas pelos C97, C98 e C100, que registram Google Routes/Places, IA e preço testados live. O envio real pelo WhatsApp não foi exercitado nesta auditoria e permanece sem prova de transmissão, sem ser tratado como falha por inferência.
