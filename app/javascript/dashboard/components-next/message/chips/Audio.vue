@@ -28,8 +28,17 @@ defineOptions({
   inheritAttrs: false,
 });
 
+const rawAudioURL = computed(
+  () => attachment.dataUrl || attachment.data_url || ''
+);
 const timeStampURL = computed(() => {
-  return timeStampAppendedURL(attachment.dataUrl);
+  if (!rawAudioURL.value) return '';
+
+  try {
+    return timeStampAppendedURL(rawAudioURL.value);
+  } catch {
+    return rawAudioURL.value;
+  }
 });
 
 const TRANSCRIPT_PREVIEW_LENGTH = 200;
@@ -131,6 +140,11 @@ const audioActionLabel = computed(() =>
   isPlaying.value ? 'Pausar áudio' : 'Reproduzir áudio'
 );
 
+const onAudioError = () => {
+  isPlaying.value = false;
+  currentTime.value = 0;
+};
+
 const seekWaveform = event => {
   const bounds = event.currentTarget.getBoundingClientRect();
   const ratio = Math.max(
@@ -156,15 +170,22 @@ const changePlaybackSpeed = () => {
   if (audioPlayer.value) audioPlayer.value.playbackRate = playbackSpeed.value;
 };
 
-const playOrPause = () => {
+const playOrPause = async () => {
+  const player = audioPlayer.value;
+  if (!player) return;
+
   if (isPlaying.value) {
-    audioPlayer.value.pause();
+    player.pause();
     isPlaying.value = false;
   } else {
     // Emit event to pause all other audio
     emitter.emit('pause_playing_audio', uid);
-    audioPlayer.value.play();
-    isPlaying.value = true;
+    try {
+      await player.play();
+      isPlaying.value = true;
+    } catch {
+      isPlaying.value = false;
+    }
   }
 };
 
@@ -180,11 +201,13 @@ const onEnd = () => {
     controls
     class="hidden"
     playsinline
+    preload="metadata"
+    :src="timeStampURL"
     @loadedmetadata="onLoadedMetadata"
     @timeupdate="onTimeUpdate"
     @ended="onEnd"
+    @error="onAudioError"
   >
-    <source :src="timeStampURL" />
   </audio>
   <div
     v-bind="$attrs"

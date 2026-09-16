@@ -594,4 +594,38 @@ describe('ReplyBox', () => {
       expect(confirmOnSendReply).toHaveBeenCalledOnce();
     });
   });
+
+  it('ignores a second submission while the first message is still sending', () => {
+    let resolveSend;
+    const sendMessage = vi.fn(
+      () =>
+        new Promise(resolve => {
+          resolveSend = resolve;
+        })
+    );
+    const context = {
+      isReplyButtonDisabled: false,
+      isSendingMessage: false,
+      showMentions: false,
+      message: 'Mensagem única',
+      isPrivate: false,
+      isATwilioWhatsAppChannel: false,
+      isAWhatsAppCloudChannel: false,
+      is360DialogWhatsAppChannel: false,
+      isAnInstagramChannel: false,
+      isATiktokChannel: false,
+      getCopilotAcceptedMessage: vi.fn().mockReturnValue(''),
+      getMessagePayload: vi.fn().mockReturnValue({ private: false }),
+      sendMessage,
+      clearEmailField: vi.fn(),
+      clearMessage: vi.fn(),
+      hideEmojiPicker: vi.fn(),
+    };
+
+    ReplyBox.methods.confirmOnSendReply.call(context);
+    ReplyBox.methods.confirmOnSendReply.call(context);
+
+    expect(sendMessage).toHaveBeenCalledOnce();
+    resolveSend();
+  });
 });

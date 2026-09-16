@@ -39,6 +39,11 @@ RSpec.describe Messages::SendOnApiService do
 
     expect(message.reload.source_id).to eq('3EBTESTE123')
     expect(message.status).to eq('sent')
+    expect(message.content_attributes).to include(
+      'external_echo' => true,
+      'rotta_uazapi' => true
+    )
+    expect(message.content_attributes).not_to have_key('rotta_uazapi_pending_echo')
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text').with do |request|
       JSON.parse(request.body).fetch('text') == 'Teste Uazapi'
     end).to have_been_made

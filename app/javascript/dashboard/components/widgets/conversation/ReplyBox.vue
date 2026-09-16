@@ -145,6 +145,7 @@ export default {
       audioFileUploadPromise: null,
       isUploadingAudio: false,
       isFinalizingAudioForSend: false,
+      isSendingMessage: false,
       replyType: REPLY_EDITOR_MODES.REPLY,
       draftConversationId: null,
       draftReplyMode: null,
@@ -293,6 +294,7 @@ export default {
       return this.maxLength - this.message.length;
     },
     isReplyButtonDisabled() {
+      if (this.isSendingMessage) return true;
       if (this.isEditorDisabled) return true;
       if (this.isATwitterInbox) return true;
       if (this.isDictating || this.isTranscribing) return true;
@@ -899,52 +901,69 @@ export default {
       this.showContentTemplatesModal = false;
     },
     confirmOnSendReply() {
-      if (this.isReplyButtonDisabled) {
+      if (this.isSendingMessage || this.isReplyButtonDisabled) {
         return;
       }
-      if (!this.showMentions) {
-        const copilotAcceptedMessage = this.getCopilotAcceptedMessage();
-        const isOnWhatsApp =
-          this.isATwilioWhatsAppChannel ||
-          this.isAWhatsAppCloudChannel ||
-          this.is360DialogWhatsAppChannel;
-        // Instagram and TikTok do not support sending text and attachments in the same message.
-        // For Instagram, combining them causes duplicate messages due to separate echo events per component.
-        // For TikTok, the API rejects messages that mix text and media.
-        // To handle both cases, text and attachments are always sent as separate messages.
-        const isOnInstagram = this.isAnInstagramChannel;
-        const isOnTiktok = this.isATiktokChannel;
-        if ((isOnWhatsApp || isOnInstagram || isOnTiktok) && !this.isPrivate) {
-          this.sendMessageAsMultipleMessages(
-            this.message,
-            copilotAcceptedMessage
-          );
-        } else {
-          const messagePayload = this.getMessagePayload(this.message);
-          this.sendMessage(
-            messagePayload,
-            this.message,
-            copilotAcceptedMessage
-          );
-        }
+      this.isSendingMessage = true;
 
-        if (!this.isPrivate) {
-          this.clearEmailField();
-        }
+      let sendOperation;
+      try {
+        if (!this.showMentions) {
+          const copilotAcceptedMessage = this.getCopilotAcceptedMessage();
+          const isOnWhatsApp =
+            this.isATwilioWhatsAppChannel ||
+            this.isAWhatsAppCloudChannel ||
+            this.is360DialogWhatsAppChannel;
+          // Instagram and TikTok do not support sending text and attachments in the same message.
+          // For Instagram, combining them causes duplicate messages due to separate echo events per component.
+          // For TikTok, the API rejects messages that mix text and media.
+          // To handle both cases, text and attachments are always sent as separate messages.
+          const isOnInstagram = this.isAnInstagramChannel;
+          const isOnTiktok = this.isATiktokChannel;
+          if (
+            (isOnWhatsApp || isOnInstagram || isOnTiktok) &&
+            !this.isPrivate
+          ) {
+            sendOperation = this.sendMessageAsMultipleMessages(
+              this.message,
+              copilotAcceptedMessage
+            );
+          } else {
+            const messagePayload = this.getMessagePayload(this.message);
+            sendOperation = this.sendMessage(
+              messagePayload,
+              this.message,
+              copilotAcceptedMessage
+            );
+          }
 
-        this.clearMessage();
-        this.hideEmojiPicker();
+          if (!this.isPrivate) {
+            this.clearEmailField();
+          }
+
+          this.clearMessage();
+          this.hideEmojiPicker();
+        }
+      } catch (error) {
+        this.isSendingMessage = false;
+        throw error;
       }
+
+      Promise.resolve(sendOperation).finally(() => {
+        this.isSendingMessage = false;
+      });
     },
     sendMessageAsMultipleMessages(message, copilotAcceptedMessage = '') {
       const messages = this.getMultipleMessagesPayload(message);
-      messages.forEach(messagePayload => {
-        this.sendMessage(
-          messagePayload,
-          messagePayload.message || '',
-          copilotAcceptedMessage
-        );
-      });
+      return Promise.all(
+        messages.map(messagePayload =>
+          this.sendMessage(
+            messagePayload,
+            messagePayload.message || '',
+            copilotAcceptedMessage
+          )
+        )
+      );
     },
     sendMessageAnalyticsData(
       isPrivate,

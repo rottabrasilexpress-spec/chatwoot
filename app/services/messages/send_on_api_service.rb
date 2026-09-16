@@ -24,6 +24,8 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     body[:track_source] = 'chatwoot'
     body[:track_id] = "message-#{message.id}"
 
+    mark_pending_uazapi_echo
+
     response = HTTParty.post(
       "#{uazapi_base_url}#{UAZAPI_PATH}",
       headers: uazapi_headers,
@@ -34,7 +36,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     return fail_message(provider_error(response)) unless response.success?
 
     provider_id = provider_message_id(response)
-    message.update!(source_id: provider_id) if provider_id.present?
+    persist_provider_id(provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] message=#{message.id} sent provider_id_present=#{provider_id.present?}")
   rescue Net::ReadTimeout => e
     mark_delivery_confirmation_pending(e)
@@ -64,6 +66,8 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     }
     body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
 
+    mark_pending_uazapi_echo
+
     response = HTTParty.post(
       "#{uazapi_base_url}#{UAZAPI_MEDIA_PATH}",
       headers: uazapi_headers,
@@ -74,7 +78,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     return fail_message(provider_error(response)) unless response.success?
 
     provider_id = provider_message_id(response)
-    message.update!(source_id: provider_id) if provider_id.present?
+    persist_provider_id(provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] voice message=#{message.id} sent provider_id_present=#{provider_id.present?}")
   rescue Net::ReadTimeout => e
     mark_delivery_confirmation_pending(e)
@@ -131,8 +135,33 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     "Uazapi recusou o envio (HTTP #{response.code})#{detail.present? ? ": #{detail}" : ''}"
   end
 
+  def mark_pending_uazapi_echo
+    attributes = message.content_attributes.to_h.stringify_keys
+    message.update!(
+      content_attributes: attributes.merge(
+        'rotta_uazapi' => true,
+        'external_echo' => true,
+        'rotta_uazapi_pending_echo' => true,
+        'uazapi_track_source' => 'chatwoot',
+        'uazapi_track_id' => "message-#{message.id}"
+      )
+    )
+  end
+
+  def persist_provider_id(provider_id)
+    attributes = message.content_attributes.to_h.stringify_keys
+    attributes.delete('rotta_uazapi_pending_echo')
+    message.update!(source_id: provider_id, content_attributes: attributes)
+  end
+
   def fail_message(error)
-    message.update!(status: :failed, external_error: error.to_s.truncate(500))
+    attributes = message.content_attributes.to_h.stringify_keys
+    attributes.delete('rotta_uazapi_pending_echo')
+    message.update!(
+      status: :failed,
+      external_error: error.to_s.truncate(500),
+      content_attributes: attributes
+    )
     Rails.logger.error("[ROTTABRASIL_API] message=#{message.id} failed #{error}")
   end
 

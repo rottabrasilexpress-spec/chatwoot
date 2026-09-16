@@ -334,6 +334,14 @@ class Webhooks::UazapiController < ActionController::API
     return render json: { ok: true, ignored: 'id da mensagem ausente' } if provider_id.blank?
 
     existing_message = find_existing_echo_message(payload, provider_id)
+    conversation = find_conversation(incoming) unless existing_message
+    content = incoming_message_content(incoming) unless existing_message
+    existing_message ||= find_existing_echo_message(
+      payload,
+      provider_id,
+      conversation: conversation,
+      content: content
+    )
     if existing_message
       associate_uazapi_delivery(existing_message.conversation)
       updates = {}
@@ -346,21 +354,29 @@ class Webhooks::UazapiController < ActionController::API
       if attributes.delete('rotta_uazapi_confirmation_pending')
         updates[:additional_attributes] = attributes
       end
+      content_attributes = existing_message.content_attributes.to_h
+        .stringify_keys
+        .merge(outgoing_echo_attributes(payload, incoming).stringify_keys)
+      content_attributes.delete('rotta_uazapi_pending_echo')
+      updates[:content_attributes] = content_attributes
       existing_message.update!(updates) if updates.present?
       return render json: { ok: true, message_ids: [existing_message.id], source_id: provider_id }
     end
 
-    conversation = find_conversation(incoming)
     return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
     associate_uazapi_delivery(conversation)
 
-    content = incoming_message_content(incoming)
     return render json: { ok: true, ignored: 'conteúdo não suportado' } if content.blank?
 
     message = conversation.with_lock do
       # The webhook and SendReplyJob can finish at the same time. Recheck while
       # holding the conversation lock so a retry cannot create a second bubble.
-      existing = find_existing_echo_message(payload, provider_id)
+      existing = find_existing_echo_message(
+        payload,
+        provider_id,
+        conversation: conversation,
+        content: content
+      )
       next existing if existing
 
       conversation.messages.create!(
@@ -392,16 +408,44 @@ class Webhooks::UazapiController < ActionController::API
     end
   end
 
-  def find_existing_echo_message(payload, provider_id)
+  def find_existing_echo_message(payload, provider_id, conversation: nil, content: nil)
     source_ids = [provider_id, "uazapi:#{provider_id}"].uniq
     existing = Message.where(account_id: ACCOUNT_ID, message_type: %i[outgoing template], source_id: source_ids)
                       .order(created_at: :desc).first
     return existing if existing
 
     track_id = value_for_keys(payload, %w[track_id trackId])&.to_s
-    return unless track_id&.match?(/\Amessage-\d+\z/)
+    if track_id&.match?(/\Amessage-\d+\z/)
+      tracked = Message.where(
+        account_id: ACCOUNT_ID,
+        message_type: %i[outgoing template],
+        id: track_id.delete_prefix('message-')
+      ).first
+      return tracked if tracked
+    end
 
-    Message.where(account_id: ACCOUNT_ID, message_type: %i[outgoing template], id: track_id.delete_prefix('message-')).first
+   pending_echo_candidate(conversation, content)
+  end
+
+  def pending_echo_candidate(conversation, content)
+    return if conversation.blank? || content.blank?
+
+    conversation.messages
+                .where(
+                  account_id: ACCOUNT_ID,
+                  message_type: :outgoing,
+                  private: false,
+                  source_id: nil
+                )
+                .where('created_at >= ?', 5.minutes.ago)
+                .order(:created_at, :id)
+                .limit(100)
+                .find do |candidate|
+      attributes = candidate.content_attributes
+      pending = attributes.is_a?(Hash) &&
+        ActiveModel::Type::Boolean.new.cast(attributes['rotta_uazapi_pending_echo'])
+      pending && candidate.content.to_s.strip == content.to_s.strip
+    end
   end
 
   def outgoing_echo_attributes(payload, incoming)

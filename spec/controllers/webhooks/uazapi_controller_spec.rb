@@ -327,7 +327,61 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       end.not_to change { conversation.messages.outgoing.count }
 
       expect(chatwoot_message.reload.source_id).to eq('uazapi-chatwoot-echo-1')
+      expect(chatwoot_message.content_attributes).to include(
+        'external_echo' => true,
+        'rotta_uazapi' => true,
+        'uazapi_track_source' => 'chatwoot',
+        'uazapi_track_id' => "message-#{chatwoot_message.id}"
+      )
       expect(response.parsed_body).to include('ok' => true, 'message_ids' => [chatwoot_message.id])
+    end
+
+    it 'correlates a pending Chatwoot send when the echo has no track id' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      chatwoot_message = create(
+        :message,
+        account: account,
+        inbox: api_inbox,
+        conversation: conversation,
+        message_type: :outgoing,
+        sender: create(:user, account: account),
+        source_id: nil,
+        content: 'Eco chegou antes do ID',
+        content_attributes: {
+          'rotta_uazapi_pending_echo' => true,
+          'external_echo' => true
+        }
+      )
+
+      payload = {
+        event: 'messages',
+        data: {
+          message: {
+            messageId: 'uazapi-race-echo-1',
+            chatid: '5511999999999@s.whatsapp.net',
+            fromMe: true,
+            wasSentByApi: true,
+            type: 'text',
+            text: chatwoot_message.content
+          }
+        }
+      }
+
+      expect do
+        post_uazapi(payload)
+      end.not_to change { conversation.messages.outgoing.count }
+
+      expect(chatwoot_message.reload.source_id).to eq('uazapi-race-echo-1')
+      expect(chatwoot_message.content_attributes).not_to have_key('rotta_uazapi_pending_echo')
     end
 
     it 'corrects a timed-out outgoing message when the successful Uazapi echo arrives' do

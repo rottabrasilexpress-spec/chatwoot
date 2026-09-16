@@ -56,6 +56,26 @@ describe('#hasMessageFailedWithExternalError', () => {
 });
 
 describe('#actions', () => {
+  it('waits for the pending message request before resolving', async () => {
+    const sendResult = Promise.resolve('sent');
+    const localDispatch = vi.fn().mockReturnValue(sendResult);
+
+    await expect(
+      actions.createPendingMessageAndSend(
+        { dispatch: localDispatch },
+        { conversationId: 1, message: 'Mensagem única' }
+      )
+    ).resolves.toBe('sent');
+
+    expect(localDispatch).toHaveBeenCalledWith(
+      'sendMessageWithData',
+      expect.objectContaining({
+        conversation_id: 1,
+        content: 'Mensagem única',
+      })
+    );
+  });
+
   describe('#getConversation', () => {
     it('sends correct actions if API is success', async () => {
       axios.get.mockResolvedValue({
