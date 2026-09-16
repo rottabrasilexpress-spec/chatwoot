@@ -62,3 +62,11 @@ Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [GitHub rotta-cu
 - Reclassificação de histórico: os bloqueios temporários de chave/adaptador/publicação dos C107–C111 foram superados pelo Estado final C113; a IA global respondeu `OK` live e o adaptador de Follow-up está registrado. Os registros antigos permanecem apenas como histórico.
 - Reclassificação de histórico: as provas visuais inicialmente pendentes para Caio nos C78/C139/C140 foram superadas pela prova independente do C79, com popup/card e filtro por destinatário confirmados.
 - Nenhuma alteração de código, workflow, produção, conversa, etiqueta, follow-up, credencial ou mensagem foi feita nesta verificação.
+
+## Verificação direta das abas — 16/09/2026
+
+- EasyPanel, serviço `n8nsaas / chatwoot-rotta`, página de Implantações: histórico visual carregado. As entradas visíveis estavam verdes, com sucesso, incluindo `fix(search): show fallback identity for nameless contacts`, `build(frontend): publish current conversation fixes`, `fix(search): retain local matches for normalized conversation queries` e `fix(rotta): harden audio sends and remove conversation status actions`.
+- A tela do painel não expôs o hash do commit nessas linhas; portanto, a confirmação é de sucesso das implantações exibidas, sem vincular visualmente a entrada mais recente ao commit `1bb6f05f` por inferência.
+- HTTP somente leitura: `GET /health` retornou `200` com `{"status":"woot"}`; a rota exata do Chatwoot `/app/accounts/1/conversations/2463` retornou `200` e HTML do Chatwoot.
+- A aba exata mencionada do Chatwoot no Edge (`1026731986`) não pôde ser capturada pelo controle visual após duas tentativas de recuperação; o timeout do navegador não foi tratado como falha da aplicação, especialmente porque a rota respondeu `200` por HTTP.
+- Nenhum botão de deploy, reinício, exclusão, mutação de conversa, mensagem, etiqueta, follow-up, credencial ou dado de produção foi acionado.
