@@ -338,11 +338,14 @@ RSpec.describe Messages::SendOnApiService do
         sender: agent,
         content_attributes: {
           'rotta_uazapi_pending_echo' => true,
-          'uazapi_track_id' => 'message-stale-test',
           'rotta_uazapi_claimed_at' => 2.hours.ago.iso8601
         },
         additional_attributes: { 'rotta_uazapi_confirmation_pending' => true }
-      )
+      ).tap do |record|
+        record.update!(
+          content_attributes: record.content_attributes.merge('uazapi_track_id' => "message-#{record.id}")
+        )
+      end
     end
 
     after do
@@ -353,29 +356,41 @@ RSpec.describe Messages::SendOnApiService do
     end
 
     it 'reports stale claims without releasing or resending them' do
-      allow(SendReplyJob).to receive(:perform_later)
-
       expect do
         Rake::Task['rotta_uazapi:report_stale_pending_sends'].invoke
       end.to output(/"message_id": #{stale_message.id}/).to_stdout
 
       expect(stale_message.reload.content_attributes).to include('rotta_uazapi_pending_echo' => true)
-      expect(SendReplyJob).not_to have_received(:perform_later)
     end
 
-    it 'releases and queues only the explicitly confirmed message' do
-      allow(SendReplyJob).to receive(:perform_later)
+    it 'releases only the explicitly confirmed stale message' do
       ENV['MESSAGE_ID'] = stale_message.id.to_s
       ENV['CONFIRM'] = 'I_UNDERSTAND'
 
       expect do
         Rake::Task['rotta_uazapi:release_pending_send'].invoke
-      end.to output(/Claim UAZAPI liberado/).to_stdout
+      end.to output(/Claim UAZAPI liberado.*Nenhum reenvio/m).to_stdout
 
       expect(stale_message.reload.content_attributes).not_to have_key('rotta_uazapi_pending_echo')
       expect(stale_message.content_attributes).not_to have_key('rotta_uazapi_claimed_at')
       expect(stale_message.additional_attributes).not_to have_key('rotta_uazapi_confirmation_pending')
-      expect(SendReplyJob).to have_received(:perform_later).with(stale_message.id)
+    end
+
+    it 'does not release an inconsistent claim' do
+      stale_message.update!(
+        content_attributes: stale_message.content_attributes.merge('uazapi_track_id' => 'message-from-another-claim')
+      )
+      ENV['MESSAGE_ID'] = stale_message.id.to_s
+      ENV['CONFIRM'] = 'I_UNDERSTAND'
+
+      expect do
+        Rake::Task['rotta_uazapi:release_pending_send'].invoke
+      end.to raise_error(SystemExit, /track_id do claim é inconsistente/)
+
+      expect(stale_message.reload.content_attributes).to include(
+        'rotta_uazapi_pending_echo' => true,
+        'uazapi_track_id' => 'message-from-another-claim'
+      )
     end
   end
 end

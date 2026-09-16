@@ -38,6 +38,8 @@ namespace :rotta_uazapi do
     message_id = ENV['MESSAGE_ID'].presence
     abort 'Informe MESSAGE_ID=<id>.' if message_id.blank?
     abort 'Confirme com CONFIRM=I_UNDERSTAND.' unless ENV['CONFIRM'] == 'I_UNDERSTAND'
+    stale_after_minutes = Integer(ENV.fetch('STALE_AFTER_MINUTES', '30'), 10)
+    stale_cutoff = stale_after_minutes.minutes.ago
 
     message = Message.find(message_id)
     released = false
@@ -53,17 +55,22 @@ namespace :rotta_uazapi do
       attributes = message.content_attributes.to_h.with_indifferent_access
       pending = ActiveModel::Type::Boolean.new.cast(attributes[:rotta_uazapi_pending_echo])
       abort 'A mensagem não possui claim UAZAPI pendente.' unless pending
+      abort 'A mensagem já possui source_id; não libere este claim.' if message.source_id.present?
+
+      claimed_at = Time.zone.parse(attributes[:rotta_uazapi_claimed_at].to_s)
+      abort "O claim ainda não tem #{stale_after_minutes} minutos; não libere enquanto pode estar em voo." if claimed_at.blank? || claimed_at >= stale_cutoff
+      expected_track_id = "message-#{message.id}"
+      abort 'O track_id do claim é inconsistente; faça recuperação manual.' unless attributes[:uazapi_track_id].to_s == expected_track_id
 
       attributes.delete(:rotta_uazapi_pending_echo)
       attributes.delete(:rotta_uazapi_claimed_at)
-      message.update!(content_attributes: attributes)
       additional_attributes = message.additional_attributes.to_h.with_indifferent_access
       additional_attributes.delete(:rotta_uazapi_confirmation_pending)
-      message.update!(additional_attributes: additional_attributes)
+      message.update!(content_attributes: attributes, additional_attributes: additional_attributes)
       released = true
     end
 
     puts "Claim UAZAPI liberado para a mensagem #{message.id}."
-    SendReplyJob.perform_later(message.id) if released
+    puts 'Nenhum reenvio foi enfileirado automaticamente; inicie uma nova tentativa somente após a conferência operacional.' if released
   end
 end

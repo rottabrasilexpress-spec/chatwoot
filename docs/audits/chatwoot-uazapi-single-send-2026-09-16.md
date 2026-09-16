@@ -48,10 +48,10 @@ Respostas 5xx, 408, 425 e 429 também são tratadas como ambíguas. A validaçã
 - RSpec não foi executado localmente porque esta estação não possui Ruby/Bundler.
 - Vitest não coletou os testes porque o `node_modules` local resolve para outro worktree e não contém `fake-indexeddb`; não é falha de teste funcional.
 - Para detectar claims órfãos, está disponível `rake rotta_uazapi:report_stale_pending_sends STALE_AFTER_MINUTES=30`. A rotina lista somente IDs de mensagem/conversa, `track_id` e horário; ela não libera nem reenvia automaticamente.
-- Depois de confirmar manualmente na UAZAPI que não houve entrega, um operador pode liberar somente a mensagem escolhida com `rake rotta_uazapi:release_pending_send MESSAGE_ID=<id> CONFIRM=I_UNDERSTAND`; sem os dois parâmetros a tarefa aborta. A tarefa usa o mesmo advisory lock, remove o marcador de confirmação e enfileira uma única nova tentativa protegida pelo claim.
+- Depois de confirmar manualmente na UAZAPI que não houve entrega, um operador pode liberar somente a mensagem escolhida com `rake rotta_uazapi:release_pending_send MESSAGE_ID=<id> CONFIRM=I_UNDERSTAND`; sem os dois parâmetros a tarefa aborta. A tarefa exige claim antigo, sem `source_id`, com `track_id` canônico e usa o mesmo advisory lock do sender; remove o marcador de confirmação, mas não enfileira reenvio automático enquanto uma chamada antiga possa estar em voo.
 
 ## Limite conhecido
 
-A proteção impede reenvios concorrentes e redeliveries do Chatwoot. Se a própria UAZAPI repetir internamente uma requisição já aceita, a confirmação precisa ser investigada no provedor; o `track_id` determinístico continua sendo enviado para permitir essa correlação. Claims órfãos não são liberados automaticamente justamente para evitar transformar uma queda de processo em duplicação.
+A proteção impede reenvios concorrentes e redeliveries do Chatwoot. Se a própria UAZAPI repetir internamente uma requisição já aceita, a confirmação precisa ser investigada no provedor; o `track_id` determinístico continua sendo enviado para permitir essa correlação. Claims órfãos não são liberados automaticamente justamente para evitar transformar uma queda de processo em duplicação. A reconciliação manual só libera claims antigos e canônicos, sob lock idêntico ao envio.
 
 - A validação de integridade do diff permanece sem erros de whitespace após este registro.
