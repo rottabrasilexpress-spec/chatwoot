@@ -43,3 +43,4 @@ O lock é liberado antes do HTTP; assim, o webhook não fica bloqueado durante a
 
 A proteção impede reenvios concorrentes e redeliveries do Chatwoot. Se a própria UAZAPI repetir internamente uma requisição já aceita, a confirmação precisa ser investigada no provedor; o `track_id` determinístico continua sendo enviado para permitir essa correlação.
 
+- A validação de integridade do diff permanece sem erros de whitespace após este registro.
