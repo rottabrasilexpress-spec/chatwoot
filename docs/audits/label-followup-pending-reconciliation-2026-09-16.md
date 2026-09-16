@@ -70,3 +70,16 @@ Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [GitHub rotta-cu
 - HTTP somente leitura: `GET /health` retornou `200` com `{"status":"woot"}`; a rota exata do Chatwoot `/app/accounts/1/conversations/2463` retornou `200` e HTML do Chatwoot.
 - A aba exata mencionada do Chatwoot no Edge (`1026731986`) não pôde ser capturada pelo controle visual após duas tentativas de recuperação; o timeout do navegador não foi tratado como falha da aplicação, especialmente porque a rota respondeu `200` por HTTP.
 - Nenhum botão de deploy, reinício, exclusão, mutação de conversa, mensagem, etiqueta, follow-up, credencial ou dado de produção foi acionado.
+
+## Ajuste do atalho de envio — 16/09/2026
+
+- Escopo: tornar o envio por `Enter` o comportamento padrão para todos os agentes, preservando `Shift + Enter` para quebra de linha e sem substituir uma preferência explícita de `Ctrl/Cmd + Enter`.
+- Implementação: `useUISettings.isEditorHotKeyEnabled` agora usa `Enter` como fallback quando `editor_message_key` não está definido. O composable é compartilhado pelo ReplyBox da conversa e pelo fluxo de nova conversa; portanto, os dois pontos passam a seguir o mesmo padrão.
+- Compatibilidade: uma preferência já gravada como `cmd_enter` continua sendo respeitada. Não houve migração, alteração de agente, mensagem, conversa, etiqueta, Follow-up ou credencial.
+- Testes: `useUISettings.spec.js` e `FullEditor.spec.js` passaram juntos, `121/121`; ESLint focalizado passou; `git diff --check` passou; build Vite passou com `5.100` módulos transformados; `verify:manifest-assets` confirmou `240` assets.
+- Publicação: commit funcional `e8725e50` (`fix(composer): default message send to enter`) publicado em `origin/rotta-custom-v1`, sem force push.
+- Deploy: EasyPanel concluiu `Success` em `16/09/2026 14:33:47 UTC`; Rails, Sidekiq e Sidekiq UAZAPI foram iniciados. A primeira leitura durante o restart retornou `502` transitório; a checagem seguinte confirmou `/health` HTTP `200` com `{"status":"woot"}` e `/app/login` HTTP `200`.
+- Teste live: a interface Chatwoot carregou, exibiu `Enviar (↵)` no compositor da conversa e passou de `Reconectando...` para `Reconectado`. Nenhuma mensagem real foi enviada.
+- Veredito: ajuste implantado e validado no serviço live. O padrão novo é Enter; agentes com preferência explícita por Ctrl/Cmd+Enter permanecem inalterados por segurança.
+
+Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [commit `e8725e50`](https://github.com/rottabrasilexpress-spec/chatwoot/commit/e8725e50) ↔ [branch `rotta-custom-v1`](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [deploy EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot live](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/conversations/48).
