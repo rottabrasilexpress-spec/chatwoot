@@ -46,13 +46,13 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     response = post_to_uazapi(UAZAPI_PATH, body)
     return if response.nil?
 
-    return fail_message(provider_error(response)) unless response.success?
+    return unless handle_uazapi_response(response)
 
     provider_id = provider_message_id(response)
     persist_provider_id(provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] message=#{message.id} sent provider_id_present=#{provider_id.present?}")
   rescue StandardError => e
-    if @uazapi_request_accepted
+    if @uazapi_request_started
       mark_delivery_confirmation_pending(e)
     else
       fail_message("Falha ao enviar pela Uazapi: #{e.message}")
@@ -84,13 +84,13 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     response = post_to_uazapi(UAZAPI_MEDIA_PATH, body)
     return if response.nil?
 
-    return fail_message(provider_error(response)) unless response.success?
+    return unless handle_uazapi_response(response)
 
     provider_id = provider_message_id(response)
     persist_provider_id(provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] voice message=#{message.id} sent provider_id_present=#{provider_id.present?}")
   rescue StandardError => e
-    if @uazapi_request_accepted
+    if @uazapi_request_started
       mark_delivery_confirmation_pending(e)
     else
       fail_message("Falha ao enviar áudio pela Uazapi: #{e.message}")
@@ -106,17 +106,35 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   end
 
   def post_to_uazapi(path, body)
+    request_url = "#{uazapi_base_url}#{path}"
+    request_headers = uazapi_headers
+    request_body = body.to_json
+    @uazapi_request_started = true
     response = HTTParty.post(
-      "#{uazapi_base_url}#{path}",
-      headers: uazapi_headers,
-      body: body.to_json,
+      request_url,
+      headers: request_headers,
+      body: request_body,
       timeout: 30
     )
-    @uazapi_request_accepted = response.success?
     response
   rescue *UAZAPI_AMBIGUOUS_ERRORS => e
     mark_delivery_confirmation_pending(e)
     nil
+  end
+
+  def handle_uazapi_response(response)
+    return true if response.success?
+    return fail_message(provider_error(response)) if confirmed_provider_rejection?(response)
+
+    mark_delivery_confirmation_pending(
+      StandardError.new("Uazapi returned an ambiguous HTTP #{response.code} response")
+    )
+    false
+  end
+
+  def confirmed_provider_rejection?(response)
+    code = response.code.to_i
+    code.between?(400, 499) && ![408, 425, 429].include?(code)
   end
 
   def uazapi_headers
@@ -178,12 +196,16 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
       message.reload
       attributes = message.content_attributes.to_h.with_indifferent_access
-      pending_for_this_message = attributes[:rotta_uazapi_pending_echo] &&
-        attributes[:uazapi_track_id].to_s == "message-#{message.id}"
+      pending_claim = ActiveModel::Type::Boolean.new.cast(attributes[:rotta_uazapi_pending_echo])
 
-      unless message.source_id.present? || pending_for_this_message
+      unless message.source_id.present? || pending_claim
         mark_pending_uazapi_echo
         claimed = true
+      else
+        Rails.logger.info(
+          "[ROTTABRASIL_API] message=#{message.id} skipped existing send claim " \
+          "track_id=#{attributes[:uazapi_track_id].presence || 'unknown'}"
+        )
       end
     end
 

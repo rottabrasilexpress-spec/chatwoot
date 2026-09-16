@@ -21,11 +21,13 @@ Investigar o sintoma em que o Chatwoot exibe uma única mensagem, mas o WhatsApp
 3. verifica `source_id` e o marcador pendente da própria mensagem;
 4. grava o marcador pendente antes do primeiro POST;
 5. permite que somente o worker que obteve a reivindicação faça a chamada externa;
-6. mantém a reivindicação em timeout, erro de transporte ambíguo ou falha de persistência após resposta aceita; libera somente em falha confirmada antes/na resposta negativa do provedor ou após a confirmação/eco do provedor.
+6. mantém a reivindicação em timeout, erro de transporte ambíguo ou falha de persistência após resposta aceita; libera somente em rejeição HTTP 4xx confirmada (exceto 408/425/429), falha confirmada antes do POST ou após a confirmação/eco do provedor.
 
 O lock é liberado antes do HTTP; assim, o webhook não fica bloqueado durante a chamada externa. Jobs concorrentes registram `skipped duplicate send claim` e não enviam novamente.
 
 Erros que podem ocorrer depois de o provedor aceitar a requisição (`Net::OpenTimeout`, `Net::ReadTimeout`, `SocketError`, reset/fechamento de conexão e equivalentes) são tratados como confirmação pendente. Se a resposta foi aceita e falhar a persistência do `source_id`, o claim também permanece pendente; isso evita um retry que poderia duplicar a entrega.
+
+Respostas 5xx, 408, 425 e 429 também são tratadas como ambíguas. A validação local anterior ao POST continua podendo falhar normalmente, sem criar um claim de rede.
 
 ## Regressões cobertas
 
@@ -35,6 +37,7 @@ Erros que podem ocorrer depois de o provedor aceitar a requisição (`Net::OpenT
 - uma rejeição HTTP confirmada (422) deve liberar retry legítimo;
 - dois jobs sobrepostos para uma mensagem de áudio devem produzir exatamente um POST;
 - uma falha ao persistir o ID depois de resposta aceita não deve liberar o claim;
+- um claim com `track_id` inconsistente deve bloquear de forma conservadora, sem sobrescrever o marcador;
 - os testes existentes de texto, nome do agente, falha confirmada, timeout e áudio foram preservados.
 
 ## Verificação realizada
@@ -45,7 +48,7 @@ Erros que podem ocorrer depois de o provedor aceitar a requisição (`Net::OpenT
 - RSpec não foi executado localmente porque esta estação não possui Ruby/Bundler.
 - Vitest não coletou os testes porque o `node_modules` local resolve para outro worktree e não contém `fake-indexeddb`; não é falha de teste funcional.
 - Para detectar claims órfãos, está disponível `rake rotta_uazapi:report_stale_pending_sends STALE_AFTER_MINUTES=30`. A rotina lista somente IDs de mensagem/conversa, `track_id` e horário; ela não libera nem reenvia automaticamente.
-- Depois de confirmar manualmente na UAZAPI que não houve entrega, um operador pode liberar somente a mensagem escolhida com `rake rotta_uazapi:release_pending_send MESSAGE_ID=<id> CONFIRM=I_UNDERSTAND`; sem os dois parâmetros a tarefa aborta.
+- Depois de confirmar manualmente na UAZAPI que não houve entrega, um operador pode liberar somente a mensagem escolhida com `rake rotta_uazapi:release_pending_send MESSAGE_ID=<id> CONFIRM=I_UNDERSTAND`; sem os dois parâmetros a tarefa aborta. A tarefa usa o mesmo advisory lock, remove o marcador de confirmação e enfileira uma única nova tentativa protegida pelo claim.
 
 ## Limite conhecido
 

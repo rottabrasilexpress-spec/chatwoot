@@ -5,7 +5,7 @@ namespace :rotta_uazapi do
     cutoff = stale_after_minutes.minutes.ago
     stale_messages = []
 
-    Message.where(message_type: :outgoing)
+    Message.where(message_type: %i[outgoing template])
            .where("content_attributes ->> 'rotta_uazapi_pending_echo' = ?", 'true')
            .find_each do |message|
       attributes = message.content_attributes.to_h.with_indifferent_access
@@ -40,7 +40,16 @@ namespace :rotta_uazapi do
     abort 'Confirme com CONFIRM=I_UNDERSTAND.' unless ENV['CONFIRM'] == 'I_UNDERSTAND'
 
     message = Message.find(message_id)
-    message.with_lock do
+    released = false
+
+    ApplicationRecord.transaction do
+      lock_key = "rotta-uazapi-send:#{message.account_id}:#{message.id}"
+      sql = ApplicationRecord.sanitize_sql_array(
+        ['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key]
+      )
+      ApplicationRecord.connection.execute(sql)
+
+      message.reload
       attributes = message.content_attributes.to_h.with_indifferent_access
       pending = ActiveModel::Type::Boolean.new.cast(attributes[:rotta_uazapi_pending_echo])
       abort 'A mensagem não possui claim UAZAPI pendente.' unless pending
@@ -48,8 +57,13 @@ namespace :rotta_uazapi do
       attributes.delete(:rotta_uazapi_pending_echo)
       attributes.delete(:rotta_uazapi_claimed_at)
       message.update!(content_attributes: attributes)
+      additional_attributes = message.additional_attributes.to_h.with_indifferent_access
+      additional_attributes.delete(:rotta_uazapi_confirmation_pending)
+      message.update!(additional_attributes: additional_attributes)
+      released = true
     end
 
     puts "Claim UAZAPI liberado para a mensagem #{message.id}."
+    SendReplyJob.perform_later(message.id) if released
   end
 end
