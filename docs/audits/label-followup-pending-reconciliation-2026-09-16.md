@@ -27,7 +27,7 @@ Também foi confirmado no frontend que uma mutação de etiqueta só publica o r
 
 ## Evidências e testes
 
-- Vitest focalizado: 6 arquivos, `44/44` testes aprovados.
+- Vitest focalizado: 6 arquivos, `45/45` testes aprovados.
 - ESLint focalizado: `0` erros.
 - `git diff --check`: aprovado.
 - Build Vite: `5.100` módulos transformados, concluído; somente avisos já conhecidos de Browserslist e tamanho de chunks.
@@ -51,3 +51,11 @@ Também foi confirmado no frontend que uma mutação de etiqueta só publica o r
 Não permanece uma falha conhecida no mecanismo de deduplicação por telefone/etapa ou na ordenação de eventos de etiqueta recebidos no mesmo segundo. A atualização visual depende da entrega normal do webhook/Action Cable; quando um evento externo não chega, a reconciliação periódica e a montagem da Sidebar continuam sendo os fallbacks documentados.
 
 Linhas conectadas: [[Chatwoot Rotta — contexto e estado]] ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot live](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/dashboard) ↔ workflow n8n `utaNsnFUZYBYDf5S`.
+
+## Verificação complementar — 16/09/2026
+
+- Obsidian: o MCP específico do Obsidian não está exposto nesta sessão; a nota local foi conferida diretamente e permanece a fonte de contexto operacional.
+- GitHub: `origin/rotta-custom-v1` aponta para `1bb6f05f934971a1b7683e0b43cec18b0c33938c` (`fix(rotta): reconcile label follow-up pending items`), sem divergência entre `HEAD` local e o branch remoto; o push foi fast-forward, sem force push.
+- n8n: o workflow `utaNsnFUZYBYDf5S` está ativo, com draft e versão publicada iguais em `b9821cb7-2908-4c32-81bc-2092596ed1a6`, 28 nós.
+- EasyPanel: `/health` respondeu HTTP 200, mas o histórico visual do painel não pôde ser lido nesta sessão (timeout nas sessões Chrome e Edge). Portanto, o deploy/redeploy do commit `1bb6f05f` continua não confirmado no painel; não deve ser tratado como implantado só por o commit estar no GitHub.
+- Nenhuma alteração de código, workflow, produção, conversa, etiqueta, follow-up, credencial ou mensagem foi feita nesta verificação.
