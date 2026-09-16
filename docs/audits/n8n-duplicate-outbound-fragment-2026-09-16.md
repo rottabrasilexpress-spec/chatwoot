@@ -45,4 +45,4 @@ O workflow foi publicado pelo MCP do n8n. A versão ativa passou de `fe49b4b2…
 - Workflow publicado: `t7TqOMDFXbf66MPa`.
 - Auditoria versionada: este arquivo.
 - Obsidian: seção “Correção da duplicação no envio UAZAPI — 16/09/2026”.
-- GitHub: documentação publicada no commit `e2cc0e6c5e24476b07e62178f994fcdc83c354ab` da branch `rotta-custom-v1`.
+- GitHub: documentação publicada no commit final `f8097ef99398cc89407fbb6836dcdc495a741cce` da branch `rotta-custom-v1`.
