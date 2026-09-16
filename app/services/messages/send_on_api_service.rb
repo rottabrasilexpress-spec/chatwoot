@@ -1,6 +1,20 @@
 class Messages::SendOnApiService < Base::SendOnChannelService
   UAZAPI_PATH = '/send/text'.freeze
   UAZAPI_MEDIA_PATH = '/send/media'.freeze
+  UAZAPI_AMBIGUOUS_ERRORS = [
+    Net::OpenTimeout,
+    Net::ReadTimeout,
+    SocketError,
+    Errno::ECONNRESET,
+    Errno::ECONNREFUSED,
+    Errno::EHOSTUNREACH,
+    Errno::ENETUNREACH,
+    Errno::ETIMEDOUT,
+    Errno::EPIPE,
+    EOFError,
+    IOError,
+    Timeout::Error
+  ].uniq.freeze
 
   private
 
@@ -29,22 +43,20 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     body[:track_source] = 'chatwoot'
     body[:track_id] = "message-#{message.id}"
 
-    response = HTTParty.post(
-      "#{uazapi_base_url}#{UAZAPI_PATH}",
-      headers: uazapi_headers,
-      body: body.to_json,
-      timeout: 30
-    )
+    response = post_to_uazapi(UAZAPI_PATH, body)
+    return if response.nil?
 
     return fail_message(provider_error(response)) unless response.success?
 
     provider_id = provider_message_id(response)
     persist_provider_id(provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] message=#{message.id} sent provider_id_present=#{provider_id.present?}")
-  rescue Net::ReadTimeout => e
-    mark_delivery_confirmation_pending(e)
   rescue StandardError => e
-    fail_message("Falha ao enviar pela Uazapi: #{e.message}")
+    if @uazapi_request_accepted
+      mark_delivery_confirmation_pending(e)
+    else
+      fail_message("Falha ao enviar pela Uazapi: #{e.message}")
+    end
   end
 
   def perform_media_reply
@@ -69,22 +81,20 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     }
     body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
 
-    response = HTTParty.post(
-      "#{uazapi_base_url}#{UAZAPI_MEDIA_PATH}",
-      headers: uazapi_headers,
-      body: body.to_json,
-      timeout: 30
-    )
+    response = post_to_uazapi(UAZAPI_MEDIA_PATH, body)
+    return if response.nil?
 
     return fail_message(provider_error(response)) unless response.success?
 
     provider_id = provider_message_id(response)
     persist_provider_id(provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] voice message=#{message.id} sent provider_id_present=#{provider_id.present?}")
-  rescue Net::ReadTimeout => e
-    mark_delivery_confirmation_pending(e)
   rescue StandardError => e
-    fail_message("Falha ao enviar áudio pela Uazapi: #{e.message}")
+    if @uazapi_request_accepted
+      mark_delivery_confirmation_pending(e)
+    else
+      fail_message("Falha ao enviar áudio pela Uazapi: #{e.message}")
+    end
   end
 
   def uazapi_base_url
@@ -93,6 +103,20 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def outgoing_text
     message.outgoing_content.to_s
+  end
+
+  def post_to_uazapi(path, body)
+    response = HTTParty.post(
+      "#{uazapi_base_url}#{path}",
+      headers: uazapi_headers,
+      body: body.to_json,
+      timeout: 30
+    )
+    @uazapi_request_accepted = response.success?
+    response
+  rescue *UAZAPI_AMBIGUOUS_ERRORS => e
+    mark_delivery_confirmation_pending(e)
+    nil
   end
 
   def uazapi_headers
@@ -174,7 +198,8 @@ class Messages::SendOnApiService < Base::SendOnChannelService
         'external_echo' => true,
         'rotta_uazapi_pending_echo' => true,
         'uazapi_track_source' => 'chatwoot',
-        'uazapi_track_id' => "message-#{message.id}"
+        'uazapi_track_id' => "message-#{message.id}",
+        'rotta_uazapi_claimed_at' => Time.current.iso8601
       )
     )
   end

@@ -126,6 +126,114 @@ RSpec.describe Messages::SendOnApiService do
     expect(message.content_attributes).to include('rotta_uazapi_pending_echo' => true)
   end
 
+  it 'does not release the send claim for an ambiguous connection failure' do
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_raise(Errno::ECONNRESET.new)
+
+    described_class.new(message: message).perform
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBRESETBLOCKED123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: Message.find(message.id)).perform
+
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
+    expect(message.reload.source_id).to be_blank
+    expect(message.content_attributes).to include('rotta_uazapi_pending_echo' => true)
+  end
+
+  it 'allows a retry after a confirmed provider rejection' do
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(
+        {
+          status: 422,
+          body: { 'message' => 'número inválido' }.to_json,
+          headers: { 'content-type' => 'application/json' }
+        },
+        {
+          status: 200,
+          body: { 'key' => { 'id' => '3EBRETRYLEGIT123' } }.to_json,
+          headers: { 'content-type' => 'application/json' }
+        }
+      )
+
+    described_class.new(message: message).perform
+    expect(message.reload.status).to eq('failed')
+
+    described_class.new(message: Message.find(message.id)).perform
+
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.twice
+    expect(message.reload.source_id).to eq('3EBRETRYLEGIT123')
+    expect(message.status).to eq('sent')
+  end
+
+  it 'sends an audio message only once when duplicate delivery jobs overlap' do
+    attachment = message.attachments.build(account_id: message.account_id, file_type: :audio)
+    attachment.file.attach(
+      io: StringIO.new('audio bytes'),
+      filename: 'voice.ogg',
+      content_type: 'audio/ogg'
+    )
+    attachment.save!
+    allow(attachment).to receive(:download_url).and_return('https://chatwoot.example/voice.ogg')
+    request_started = Queue.new
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/media')
+      .to_return do
+        request_started << true
+        sleep 0.2
+        {
+          status: 200,
+          body: { 'key' => { 'id' => '3EBAUDIOCONCURRENT123' } }.to_json,
+          headers: { 'content-type' => 'application/json' }
+        }
+      end
+
+    threads = 2.times.map do
+      Thread.new do
+        described_class.new(message: Message.find(message.id)).perform
+      end
+    end
+
+    request_started.pop
+    sleep 0.05
+    threads.each(&:join)
+
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/media')).to have_been_made.once
+    expect(message.reload.source_id).to eq('3EBAUDIOCONCURRENT123')
+  end
+
+  it 'keeps the claim when persistence fails after an accepted response' do
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBPERSISTENCEBLOCKED123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+    allow(message).to receive(:update!).and_wrap_original do |original, *args, **kwargs, &block|
+      attributes = args.first || kwargs
+      if attributes[:source_id].present? || attributes['source_id'].present?
+        raise EOFError, 'connection closed while persisting provider id'
+      end
+
+      original.call(*args, **kwargs, &block)
+    end
+
+    described_class.new(message: message).perform
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(status: 200, body: { 'key' => { 'id' => '3EBDUPLICATEBLOCKED123' } }.to_json)
+    described_class.new(message: Message.find(message.id)).perform
+
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
+    expect(message.reload.source_id).to be_blank
+    expect(message.content_attributes).to include('rotta_uazapi_pending_echo' => true)
+  end
+
   it 'marks the message as failed when Uazapi rejects the request' do
     stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
       .to_return(status: 422, body: { 'message' => 'número inválido' }.to_json)
