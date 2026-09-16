@@ -22,6 +22,7 @@ import {
   FOLLOW_UP_STAGE_TITLES,
   followUpTrailForJob,
   followUpTrailForStage,
+  jobBelongsToFollowUpView,
   effectiveDispatchAt,
   compactDispatchText,
   isArchivedStage,
@@ -74,7 +75,7 @@ const now = ref(Date.now());
 const lastSyncedAt = ref(null);
 const expandedJobs = ref(new Set());
 const pendingEnrollments = ref([]);
-const selectedView = ref('contact');
+const selectedView = ref('all');
 const customHours = ref({});
 let refreshTimer;
 let clockTimer;
@@ -290,6 +291,13 @@ const counts = computed(() =>
 
 const trailViews = [
   {
+    key: 'all',
+    title: 'Todos',
+    description: 'Todas as trilhas de follow-up em sequência.',
+    icon: 'i-lucide-layout-grid',
+    stages: [...CONTACT_TRAIL_STAGES, ...BUDGET_TRAIL_STAGES],
+  },
+  {
     key: 'contact',
     title: 'Trilha de contato',
     description: 'Cadência de relacionamento antes do orçamento.',
@@ -322,7 +330,7 @@ const stageOptions = computed(() => {
   const values = new Set([
     ...selectedTrailView.value.stages,
     ...queueJobs.value
-      .filter(job => trailViewForJob(job) === selectedView.value)
+      .filter(job => jobBelongsToFollowUpView(job, selectedView.value))
       .map(displayStageFor)
       .filter(stage => stage && !legacyStagesHiddenFromFilter.has(stage)),
   ]);
@@ -333,7 +341,7 @@ const trailColumns = computed(() => {
   const configuredStages = selectedTrailView.value.stages;
   const additionalStages = orderedFollowUpStages(
     queueJobs.value
-      .filter(job => trailViewForJob(job) === selectedView.value)
+      .filter(job => jobBelongsToFollowUpView(job, selectedView.value))
       .map(displayStageFor)
       .filter(
         stage =>
@@ -381,7 +389,8 @@ const activeStageCount = computed(() =>
 );
 
 const viewCount = view => {
-  return queueJobs.value.filter(job => trailViewForJob(job) === view).length;
+  return queueJobs.value.filter(job => jobBelongsToFollowUpView(job, view))
+    .length;
 };
 
 const viewOptions = computed(() => trailViews);
@@ -391,7 +400,7 @@ const visibleColumns = computed(() => trailColumns.value);
 const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
   return queueJobs.value.filter(job => {
-    const matchesView = trailViewForJob(job) === selectedView.value;
+    const matchesView = jobBelongsToFollowUpView(job, selectedView.value);
     const displayStage = displayStageFor(job);
     const matchesStage =
       selectedStage.value === 'all' || displayStage === selectedStage.value;
@@ -1690,7 +1699,7 @@ onUnmounted(() => {
 
 .rotta-view-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(12rem, 1fr));
+  grid-template-columns: repeat(3, minmax(12rem, 1fr));
   flex: 1 1 100%;
   gap: 0.35rem;
   max-width: 100%;
@@ -2431,7 +2440,7 @@ onUnmounted(() => {
   }
 
   .rotta-view-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     overflow-x: visible;
   }
 
@@ -2469,7 +2478,7 @@ onUnmounted(() => {
   .rotta-view-tabs {
     margin-inline: -0.25rem;
     padding-inline: 0.25rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     overflow-x: visible;
   }
 

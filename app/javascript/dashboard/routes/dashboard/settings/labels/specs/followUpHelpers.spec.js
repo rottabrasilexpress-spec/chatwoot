@@ -15,6 +15,7 @@ import {
   BUDGET_TRAIL_STAGES,
   followUpTrailForJob,
   followUpTrailForStage,
+  jobBelongsToFollowUpView,
   activeFollowUpStageCount,
   isArchivedStage,
   compactDispatchText,
@@ -337,6 +338,19 @@ describe('follow-up helpers', () => {
     expect(canonicalFollowUpStage('[1] Primeiro contato')).toBe(
       'primeiro-contato'
     );
+  });
+
+  it('matches jobs in a specific trail and in the combined Todos view', () => {
+    const contactJob = { current_label: 'primeiro-contato' };
+    const budgetJob = { current_label: 'orcamento-feito' };
+
+    expect(jobBelongsToFollowUpView(contactJob, 'contact')).toBe(true);
+    expect(jobBelongsToFollowUpView(contactJob, 'budget')).toBe(false);
+    expect(jobBelongsToFollowUpView(contactJob, 'all')).toBe(true);
+    expect(jobBelongsToFollowUpView(budgetJob, 'all')).toBe(true);
+    expect(
+      jobBelongsToFollowUpView({ current_label: 'sem-etapa' }, 'all')
+    ).toBe(false);
   });
 
   it('keeps archived jobs out of both the board and its stage counts', () => {

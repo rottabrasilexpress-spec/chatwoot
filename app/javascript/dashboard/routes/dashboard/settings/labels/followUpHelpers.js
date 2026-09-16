@@ -149,6 +149,11 @@ export const followUpTrailForJob = job => {
   return null;
 };
 
+export const jobBelongsToFollowUpView = (job, view) => {
+  const trail = followUpTrailForJob(job);
+  return view === 'all' ? Boolean(trail) : trail === view;
+};
+
 export const FOLLOW_UP_STAGE_ORDER = [
   ...CONTACT_TRAIL_STAGES,
   ...BUDGET_TRAIL_STAGES,

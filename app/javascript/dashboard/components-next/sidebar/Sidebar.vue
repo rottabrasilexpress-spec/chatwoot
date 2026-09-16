@@ -484,6 +484,13 @@ const menuItems = computed(() => {
       to: accountScopedRoute('rotta_follow_up'),
       activeOn: ['rotta_follow_up'],
     },
+    {
+      name: 'Labels',
+      label: 'Etiquetas',
+      icon: 'i-lucide-tags',
+      to: accountScopedRoute('labels_list'),
+      activeOn: ['labels_list', 'labels_wrapper'],
+    },
     ...(showGlobalAi.value
       ? [
           {
@@ -495,13 +502,6 @@ const menuItems = computed(() => {
           },
         ]
       : []),
-    {
-      name: 'Labels',
-      label: 'Etiquetas',
-      icon: 'i-lucide-tags',
-      to: accountScopedRoute('labels_list'),
-      activeOn: ['labels_list', 'labels_wrapper'],
-    },
     ...(isCallsAvailable.value
       ? [
           {
