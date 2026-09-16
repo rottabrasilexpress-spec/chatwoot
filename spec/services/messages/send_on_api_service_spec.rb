@@ -67,6 +67,34 @@ RSpec.describe Messages::SendOnApiService do
     expect(message.reload.source_id).to eq('3EBNAMED123')
   end
 
+  it 'sends a message only once when duplicate delivery jobs overlap' do
+    request_started = Queue.new
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return do
+        request_started << true
+        sleep 0.2
+        {
+          status: 200,
+          body: { 'key' => { 'id' => '3EBCONCURRENT123' } }.to_json,
+          headers: { 'content-type' => 'application/json' }
+        }
+      end
+
+    threads = 2.times.map do
+      Thread.new do
+        described_class.new(message: Message.find(message.id)).perform
+      end
+    end
+
+    request_started.pop
+    sleep 0.05
+    threads.each(&:join)
+
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
+    expect(message.reload.source_id).to eq('3EBCONCURRENT123')
+  end
+
   it 'keeps a read-timeout unconfirmed instead of marking an accepted send as failed' do
     stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
       .to_raise(Net::ReadTimeout.new('response timed out'))
@@ -76,6 +104,26 @@ RSpec.describe Messages::SendOnApiService do
     expect(message.reload.status).to eq('sent')
     expect(message.external_error).to be_blank
     expect(message.additional_attributes).to include('rotta_uazapi_confirmation_pending' => true)
+  end
+
+  it 'does not resend after an ambiguous timeout while delivery confirmation is pending' do
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_raise(Net::ReadTimeout.new('response timed out'))
+
+    described_class.new(message: message).perform
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBRETRYBLOCKED123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: Message.find(message.id)).perform
+
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
+    expect(message.reload.source_id).to be_blank
+    expect(message.content_attributes).to include('rotta_uazapi_pending_echo' => true)
   end
 
   it 'marks the message as failed when Uazapi rejects the request' do

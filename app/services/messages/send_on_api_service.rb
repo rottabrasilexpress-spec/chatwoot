@@ -9,6 +9,11 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   end
 
   def perform_reply
+    unless claim_uazapi_send
+      Rails.logger.info("[ROTTABRASIL_API] message=#{message.id} skipped duplicate send claim")
+      return
+    end
+
     return perform_media_reply if message.attachments.present?
 
     content_attributes = message.content_attributes.to_h.with_indifferent_access
@@ -23,8 +28,6 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
     body[:track_source] = 'chatwoot'
     body[:track_id] = "message-#{message.id}"
-
-    mark_pending_uazapi_echo
 
     response = HTTParty.post(
       "#{uazapi_base_url}#{UAZAPI_PATH}",
@@ -65,8 +68,6 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       track_id: "message-#{message.id}"
     }
     body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
-
-    mark_pending_uazapi_echo
 
     response = HTTParty.post(
       "#{uazapi_base_url}#{UAZAPI_MEDIA_PATH}",
@@ -133,6 +134,36 @@ class Messages::SendOnApiService < Base::SendOnChannelService
              end
 
     "Uazapi recusou o envio (HTTP #{response.code})#{detail.present? ? ": #{detail}" : ''}"
+  end
+
+  # A message can be enqueued more than once by the after-commit callback,
+  # a retry, or a worker redelivery. The provider may accept both requests
+  # even when Chatwoot later correlates both echoes to the same message.
+  # Claim the message in a short transaction before the network request so
+  # only the first worker may send it. The pending marker remains the durable
+  # claim until the provider echo or a confirmed failure clears it.
+  def claim_uazapi_send
+    claimed = false
+
+    ApplicationRecord.transaction do
+      lock_key = "rotta-uazapi-send:#{message.account_id}:#{message.id}"
+      sql = ApplicationRecord.sanitize_sql_array(
+        ['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key]
+      )
+      ApplicationRecord.connection.execute(sql)
+
+      message.reload
+      attributes = message.content_attributes.to_h.with_indifferent_access
+      pending_for_this_message = attributes[:rotta_uazapi_pending_echo] &&
+        attributes[:uazapi_track_id].to_s == "message-#{message.id}"
+
+      unless message.source_id.present? || pending_for_this_message
+        mark_pending_uazapi_echo
+        claimed = true
+      end
+    end
+
+    claimed
   end
 
   def mark_pending_uazapi_echo
