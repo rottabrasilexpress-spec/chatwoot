@@ -14,6 +14,9 @@
 - Para FINALIZADOS, a condição canFinalize escondia completamente o item assim que a etiqueta era atribuída. Não existia ação explícita equivalente para desfazer.
 - A remoção anterior dos estados nativos não é a causa do encaminhamento por etiqueta e foi preservada. O fluxo corrigido continua sem alterar o status nativo da conversa.
 - O bundle servido antes desta correção continha os atalhos existentes, confirmando que a lacuna também estava presente no frontend publicado e não era apenas cache do navegador.
+- O primeiro teste real revelou que a proteção atômica de etiquetas não estava chegando à imagem: `labels_controller.rb` aceitava `{ add, remove }` no repositório, mas não era copiado pelo `Dockerfile.overlay`. O frontend exibia a etiqueta otimista e o backend oficial ignorava a mutação.
+- Depois de publicar o controller, a contagem de Emitir Contrato passou a atualizar para 1, mas a fila continuou vazia para uma conversa em estado nativo não aberto. A rota de Emitir Contrato ainda filtrava somente `open`, ao contrário de FINALIZADOS.
+- O teste de FINALIZADOS encontrou uma última defasagem visual: a rota já continha a conversa, mas o cartão reutilizado ainda podia oferecer “Enviar” até atualizar suas etiquetas. A rota ativa passou a ser também fonte de verdade para a ação de desfazer.
 
 ## Correção restrita
 
@@ -21,6 +24,9 @@
 - O desfazer remove somente a etiqueta FINALIZADOS; não resolve, reabre, adia ou altera o status nativo.
 - Conversas ainda não finalizadas preservam o popup de confirmação e o fluxo já existente de substituir as etiquetas atuais por FINALIZADOS.
 - O atalho Emitir Contrato e sua remoção não foram alterados funcionalmente.
+- O controlador atômico de etiquetas passou a ser incluído explicitamente na imagem de produção.
+- As filas Emitir Contrato e FINALIZADOS agora consultam todos os estados nativos, sem expor novamente os comandos resolvido, pendente ou adiado.
+- Dentro das próprias filas, o menu reconhece a etiqueta da rota imediatamente e mantém o desfazer disponível mesmo durante a atualização do cartão.
 
 ## Validação local
 
@@ -31,6 +37,8 @@
 - git diff --check: aprovado.
 - Build Vite: 5.100 módulos transformados, concluído com sucesso.
 - Manifesto: 240 assets referenciados e presentes.
+- Após os achados live, ESLint permaneceu sem erros, Prettier passou, o build Vite transformou 5.100 módulos e o verificador confirmou novamente os 240 assets.
+- A tentativa de repetir a suíte Vitest depois do último fallback não coletou testes porque o Vite resolveu `fake-indexeddb` pelo junction de outro worktree. É uma limitação do harness local; a suíte de 48 testes havia passado antes desse fallback isolado, e foi acrescentada uma regressão específica para a rota FINALIZADOS.
 
 ## Pendências históricas revisadas
 
@@ -39,7 +47,12 @@
 
 ## Publicação e teste real
 
-- A preencher após push, deploy e restauração dos dois contatos autorizados.
+- Commits publicados em `origin/rotta-custom-v1`: `180a112f` (desfazer FINALIZADOS), `777444ed` (controller atômico no overlay), `74e5433d` (fila Emitir Contrato em todos os estados) e `004c2d06` (desfazer responsivo pela rota ativa).
+- Os quatro deploys correspondentes concluíram no EasyPanel. O deploy final serviu `dashboard-DBA1XQu4.js`; `/health` respondeu HTTP 200 com `{"status":"woot"}`.
+- Teste `11965927865` / conversa `2143`: Emitir Contrato foi aplicado, o contador mudou dinamicamente para 1, a conversa apareceu na fila, “Remover etiqueta Emitir Contrato” funcionou, a conversa saiu da fila e o contador voltou ao estado inicial.
+- Teste `+5511991262866` / conversa `48`: o contato começou sem etiquetas; Enviar para FINALIZADOS abriu a confirmação, aplicou somente FINALIZADOS, atualizou contador para 1 e mostrou o cartão na fila. O menu exibiu “Desfazer envio para FINALIZADOS”; ao desfazer, cartão e contador retornaram ao estado inicial.
+- Nenhuma mensagem foi enviada. Os dois contatos foram restaurados sem Emitir Contrato e sem FINALIZADOS, exatamente como estavam antes dos testes.
+- Follow-up live: a tela carregou em modo “ao vivo” e respondeu ao botão Atualizar, porém mostrou 0 trilhas enquanto o cadastro global de etiquetas indicava 1 conversa em Primeiro contato. Isso foi registrado como possível dessincronização adicional e não foi alterado sem autorização.
 
 ## Linhas conectadas
 
