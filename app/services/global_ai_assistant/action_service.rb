@@ -4,13 +4,14 @@ class GlobalAiAssistant::ActionService
     follow_up_dispatch_now follow_up_advance follow_up_delay follow_up_cancel follow_up_remove_label
   ].freeze
 
-  def initialize(account:, user:, action:, conversation_id:, confirmed:, params: {})
+  def initialize(account:, user:, action:, conversation_id:, confirmed:, params: {}, idempotency_key: nil)
     @account = account
     @user = user
     @action = action.to_s
     @conversation_id = conversation_id
     @confirmed = ActiveModel::Type::Boolean.new.cast(confirmed)
     @params = params.to_h.stringify_keys
+    @idempotency_key = idempotency_key.to_s.strip
   end
 
   def call
@@ -19,15 +20,24 @@ class GlobalAiAssistant::ActionService
     conversation = @account.conversations.find_by!(display_id: @conversation_id)
     Pundit.authorize(@user, conversation, :show?)
     return confirmation_payload(conversation) unless @confirmed
+    raise ArgumentError, 'Chave idempotente é obrigatória.' if @idempotency_key.blank?
 
-    before_state = { labels: conversation.label_list, status: conversation.status, assignee_id: conversation.assignee_id }
-    result = @account.transaction do
-      result = execute!(conversation)
-      record_audit!(conversation, before_state, result)
-      result
+    GlobalAiActionReceipt.run!(
+      account: @account,
+      user: @user,
+      idempotency_key: @idempotency_key,
+      action_name: @action,
+      conversation_display_id: conversation.display_id
+    ) do
+      before_state = { labels: conversation.label_list, status: conversation.status, assignee_id: conversation.assignee_id }
+      result = @account.transaction do
+        result = execute!(conversation)
+        record_audit!(conversation, before_state, result)
+        result
+      end
+
+      { ok: true, action: @action, conversation_id: conversation.display_id, result: result }
     end
-
-    { ok: true, action: @action, conversation_id: conversation.display_id, result: result }
   end
 
   private

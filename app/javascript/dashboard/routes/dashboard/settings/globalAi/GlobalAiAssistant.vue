@@ -146,6 +146,9 @@ const executeFollowUpAction = async (card, job, operation) => {
 
   const actionKey = `${card.conversation_id}:${job.job_id}:${operation}`;
   followUpActionLoading.value = actionKey;
+  const idempotencyKey =
+    globalThis.crypto?.randomUUID?.() ||
+    `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   try {
     const response = await globalAiAPI.executeAction({
       action: `follow_up_${operation}`,
@@ -156,6 +159,7 @@ const executeFollowUpAction = async (card, job, operation) => {
         : {}),
       ...(hours ? { hours } : {}),
       confirmed: true,
+      idempotency_key: idempotencyKey,
     });
     const result = response.data?.result || {};
     if (

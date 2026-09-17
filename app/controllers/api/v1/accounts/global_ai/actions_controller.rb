@@ -7,7 +7,8 @@ class Api::V1::Accounts::GlobalAi::ActionsController < Api::V1::Accounts::BaseCo
       action: request.request_parameters['action'].presence || params[:operation],
       conversation_id: params[:conversation_id],
       confirmed: params[:confirmed],
-      params: params
+      params: params,
+      idempotency_key: params[:idempotency_key]
     ).call
     render json: result, status: result[:confirmation_required] ? :accepted : :ok
   rescue GlobalAiAssistant::AccessPolicy::AccessDenied => e

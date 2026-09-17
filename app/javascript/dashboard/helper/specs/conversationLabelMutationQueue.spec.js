@@ -1,6 +1,7 @@
 import {
   beginConversationLabelMutation,
   isLatestConversationLabelMutation,
+  withIdempotentConversationLabelMutation,
   withConversationLabelMutationLock,
 } from '../conversationLabelMutationQueue';
 
@@ -41,5 +42,34 @@ describe('conversation label mutation queue', () => {
     expect(completed).toEqual(['same-1', 'other', 'same-2']);
     expect(isLatestConversationLabelMutation(9002, firstVersion)).toBe(false);
     expect(isLatestConversationLabelMutation(9002, latestVersion)).toBe(true);
+  });
+
+  it('shares one in-flight operation for identical quick label actions', async () => {
+    let release;
+    const gate = new Promise(resolve => {
+      release = resolve;
+    });
+    const operation = vi.fn(async () => {
+      await gate;
+      return { status: 'success' };
+    });
+
+    const first = withIdempotentConversationLabelMutation(
+      [9004],
+      'set:emitir-contrato',
+      operation
+    );
+    const second = withIdempotentConversationLabelMutation(
+      [9004],
+      'set:emitir-contrato',
+      operation
+    );
+    release();
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { status: 'success' },
+      { status: 'success' },
+    ]);
+    expect(operation).toHaveBeenCalledTimes(1);
   });
 });

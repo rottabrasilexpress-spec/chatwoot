@@ -1,7 +1,10 @@
 import { computed } from 'vue';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
-import { isConversationLabelMutationCurrent } from 'dashboard/helper/conversationLabelMutationQueue';
+import {
+  isConversationLabelMutationCurrent,
+  withIdempotentConversationLabelMutation,
+} from 'dashboard/helper/conversationLabelMutationQueue';
 
 const ARCHIVED_LABEL_KEYS = new Set(['arquivado', 'arquivados']);
 
@@ -98,39 +101,52 @@ export function useConversationLabels() {
     const labels = Array.isArray(selectedLabels) ? selectedLabels : [];
     const archivedLabel = labels.find(isArchivedLabel);
     const normalizedSelectedLabels = archivedLabel ? [archivedLabel] : labels;
-    const updated = await store.dispatch('conversationLabels/update', {
-      conversationId: conversationId.value,
-      labels: normalizedSelectedLabels,
-    });
+    const intent = normalizedSelectedLabels
+      .map(normalizedLabelKey)
+      .sort()
+      .join('|');
+    return withIdempotentConversationLabelMutation(
+      [conversationId.value],
+      `set:${intent}`,
+      async () => {
+        const updated = await store.dispatch('conversationLabels/update', {
+          conversationId: conversationId.value,
+          labels: normalizedSelectedLabels,
+        });
 
-    if (updated?.status === 'superseded') return true;
-    if (updated?.status !== 'success' && updated !== true) return false;
+        if (updated?.status === 'superseded') return true;
+        if (updated?.status !== 'success' && updated !== true) return false;
 
-    await store.dispatch('labels/get', { forceNetwork: true });
-    if (
-      updated?.version != null &&
-      !isConversationLabelMutationCurrent(conversationId.value, updated.version)
-    ) {
-      return true;
-    }
+        await store.dispatch('labels/get', { forceNetwork: true });
+        if (
+          updated?.version != null &&
+          !isConversationLabelMutationCurrent(
+            conversationId.value,
+            updated.version
+          )
+        ) {
+          return true;
+        }
 
-    const addedLabels = normalizedSelectedLabels.filter(
-      label => !previousLabels.includes(label)
+        const addedLabels = normalizedSelectedLabels.filter(
+          label => !previousLabels.includes(label)
+        );
+        const removedLabels = previousLabels.filter(
+          label => !normalizedSelectedLabels.includes(label)
+        );
+
+        addedLabels.forEach(label => {
+          useAlert(`Etiqueta "${label}" adicionada à conversa.`, {
+            ...(isArchivedLabel(label) ? { variant: 'danger' } : {}),
+          });
+        });
+        removedLabels.forEach(label =>
+          useAlert(`Etiqueta "${label}" removida da conversa.`)
+        );
+
+        return true;
+      }
     );
-    const removedLabels = previousLabels.filter(
-      label => !normalizedSelectedLabels.includes(label)
-    );
-
-    addedLabels.forEach(label => {
-      useAlert(`Etiqueta "${label}" adicionada à conversa.`, {
-        ...(isArchivedLabel(label) ? { variant: 'danger' } : {}),
-      });
-    });
-    removedLabels.forEach(label =>
-      useAlert(`Etiqueta "${label}" removida da conversa.`)
-    );
-
-    return true;
   };
 
   /**

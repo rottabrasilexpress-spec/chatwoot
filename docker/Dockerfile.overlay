@@ -25,6 +25,7 @@ COPY db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb /app/db/migra
 COPY db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb /app/db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb
 COPY db/migrate/20260911000100_create_deleted_message_contents.rb /app/db/migrate/20260911000100_create_deleted_message_contents.rb
 COPY db/migrate/20260913000000_create_global_ai_assistant.rb /app/db/migrate/20260913000000_create_global_ai_assistant.rb
+COPY db/migrate/20260917000000_create_global_ai_action_receipts.rb /app/db/migrate/20260917000000_create_global_ai_action_receipts.rb
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_deleted_message_content_retention_job.rb /app/app/jobs/rotta_deleted_message_content_retention_job.rb
@@ -65,6 +66,7 @@ COPY app/models/uazapi_webhook_delivery.rb /app/app/models/uazapi_webhook_delive
 COPY app/models/account.rb /app/app/models/account.rb
 COPY app/models/global_ai_thread.rb /app/app/models/global_ai_thread.rb
 COPY app/models/global_ai_message.rb /app/app/models/global_ai_message.rb
+COPY app/models/global_ai_action_receipt.rb /app/app/models/global_ai_action_receipt.rb
 COPY app/models/user.rb /app/app/models/user.rb
 COPY app/models/label.rb /app/app/models/label.rb
 COPY app/policies/conversation_policy.rb /app/app/policies/conversation_policy.rb
