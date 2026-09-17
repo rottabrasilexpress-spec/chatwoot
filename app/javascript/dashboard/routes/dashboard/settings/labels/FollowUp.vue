@@ -1753,10 +1753,11 @@ onUnmounted(() => {
 
 .rotta-board--trails {
   grid-auto-flow: column;
-  grid-auto-columns: minmax(12rem, 15rem);
+  grid-auto-columns: minmax(16rem, 18rem);
   grid-template-columns: none;
   overflow-x: auto;
   padding-bottom: 0.35rem;
+  scroll-snap-type: x proximity;
 }
 
 .rotta-board-column {
@@ -1766,6 +1767,7 @@ onUnmounted(() => {
   flex-direction: column;
   @apply bg-n-solid-2 border border-n-weak;
   border-radius: 1rem;
+  scroll-snap-align: start;
 }
 
 .rotta-board-column--ready {
@@ -2466,13 +2468,19 @@ onUnmounted(() => {
 
   .rotta-board--trails {
     grid-template-columns: none;
-    grid-auto-columns: minmax(11.5rem, 14rem);
+    grid-auto-columns: minmax(16rem, 18rem);
   }
 }
 
 @media (max-width: 640px) {
   .rotta-board {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rotta-board--trails {
+    grid-template-columns: none;
+    grid-auto-columns: minmax(15rem, calc(100vw - 3.75rem));
+    scroll-padding-inline: 0.1rem;
   }
 
   .rotta-view-tabs {
