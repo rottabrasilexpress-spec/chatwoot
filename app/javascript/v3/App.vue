@@ -1,5 +1,6 @@
 <script>
 import SnackbarContainer from './components/SnackBar/Container.vue';
+import { ensureDashboardLocale } from 'dashboard/i18n/localeLoader';
 
 export default {
   components: { SnackbarContainer },
@@ -34,9 +35,9 @@ export default {
         }
       };
     },
-    setLocale(locale) {
+    async setLocale(locale) {
       if (locale) {
-        this.$root.$i18n.locale = locale;
+        await ensureDashboardLocale(this.$root.$i18n, locale);
       }
     },
   },

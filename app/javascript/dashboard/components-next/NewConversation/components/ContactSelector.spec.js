@@ -76,7 +76,7 @@ describe('ContactSelector', () => {
     await wrapper.get('[data-test="contact-input"]').setValue('11965927865');
 
     expect(tagInput.props('type')).toBe('tel');
-    expect(wrapper.emitted('searchContacts')).toEqual([['11965927865']]);
+    expect(wrapper.emitted('searchContacts')).toEqual([['5511965927865']]);
     expect(tagInput.props('menuItems')).not.toContainEqual(
       expect.objectContaining({ action: 'create' })
     );
@@ -87,7 +87,7 @@ describe('ContactSelector', () => {
 
     await wrapper.get('[data-test="contact-input"]').setValue('11 9 6592-7865');
 
-    expect(wrapper.emitted('searchContacts')).toEqual([['11965927865']]);
+    expect(wrapper.emitted('searchContacts')).toEqual([['5511965927865']]);
   });
 
   it('opens a known contact conversation through the Chatwoot action', async () => {

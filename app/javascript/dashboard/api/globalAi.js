@@ -22,6 +22,10 @@ class GlobalAiAPI extends ApiClient {
     return axios.post(`${this.url}/threads`, { message });
   }
 
+  getThread(threadId) {
+    return axios.get(`${this.url}/threads/${threadId}`);
+  }
+
   createMessage(threadId, message) {
     return axios.post(`${this.url}/threads/${threadId}/messages`, { message });
   }

@@ -149,10 +149,12 @@ const errorClass = computed(() => {
 
 const handleInput = value => {
   searchValue.value = value;
-  inputType.value = isPhoneLikeInput(value)
-    ? INPUT_TYPES.TEL
-    : INPUT_TYPES.EMAIL;
-  emit('searchContacts', normalizePhoneSearchQuery(value));
+  const normalizedSearch = normalizePhoneSearchQuery(value);
+  inputType.value =
+    normalizedSearch !== value.trim() || isPhoneLikeInput(value)
+      ? INPUT_TYPES.TEL
+      : INPUT_TYPES.EMAIL;
+  emit('searchContacts', normalizedSearch);
 };
 </script>
 

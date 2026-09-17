@@ -238,6 +238,39 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(response.parsed_body).to include('ok' => true, 'ignored' => 'mensagem duplicada')
     end
 
+    it 'deduplicates repeated incoming messages when Uazapi omits the provider ID' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      payload = {
+        event: 'messages',
+        message: {
+          chatid: '5511999999999@s.whatsapp.net',
+          from_me: false,
+          type: 'text',
+          text: 'Evento sem ID, uma única vez',
+          timestamp: 1_789_668_000
+        }
+      }
+
+      post_uazapi(payload)
+      first_message = conversation.messages.incoming.find_by!(content: 'Evento sem ID, uma única vez')
+
+      expect do
+        post_uazapi(payload)
+      end.not_to change { conversation.messages.incoming.count }
+
+      expect(first_message.source_id).to start_with('uazapi:fingerprint:')
+      expect(response.parsed_body).to include('ok' => true, 'ignored' => 'mensagem duplicada')
+    end
+
     it 'persists an outgoing API reply when Uazapi echoes a message sent by the instance' do
       api_channel = create(:channel_api, account: account)
       api_inbox = create(:inbox, channel: api_channel, account: account)

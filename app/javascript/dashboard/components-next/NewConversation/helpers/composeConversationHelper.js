@@ -13,6 +13,15 @@ const CHANNEL_PRIORITY = {
   'Channel::Api': 6,
 };
 
+const isPhoneSearchQuery = input => {
+  const trimmed = String(input || '').trim();
+  const digits = trimmed.replace(/\D/g, '');
+  return (
+    isPhoneLikeInput(trimmed) ||
+    (/^\+?[\d\s().-]+$/.test(trimmed) && digits.length >= 10)
+  );
+};
+
 export const generateLabelForContactableInboxesList = ({
   name,
   email,
@@ -87,8 +96,7 @@ export const getCapitalizedNameFromEmail = email => {
 
 export const normalizePhoneForWhatsApp = input => {
   const trimmed = String(input || '').trim();
-  if (!isPhoneLikeInput(trimmed)) return trimmed;
-  if (trimmed.startsWith('+')) return trimmed;
+  if (!isPhoneSearchQuery(trimmed)) return trimmed;
 
   const digits = trimmed.replace(/\D/g, '');
   if (digits.startsWith('55')) return `+${digits}`;
@@ -98,8 +106,11 @@ export const normalizePhoneForWhatsApp = input => {
 
 export const normalizePhoneSearchQuery = input => {
   const trimmed = String(input || '').trim();
-  if (!isPhoneLikeInput(trimmed)) return trimmed;
-  return trimmed.replace(/\D/g, '');
+  if (!isPhoneSearchQuery(trimmed)) return trimmed;
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.startsWith('55')) return digits;
+  if ([10, 11].includes(digits.length)) return `55${digits}`;
+  return digits;
 };
 
 export const processContactableInboxes = inboxes => {
@@ -241,7 +252,7 @@ export const createContactSearcher = () => {
 };
 
 export const createNewContact = async input => {
-  const isPhone = isPhoneLikeInput(input);
+  const isPhone = isPhoneSearchQuery(input);
   const phoneNumber = normalizePhoneForWhatsApp(input);
   const payload = {
     name: isPhone ? phoneNumber.slice(1) : getCapitalizedNameFromEmail(input),

@@ -280,7 +280,7 @@ class Webhooks::UazapiController < ActionController::API
 
     return process_outgoing_echo(payload, incoming) if from_me?(incoming)
 
-    provider_id = message_provider_id(incoming)
+    provider_id = message_provider_id(incoming) || idless_message_fingerprint(payload, incoming)
     conversation = find_conversation(incoming)
     return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
     associate_uazapi_delivery(conversation)
@@ -499,6 +499,24 @@ class Webhooks::UazapiController < ActionController::API
 
   def message_provider_id(message)
     value_for_keys(message, %w[message_id messageId messageid id])&.to_s&.presence
+  end
+
+  def idless_message_fingerprint(payload, message)
+    timestamp = value_for_keys(
+      message,
+      %w[timestamp messageTimestamp message_timestamp createdAt created_at sentAt sent_at]
+    )
+    semantic_parts = [
+      normalize_phone(extract_chat_identifier(message)),
+      from_me?(message),
+      value_for_keys(message, %w[type messageType]),
+      incoming_message_content(message),
+      incoming_media_url(message),
+      value_for_keys(message, %w[quoted quotedId quoted_id replyid reply_id]),
+      timestamp.presence || Digest::SHA256.hexdigest(request.raw_post.to_s)
+    ]
+
+    "uazapi:fingerprint:#{Digest::SHA256.hexdigest(JSON.generate(semantic_parts))}"
   end
 
   def incoming_message_content(message)

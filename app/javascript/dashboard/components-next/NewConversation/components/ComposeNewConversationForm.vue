@@ -366,7 +366,7 @@ useKeyboardEvents({
 
 <template>
   <div
-    class="w-full md:w-[42rem] divide-y divide-n-strong overflow-visible transition-all duration-300 ease-in-out top-full flex flex-col bg-n-alpha-3 border border-n-strong shadow-sm backdrop-blur-[100px] rounded-xl min-w-0 max-h-[calc(100vh-8rem)]"
+    class="rotta-new-conversation w-full divide-y divide-n-strong overflow-visible transition-all duration-300 ease-in-out top-full flex flex-col bg-n-alpha-3 border border-n-strong shadow-sm backdrop-blur-[100px] rounded-xl min-w-0"
   >
     <div class="flex-1 overflow-y-auto divide-y divide-n-strong">
       <ContactSelector
@@ -467,3 +467,21 @@ useKeyboardEvents({
     />
   </div>
 </template>
+
+<style scoped>
+.rotta-new-conversation {
+  width: min(48rem, calc(100vw - 2rem));
+  height: min(42rem, calc(100vh - 4rem));
+  min-height: min(32rem, calc(100vh - 4rem));
+  max-height: calc(100vh - 4rem);
+}
+
+@media (max-width: 640px) {
+  .rotta-new-conversation {
+    width: calc(100vw - 1rem);
+    height: calc(100vh - 2rem);
+    min-height: 0;
+    max-height: calc(100vh - 2rem);
+  }
+}
+</style>

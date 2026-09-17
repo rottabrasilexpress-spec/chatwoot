@@ -6,6 +6,25 @@ import * as helpers from '../composeConversationHelper';
 vi.mock('dashboard/api/contacts');
 
 describe('composeConversationHelper', () => {
+  describe('normalizePhoneSearchQuery', () => {
+    it('normalizes Brazilian local numbers to the E.164 digits stored by Chatwoot', () => {
+      expect(helpers.normalizePhoneSearchQuery('11965927865')).toBe(
+        '5511965927865'
+      );
+      expect(helpers.normalizePhoneSearchQuery('(11) 96592-7865')).toBe(
+        '5511965927865'
+      );
+      expect(helpers.normalizePhoneSearchQuery('+55 11 96592-7865')).toBe(
+        '5511965927865'
+      );
+    });
+
+    it('does not alter names or unsupported short numeric searches', () => {
+      expect(helpers.normalizePhoneSearchQuery('Kelvin')).toBe('Kelvin');
+      expect(helpers.normalizePhoneSearchQuery('12345')).toBe('12345');
+    });
+  });
+
   describe('generateLabelForContactableInboxesList', () => {
     const contact = {
       name: 'John Doe',

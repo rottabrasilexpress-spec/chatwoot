@@ -15,6 +15,10 @@ import {
   removeFollowUpJob,
   requiresFollowUpHours,
 } from './globalAiFollowUp';
+import {
+  buildGlobalAiViewState,
+  parseStoredGlobalAiThreadId,
+} from './globalAiSession';
 
 const router = useRouter();
 const { accountId } = useAccount();
@@ -42,14 +46,25 @@ const stateKey = computed(
     `rotta-global-ai:${accountId.value || 'default'}:${currentUser.value?.id || 'user'}`
 );
 
-const restoreState = () => {
+const restoreState = async () => {
+  const storedThreadId = parseStoredGlobalAiThreadId(
+    sessionStorage.getItem(stateKey.value)
+  );
+  if (!storedThreadId) {
+    sessionStorage.removeItem(stateKey.value);
+    return;
+  }
+
   try {
-    const saved = JSON.parse(sessionStorage.getItem(stateKey.value) || 'null');
-    if (!saved) return;
-    threadId.value = saved.threadId || null;
-    messages.value = saved.messages || [];
-    resultCards.value = saved.resultCards || [];
+    const response = await globalAiAPI.getThread(storedThreadId);
+    const restored = buildGlobalAiViewState(response.data);
+    threadId.value = restored.threadId;
+    messages.value = restored.messages;
+    resultCards.value = restored.resultCards;
   } catch {
+    threadId.value = null;
+    messages.value = [];
+    resultCards.value = [];
     sessionStorage.removeItem(stateKey.value);
   }
 };
@@ -59,8 +74,6 @@ const persistState = () => {
     stateKey.value,
     JSON.stringify({
       threadId: threadId.value,
-      messages: messages.value.slice(-30),
-      resultCards: resultCards.value.slice(0, 40),
     })
   );
 };
@@ -71,7 +84,7 @@ const loadAccess = async () => {
     const response = await globalAiAPI.getAccess();
     access.value = response.data;
     selectedAgents.value = [...(response.data.shared_user_ids || [])];
-    restoreState();
+    await restoreState();
   } catch (error) {
     useAlert(
       error.response?.data?.error ||

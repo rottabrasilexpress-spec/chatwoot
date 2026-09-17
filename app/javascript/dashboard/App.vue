@@ -22,6 +22,7 @@ import {
 import ReconnectService from 'dashboard/helper/ReconnectService';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import CaioAttentionAlertHost from './components-next/CaioAttentionAlert/CaioAttentionAlertHost.vue';
+import { ensureDashboardLocale } from './i18n/localeLoader';
 
 export default {
   name: 'App',
@@ -102,9 +103,9 @@ export default {
       const mql = window.matchMedia('(prefers-color-scheme: dark)');
       mql.onchange = e => setColorTheme(e.matches);
     },
-    setLocale(locale) {
+    async setLocale(locale) {
       if (locale) {
-        this.$root.$i18n.locale = locale;
+        await ensureDashboardLocale(this.$root.$i18n, locale);
       }
     },
     async initializeAccount() {

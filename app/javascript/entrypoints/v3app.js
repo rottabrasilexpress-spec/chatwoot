@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
 import { createI18n } from 'vue-i18n';
 
-import i18nMessages from 'dashboard/i18n';
+import { prepareDashboardI18n } from 'dashboard/i18n/localeLoader';
 import * as Sentry from '@sentry/vue';
 import {
   initializeAnalyticsEvents,
@@ -20,7 +20,8 @@ import FluentIcon from 'shared/components/FluentIcon/DashboardIcon.vue';
 const i18n = createI18n({
   legacy: false, // https://github.com/intlify/vue-i18n/issues/1902
   locale: 'en',
-  messages: i18nMessages,
+  fallbackLocale: 'en',
+  messages: {},
 });
 
 const app = createApp(App);
@@ -61,6 +62,10 @@ initializeChatwootEvents();
 initializeAnalyticsEvents();
 initalizeRouter();
 
-window.onload = () => {
+window.onload = async () => {
+  await prepareDashboardI18n(
+    i18n,
+    window.chatwootConfig?.selectedLocale || 'en'
+  );
   app.mount('#app');
 };
