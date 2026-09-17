@@ -77,6 +77,16 @@ const normalizeCount = value => {
   return Number.isFinite(count) && count > 0 ? count : 0;
 };
 
+export const buildSidebarLabelCounts = records =>
+  Object.fromEntries(
+    SIDEBAR_LABEL_DEFINITIONS.map(definition => [
+      definition.key,
+      normalizeCount(
+        findSidebarLabel(records, definition)?.conversations_count
+      ),
+    ])
+  );
+
 let sidebarCountsRequestId = 0;
 
 export const state = {
@@ -144,23 +154,21 @@ export const actions = {
     }
   },
 
-  getSidebarCounts: async function getSidebarCounts({
-    state: moduleState,
-    commit,
-  }) {
+  getSidebarCounts: async function getSidebarCounts({ commit }) {
     sidebarCountsRequestId += 1;
     const requestId = sidebarCountsRequestId;
-    if (requestId !== sidebarCountsRequestId) return;
+    try {
+      const response = await LabelsAPI.get(false);
+      if (requestId !== sidebarCountsRequestId) return;
 
-    const counts = Object.fromEntries(
-      SIDEBAR_LABEL_DEFINITIONS.map(definition => [
-        definition.key,
-        normalizeCount(
-          findSidebarLabel(moduleState.records, definition)?.conversations_count
-        ),
-      ])
-    );
-    commit(SIDEBAR_LABEL_COUNTS_MUTATION, counts);
+      const records = [...response.data.payload].sort((a, b) =>
+        a.title.localeCompare(b.title)
+      );
+      commit(types.SET_LABELS, records);
+      commit(SIDEBAR_LABEL_COUNTS_MUTATION, buildSidebarLabelCounts(records));
+    } catch (error) {
+      // Keep the last known counts when the authoritative refresh fails.
+    }
   },
 
   create: async function createLabels({ commit }, cannedObj) {
