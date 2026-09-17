@@ -8,6 +8,8 @@ import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { emitter } from 'shared/helpers/mitt';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import { useUISettings } from 'dashboard/composables/useUISettings';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import {
@@ -38,6 +40,7 @@ import { createFollowUpRefreshScheduler } from './followUpRefreshScheduler';
 
 const TIMEZONE = 'America/Sao_Paulo';
 const router = useRouter();
+const { uiSettings, updateUISettings } = useUISettings();
 
 const labelMeta = {
   'primeiro-contato': { title: 'Primeiro contato', color: '#16a34a' },
@@ -77,7 +80,10 @@ const lastSyncedAt = ref(null);
 const expandedJobs = ref(new Set());
 const pendingEnrollments = ref([]);
 const selectedView = ref('all');
+const boardMode = ref(uiSettings.value?.rotta_follow_up_board_mode || 'board');
 const customHours = ref({});
+const dispatchDialogRef = ref(null);
+const pendingDispatchJob = ref(null);
 let refreshTimer;
 let clockTimer;
 let refreshRequested = false;
@@ -392,7 +398,14 @@ const viewCount = view => {
 
 const viewOptions = computed(() => trailViews);
 
-const visibleColumns = computed(() => trailColumns.value);
+const visibleColumns = computed(() => {
+  if (boardMode.value !== 'stage' || selectedStage.value === 'all') {
+    return trailColumns.value;
+  }
+  return trailColumns.value.filter(column =>
+    column.stageKeys.includes(selectedStage.value)
+  );
+});
 
 const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
@@ -445,6 +458,18 @@ const orderedFilteredJobs = computed(() =>
 watch(selectedView, () => {
   selectedStage.value = 'all';
 });
+
+watch(boardMode, value => {
+  updateUISettings({ rotta_follow_up_board_mode: value });
+  if (value === 'stage' && selectedStage.value === 'all') {
+    selectedStage.value = stageOptions.value[0] || 'all';
+  }
+});
+
+const selectStage = stage => {
+  selectedStage.value = stage;
+  boardMode.value = 'stage';
+};
 
 const jobsForColumn = columnKey => {
   const groupedColumn = trailColumns.value.find(
@@ -756,6 +781,23 @@ const runWithHours = (job, action) => {
   runAction(job, action, Math.min(hours, 720));
 };
 
+const shiftOneDay = (job, direction) => {
+  runAction(job, direction === 'earlier' ? 'advance' : 'delay', 24);
+};
+
+const requestDispatchNow = job => {
+  pendingDispatchJob.value = job;
+  dispatchDialogRef.value?.open();
+};
+
+const confirmDispatchNow = async () => {
+  const job = pendingDispatchJob.value;
+  if (!job) return;
+  await runAction(job, 'dispatch_now');
+  dispatchDialogRef.value?.close();
+  pendingDispatchJob.value = null;
+};
+
 const openConversation = job => {
   const accountId = job.account_id;
   const conversationId = job.conversation_id;
@@ -886,6 +928,38 @@ onUnmounted(() => {
               <span>{{ viewCount(view.key) }}</span>
             </button>
           </div>
+          <div
+            class="rotta-layout-picker"
+            role="group"
+            aria-label="Modelo do quadro"
+          >
+            <span>Layout</span>
+            <button
+              v-for="mode in [
+                { key: 'board', label: 'Quadro', icon: 'i-lucide-columns-3' },
+                {
+                  key: 'stage',
+                  label: 'Etapa em foco',
+                  icon: 'i-lucide-focus',
+                },
+                {
+                  key: 'compact',
+                  label: 'Lista compacta',
+                  icon: 'i-lucide-list',
+                },
+              ]"
+              :key="mode.key"
+              type="button"
+              :class="{
+                'rotta-layout-picker__button--active': boardMode === mode.key,
+              }"
+              :aria-pressed="boardMode === mode.key"
+              @click="boardMode = mode.key"
+            >
+              <Icon :icon="mode.icon" class="size-4" />
+              {{ mode.label }}
+            </button>
+          </div>
           <label class="rotta-select-wrap">
             <span>Filtrar etapa</span>
             <select v-model="selectedStage" class="rotta-select">
@@ -895,6 +969,25 @@ onUnmounted(() => {
               </option>
             </select>
           </label>
+          <div
+            v-if="boardMode === 'stage'"
+            class="rotta-stage-filter"
+            aria-label="Escolha rápida de etapa"
+          >
+            <button
+              v-for="stage in stageOptions"
+              :key="`focus-${stage}`"
+              type="button"
+              :class="{
+                'rotta-stage-filter__button--active': selectedStage === stage,
+              }"
+              :style="{ '--stage-color': labelInfo(stage).color }"
+              @click="selectStage(stage)"
+            >
+              {{ labelInfo(stage).title }}
+              <span>{{ counts[stage] || 0 }}</span>
+            </button>
+          </div>
         </div>
 
         <div v-if="isLoading && !queueJobs.length" class="rotta-empty-state">
@@ -914,6 +1007,7 @@ onUnmounted(() => {
 
         <div v-else class="rotta-queue">
           <div
+            v-if="boardMode !== 'compact'"
             class="rotta-board rotta-board--trails"
             aria-label="Quadro de follow-ups"
           >
@@ -1119,7 +1213,23 @@ onUnmounted(() => {
                         size="sm"
                         teal
                         :is-loading="busyJobId === job.job_id"
-                        @click="runAction(job, 'dispatch_now')"
+                        @click="requestDispatchNow(job)"
+                      />
+                      <Button
+                        label="−1 dia"
+                        size="sm"
+                        slate
+                        ghost
+                        :disabled="busyJobId === job.job_id"
+                        @click="shiftOneDay(job, 'earlier')"
+                      />
+                      <Button
+                        label="+1 dia"
+                        size="sm"
+                        slate
+                        ghost
+                        :disabled="busyJobId === job.job_id"
+                        @click="shiftOneDay(job, 'later')"
                       />
                       <label class="rotta-hours-input">
                         <span>Horas</span>
@@ -1216,7 +1326,10 @@ onUnmounted(() => {
             </article>
           </div>
 
-          <div class="rotta-queue__desktop">
+          <div
+            v-if="boardMode === 'compact'"
+            class="rotta-queue__desktop rotta-queue__desktop--visible"
+          >
             <div class="rotta-table-wrap">
               <table class="rotta-table">
                 <thead>
@@ -1339,7 +1452,25 @@ onUnmounted(() => {
                           size="sm"
                           teal
                           :is-loading="busyJobId === job.job_id"
-                          @click="runAction(job, 'dispatch_now')"
+                          @click="requestDispatchNow(job)"
+                        />
+                        <Button
+                          v-tooltip.top="'Adiantar exatamente 24 horas'"
+                          label="−1 dia"
+                          size="sm"
+                          slate
+                          ghost
+                          :disabled="busyJobId === job.job_id"
+                          @click="shiftOneDay(job, 'earlier')"
+                        />
+                        <Button
+                          v-tooltip.top="'Atrasar exatamente 24 horas'"
+                          label="+1 dia"
+                          size="sm"
+                          slate
+                          ghost
+                          :disabled="busyJobId === job.job_id"
+                          @click="shiftOneDay(job, 'later')"
                         />
                         <Button
                           v-tooltip.top="'Adiantar em horas'"
@@ -1424,7 +1555,7 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="rotta-queue__mobile">
+          <div v-if="boardMode === 'compact'" class="rotta-queue__mobile">
             <article
               v-for="job in orderedFilteredJobs"
               :key="job.job_id"
@@ -1562,7 +1693,23 @@ onUnmounted(() => {
                   size="sm"
                   teal
                   :is-loading="busyJobId === job.job_id"
-                  @click="runAction(job, 'dispatch_now')"
+                  @click="requestDispatchNow(job)"
+                />
+                <Button
+                  label="−1 dia"
+                  size="sm"
+                  slate
+                  ghost
+                  :disabled="busyJobId === job.job_id"
+                  @click="shiftOneDay(job, 'earlier')"
+                />
+                <Button
+                  label="+1 dia"
+                  size="sm"
+                  slate
+                  ghost
+                  :disabled="busyJobId === job.job_id"
+                  @click="shiftOneDay(job, 'later')"
                 />
                 <Button
                   label="Adiantar"
@@ -1604,6 +1751,36 @@ onUnmounted(() => {
             {{ labelInfo(label).title }}: <strong>{{ count }}</strong>
           </span>
         </div>
+        <Dialog
+          ref="dispatchDialogRef"
+          type="alert"
+          title="Disparar follow-up agora?"
+          confirm-button-label="Sim, disparar agora"
+          cancel-button-label="Voltar"
+          :is-loading="
+            pendingDispatchJob && busyJobId === pendingDispatchJob.job_id
+          "
+          @confirm="confirmDispatchNow"
+          @close="pendingDispatchJob = null"
+        >
+          <div v-if="pendingDispatchJob" class="rotta-dispatch-confirmation">
+            <p>
+              A mensagem da etapa
+              <strong>{{
+                labelInfo(displayStageFor(pendingDispatchJob)).title
+              }}</strong>
+              será enviada imediatamente para
+              <strong>{{
+                pendingDispatchJob.customer_name || 'este cliente'
+              }}</strong
+              >.
+            </p>
+            <p>
+              Essa ação antecipa o horário programado e pode gerar comunicação
+              externa no WhatsApp.
+            </p>
+          </div>
+        </Dialog>
       </section>
     </template>
   </SettingsLayout>
@@ -1615,6 +1792,113 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 1rem;
   width: 100%;
+}
+
+.rotta-layout-picker,
+.rotta-stage-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rotta-layout-picker > span {
+  color: var(--color-n-slate-11);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rotta-layout-picker button,
+.rotta-stage-filter button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border: 1px solid var(--color-n-weak);
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-n-slate-11);
+  background: var(--color-n-alpha-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.rotta-layout-picker button:hover,
+.rotta-layout-picker__button--active {
+  border-color: var(--color-n-brand);
+  color: var(--color-n-brand);
+  background: var(--color-n-brand-alpha-2);
+}
+
+.rotta-stage-filter {
+  width: 100%;
+  padding-top: 0.25rem;
+}
+
+.rotta-stage-filter button {
+  box-shadow: inset 0 2px 0 var(--stage-color);
+}
+
+.rotta-stage-filter button span {
+  min-width: 1.25rem;
+  border-radius: 999px;
+  padding: 0.125rem 0.375rem;
+  background: var(--color-n-alpha-3);
+}
+
+.rotta-stage-filter__button--active {
+  border-color: var(--stage-color) !important;
+  color: var(--color-n-slate-12) !important;
+  background: color-mix(
+    in srgb,
+    var(--stage-color) 10%,
+    transparent
+  ) !important;
+}
+
+.rotta-dispatch-confirmation {
+  display: grid;
+  gap: 0.75rem;
+  color: var(--color-n-slate-11);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.rotta-dispatch-confirmation strong {
+  color: var(--color-n-slate-12);
+}
+
+@media (max-width: 767px) {
+  .rotta-layout-picker {
+    width: 100%;
+  }
+
+  .rotta-layout-picker > span {
+    width: 100%;
+  }
+
+  .rotta-layout-picker button {
+    flex: 1 1 8rem;
+    min-height: 2.75rem;
+  }
+
+  .rotta-stage-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .rotta-stage-filter button {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+    scroll-snap-align: start;
+  }
 }
 
 .rotta-summary-grid {
