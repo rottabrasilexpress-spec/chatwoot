@@ -2,6 +2,11 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   ALLOWED_ACTIONS = %w[list config dispatch_now advance delay cancel remove_label].freeze
   MUTATING_ACTIONS = %w[dispatch_now advance delay cancel].freeze
   MUTABLE_REMOTE_STATUSES = %w[pending queued processing syncing sync_failed failed_send failed_labels].freeze
+  FOLLOW_UP_STAGE_KEYS = %w[
+    contato-instantaneo primeiro-contato segundo-contato terceiro-contato ultimo-contato
+    orcamento-instantaneo orcamento-feito orcamento-tentativa-2 orcamento-tentativa-3
+    orcamento-tentativa-4 orcamento-5-dias orcamento-10-dias orcamento-15-dias
+  ].freeze
 
   def proxy
     payload = JSON.parse(request.raw_post.presence || '{}').slice(
@@ -29,6 +34,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     body = response.body
     body = scope_list_body(body) if action == 'list' && body.is_a?(Hash)
     body = add_delivery_evidence(body) if action == 'list' && body.is_a?(Hash)
+    body = add_chatwoot_label_fallbacks(body) if action == 'list' && body.is_a?(Hash)
     render json: body, status: response.status
   rescue RottaFollowUp::AdminClient::Error => e
     Rails.logger.error("[RottaFollowUp] #{e.class}: #{e.message}")
@@ -156,6 +162,61 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       evidence ? enriched_job.merge('delivery_evidence' => evidence) : enriched_job
     end
     body
+  end
+
+  # The external worker is the scheduling source of truth, but Chatwoot labels
+  # are the operator's source of truth. If an old/lost webhook leaves a label
+  # without a remote job, keep the conversation visible as a reconciliation
+  # warning instead of silently showing an empty board. The fallback cannot
+  # dispatch; operators may safely remove the label and a later webhook can
+  # replace it with a real remote job.
+  def add_chatwoot_label_fallbacks(body)
+    jobs = Array(body['jobs'])
+    label_titles = Current.account.labels.pluck(:title).select do |title|
+      FOLLOW_UP_STAGE_KEYS.include?(follow_up_label_key(title))
+    end
+    return body if label_titles.empty?
+
+    existing_keys = jobs.to_set do |job|
+      stage = follow_up_label_key(job['current_label'].presence || job['source_label'])
+      "#{job['conversation_id']}:#{stage}"
+    end
+
+    fallback_jobs = Current.account.conversations
+                                  .tagged_with(label_titles, any: true)
+                                  .includes(:contact)
+                                  .distinct
+                                  .flat_map do |conversation|
+      # `tagged_with` confirms the database relation; the maintained cache
+      # avoids one tag query per conversation on the five-second refresh.
+      active_labels = conversation.cached_label_list_array
+      active_labels.filter_map do |label|
+        stage = follow_up_label_key(label)
+        next unless FOLLOW_UP_STAGE_KEYS.include?(stage)
+        next if existing_keys.include?("#{conversation.display_id}:#{stage}")
+
+        chatwoot_label_fallback(conversation, stage, active_labels)
+      end
+    end
+
+    all_jobs = jobs + fallback_jobs
+    body.merge('jobs' => all_jobs, 'total' => all_jobs.length)
+  end
+
+  def chatwoot_label_fallback(conversation, stage, active_labels)
+    {
+      'job_id' => "pending:#{conversation.display_id}:#{stage}",
+      'conversation_id' => conversation.display_id.to_s,
+      'account_id' => Current.account.id.to_s,
+      'customer_name' => conversation.contact&.name,
+      'phone' => conversation.contact&.phone_number,
+      'source_label' => stage,
+      'current_label' => stage,
+      'status' => 'sync_failed',
+      'pending_enrollment' => true,
+      'active_labels' => active_labels,
+      'reconciliation_source' => 'chatwoot_label'
+    }
   end
 
   def find_delivery_evidence(conversation, job)
