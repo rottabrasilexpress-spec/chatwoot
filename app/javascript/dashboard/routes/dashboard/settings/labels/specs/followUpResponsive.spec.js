@@ -12,7 +12,7 @@ describe('follow-up responsive board', () => {
       /\.rotta-board--trails\s*\{[^}]*grid-auto-columns:\s*minmax\(16rem,\s*18rem\)/s
     );
     expect(followUpSource).toMatch(
-      /@media \(max-width:\s*640px\)[\s\S]*?\.rotta-board--trails\s*\{[^}]*grid-template-columns:\s*none;[^}]*grid-auto-columns:\s*minmax\(15rem,\s*calc\(100vw - 3\.75rem\)\)/s
+      /@media \(max-width:\s*640px\)[\s\S]*?\.rotta-board--trails\s*\{[^}]*grid-template-columns:\s*none;[^}]*grid-auto-columns:\s*min\(21rem,\s*calc\(100vw - 3\.75rem\)\)/s
     );
   });
 });

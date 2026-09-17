@@ -2479,7 +2479,7 @@ onUnmounted(() => {
 
   .rotta-board--trails {
     grid-template-columns: none;
-    grid-auto-columns: minmax(15rem, calc(100vw - 3.75rem));
+    grid-auto-columns: min(21rem, calc(100vw - 3.75rem));
     scroll-padding-inline: 0.1rem;
   }
 
