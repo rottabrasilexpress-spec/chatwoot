@@ -77,7 +77,10 @@ const store = useStore();
 const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ALL);
 const defaultConversationStatus = (() => {
   if (props.conversationStatus) return props.conversationStatus;
-  if (isSidebarLabelTitle(props.label, 'finalized')) {
+  if (
+    isSidebarLabelTitle(props.label, 'finalized') ||
+    isSidebarLabelTitle(props.label, 'contractIssuance')
+  ) {
     return wootConstants.STATUS_TYPE.ALL;
   }
   if (
