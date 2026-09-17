@@ -34,6 +34,7 @@ import {
   displayTrailStagesFor,
   nextFollowUpStageFor,
 } from './followUpHelpers';
+import { createFollowUpRefreshScheduler } from './followUpRefreshScheduler';
 
 const TIMEZONE = 'America/Sao_Paulo';
 const router = useRouter();
@@ -79,22 +80,18 @@ const selectedView = ref('all');
 const customHours = ref({});
 let refreshTimer;
 let clockTimer;
-let realtimeRefreshTimer;
-let settleRefreshTimer;
-let fastRefreshTimers = [];
 let refreshRequested = false;
 let isMounted = false;
 let loadQueue;
 let openingConversationKey = '';
+let refreshScheduler;
 
 const REALTIME_REFRESH_DEBOUNCE_MS = 400;
-const REALTIME_SETTLE_REFRESH_MS = 1200;
 // The n8n worker can update labels outside the browser's ActionCable stream.
 // Keep a short reconciliation window so the board does not wait 30 seconds
 // for an external worker transition while retaining the in-flight guard in
 // loadQueue to avoid overlapping requests.
 const QUEUE_RECONCILIATION_INTERVAL_MS = 5000;
-const FAST_REFRESH_DELAYS_MS = [300, 1000, 2500, 5000];
 
 const labelInfo = slug => {
   const canonicalStage = canonicalFollowUpStage(slug);
@@ -671,27 +668,10 @@ const registerPendingEnrollment = data => {
   pendingEnrollments.value = [...current.values()];
 };
 
-const scheduleFastRefresh = () => {
-  fastRefreshTimers.forEach(timer => window.clearTimeout(timer));
-  fastRefreshTimers = FAST_REFRESH_DELAYS_MS.map(delay =>
-    window.setTimeout(loadQueue, delay)
-  );
-};
-
 function scheduleRealtimeRefresh(data) {
   if (!isMounted) return;
   registerPendingEnrollment(data);
-  window.clearTimeout(realtimeRefreshTimer);
-  window.clearTimeout(settleRefreshTimer);
-  scheduleFastRefresh();
-  realtimeRefreshTimer = window.setTimeout(() => {
-    realtimeRefreshTimer = undefined;
-    loadQueue();
-    settleRefreshTimer = window.setTimeout(() => {
-      settleRefreshTimer = undefined;
-      loadQueue();
-    }, REALTIME_SETTLE_REFRESH_MS);
-  }, REALTIME_REFRESH_DEBOUNCE_MS);
+  refreshScheduler.schedule();
 }
 
 loadQueue = async () => {
@@ -759,7 +739,6 @@ const runAction = async (job, action, hours = undefined) => {
         pendingJobKey(item) !==
         `${job.conversation_id}:${canonicalFollowUpStage(currentStage(job))}`
     );
-    scheduleFastRefresh();
     await loadQueue();
   } catch (error) {
     useAlert(error.message || 'Não foi possível atualizar este follow-up.');
@@ -800,6 +779,10 @@ const openConversation = job => {
 
 onMounted(async () => {
   isMounted = true;
+  refreshScheduler = createFollowUpRefreshScheduler({
+    refresh: () => loadQueue(),
+    debounceMs: REALTIME_REFRESH_DEBOUNCE_MS,
+  });
   emitter.on(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, scheduleRealtimeRefresh);
   emitter.on(BUS_EVENTS.WEBSOCKET_RECONNECT, scheduleRealtimeRefresh);
   await loadQueue();
@@ -818,9 +801,7 @@ onUnmounted(() => {
   emitter.off(BUS_EVENTS.WEBSOCKET_RECONNECT, scheduleRealtimeRefresh);
   window.clearInterval(clockTimer);
   window.clearInterval(refreshTimer);
-  window.clearTimeout(realtimeRefreshTimer);
-  window.clearTimeout(settleRefreshTimer);
-  fastRefreshTimers.forEach(timer => window.clearTimeout(timer));
+  refreshScheduler?.dispose();
 });
 </script>
 
