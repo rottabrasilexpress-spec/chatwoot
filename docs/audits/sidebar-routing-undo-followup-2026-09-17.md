@@ -67,3 +67,15 @@
 ## Linhas conectadas
 
 [[Chatwoot Rotta — contexto e estado]] ↔ [GitHub rotta-custom-v1](https://github.com/rottabrasilexpress-spec/chatwoot/tree/rotta-custom-v1) ↔ [EasyPanel](https://easypanel.via-cargo.com/projects/n8nsaas/compose/chatwoot-rotta/deployments) ↔ [Chatwoot](https://n8nsaas-chatwoot-rotta.u9nqzz.easypanel.host/app/accounts/1/dashboard)
+
+## Auditoria completa das trilhas e responsividade — 17/09/2026
+
+- Contagem live no menu superior de etiquetas: `Primeiro contato = 1`; as outras dez etiquetas de trilha estavam em `0`. O quadro exibiu exatamente o mesmo estado: `Na fila = 1`, `Etapas ativas = 1`, `Trilha de contato = 1`, `Trilha de orçamento = 0` e um único cartão real de `~Kelvin Martins` (`5511965927865`) em Primeiro contato → Segundo contato.
+- O endpoint de Follow-up retornou seis registros: um job ativo e cinco linhas antigas `sent_history`. As cinco históricas tinham `active_labels` vazio e foram corretamente excluídas do quadro e dos contadores. Elas permanecem somente para auditoria; não são contatos fantasmas operacionais.
+- O workflow ativo `utaNsnFUZYBYDf5S` possui 13 mapeamentos: as 11 etapas visíveis do quadro e duas etapas transitórias imediatas. Foram confirmadas proteção por ordenação temporal, cancelamento na troca/remoção rápida de etiqueta, índices únicos por conversa+etapa e telefone+etapa, reconciliação de duplicatas, worker com `FOR UPDATE SKIP LOCKED`, advisory lock e conferência final da etiqueta antes do disparo.
+- Nas 200 execuções mais recentes auditadas, 199 terminaram com sucesso. A única falha foi a execução histórica `620963`, anterior à correção do SQL; todas as execuções posteriores à publicação concluíram com sucesso.
+- Bug visual encontrado: em telas de até 640 px, a regra genérica do quadro substituía a grade da trilha e podia reduzir a primeira coluna a 2 px. A correção separa explicitamente a grade da trilha, usa colunas roláveis com snap e preserva largura útil em desktop, tablet e celular.
+- Medição live após o deploy final: viewport 390×844 com colunas de 294 px e página sem overflow horizontal; viewport 1440×1000 com colunas de 224 px, `scrollWidth = clientWidth` e sem recortes. O detector visual Impeccable retornou zero achados.
+- Commits publicados: `5b1947ce` (regra responsiva e regressão), `ab4d7696` (bundle Vite de produção) e `5d3490f6` (largura móvel final). O deploy do commit final foi reconhecido pelo EasyPanel como `fix(follow-up): widen mobile trail cards`; durante o restart houve 502 transitório e, em seguida, `/health` voltou a HTTP 200.
+- Validação: Prettier aprovado; ESLint com zero erros e apenas 14 avisos preexistentes de quebra de linha; build Vite concluído com aproximadamente 5.100 módulos; manifesto validado com 240 assets; `git diff --check` aprovado. A coleta Vitest continua bloqueada pelo junction local de `node_modules`/`fake-indexeddb`, sem falha de asserção.
+- Segurança: nenhum novo envio foi realizado nesta etapa. O job ativo autorizado permaneceu no prazo normal e nenhum registro histórico foi apagado.
