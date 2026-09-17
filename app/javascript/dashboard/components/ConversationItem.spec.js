@@ -259,6 +259,30 @@ describe('ConversationItem finalize confirmation', () => {
     expect(dependencies.updateConversationStatus).not.toHaveBeenCalled();
   });
 
+  it('offers an explicit undo and removes FINALIZADOS without changing status', async () => {
+    const { wrapper, dependencies, dispatch } = mountConversationItem({
+      labels: [{ title: 'FINALIZADOS' }],
+    });
+
+    await openContextMenu(wrapper);
+    const action = findMenuAction(wrapper, 'finalize');
+
+    expect(action).toBeTruthy();
+    expect(action.text()).toBe('CONVERSATION.CARD_CONTEXT_MENU.UNFINALIZE');
+
+    await action.trigger('click');
+    await flushPromises();
+
+    expect(dependencies.removeLabels).toHaveBeenCalledWith(
+      ['FINALIZADOS'],
+      [2441]
+    );
+    expect(dependencies.assignLabels).not.toHaveBeenCalled();
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(dependencies.updateConversationStatus).not.toHaveBeenCalled();
+  });
+
   it('archives by label only and leaves the native status untouched', async () => {
     const { wrapper, dependencies, dispatch } = mountConversationItem();
     await openContextMenu(wrapper);

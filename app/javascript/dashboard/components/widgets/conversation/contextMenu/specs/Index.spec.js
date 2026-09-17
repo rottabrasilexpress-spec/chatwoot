@@ -57,4 +57,21 @@ describe('ConversationContextMenu', () => {
 
     expect(action.text()).toBe('Remover etiqueta Emitir Contrato');
   });
+
+  it('shows an explicit undo action for a finalized conversation', () => {
+    const wrapper = mountComponent({
+      canFinalize: true,
+      finalizedLabelAssigned: true,
+    });
+
+    const action = wrapper
+      .findAllComponents(MenuItem)
+      .find(item => item.props('option').key === 'finalize');
+
+    expect(action).toBeTruthy();
+    expect(action.props('option')).toMatchObject({
+      label: 'CONVERSATION.CARD_CONTEXT_MENU.UNFINALIZE',
+      icon: 'i-lucide-undo-2',
+    });
+  });
 });

@@ -77,10 +77,11 @@ const finalizedLabelDefinition = SIDEBAR_LABEL_DEFINITIONS.find(
 const contractLabelDefinition = SIDEBAR_LABEL_DEFINITIONS.find(
   definition => definition.key === 'contractIssuance'
 );
+const finalizedLabel = computed(() =>
+  findSidebarLabel(allLabels.value, finalizedLabelDefinition)
+);
 const finalizedLabelTitle = computed(
-  () =>
-    findSidebarLabel(allLabels.value, finalizedLabelDefinition)?.title ||
-    'FINALIZADOS'
+  () => finalizedLabel.value?.title || 'FINALIZADOS'
 );
 const contractLabel = computed(() =>
   findSidebarLabel(allLabels.value, contractLabelDefinition)
@@ -98,11 +99,11 @@ const sourceLabelTitles = computed(() =>
     .map(label => (typeof label === 'string' ? label : label?.title))
     .filter(Boolean)
 );
+const finalizedLabelAssigned = computed(() =>
+  sourceLabelTitles.value.some(label => isSidebarLabelTitle(label, 'finalized'))
+);
 const canFinalize = computed(
-  () =>
-    !sourceLabelTitles.value.some(label =>
-      isSidebarLabelTitle(label, 'finalized')
-    )
+  () => Boolean(finalizedLabel.value) || finalizedLabelAssigned.value
 );
 const contractLabelAssigned = computed(() =>
   sourceLabelTitles.value.some(label =>
@@ -278,6 +279,20 @@ const onRequestAttention = async conversationId => {
 
 const onFinalizeConversation = async () => {
   closeContextMenu();
+  if (finalizedLabelAssigned.value) {
+    try {
+      const removed = await removeLabels(
+        [finalizedLabelTitle.value],
+        [props.source.id]
+      );
+      if (!removed) return;
+      useAlert(t('CONVERSATION.CARD_CONTEXT_MENU.UNFINALIZE_SUCCESS'));
+    } catch (error) {
+      useAlert(t('CONVERSATION.CARD_CONTEXT_MENU.UNFINALIZE_FAILED'));
+    }
+    return;
+  }
+
   const confirmed = await finalizeConfirmation.value?.showConfirmation();
   if (!confirmed) return;
 
@@ -363,6 +378,7 @@ const onFinalizeConversation = async () => {
       :conversation-url="conversationPath"
       :can-request-attention="canRequestAttention"
       :can-finalize="canFinalize && !isFinalizing"
+      :finalized-label-assigned="finalizedLabelAssigned"
       :can-issue-contract="canIssueContract"
       :contract-label-assigned="contractLabelAssigned"
       :contract-label-title="contractLabelTitle"

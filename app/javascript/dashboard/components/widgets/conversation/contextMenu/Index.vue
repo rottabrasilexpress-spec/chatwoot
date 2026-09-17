@@ -68,6 +68,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    finalizedLabelAssigned: {
+      type: Boolean,
+      default: false,
+    },
     canIssueContract: {
       type: Boolean,
       default: false,
@@ -286,7 +290,13 @@ export default {
     />
     <MenuItem
       v-if="canFinalize && isAllowed([MENU.FINALIZE])"
-      :option="finalizeOption"
+      :option="{
+        ...finalizeOption,
+        label: finalizedLabelAssigned
+          ? $t('CONVERSATION.CARD_CONTEXT_MENU.UNFINALIZE')
+          : finalizeOption.label,
+        icon: finalizedLabelAssigned ? 'i-lucide-undo-2' : finalizeOption.icon,
+      }"
       variant="attention"
       @click.stop="finalizeConversation"
     />
