@@ -39,6 +39,7 @@ COPY app/controllers/api/v1/accounts/calculator_controller.rb /app/app/controlle
 COPY app/controllers/api/v1/accounts/global_ai /app/app/controllers/api/v1/accounts/global_ai
 COPY app/controllers/webhooks/uazapi_controller.rb /app/app/controllers/webhooks/uazapi_controller.rb
 COPY app/listeners/action_cable_listener.rb /app/app/listeners/action_cable_listener.rb
+COPY app/listeners/webhook_listener.rb /app/app/listeners/webhook_listener.rb
 COPY app/services/rotta_uazapi_call_event_service.rb /app/app/services/rotta_uazapi_call_event_service.rb
 COPY app/services/rotta_calculator.rb /app/app/services/rotta_calculator.rb
 COPY app/services/rotta_calculator /app/app/services/rotta_calculator
