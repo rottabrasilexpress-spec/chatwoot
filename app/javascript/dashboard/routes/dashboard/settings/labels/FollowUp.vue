@@ -2730,6 +2730,21 @@ onUnmounted(() => {
   display: none !important;
 }
 
+.rotta-queue__desktop--visible {
+  display: block !important;
+}
+
+@media (max-width: 1023px) {
+  .rotta-queue__desktop--visible {
+    display: none !important;
+  }
+
+  .rotta-queue__mobile {
+    display: grid !important;
+    gap: 0.75rem;
+  }
+}
+
 @media (max-width: 1023px) {
   .rotta-board:not(.rotta-board--trails) {
     grid-template-columns: repeat(2, minmax(16rem, 1fr));
