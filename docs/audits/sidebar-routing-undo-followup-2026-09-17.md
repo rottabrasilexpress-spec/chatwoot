@@ -52,7 +52,17 @@
 - Teste `11965927865` / conversa `2143`: Emitir Contrato foi aplicado, o contador mudou dinamicamente para 1, a conversa apareceu na fila, “Remover etiqueta Emitir Contrato” funcionou, a conversa saiu da fila e o contador voltou ao estado inicial.
 - Teste `+5511991262866` / conversa `48`: o contato começou sem etiquetas; Enviar para FINALIZADOS abriu a confirmação, aplicou somente FINALIZADOS, atualizou contador para 1 e mostrou o cartão na fila. O menu exibiu “Desfazer envio para FINALIZADOS”; ao desfazer, cartão e contador retornaram ao estado inicial.
 - Nenhuma mensagem foi enviada. Os dois contatos foram restaurados sem Emitir Contrato e sem FINALIZADOS, exatamente como estavam antes dos testes.
-- Follow-up live: a tela carregou em modo “ao vivo” e respondeu ao botão Atualizar, porém mostrou 0 trilhas enquanto o cadastro global de etiquetas indicava 1 conversa em Primeiro contato. Isso foi registrado como possível dessincronização adicional e não foi alterado sem autorização.
+- Follow-up live antes do reparo: a tela carregou em modo “ao vivo” e respondeu ao botão Atualizar, porém mostrou 0 trilhas enquanto o cadastro global de etiquetas indicava 1 conversa em Primeiro contato.
+
+## Reparo autorizado do Follow-up
+
+- O MCP Rotta confirmou o workflow ativo `utaNsnFUZYBYDf5S`, com 28 nós, deduplicação por conversa/etapa e por telefone/etapa e cancelamento de jobs incompatíveis.
+- Causa raiz no motor: o SQL do nó `Normalizar Evento de Etiquetas` fornecia `last_received_at` em `VALUES`, mas não incluía essa coluna no `INSERT`. A execução real `620963` reproduziu `INSERT has more expressions than target columns` antes da criação do job.
+- O workflow foi corrigido somente nessa lista de colunas, validado sem avisos e publicado na versão ativa `ee1c9392-039f-4d17-aee4-7bdcd45911d2`.
+- O Chatwoot passou a reconciliar etiquetas de trilha sem job remoto como cartões explícitos de “Conciliação pendente”. Esses cartões não disparam mensagens: eliminam o vazio/contador fantasma e permitem ao operador enxergar e remover a etiqueta com segurança. Commit `1908eb38`, deploy EasyPanel concluído e `/health` HTTP 200.
+- O contato autorizado `11965927865` tinha a etiqueta `primeiro-contato` na conversa pública `206`, mas nenhum job. Após a publicação do n8n, a execução `621002` concluiu com sucesso e `queued: true`; o painel passou de 0 para exatamente 1 cartão real, status “Na fila”, sem duplicidade.
+- Um job de ensaio criado inicialmente com o identificador interno incorreto `2143` foi cancelado imediatamente pela execução `620999`, antes de qualquer disparo. O job correto ficou associado somente à conversa pública `206`.
+- Varredura posterior: 30 execuções do workflow desde a publicação, todas com sucesso e 0 erros/crashes. Nenhuma mensagem foi enviada durante a auditoria; o job correto segue o prazo normal da etiqueta e está agendado para o número de teste autorizado.
 
 ## Linhas conectadas
 
