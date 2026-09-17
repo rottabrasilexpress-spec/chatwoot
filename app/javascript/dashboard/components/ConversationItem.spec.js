@@ -31,7 +31,11 @@ const ConversationCardStub = {
   template: '<div @contextmenu="$emit(\'contextmenu\', $event)"></div>',
 };
 
-const mountConversationItem = ({ source, labels = [] } = {}) => {
+const mountConversationItem = ({
+  source,
+  labels = [],
+  routeLabel = '',
+} = {}) => {
   const store = createStore({
     getters: {
       getSelectedChat: () => ({ id: null }),
@@ -81,6 +85,7 @@ const mountConversationItem = ({ source, labels = [] } = {}) => {
 
   const wrapper = mount(ConversationItem, {
     props: {
+      label: routeLabel,
       source: {
         id: 2441,
         labels,
@@ -281,6 +286,25 @@ describe('ConversationItem finalize confirmation', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
     expect(dispatch).not.toHaveBeenCalled();
     expect(dependencies.updateConversationStatus).not.toHaveBeenCalled();
+  });
+
+  it('offers undo while the finalized route is active before labels refresh', async () => {
+    const { wrapper, dependencies } = mountConversationItem({
+      routeLabel: 'finalizados',
+    });
+
+    await openContextMenu(wrapper);
+    const action = findMenuAction(wrapper, 'finalize');
+
+    expect(action.text()).toBe('CONVERSATION.CARD_CONTEXT_MENU.UNFINALIZE');
+    await action.trigger('click');
+    await flushPromises();
+
+    expect(dependencies.removeLabels).toHaveBeenCalledWith(
+      ['FINALIZADOS'],
+      [2441]
+    );
+    expect(dependencies.assignLabels).not.toHaveBeenCalled();
   });
 
   it('archives by label only and leaves the native status untouched', async () => {

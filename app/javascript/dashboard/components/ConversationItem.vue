@@ -100,13 +100,15 @@ const sourceLabelTitles = computed(() =>
     .filter(Boolean)
 );
 const finalizedLabelAssigned = computed(() =>
-  sourceLabelTitles.value.some(label => isSidebarLabelTitle(label, 'finalized'))
+  [props.label, ...sourceLabelTitles.value].some(label =>
+    isSidebarLabelTitle(label, 'finalized')
+  )
 );
 const canFinalize = computed(
   () => Boolean(finalizedLabel.value) || finalizedLabelAssigned.value
 );
 const contractLabelAssigned = computed(() =>
-  sourceLabelTitles.value.some(label =>
+  [props.label, ...sourceLabelTitles.value].some(label =>
     isSidebarLabelTitle(label, 'contractIssuance')
   )
 );
