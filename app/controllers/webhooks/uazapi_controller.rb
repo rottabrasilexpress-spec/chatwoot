@@ -344,11 +344,22 @@ class Webhooks::UazapiController < ActionController::API
     )
     if existing_message
       associate_uazapi_delivery(existing_message.conversation)
-      outcome = promote_outgoing_echo(existing_message, provider_id, payload, incoming)
-      if outcome == :duplicate
-        return render json: { ok: true, ignored: 'mensagem duplicada', message_ids: [existing_message.id], source_id: provider_id }
+      updates = {}
+      updates[:source_id] = provider_id if existing_message.source_id.blank?
+      if existing_message.failed?
+        updates[:status] = :sent
+        updates[:external_error] = nil
       end
-
+      attributes = existing_message.additional_attributes.to_h
+      if attributes.delete('rotta_uazapi_confirmation_pending')
+        updates[:additional_attributes] = attributes
+      end
+      content_attributes = existing_message.content_attributes.to_h
+        .stringify_keys
+        .merge(outgoing_echo_attributes(payload, incoming).stringify_keys)
+      content_attributes.delete('rotta_uazapi_pending_echo')
+      updates[:content_attributes] = content_attributes
+      existing_message.update!(updates) if updates.present?
       return render json: { ok: true, message_ids: [existing_message.id], source_id: provider_id }
     end
 
@@ -397,47 +408,6 @@ class Webhooks::UazapiController < ActionController::API
     end
   end
 
-  def with_uazapi_send_lock(message)
-    ApplicationRecord.transaction do
-      lock_key = "rotta-uazapi-send:#{message.account_id}:#{message.id}"
-      sql = ApplicationRecord.sanitize_sql_array(
-        ['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key]
-      )
-      ApplicationRecord.connection.execute(sql)
-      yield
-    end
-  end
-
-  def promote_outgoing_echo(existing_message, provider_id, payload, incoming)
-    outcome = :updated
-    with_uazapi_send_lock(existing_message) do
-      existing_message.reload
-      known_source_ids = [provider_id, "uazapi:#{provider_id}"].uniq
-      if existing_message.source_id.present? && !known_source_ids.include?(existing_message.source_id)
-        outcome = :duplicate
-        next
-      end
-
-      updates = {}
-      updates[:source_id] = provider_id if existing_message.source_id.blank?
-      if existing_message.failed?
-        updates[:status] = :sent
-        updates[:external_error] = nil
-      end
-      attributes = existing_message.additional_attributes.to_h
-      if attributes.delete('rotta_uazapi_confirmation_pending')
-        updates[:additional_attributes] = attributes
-      end
-      content_attributes = existing_message.content_attributes.to_h
-        .stringify_keys
-        .merge(outgoing_echo_attributes(payload, incoming).stringify_keys)
-      content_attributes.delete('rotta_uazapi_pending_echo')
-      updates[:content_attributes] = content_attributes
-      existing_message.update!(updates) if updates.present?
-    end
-    outcome
-  end
-
   def find_existing_echo_message(payload, provider_id, conversation: nil, content: nil)
     source_ids = [provider_id, "uazapi:#{provider_id}"].uniq
     existing = Message.where(account_id: ACCOUNT_ID, message_type: %i[outgoing template], source_id: source_ids)
@@ -454,9 +424,7 @@ class Webhooks::UazapiController < ActionController::API
       return tracked if tracked
     end
 
-    return if track_id.present?
-
-    pending_echo_candidate(conversation, content) || recent_outgoing_echo_candidate(conversation, content)
+   pending_echo_candidate(conversation, content)
   end
 
   def pending_echo_candidate(conversation, content)
@@ -480,30 +448,6 @@ class Webhooks::UazapiController < ActionController::API
     end
   end
 
-  def recent_outgoing_echo_candidate(conversation, content)
-    conversation.messages
-                .where(
-                  account_id: ACCOUNT_ID,
-                  message_type: :outgoing,
-                  private: false
-                )
-                .where.not(source_id: nil)
-                .where('created_at >= ?', 60.seconds.ago)
-                .order(created_at: :desc, id: :desc)
-                .limit(100)
-                .find do |candidate|
-      attributes = candidate.content_attributes
-      external_echo = attributes.is_a?(Hash) &&
-        ActiveModel::Type::Boolean.new.cast(attributes['external_echo'])
-      sent_by_api = attributes.is_a?(Hash) &&
-        ActiveModel::Type::Boolean.new.cast(attributes['uazapi_was_sent_by_api'])
-      external_echo &&
-        sent_by_api &&
-        attributes['uazapi_track_source'].to_s == 'chatwoot' &&
-        candidate.content.to_s.strip == content.to_s.strip
-    end
-  end
-
   def outgoing_echo_attributes(payload, incoming)
     attributes = {
       'rotta_uazapi' => true,
@@ -511,7 +455,7 @@ class Webhooks::UazapiController < ActionController::API
       'uazapi_from_me' => true,
       'uazapi_message_type' => value_for_keys(incoming, %w[type messageType]),
       'uazapi_was_sent_by_api' => value_for_keys(incoming, %w[wasSentByApi was_sent_by_api]),
-      'uazapi_track_source' => value_for_keys(payload, %w[track_source trackSource]) || 'chatwoot',
+      'uazapi_track_source' => value_for_keys(payload, %w[track_source trackSource]),
       'uazapi_track_id' => value_for_keys(payload, %w[track_id trackId])
     }.compact
 

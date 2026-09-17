@@ -382,20 +382,6 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
 
       expect(chatwoot_message.reload.source_id).to eq('uazapi-race-echo-1')
       expect(chatwoot_message.content_attributes).not_to have_key('rotta_uazapi_pending_echo')
-
-      duplicate_payload = payload.deep_dup
-      duplicate_payload[:data][:message][:messageId] = 'uazapi-race-echo-duplicate-1'
-
-      expect do
-        post_uazapi(duplicate_payload)
-      end.not_to change { conversation.messages.outgoing.count }
-
-      expect(response.parsed_body).to include(
-        'ok' => true,
-        'ignored' => 'mensagem duplicada',
-        'message_ids' => [chatwoot_message.id]
-      )
-      expect(chatwoot_message.reload.source_id).to eq('uazapi-race-echo-1')
     end
 
     it 'corrects a timed-out outgoing message when the successful Uazapi echo arrives' do
