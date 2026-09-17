@@ -41,6 +41,8 @@ import { createFollowUpRefreshScheduler } from './followUpRefreshScheduler';
 const TIMEZONE = 'America/Sao_Paulo';
 const router = useRouter();
 const { uiSettings, updateUISettings } = useUISettings();
+const initialBoardMode =
+  uiSettings.value?.rotta_follow_up_board_mode || 'board';
 
 const labelMeta = {
   'primeiro-contato': { title: 'Primeiro contato', color: '#16a34a' },
@@ -73,14 +75,16 @@ const responseMeta = ref({});
 const isLoading = ref(false);
 const busyJobId = ref('');
 const searchQuery = ref('');
-const selectedStage = ref('all');
+const selectedStage = ref(
+  initialBoardMode === 'stage' ? 'primeiro-contato' : 'all'
+);
 const timezone = ref(TIMEZONE);
 const now = ref(Date.now());
 const lastSyncedAt = ref(null);
 const expandedJobs = ref(new Set());
 const pendingEnrollments = ref([]);
 const selectedView = ref('all');
-const boardMode = ref(uiSettings.value?.rotta_follow_up_board_mode || 'board');
+const boardMode = ref(initialBoardMode);
 const customHours = ref({});
 const dispatchDialogRef = ref(null);
 const pendingDispatchJob = ref(null);
