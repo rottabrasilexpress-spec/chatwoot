@@ -122,9 +122,21 @@ class WebhookListener < BaseListener
   def deliver_api_inbox_webhooks(payload, inbox)
     return unless inbox.channel_type == 'Channel::Api'
     return if inbox.channel.webhook_url.blank?
+    return if direct_uazapi_outgoing_message_created?(payload)
 
     WebhookJob.perform_later(inbox.channel.webhook_url, payload, :api_inbox_webhook,
                              secret: inbox.channel.secret, delivery_id: SecureRandom.uuid)
+  end
+
+  # Rotta API inboxes deliver outgoing messages directly through
+  # Messages::SendOnApiService. Forwarding the same message_created event to
+  # the legacy API-inbox webhook causes a second WhatsApp send (and that
+  # legacy path also prepends the agent name).
+  def direct_uazapi_outgoing_message_created?(payload)
+    return false unless payload[:event].to_s == 'message_created'
+    return false unless %w[outgoing template].include?(payload[:message_type].to_s)
+
+    ENV['ROTTABRASIL_UAZAPI_TOKEN'].present? || ENV['ROTTABRASIL_UAZAPI_INSTANCE_TOKEN'].present?
   end
 
   def deliver_webhook_payloads(payload, inbox)

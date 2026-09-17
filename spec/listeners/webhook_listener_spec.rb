@@ -108,6 +108,47 @@ describe WebhookListener do
         listener.message_created(api_event)
       end
 
+      it 'does not forward an outgoing message to the legacy API webhook when direct UAZAPI delivery is enabled' do
+        channel_api = create(:channel_api, account: account)
+        api_inbox = channel_api.inbox
+        api_conversation = create(:conversation, account: account, inbox: api_inbox, assignee: user)
+        api_message = create(
+          :message,
+          message_type: 'outgoing',
+          account: account,
+          inbox: api_inbox,
+          conversation: api_conversation
+        )
+        api_event = Events::Base.new(event_name, Time.zone.now, message: api_message)
+
+        with_modified_env ROTTABRASIL_UAZAPI_TOKEN: 'test-uazapi-token' do
+          expect(WebhookJob).not_to receive(:perform_later)
+          listener.message_created(api_event)
+        end
+      end
+
+      it 'keeps forwarding incoming messages when direct UAZAPI delivery is enabled' do
+        channel_api = create(:channel_api, account: account)
+        api_inbox = channel_api.inbox
+        api_conversation = create(:conversation, account: account, inbox: api_inbox, assignee: user)
+        api_message = create(
+          :message,
+          message_type: 'incoming',
+          account: account,
+          inbox: api_inbox,
+          conversation: api_conversation
+        )
+        api_event = Events::Base.new(event_name, Time.zone.now, message: api_message)
+
+        with_modified_env ROTTABRASIL_UAZAPI_TOKEN: 'test-uazapi-token' do
+          expect(WebhookJob).to receive(:perform_later).with(
+            channel_api.webhook_url, api_message.webhook_data.merge(event: 'message_created'),
+            :api_inbox_webhook, secret: channel_api.secret, delivery_id: instance_of(String)
+          ).once
+          listener.message_created(api_event)
+        end
+      end
+
       it 'does not trigger webhook if webhook_url is not present' do
         channel_api = create(:channel_api, webhook_url: nil, account: account)
         api_inbox = channel_api.inbox
