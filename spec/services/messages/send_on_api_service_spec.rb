@@ -79,6 +79,13 @@ RSpec.describe Messages::SendOnApiService do
   it 'sends a message only once when duplicate delivery jobs overlap', use_transactional_fixtures: false do
     request_started = Queue.new
     release_request = Queue.new
+    claim_reloads = Queue.new
+
+    allow_any_instance_of(Message).to receive(:reload).and_wrap_original do |original, *args|
+      record = original.call(*args)
+      claim_reloads << record.id if record.id == message.id
+      record
+    end
 
     stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
       .to_return do
@@ -98,6 +105,8 @@ RSpec.describe Messages::SendOnApiService do
     end
 
     expect(request_started.pop(timeout: 5)).to be(true)
+    expect(claim_reloads.pop(timeout: 5)).to eq(message.id)
+    expect(claim_reloads.pop(timeout: 5)).to eq(message.id)
     release_request << true
     threads.each(&:value)
 
@@ -198,6 +207,44 @@ RSpec.describe Messages::SendOnApiService do
     )
   end
 
+  it 'fails closed when any non-canonical track id exists without a pending marker' do
+    message.update!(content_attributes: { 'uazapi_track_id' => 'message-from-another-claim' })
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(status: 200, body: { 'key' => { 'id' => '3EBINCONSISTENTWITHOUTMARKER123' } }.to_json)
+
+    described_class.new(message: message).perform
+
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).not_to have_been_made
+    expect(message.reload.content_attributes).to eq('uazapi_track_id' => 'message-from-another-claim')
+  end
+
+  it 'keeps provider throttling responses in confirmation pending state' do
+    [408, 425, 429].each do |status|
+      probe = create(:message, message_type: :outgoing, content: "Ambiguous #{status}", conversation: conversation, sender: agent)
+      stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+        .with(body: hash_including('track_id' => "message-#{probe.id}"))
+        .to_return(status: status, body: { 'message' => 'try again later' }.to_json)
+
+      described_class.new(message: probe).perform
+
+      expect(probe.reload).to have_attributes(status: 'sent', source_id: nil)
+      expect(probe.additional_attributes).to include('rotta_uazapi_confirmation_pending' => true)
+      expect(probe.content_attributes).to include('rotta_uazapi_pending_echo' => true)
+    end
+  end
+
+  it 'keeps an open-timeout unconfirmed instead of releasing the send claim' do
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_raise(Net::OpenTimeout.new('connection timed out'))
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.status).to eq('sent')
+    expect(message.external_error).to be_blank
+    expect(message.additional_attributes).to include('rotta_uazapi_confirmation_pending' => true)
+    expect(message.content_attributes).to include('rotta_uazapi_pending_echo' => true)
+  end
+
   it 'allows a retry after a confirmed provider rejection' do
     stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
       .to_return(
@@ -234,6 +281,13 @@ RSpec.describe Messages::SendOnApiService do
     allow(attachment).to receive(:download_url).and_return('https://chatwoot.example/voice.ogg')
     request_started = Queue.new
     release_request = Queue.new
+    claim_reloads = Queue.new
+
+    allow_any_instance_of(Message).to receive(:reload).and_wrap_original do |original, *args|
+      record = original.call(*args)
+      claim_reloads << record.id if record.id == message.id
+      record
+    end
 
     stub_request(:post, 'https://transportadoras.uazapi.com/send/media')
       .to_return do
@@ -253,6 +307,8 @@ RSpec.describe Messages::SendOnApiService do
     end
 
     expect(request_started.pop(timeout: 5)).to be(true)
+    expect(claim_reloads.pop(timeout: 5)).to eq(message.id)
+    expect(claim_reloads.pop(timeout: 5)).to eq(message.id)
     release_request << true
     threads.each(&:value)
 
@@ -285,6 +341,21 @@ RSpec.describe Messages::SendOnApiService do
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
     expect(message.reload.source_id).to be_blank
     expect(message.content_attributes).to include('rotta_uazapi_pending_echo' => true)
+  end
+
+  it 'preserves the provider id already correlated by an early webhook echo' do
+    message.update!(
+      source_id: '3EBECHOARRIVEDFIRST123',
+      content_attributes: {
+        'rotta_uazapi_pending_echo' => true,
+        'external_echo' => true
+      }
+    )
+
+    described_class.new(message: message).send(:persist_provider_id, '3EBHTTPRESPONSELATE123')
+
+    expect(message.reload.source_id).to eq('3EBECHOARRIVEDFIRST123')
+    expect(message.content_attributes).not_to have_key('rotta_uazapi_pending_echo')
   end
 
   it 'marks the message as failed when Uazapi rejects the request' do
