@@ -39,16 +39,45 @@ class GlobalAiAssistant::ContextBuilder
     return scope.limit(MAX_CARDS) if question.blank?
     return scope.limit(MAX_FOLLOW_UP_CARDS) if follow_up_question?
 
-    query = ActiveRecord::Base.sanitize_sql_like(question)
-    contact_matches = scope.joins(:contact).where(
+    merged_ids = matching_conversation_ids(scope)
+    return scope.where(id: merged_ids).order(last_activity_at: :desc) if merged_ids.present?
+
+    scope.none
+  end
+
+  def matching_conversation_ids(scope)
+    query = searchable_query
+    contact_ids = matching_contacts(scope, query).limit(MAX_CARDS).pluck(:id)
+    message_ids = account.messages
+                         .where('content ILIKE ?', "%#{query}%")
+                         .order(created_at: :desc)
+                         .limit(80)
+                         .pluck(:conversation_id)
+    (contact_ids + message_ids).uniq.first(MAX_CARDS)
+  end
+
+  def searchable_query
+    email = question.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)&.to_s
+    return ActiveRecord::Base.sanitize_sql_like(email) if email.present?
+
+    phone = question.scan(/\+?\d[\d\s().-]{8,}\d/).map { |value| value.gsub(/\D/, '') }.find { |value| value.length >= 10 }
+    return ActiveRecord::Base.sanitize_sql_like(phone) if phone.present?
+
+    ActiveRecord::Base.sanitize_sql_like(question)
+  end
+
+  def matching_contacts(scope, query)
+    if query.match?(/\A\d{8,}\z/)
+      return scope.joins(:contact).where(
+        "regexp_replace(contacts.phone_number, '[^0-9]', '', 'g') LIKE :query",
+        query: "%#{query}%"
+      )
+    end
+
+    scope.joins(:contact).where(
       'contacts.name ILIKE :query OR contacts.email ILIKE :query OR contacts.phone_number ILIKE :query',
       query: "%#{query}%"
     )
-    message_ids = account.messages.where('content ILIKE ?', "%#{query}%").order(created_at: :desc).limit(80).pluck(:conversation_id)
-    merged_ids = (contact_matches.limit(MAX_CARDS).pluck(:id) + message_ids).uniq.first(MAX_CARDS)
-    return scope.where(id: merged_ids).order(last_activity_at: :desc) if merged_ids.present?
-
-    scope.limit(MAX_CARDS)
   end
 
   def card_for(conversation)
