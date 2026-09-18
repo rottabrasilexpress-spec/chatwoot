@@ -29,10 +29,10 @@ Não foram alterados endpoints, stores de mutação de etiquetas, workflows n8n,
 - Detector Impeccable: aprovado sem achados.
 - Vitest focado: bloqueado antes da coleta por `fake-indexeddb` resolvido via checkout irmão `work/chatwoot-source`; não foi reportado como aprovação.
 
-## Pós-deploy obrigatório
+## Pós-deploy realizado
 
-1. Publicar a branch no GitHub/EasyPanel.
-2. Abrir Configurações → Etiquetas no Chrome.
-3. Conferir as quatro prévias em desktop e viewport estreito.
-4. Selecionar cada opção e confirmar atualização dinâmica em card, perfil e conversa.
-5. Selecionar `Contorno da mensagem` com uma conversa etiquetada e confirmar a borda fina; voltar a `Quadrado` e confirmar que a borda desaparece.
+- Commit `efd6dd15` publicado em `rotta-custom-v1` e deploy concluído no EasyPanel; health-check HTTP 200.
+- Bundle público confirmado com o painel e estilos novos (`dashboard-BB-aFzKX.js` / `dashboard-DzLQ_-I5.css`).
+- Chrome confirmou visualmente as quatro prévias e a seleção dinâmica: `Quadrado` → `Redondo` → `Nítido` → `Contorno da mensagem`; padrão restaurado para `Quadrado` ao final.
+- A borda foi validada no CSS opt-in do componente de mensagem; o teste não alterou etiquetas ou mensagens reais.
+- A validação em viewport estreito permanece recomendada para uma rodada dedicada, pois a sessão atual foi conferida em desktop e a composição possui regra responsiva.
