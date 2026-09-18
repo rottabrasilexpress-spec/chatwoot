@@ -35,3 +35,11 @@ passo `terceiro-contato`, status `pending`. A API de etiquetas da conversa
 retornou apenas `segundo-contato`.
 
 Workflow n8n ativo: `6d7742a2-fbb7-4340-a140-5d1fc9e22861`.
+
+## Teste real posterior à correção
+
+O job de teste de Kelvin foi disparado uma vez, de `segundo-contato` para
+`terceiro-contato`. A execução `635586` concluiu com `sent`: a UAZAPI aceitou
+uma mensagem, a etiqueta pública da conversa `#2143` mudou para
+`terceiro-contato`, a releitura autoritativa confirmou esse valor e foi criado
+somente um job pendente de Terceiro para Último contato, com 72 horas de atraso.
