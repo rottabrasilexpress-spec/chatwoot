@@ -150,7 +150,10 @@ class ActionCableConnector extends BaseActionCableConnector {
     const isIncomingMessage =
       Number(data?.message_type) === 0 ||
       String(data?.sender?.type).toLowerCase() === 'contact';
-    if (!isIncomingMessage || conversation?.status !== 'resolved') return;
+    const isArchivedConversation =
+      conversation?.status === 'resolved' ||
+      conversation?.rotta_archived === true;
+    if (!isIncomingMessage || !isArchivedConversation) return;
 
     const conversationId = data?.conversation_id || conversation?.display_id;
     const inboxId = conversation?.inbox_id;

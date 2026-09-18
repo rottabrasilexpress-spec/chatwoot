@@ -121,6 +121,30 @@ describe('#applyPageFilters', () => {
       };
       expect(applyPageFilters(conversationList[1], filters)).toEqual(true);
     });
+
+    it('hides resolved conversations from the active workspace', () => {
+      expect(applyPageFilters(conversationList[2], { status: 'all' })).toEqual(
+        false
+      );
+    });
+
+    it('keeps resolved conversations in archived and label views', () => {
+      expect(
+        applyPageFilters(conversationList[2], {
+          status: 'all',
+          conversationType: 'archived',
+        })
+      ).toEqual(true);
+      expect(
+        applyPageFilters(
+          { ...conversationList[2], labels: ['arquivado'] },
+          {
+            status: 'all',
+            labels: ['arquivado'],
+          }
+        )
+      ).toEqual(true);
+    });
   });
 
   describe('#filter-unread', () => {

@@ -7,8 +7,19 @@ export const findPendingMessageIndex = (chat, message) => {
   );
 };
 
-export const filterByStatus = (chatStatus, filterStatus) =>
-  filterStatus === 'all' ? true : chatStatus === filterStatus;
+export const filterByStatus = (
+  chatStatus,
+  filterStatus,
+  conversationType,
+  labels = []
+) => {
+  if (filterStatus !== 'all') return chatStatus === filterStatus;
+
+  // The active workspace excludes resolved conversations. Archived and label
+  // views intentionally keep them available because they are workflow views.
+  if (conversationType === 'archived' || labels.length > 0) return true;
+  return chatStatus !== 'resolved';
+};
 
 export const filterByInbox = (shouldFilter, inboxId, chatInboxId) => {
   const isOnInbox = Number(inboxId) === chatInboxId;
@@ -76,7 +87,12 @@ export const applyPageFilters = (conversation, filters) => {
   const team = meta.team || {};
   const { id: chatTeamId } = team;
 
-  let shouldFilter = filterByStatus(chatStatus, status);
+  let shouldFilter = filterByStatus(
+    chatStatus,
+    status,
+    conversationType,
+    labels
+  );
   shouldFilter = filterByInbox(shouldFilter, inboxId, chatInboxId);
   shouldFilter = filterByTeam(shouldFilter, teamId, chatTeamId);
   shouldFilter = filterByLabel(shouldFilter, labels, chatLabels);

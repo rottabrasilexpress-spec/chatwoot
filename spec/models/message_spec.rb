@@ -143,6 +143,7 @@ RSpec.describe Message do
           last_activity_at: message.conversation.last_activity_at.to_i,
           unread_count: message.conversation.unread_incoming_messages.count,
           status: message.conversation.status,
+          rotta_archived: false,
           display_id: message.conversation.display_id,
           inbox_id: message.conversation.inbox_id
         },

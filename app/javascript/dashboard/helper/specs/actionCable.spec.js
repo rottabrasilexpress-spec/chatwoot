@@ -169,6 +169,22 @@ describe('ActionCableConnector - Copilot Tests', () => {
       );
     });
 
+    it('dispatches an alert when the server marks a Rotta archived label explicitly', () => {
+      actionCable.receiveArchivedMessageAlert({
+        ...archivedMessage,
+        conversation: {
+          ...archivedMessage.conversation,
+          status: 'open',
+          rotta_archived: true,
+        },
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'archivedMessageAlerts/receive',
+        expect.objectContaining({ conversation_id: 42 })
+      );
+    });
+
     it('does not dispatch an alert for outgoing or active conversations', () => {
       actionCable.receiveArchivedMessageAlert({
         ...archivedMessage,
