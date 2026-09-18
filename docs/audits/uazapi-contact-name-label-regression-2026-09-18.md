@@ -98,3 +98,16 @@ Foi implementado no workflow principal, antes dos subfluxos de Primeiro contato 
 ## Regra operacional consolidada
 
 Toda mensagem inbound elegível passa primeiro pela sincronização de nome, independentemente de estar em Primeiro contato, KELVIN, orçamento ou outra etapa. A aplicação das etiquetas permanece separada e idempotente; nenhum frontend do Chatwoot, follow-up, prompt, credencial ou outro workflow foi alterado.
+
+## Validação de cliente realmente novo
+
+A pendência de observar um contato com histórico zero foi encerrada com a mensagem inbound real `644688`:
+
+- Contato: Bianca Yoshikawa, JID `553387198394@s.whatsapp.net`.
+- O nome veio no evento e o controle retornou `should_save=true`.
+- `/contact/add` retornou HTTP `200` e a confirmação do salvamento concluiu sem erro.
+- Subworkflow Primeiro contato `644689`: `history_count=0`, `first_contact_eligible=true`, reserva concluída, `/chat/labels` para Primeiro contato HTTP `200`, confirmação HTTP `200`, `confirmed=true`, `status=applied`.
+- Mensagens posteriores de Barbeta (`644642`/`644644`, histórico 32) e Graziele (`644717`/`644718`, histórico 4) foram bloqueadas pelo guard de histórico, sem duplicação.
+- Os subfluxos KELVIN recentes foram conferidos; as execuções `644254` e `644214` têm aplicação e remoção confirmadas. As execuções `644725` e `644682` ignoraram corretamente textos sem bloco de pré-orçamento.
+
+Conclusão operacional: o salvamento do nome ocorre antes da etapa, Primeiro contato aplica somente em histórico zero e KELVIN só altera a conversa quando o detector de pré-orçamento é satisfeito.
