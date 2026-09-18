@@ -20,6 +20,10 @@ import VoiceCallStatus from './VoiceCallStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 import { conversationActivityTimestamp } from 'shared/helpers/timeHelper';
+import {
+  getLabelPresentationColor,
+  useLabelPresentation,
+} from 'dashboard/helper/rottaLabelPresentation';
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -46,6 +50,8 @@ const hovered = ref(false);
 const { t } = useI18n();
 
 const hasUnread = computed(() => hasUnreadIncomingMessage(props.chat));
+const accountLabels = useMapGetter('labels/getLabels');
+const { presentation } = useLabelPresentation();
 const currentContactDisplayName = computed(() => {
   const candidates = [
     props.currentContact?.name,
@@ -119,6 +125,21 @@ const hasKelvinCaioLabel = computed(() =>
   props.chat?.labels?.includes('kelvin-caio')
 );
 
+const cardLabelBorderColor = computed(() => {
+  if (presentation.value !== 'message-border') return '';
+
+  const activeLabel = accountLabels.value.find(label =>
+    props.chat?.labels?.includes(label.title)
+  );
+  return activeLabel ? getLabelPresentationColor(activeLabel) : '';
+});
+
+const cardLabelBorderStyle = computed(() =>
+  cardLabelBorderColor.value
+    ? { '--rotta-card-label-color': cardLabelBorderColor.value }
+    : {}
+);
+
 const currentContactAvatarUrl = computed(() =>
   getOriginalAvatarUrl(
     props.currentContact?.avatar_url || props.currentContact?.thumbnail
@@ -173,6 +194,7 @@ watch(
 <template>
   <div
     class="relative flex items-start flex-grow-0 flex-shrink-0 w-auto max-w-full min-h-[5.25rem] py-0 cursor-pointer conversation border-b border-n-slate-3 hover:border-n-surface-1 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3 group hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
+    :style="cardLabelBorderStyle"
     :class="{
       'active animate-card-select bg-n-background !border-n-surface-1':
         isActiveChat,
@@ -180,6 +202,7 @@ watch(
       'rotta-kelvin-card': hasKelvinCaioLabel,
       'rotta-pinned-card': isPinned,
       'rotta-incoming-card': lastMessageFromContact && hasUnread,
+      'rotta-card-label-border': cardLabelBorderColor,
       'px-0': compact,
       'px-3': !compact,
     }"
@@ -351,6 +374,12 @@ watch(
 
 .rotta-incoming-card {
   background: color-mix(in srgb, rgb(var(--teal-3)) 48%, transparent);
+}
+
+.rotta-card-label-border {
+  outline: 1px solid
+    color-mix(in srgb, var(--rotta-card-label-color) 72%, transparent);
+  outline-offset: -1px;
 }
 
 .rotta-incoming-card .conversation--user {

@@ -36,3 +36,10 @@ Não foram alterados endpoints, stores de mutação de etiquetas, workflows n8n,
 - Chrome confirmou visualmente as quatro prévias e a seleção dinâmica: `Quadrado` → `Redondo` → `Nítido` → `Contorno da mensagem`; padrão restaurado para `Quadrado` ao final.
 - A borda foi validada no CSS opt-in do componente de mensagem; o teste não alterou etiquetas ou mensagens reais.
 - A validação em viewport estreito permanece recomendada para uma rodada dedicada, pois a sessão atual foi conferida em desktop e a composição possui regra responsiva.
+
+## Ajuste complementar — contorno do card de conversa
+
+- Quando `Contorno da mensagem` está selecionado e o card possui etiqueta ativa, o card inteiro recebe um contorno interno de 1px na cor da primeira etiqueta ativa.
+- O contorno usa `outline` com deslocamento interno, preservando dimensões, espaçamento, sombras e ações existentes do card.
+- Em `Quadrado`, `Redondo` e `Nítido`, nenhum contorno adicional é aplicado ao card.
+- Nenhum dado, etiqueta, follow-up, mensagem ou endpoint foi alterado.
