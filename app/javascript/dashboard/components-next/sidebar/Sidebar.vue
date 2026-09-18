@@ -240,6 +240,7 @@ const getSidebarLabelCount = useMapGetter('labels/getSidebarLabelCount');
 const archivedUnreadCount = useMapGetter(
   'conversationUnreadCounts/getArchivedUnreadCount'
 );
+const archivedMessageAlerts = useMapGetter('archivedMessageAlerts/getAlerts');
 
 const budgetLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[0];
 const caioAttentionLabelDefinition = SIDEBAR_LABEL_DEFINITIONS[1];
@@ -419,6 +420,7 @@ const menuItems = computed(() => {
           activeOn: ['archived_conversations', 'archived_conversation'],
           to: accountScopedRoute('archived_conversations'),
           badgeCount: archivedUnreadCount.value,
+          attention: archivedMessageAlerts.value.length > 0,
         },
         {
           name: 'Budgets',

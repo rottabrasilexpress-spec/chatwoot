@@ -83,7 +83,6 @@ describe('SidebarGroupLeaf', () => {
 
     expect(wrapper.find('[data-test-id="custom-leaf-count"]').text()).toBe('4');
   });
-
   it('applies a configured accent color without changing the unread badge', () => {
     const wrapper = mountLeaf({ color: '#16a34a', badgeCount: 4 });
 
@@ -93,5 +92,11 @@ describe('SidebarGroupLeaf', () => {
     expect(wrapper.find('[data-test-id="sidebar-unread-badge"]').text()).toBe(
       '4'
     );
+  });
+
+  it('applies the attention state to the leaf wrapper', () => {
+    const wrapper = mountLeaf({ attention: true });
+
+    expect(wrapper.find('li').classes()).toContain('rotta-archived-alert');
   });
 });

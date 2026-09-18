@@ -137,11 +137,35 @@ class ActionCableConnector extends BaseActionCableConnector {
     } = data;
     DashboardAudioNotificationHelper.onNewMessage(data);
     this.app.$store.dispatch('addMessage', data);
+    this.receiveArchivedMessageAlert(data);
     this.app.$store.dispatch('updateConversationLastActivity', {
       lastActivityAt,
       conversationId,
     });
     this.fetchConversationStats();
+  };
+
+  receiveArchivedMessageAlert = data => {
+    const conversation = data?.conversation;
+    const isIncomingMessage =
+      Number(data?.message_type) === 0 ||
+      String(data?.sender?.type).toLowerCase() === 'contact';
+    if (!isIncomingMessage || conversation?.status !== 'resolved') return;
+
+    const conversationId = data?.conversation_id || conversation?.display_id;
+    const inboxId = conversation?.inbox_id;
+    if (!conversationId || !inboxId) return;
+
+    this.app.$store.dispatch('archivedMessageAlerts/receive', {
+      alert_id: `archived-message:${data.id || `${conversationId}:${data.created_at}`}`,
+      conversation_id: conversationId,
+      inbox_id: inboxId,
+      contact: {
+        name: data.sender?.name || '',
+        phone_number: data.sender?.phone_number || '',
+      },
+      message: data.content || data.processed_message_content || '',
+    });
   };
 
   // eslint-disable-next-line class-methods-use-this

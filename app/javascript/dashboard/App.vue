@@ -23,6 +23,7 @@ import ReconnectService from 'dashboard/helper/ReconnectService';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import CaioAttentionAlertHost from './components-next/CaioAttentionAlert/CaioAttentionAlertHost.vue';
 import { ensureDashboardLocale } from './i18n/localeLoader';
+import ArchivedMessageAlertHost from './components-next/ArchivedMessageAlert/ArchivedMessageAlertHost.vue';
 
 export default {
   name: 'App',
@@ -37,6 +38,7 @@ export default {
     PendingEmailVerificationBanner,
     LowBackupCodesBanner,
     CaioAttentionAlertHost,
+    ArchivedMessageAlertHost,
   },
   setup() {
     const router = useRouter();
@@ -158,6 +160,7 @@ export default {
     <WootSnackbarBox />
     <NetworkNotification />
     <CaioAttentionAlertHost v-if="currentAccountId" />
+    <ArchivedMessageAlertHost v-if="currentAccountId" />
   </div>
   <LoadingState v-else />
 </template>

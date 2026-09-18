@@ -131,6 +131,71 @@ describe('ActionCableConnector - Copilot Tests', () => {
     });
   });
 
+  describe('archived message alerts', () => {
+    const archivedMessage = {
+      id: 123,
+      account_id: 1,
+      conversation_id: 42,
+      created_at: 1710000000,
+      message_type: 0,
+      content: 'Olá, preciso de ajuda.',
+      conversation: {
+        status: 'resolved',
+        inbox_id: 7,
+        last_activity_at: 1710000000,
+      },
+      sender: {
+        type: 'Contact',
+        name: 'Cliente de teste',
+        phone_number: '5511999999999',
+      },
+    };
+
+    it('dispatches an alert for an incoming message in an archived conversation', () => {
+      actionCable.onReceived({
+        event: 'message.created',
+        data: archivedMessage,
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'archivedMessageAlerts/receive',
+        {
+          alert_id: 'archived-message:123',
+          conversation_id: 42,
+          inbox_id: 7,
+          contact: {
+            name: 'Cliente de teste',
+            phone_number: '5511999999999',
+          },
+          message: 'Olá, preciso de ajuda.',
+        }
+      );
+    });
+
+    it('does not dispatch an alert for outgoing or active conversations', () => {
+      actionCable.onReceived({
+        event: 'message.created',
+        data: {
+          ...archivedMessage,
+          message_type: 1,
+          sender: { type: 'User' },
+        },
+      });
+      actionCable.onReceived({
+        event: 'message.created',
+        data: {
+          ...archivedMessage,
+          conversation: { ...archivedMessage.conversation, status: 'open' },
+        },
+      });
+
+      expect(mockDispatch).not.toHaveBeenCalledWith(
+        'archivedMessageAlerts/receive',
+        expect.anything()
+      );
+    });
+  });
+
   describe('conversation unread count event handlers', () => {
     it('should register the conversation.unread_count_changed event handler', () => {
       expect(Object.keys(actionCable.events)).toContain(

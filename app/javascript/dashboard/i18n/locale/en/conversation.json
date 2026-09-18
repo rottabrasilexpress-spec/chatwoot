@@ -93,6 +93,12 @@
       "DISMISS": "Dismiss Caio Attention alert",
       "OPEN": "Open conversation"
     },
+    "ARCHIVED_MESSAGE_ALERT": {
+      "TITLE": "Archived customer sent a message",
+      "CONVERSATION": "Conversation #{id}",
+      "DISMISS": "Dismiss alert",
+      "OPEN": "Open conversation"
+    },
     "NO_RESPONSE": "No response",
     "RESPONSE": "Response",
     "RATING_TITLE": "Rating",
