@@ -257,3 +257,32 @@ Evidência: execução `638194` finalizou com `no_send_without_send`; a API
 - Publicação n8n confirmada: workflow `7ngn9zsHXZbjv1qG`, versão ativa `fd3adde6-540e-43a9-8716-94a982353649`, workflow ativo e rascunho/versão publicada idênticos.
 - Não foram alterados Chatwoot, follow-up, etiquetas, prompts, credenciais ou outros workflows nesta implementação.
 - Os avisos antigos do workflow permanecem registrados como preexistentes e não foram misturados com esta alteração.
+
+## Correção pós-produção — nome inbound atrasado pelo ramo de espera (18/09/2026)
+
+### Diagnóstico
+
+- A execução real `640712` recebeu um webhook no formato atual da UAZAPI (`body.chat` + `body.message`), encontrou o nome em `message.senderName`/`chat.wa_name` e salvou na UAZAPI com HTTP 200.
+- A execução real `640736`, iniciada logo depois, ficou parada em `Esperar 90 segundos` antes de alcançar o ramo de sincronização. Isso explica o relato de que o nome não era ajustado imediatamente: o problema era de ordem de execução, não de autenticação ou endpoint.
+- O primeiro ramo paralelo não era suficiente no n8n, pois a execução em profundidade percorria o caminho antigo antes de alcançar o ramo novo.
+
+### Correção aplicada
+
+- O preparador agora entende o payload real da UAZAPI, incluindo `body.message.senderName`, `body.chat.wa_name`, `body.chat.wa_contactName`, `body.chat.wa_chatid` e `body.owner`.
+- A sincronização foi movida para o caminho sequencial após `Dados` e antes de `Preparar inbound Primeiro contato`.
+- Nome já salvo, erro de API e sucesso da API possuem saídas explícitas para o atendimento original; portanto, a correção não interrompe o fluxo existente.
+- O nó HTTP passou a usar o token e a URL do item normalizado, sem depender de `$('Dados')` já ter sido executado em outro ramo.
+
+### Reteste e publicação
+
+- `640900`: replay sintético do formato real, sem mensagem ao cliente; preparação no índice 3, registro no índice 4, decisão no índice 5 e atendimento original no índice 6. O nome já salvo resultou em `should_save=false`, sem nova chamada HTTP.
+- `640918`: reparo controlado baseado no webhook real pendente; parser e caminho sequencial aprovados, sem nova chamada porque o nome já estava confirmado na tabela autoritativa.
+- Validação isolada dos nós de Code e HTTP: `valid=true`.
+- Publicação n8n confirmada: versão ativa `0d9e9e01-bd30-4f38-9718-e8a7485bce03`, workflow ativo com 172 nós e rascunho igual à versão publicada.
+- Conferência visual no Chatwoot: o contato real correspondente ao evento aparece como `~Zuleide`, com telefone presente no perfil; não houve edição manual do contato.
+
+### Verificação pós-publicação
+
+- O workflow permaneceu ativo com 172 nós e a versão publicada continuou idêntica ao rascunho; os nós de preparação, registro e chamada HTTP estão presentes na versão ativa.
+- Execução de verificação `640738`: status `success`; evento inbound processado; `should_save=false` para o mesmo nome já confirmado; o nó HTTP não foi executado.
+- Resultado: publicação funcional e idempotência preservada após a ativação.
