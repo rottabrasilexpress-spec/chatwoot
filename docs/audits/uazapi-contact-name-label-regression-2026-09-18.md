@@ -111,3 +111,9 @@ A pendência de observar um contato com histórico zero foi encerrada com a mens
 - Os subfluxos KELVIN recentes foram conferidos; as execuções `644254` e `644214` têm aplicação e remoção confirmadas. As execuções `644725` e `644682` ignoraram corretamente textos sem bloco de pré-orçamento.
 
 Conclusão operacional: o salvamento do nome ocorre antes da etapa, Primeiro contato aplica somente em histórico zero e KELVIN só altera a conversa quando o detector de pré-orçamento é satisfeito.
+
+## Varredura final de integridade
+
+- Últimos 50 subfluxos Primeiro contato: 0 erros e 0 casos elegíveis sem confirmação. Os 5 registros com `history_count=0` estavam todos com `first_contact_status=applied`; não eram etiquetas ausentes.
+- Últimos 50 subfluxos KELVIN: 2 blocos de pré-orçamento válidos; os 2 tiveram `confirmed=true`, `status=applied` para KELVIN e `confirmed=true`, `status=closed` para a remoção de Primeiro contato. Não houve erros.
+- Nenhuma correção manual de etiquetas foi necessária; os guards persistidos estão coerentes com as confirmações da UAZAPI.
