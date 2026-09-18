@@ -59,6 +59,12 @@ A janela adicional recebeu somente o evento `chat_labels` `644265`, não uma men
 - O nó `Dados` mantém `senderName`/`pushName` como fonte prioritária e agora usa `body.chat.wa_name`, `body.chat.wa_contactName` ou `body.chat.name` como fallback.
 - Publicação adicional: versão ativa `890e2dd5-e1b6-4dd1-8df4-ba1041893e75`.
 - Teste controlado `644302`, sem `senderName` na mensagem: o nome foi recuperado de `chat.name` e o controle idempotente retornou `should_save=false`, sem chamada HTTP redundante.
+- Inbound real `644314` após essa publicação terminou com `success`; nome, telefone, JID e contexto chegaram ao guard de Primeiro contato sem duplicação. O contato já possuía histórico e estado de etapa, portanto a proteção de histórico foi aplicada corretamente.
+
+## Estado atual
+
+- A implementação está publicada e operacional para mensagens inbound com nome em `message.senderName` e para o fallback em `chat.name/wa_name`.
+- A auditoria ainda não capturou um cliente totalmente novo com `history_count=0`; essa é a única validação operacional restante para confirmar a primeira aplicação da etiqueta em uma conversa sem histórico.
 
 ## Segurança
 
