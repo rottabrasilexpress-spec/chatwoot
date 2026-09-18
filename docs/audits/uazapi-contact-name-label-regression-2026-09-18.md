@@ -54,6 +54,12 @@ Ainda não apareceu, durante a janela desta auditoria, uma conversa completament
 
 A janela adicional recebeu somente o evento `chat_labels` `644265`, não uma mensagem de cliente; não foi encontrado inbound novo com `fromMe=false` nesse período.
 
+## Cobertura adicional do nome
+
+- O nó `Dados` mantém `senderName`/`pushName` como fonte prioritária e agora usa `body.chat.wa_name`, `body.chat.wa_contactName` ou `body.chat.name` como fallback.
+- Publicação adicional: versão ativa `890e2dd5-e1b6-4dd1-8df4-ba1041893e75`.
+- Teste controlado `644302`, sem `senderName` na mensagem: o nome foi recuperado de `chat.name` e o controle idempotente retornou `should_save=false`, sem chamada HTTP redundante.
+
 ## Segurança
 
 Nenhum token, senha ou credencial foi registrado neste documento.
