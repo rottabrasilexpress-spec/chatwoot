@@ -107,3 +107,68 @@ Reparação aplicada, sem novo envio de WhatsApp:
 Validação visual no Chrome: cartão de Bárbara presente uma única vez, com
 horário, atalhos `Agora`, `−1 dia` e `+1 dia`, e atualização dinâmica após a
 troca de etiquetas.
+
+## Bateria forense de trilhas e etiquetas — 18/09/2026
+
+Escopo: teste real autorizado somente nos telefones `+5511991262866` (Caio)
+e `11965927865`/`+5511965927865` (Kelvin), usando o Chrome, Chatwoot,
+UAZAPI via workflow n8n e o painel autoritativo.
+
+### Resultado por trilha
+
+- Kelvin: `Contato instantâneo` → `Primeiro contato` → `Segundo contato` →
+  `Terceiro contato` → `Quarto contato` → `Último contato`. O instantâneo
+  gerou uma única mensagem; cada avanço controlado produziu uma única etapa,
+  sem duplicidade de cartão ou `Conciliação pendente`.
+- Caio: `Orçamento feito` → `Orçamento tentativa 2` → `Orçamento tentativa 3`
+  → `Orçamento tentativa 4`; cada etapa foi vista no Chatwoot, no perfil e no
+  quadro como `Na fila`, com a próxima etiqueta correta.
+- Caio: `Orçamento 5 dias`, `Orçamento 10 dias` e `Orçamento 15 dias` foram
+  testados isoladamente; os três criaram job `pending` autoritativo, com
+  próxima etapa `Orçamento feito` e horários coerentes de 120/240/360 horas.
+- A transição final dos testes removeu a etiqueta de prova. Não restou job
+  operacional de teste em nenhum dos dois telefones.
+
+### Sincronização visual e atalhos
+
+- A etiqueta selecionada no menu do Chatwoot refletiu imediatamente no cabeçalho
+  e no perfil da conversa.
+- O Follow-up exibiu cada etapa somente uma vez, com cliente, etapa atual,
+  próxima etapa, horário e status `Na fila`; a atualização ocorreu após o
+  refresh/revalidação do painel, sem `Conciliação pendente`.
+- `+1 dia` moveu o job de Caio de `19/09/2026 23:04` para `20/09/2026 23:04`;
+  `−1 dia` restaurou exatamente `19/09/2026 23:04`.
+- O perfil mostrou os mesmos estados e atalhos do quadro durante as etapas
+  programadas.
+
+### Correção do falso “Conciliação pendente”
+
+O instantâneo de orçamento do Caio foi reivindicado pelo worker, mas a IA
+  corretamente decidiu não enviar porque a conversa tinha intervenção humana
+  recente. O finalizador antigo marcava o job como `cancelled`; como a etiqueta
+  ainda permanecia visível, o proxy criava um fallback incorreto.
+
+Correção publicada no workflow n8n `utaNsnFUZYBYDf5S`:
+
+- jobs encerrados sem envio agora usam o status interno `no_send`;
+- a listagem os projeta como `history_only`, sem incluí-los na fila operacional;
+- a projeção histórica impede que a mesma etiqueta ativa gere um fallback
+  `sync_failed`/`Conciliação pendente`;
+- o workflow foi publicado na versão ativa
+  `441a7254-f5be-4c71-a2cc-d745ae893ab5`.
+
+Evidência: execução `638194` finalizou com `no_send_without_send`; a API
+  autoritativa retornou o registro do Caio como `history_only`, e o quadro
+  ficou com `4` itens ativos, `1` histórico e nenhum texto `Conciliação
+  pendente` ou `Conciliação não confirmada`. A consulta final dos dois números
+  retornou zero jobs ativos de teste e zero jobs `sync_failed`.
+
+### Limpeza e conclusão
+
+- Todas as etiquetas usadas no teste foram removidas ao final; o menu do
+  Chatwoot confirmou estado desmarcado no Caio.
+- O quadro final não exibiu Caio nem Kelvin como cartão operacional de teste.
+- Nenhuma mensagem foi enviada nos testes das etapas programadas; o único
+  envio instantâneo foi o teste autorizado de Kelvin, que gerou uma mensagem
+  única. O instantâneo de orçamento do Caio foi deliberadamente bloqueado pela
+  proteção de intervenção humana, e ficou auditado como histórico sem envio.
