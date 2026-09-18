@@ -226,3 +226,34 @@ Evidência: execução `638194` finalizou com `no_send_without_send`; a API
 
 - **Aprovado:** contadores, card, conversa, Follow-up, inclusão/remoção, reconciliação de etapa e limpeza final.
 - **Pendente de otimização:** investigar por que o Chrome sinaliza `Desconectado` e reduzir a dependência do polling de 5 s para obter atualização realmente em tempo real. Nenhuma alteração de código foi feita nesta auditoria.
+
+## Implementação — salvamento automático do nome inbound na UAZAPI (18/09/2026)
+
+### Mapeamento aplicado
+
+- O workflow ativo `ATENDIMENTO RT - UAZAP - EM USO` (`7ngn9zsHXZbjv1qG`) recebeu um ramo paralelo imediatamente após `Dados`; o caminho original de atendimento foi preservado.
+- Fluxo novo: `Dados` → `Preparar contato UAZAPI — inbound` → `Registrar intenção de contato UAZAPI` → `Contato precisa ser salvo?` → `Salvar nome do contato na UAZAPI` (`POST /contact/add`) → `Validar salvamento do contato UAZAPI` → `Contato salvo com sucesso?` → `Confirmar nome salvo no controle`.
+- A chamada usa o contrato oficial da [documentação da UAZAPI](https://docs.uazapi.com): número internacional sem sufixo e nome normalizado no corpo da requisição; a autenticação continua usando o token já existente no workflow, sem duplicação de credencial.
+
+### Proteções
+
+- Só entram mensagens recebidas de contatos individuais: `fromMe=false`, sem grupos (`@g.us`), sem LID (`@lid`), sem o próprio número conectado e com nome válido de pelo menos dois caracteres.
+- Espaços são normalizados e o nome é limitado a 120 caracteres.
+- A tabela autoritativa `rotta_uazapi_contact_sync` usa `scope_key` por instância/número conectado/telefone e registra último nome visto, último nome salvo, mensagem e horários.
+- A UAZAPI só é chamada na primeira ocorrência ou quando o nome realmente mudou; repetição do mesmo nome não gera nova chamada.
+- Falhas de sincronização não interrompem o atendimento principal: os nós novos usam saída de erro regular e não alteram as rotas existentes.
+
+### Validação executada
+
+- `640634`: primeiro teste vermelho, interrompido antes da UAZAPI por retorno incompatível no modo do Code node. Corrigido somente esse nó para `runOnceForAllItems`; não houve envio nem alteração de contato nessa tentativa.
+- `640649`: teste ponta a ponta aprovado; o endpoint real retornou HTTP 200 (`Contact added`) e o controle confirmou o nome salvo.
+- `640673`: repetição do mesmo nome aprovada com `should_save=false`; o nó HTTP não foi executado, comprovando idempotência.
+- `640679`: mensagem `fromMe=true` ignorada antes do registro e da API.
+- `640680`: mensagem de grupo ignorada antes do registro e da API.
+- Os testes usaram eventos sintéticos para não enviar mensagens a clientes. A chamada HTTP ao endpoint da UAZAPI foi real; não foi necessário enviar uma mensagem de WhatsApp para validar a persistência.
+
+### Publicação
+
+- Publicação n8n confirmada: workflow `7ngn9zsHXZbjv1qG`, versão ativa `fd3adde6-540e-43a9-8716-94a982353649`, workflow ativo e rascunho/versão publicada idênticos.
+- Não foram alterados Chatwoot, follow-up, etiquetas, prompts, credenciais ou outros workflows nesta implementação.
+- Os avisos antigos do workflow permanecem registrados como preexistentes e não foram misturados com esta alteração.
