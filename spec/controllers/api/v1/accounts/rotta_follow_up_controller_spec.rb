@@ -126,6 +126,57 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
       expect(response.parsed_body['jobs'].map { |job| job['job_id'] }).to eq(['job-current'])
       expect(response.parsed_body['total']).to eq(1)
     end
+
+    it 'does not create a fallback for a stale second label when the conversation has an operational remote job' do
+      create(:label, account: account, title: 'primeiro-contato')
+      create(:label, account: account, title: 'segundo-contato')
+      conversation.update_labels(%w[primeiro-contato segundo-contato])
+      upstream_response = instance_double(
+        HTTParty::Response,
+        body: {
+          jobs: [
+            {
+              'job_id' => 'job-current',
+              'account_id' => account.id.to_s,
+              'conversation_id' => conversation.display_id.to_s,
+              'current_label' => 'primeiro-contato',
+              'status' => 'pending'
+            }
+          ]
+        }.to_json,
+        code: 200
+      )
+
+      allow(HTTParty).to receive(:post).and_return(upstream_response)
+      post endpoint,
+           headers: user.create_new_auth_token,
+           params: { action: 'list' }.to_json,
+           as: :json
+
+      expect(response.parsed_body['jobs'].map { |job| job['job_id'] }).to eq(['job-current'])
+      expect(response.parsed_body['total']).to eq(1)
+    end
+
+    it 'keeps one reconciliation row when multiple stale follow-up labels exist without a remote job' do
+      create(:label, account: account, title: 'primeiro-contato')
+      create(:label, account: account, title: 'segundo-contato')
+      conversation.update_labels(%w[primeiro-contato segundo-contato])
+      upstream_response = instance_double(
+        HTTParty::Response,
+        body: { jobs: [] }.to_json,
+        code: 200
+      )
+
+      allow(HTTParty).to receive(:post).and_return(upstream_response)
+      post endpoint,
+           headers: user.create_new_auth_token,
+           params: { action: 'list' }.to_json,
+           as: :json
+
+      expect(response.parsed_body['jobs'].size).to eq(1)
+      expect(response.parsed_body['jobs'].first['pending_enrollment']).to be(true)
+      expect(response.parsed_body['total']).to eq(1)
+    end
   end
 
   describe 'mutating actions' do

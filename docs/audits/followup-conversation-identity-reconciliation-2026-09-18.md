@@ -61,3 +61,23 @@ conversa assim que a fila retorna uma etapa ativa confirmada. O motor n8n, as
 etiquetas do Chatwoot, os horários e as mensagens não são modificados por essa
 correção. Foi incluído um teste de regressão para o caso com marcadores de
 Primeiro e Segundo contato e confirmação remota de Primeiro contato.
+
+## Regressão encontrada após o primeiro deploy — fallback do proxy — 18/09/2026
+
+O bundle novo foi publicado e o serviço voltou com `/health` em HTTP 200, mas a
+validação visual ainda mostrava Kelvin em Primeiro e Segundo contato. A causa
+residual estava no proxy Rails do próprio Chatwoot: ao receber um job remoto
+ativo para a conversa, ele também criava um fallback de conciliação para cada
+outra etiqueta de follow-up que ainda estivesse temporariamente presente no
+Chatwoot.
+
+Correção aplicada no proxy:
+
+- uma conversa com qualquer job remoto operacional não recebe fallback para
+  nenhuma etiqueta adicional;
+- quando não existe job remoto, múltiplas etiquetas antigas geram somente uma
+  linha explícita de conciliação, evitando multiplicação de cartões;
+- jobs históricos continuam fora da decisão operacional.
+
+Foram adicionados testes de request para os dois cenários. A mudança é isolada
+no controller do Follow-up e não altera envio, etiquetas, horários ou o worker.

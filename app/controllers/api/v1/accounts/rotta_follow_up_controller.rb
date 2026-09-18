@@ -7,6 +7,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     orcamento-instantaneo orcamento-feito orcamento-tentativa-2 orcamento-tentativa-3
     orcamento-tentativa-4 orcamento-5-dias orcamento-10-dias orcamento-15-dias
   ].freeze
+  HISTORICAL_REMOTE_STATUSES = %w[history_only sent_history].freeze
 
   def proxy
     payload = JSON.parse(request.raw_post.presence || '{}').slice(
@@ -181,22 +182,37 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       stage = follow_up_label_key(job['current_label'].presence || job['source_label'])
       "#{job['conversation_id']}:#{stage}"
     end
+    # A remote operational job is authoritative for the conversation. Chatwoot
+    # can briefly retain the previous stage label while the label webhook and
+    # the worker reconcile, so generating a fallback for every active label
+    # would create a second, false card in the board.
+    operational_conversation_ids = jobs.reject do |job|
+      HISTORICAL_REMOTE_STATUSES.include?(job['status'].to_s)
+    end.filter_map { |job| job['conversation_id'].presence&.to_s }.to_set
 
     fallback_jobs = Current.account.conversations
                                   .tagged_with(label_titles, any: true)
                                   .includes(:contact)
                                   .distinct
                                   .flat_map do |conversation|
+      next [] if operational_conversation_ids.include?(conversation.display_id.to_s)
+
       # `tagged_with` confirms the database relation; the maintained cache
       # avoids one tag query per conversation on the five-second refresh.
       active_labels = conversation.cached_label_list_array
-      active_labels.filter_map do |label|
+      active_stage = active_labels.filter_map do |label|
         stage = follow_up_label_key(label)
         next unless FOLLOW_UP_STAGE_KEYS.include?(stage)
         next if existing_keys.include?("#{conversation.display_id}:#{stage}")
 
-        chatwoot_label_fallback(conversation, stage, active_labels)
-      end
+        stage
+      end.first
+      next [] unless active_stage
+
+      # A conversation must occupy one current stage. If an old label is
+      # still present while the webhook catches up, keep a single explicit
+      # reconciliation row instead of multiplying ghost cards.
+      [chatwoot_label_fallback(conversation, active_stage, active_labels)]
     end
 
     all_jobs = jobs + fallback_jobs
