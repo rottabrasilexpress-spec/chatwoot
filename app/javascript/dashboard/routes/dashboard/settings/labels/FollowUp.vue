@@ -32,6 +32,7 @@ import {
   isStaleHistoricalJob,
   activeFollowUpStageCount,
   deduplicateFollowUpJobs,
+  operationalFollowUpJobs,
   orderedFollowUpStages,
   displayTrailStagesFor,
   nextFollowUpStageFor,
@@ -286,8 +287,17 @@ const queueJobs = computed(() => {
   return [...waiting, ...reconciledJobs.value];
 });
 
+// Historical dispatch rows are audit records, not members of the current
+// operational queue. Keeping them in the Kanban made one conversation appear
+// in both its previous and current stages (and inflated stage counters).
+// The active job already carries the worker history used by the expanded
+// timeline, so the audit trail remains available without a ghost card.
+const operationalJobs = computed(() =>
+  operationalFollowUpJobs(queueJobs.value)
+);
+
 const counts = computed(() =>
-  queueJobs.value.reduce((result, job) => {
+  operationalJobs.value.reduce((result, job) => {
     const stage = displayStageFor(job);
     if (stage && !isArchivedStage(stage)) {
       result[stage] = (result[stage] || 0) + 1;
@@ -336,7 +346,7 @@ const trailViewForJob = followUpTrailForJob;
 const stageOptions = computed(() => {
   const values = new Set([
     ...selectedTrailView.value.stages,
-    ...queueJobs.value
+    ...operationalJobs.value
       .filter(job => jobBelongsToFollowUpView(job, selectedView.value))
       .map(displayStageFor)
       .filter(stage => stage && !legacyStagesHiddenFromFilter.has(stage)),
@@ -347,7 +357,7 @@ const stageOptions = computed(() => {
 const trailColumns = computed(() => {
   const configuredStages = selectedTrailView.value.stages;
   const additionalStages = orderedFollowUpStages(
-    queueJobs.value
+    operationalJobs.value
       .filter(job => jobBelongsToFollowUpView(job, selectedView.value))
       .map(displayStageFor)
       .filter(
@@ -386,9 +396,7 @@ const trailColumns = computed(() => {
 });
 
 const activeJobs = computed(() =>
-  queueJobs.value.filter(
-    job => !isHistoricalJob(job) && Boolean(trailViewForJob(job))
-  )
+  operationalJobs.value.filter(job => Boolean(trailViewForJob(job)))
 );
 
 const activeStageCount = computed(() =>
@@ -396,8 +404,9 @@ const activeStageCount = computed(() =>
 );
 
 const viewCount = view => {
-  return queueJobs.value.filter(job => jobBelongsToFollowUpView(job, view))
-    .length;
+  return operationalJobs.value.filter(job =>
+    jobBelongsToFollowUpView(job, view)
+  ).length;
 };
 
 const viewOptions = computed(() => trailViews);
@@ -413,7 +422,7 @@ const visibleColumns = computed(() => {
 
 const filteredJobs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
-  return queueJobs.value.filter(job => {
+  return operationalJobs.value.filter(job => {
     const matchesView = jobBelongsToFollowUpView(job, selectedView.value);
     const displayStage = displayStageFor(job);
     const matchesStage =

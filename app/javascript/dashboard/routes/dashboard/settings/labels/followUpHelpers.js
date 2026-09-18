@@ -243,6 +243,9 @@ export const isStaleHistoricalJob = job => {
   );
 };
 
+export const operationalFollowUpJobs = jobs =>
+  (Array.isArray(jobs) ? jobs : []).filter(job => !isHistoricalJob(job));
+
 export const deduplicateFollowUpJobs = jobs => {
   // This is intentionally a board-level projection: the admin response and
   // conversation message history remain untouched. The operational board has

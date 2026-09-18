@@ -7,6 +7,7 @@ import {
   isHistoricalJob,
   isStaleHistoricalJob,
   deduplicateFollowUpJobs,
+  operationalFollowUpJobs,
   isWithinDispatchWindow,
   kanbanBucketFor,
   delayHoursFor,
@@ -32,6 +33,25 @@ const WINDOW = {
 };
 
 describe('follow-up helpers', () => {
+  it('keeps a previous-stage audit row out of the operational board', () => {
+    const jobs = [
+      {
+        job_id: 'history-first',
+        conversation_id: 2143,
+        status: 'sent_history',
+        current_label: 'primeiro-contato',
+      },
+      {
+        job_id: 'active-second',
+        conversation_id: 2143,
+        status: 'queued',
+        current_label: 'segundo-contato',
+      },
+    ];
+
+    expect(operationalFollowUpJobs(jobs)).toEqual([jobs[1]]);
+  });
+
   it('counts only stages with current active follow-up jobs', () => {
     expect(activeFollowUpStageCount([])).toBe(0);
     expect(
