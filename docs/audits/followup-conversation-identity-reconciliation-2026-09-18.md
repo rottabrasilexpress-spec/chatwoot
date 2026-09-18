@@ -43,3 +43,6 @@ O job de teste de Kelvin foi disparado uma vez, de `segundo-contato` para
 uma mensagem, a etiqueta pública da conversa `#2143` mudou para
 `terceiro-contato`, a releitura autoritativa confirmou esse valor e foi criado
 somente um job pendente de Terceiro para Último contato, com 72 horas de atraso.
+
+No Chrome, a conversa mostrou exclusivamente `Terceiro contato`, uma única
+mensagem nova e o card lateral sincronizado com a próxima etapa e seus atalhos.
