@@ -193,3 +193,36 @@ Evidência: execução `638194` finalizou com `no_send_without_send`; a API
 - Chrome confirmou atualização dinâmica no histórico, na etiqueta, no Perfil e no quadro; não houve duplicidade nem `Conciliação pendente`.
 - `+1 dia` e `−1 dia` foram testados nos dois cartões. Os botões ficaram desabilitados durante a chamada, e a reversão retornou o horário original.
 - As etiquetas de teste foram removidas ao final; os dois telefones não permaneceram no quadro operacional.
+
+## Auditoria real — lote de 10 etiquetas e convergência visual (18/09/2026)
+
+### Escopo e método
+
+- Foram usados 10 clientes reais visíveis no Chatwoot, com etiquetas não instantâneas, distribuídas entre Primeiro/Segundo/Terceiro contato, Orçamento feito, tentativas 2–4 e Orçamento 5/10/15 dias.
+- Em cada cliente foi conferido o ID da conversa antes da alteração. Depois da aplicação foram observados: chip no cabeçalho da conversa, etiqueta no card da lista e presença no quadro de Follow-up.
+- Todas as etiquetas temporárias foram removidas ao final. A Gardenia já possuía Primeiro contato; somente Terceiro contato foi temporariamente adicionado e removido, preservando o estado anterior.
+
+### Resultado do lote
+
+- Aplicação: **10/10** concluídas; o único erro intermediário foi um timeout de interação do navegador e não uma falha do Chatwoot. O alvo foi reaberto pelo nome/ID e a operação foi concluída no cliente correto.
+- Remoção: **10/10** concluídas após a reconciliação manual dos dois timeouts de UI; todas as etiquetas temporárias desapareceram dos cabeçalhos.
+- Follow-up: subiu de **12** para **21** itens durante o lote e voltou exatamente para **12** após a remoção. A Gardenia migrou de Primeiro para Terceiro durante o teste por ter recebido uma nova etapa; ao limpar a etiqueta, voltou a manter apenas Primeiro contato.
+- Contadores finais autoritativos no menu: Primeiro 6, Segundo 1, Terceiro 1, Orçamento feito 2, Tentativa 2 1, Tentativa 3 0, Tentativa 4 0, Orçamento 5 dias 1, Orçamento 10 dias 0 e Orçamento 15 dias 0 — iguais ao baseline.
+- O quadro final não contém os 10 clientes de teste, não contém `Conciliação pendente` e não deixou etiqueta temporária residual.
+
+### Medição de responsividade
+
+- O cabeçalho e o card da lista mostraram a nova etiqueta imediatamente após a confirmação visual.
+- No reteste cronometrado com Marcelo, o contador do menu e o cartão do Follow-up convergiram em aproximadamente **6,1 s**; antes disso o chip local já estava visível.
+- O navegador mostrou `Desconectado` no rodapé da tela de conversa durante o teste. Nesse estado, o painel depende do fallback de reconciliação de 5 s; portanto, a atualização observada é funcional, mas ainda não é instantânea por WebSocket.
+- O painel estava usando a opção **Todas as etapas** e exibiu os clientes nas etapas correspondentes, uma vez cada, sem cartões fantasmas.
+
+### n8n / envio
+
+- Entre 14:42Z e 14:58Z, o workflow `utaNsnFUZYBYDf5S` retornou 326 execuções, todas `success`, sem `error`, `crashed` ou `canceled`.
+- Como todas as etiquetas usadas eram programadas, nenhum disparo de WhatsApp foi solicitado pelo teste; não houve mensagem de teste observada.
+
+### Conclusão e pendência de desempenho
+
+- **Aprovado:** contadores, card, conversa, Follow-up, inclusão/remoção, reconciliação de etapa e limpeza final.
+- **Pendente de otimização:** investigar por que o Chrome sinaliza `Desconectado` e reduzir a dependência do polling de 5 s para obter atualização realmente em tempo real. Nenhuma alteração de código foi feita nesta auditoria.
