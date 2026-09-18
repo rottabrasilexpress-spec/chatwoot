@@ -152,10 +152,7 @@ describe('ActionCableConnector - Copilot Tests', () => {
     };
 
     it('dispatches an alert for an incoming message in an archived conversation', () => {
-      actionCable.onReceived({
-        event: 'message.created',
-        data: archivedMessage,
-      });
+      actionCable.receiveArchivedMessageAlert(archivedMessage);
 
       expect(mockDispatch).toHaveBeenCalledWith(
         'archivedMessageAlerts/receive',
@@ -173,20 +170,14 @@ describe('ActionCableConnector - Copilot Tests', () => {
     });
 
     it('does not dispatch an alert for outgoing or active conversations', () => {
-      actionCable.onReceived({
-        event: 'message.created',
-        data: {
-          ...archivedMessage,
-          message_type: 1,
-          sender: { type: 'User' },
-        },
+      actionCable.receiveArchivedMessageAlert({
+        ...archivedMessage,
+        message_type: 1,
+        sender: { type: 'User' },
       });
-      actionCable.onReceived({
-        event: 'message.created',
-        data: {
-          ...archivedMessage,
-          conversation: { ...archivedMessage.conversation, status: 'open' },
-        },
+      actionCable.receiveArchivedMessageAlert({
+        ...archivedMessage,
+        conversation: { ...archivedMessage.conversation, status: 'open' },
       });
 
       expect(mockDispatch).not.toHaveBeenCalledWith(
