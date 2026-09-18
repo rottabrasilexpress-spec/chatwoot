@@ -87,3 +87,23 @@ aparecia na conversa legada `206`, ambas do mesmo telefone. A conciliação agor
 também usa a chave numérica do telefone; assim, uma etiqueta de uma conversa
 legada não gera um segundo cartão enquanto houver job operacional do mesmo
 cliente.
+
+## Reparação de Bárbara — 18/09/2026
+
+O telefone `5531998975727` apresentava `Conciliação pendente` porque a conversa
+`2284` ainda possuía somente `contato-instantaneo`, embora o disparo inicial já
+tivesse ocorrido. A consulta autoritativa não tinha job remoto para Bárbara.
+
+Reparação aplicada, sem novo envio de WhatsApp:
+
+- adicionada a etiqueta `primeiro-contato`;
+- removida a etiqueta já processada `contato-instantaneo`;
+- webhook de etiquetas criou o job autoritativo da conversa `2284`;
+- o Follow-up passou a exibir `Primeiro contato → Segundo contato`, com status
+  `Na fila` e data `2026-09-20T01:32:37.905Z` UTC;
+- a consulta posterior retornou exatamente um job ativo para o telefone, sem
+  fallback `pending` e sem `Conciliação pendente`.
+
+Validação visual no Chrome: cartão de Bárbara presente uma única vez, com
+horário, atalhos `Agora`, `−1 dia` e `+1 dia`, e atualização dinâmica após a
+troca de etiquetas.
