@@ -142,6 +142,11 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     label.to_s.parameterize.sub(/\A\d+-/, '')
   end
 
+  def phone_key(value)
+    digits = value.to_s.gsub(/\D/, '')
+    digits.presence
+  end
+
   # The worker can create the Chatwoot message before its Uazapi ACK arrives.
   # Keep the n8n status untouched, but expose the local message as auditable
   # evidence so the UI never presents a completed local send as an opaque
@@ -189,6 +194,11 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     operational_conversation_ids = jobs.reject do |job|
       HISTORICAL_REMOTE_STATUSES.include?(job['status'].to_s)
     end.filter_map { |job| job['conversation_id'].presence&.to_s }.to_set
+    operational_phone_keys = jobs.reject do |job|
+      HISTORICAL_REMOTE_STATUSES.include?(job['status'].to_s)
+    end.filter_map do |job|
+      phone_key(job['phone'] || job['phone_number'] || job['contact_phone'])
+    end.to_set
 
     fallback_jobs = Current.account.conversations
                                   .tagged_with(label_titles, any: true)
@@ -196,6 +206,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
                                   .distinct
                                   .flat_map do |conversation|
       next [] if operational_conversation_ids.include?(conversation.display_id.to_s)
+      next [] if operational_phone_keys.include?(phone_key(conversation.contact&.phone_number))
 
       # `tagged_with` confirms the database relation; the maintained cache
       # avoids one tag query per conversation on the five-second refresh.

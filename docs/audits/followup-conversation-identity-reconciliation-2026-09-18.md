@@ -81,3 +81,9 @@ Correção aplicada no proxy:
 
 Foram adicionados testes de request para os dois cenários. A mudança é isolada
 no controller do Follow-up e não altera envio, etiquetas, horários ou o worker.
+
+Na validação real, o job atual estava na conversa `2143` e a etiqueta antiga
+aparecia na conversa legada `206`, ambas do mesmo telefone. A conciliação agora
+também usa a chave numérica do telefone; assim, uma etiqueta de uma conversa
+legada não gera um segundo cartão enquanto houver job operacional do mesmo
+cliente.

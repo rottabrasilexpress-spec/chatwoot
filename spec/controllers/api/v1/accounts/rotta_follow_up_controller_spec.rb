@@ -130,6 +130,7 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
     it 'does not create a fallback for a stale second label when the conversation has an operational remote job' do
       create(:label, account: account, title: 'primeiro-contato')
       create(:label, account: account, title: 'segundo-contato')
+      conversation.contact.update!(phone_number: '5511965927865')
       conversation.update_labels(%w[primeiro-contato segundo-contato])
       upstream_response = instance_double(
         HTTParty::Response,
@@ -138,7 +139,8 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
             {
               'job_id' => 'job-current',
               'account_id' => account.id.to_s,
-              'conversation_id' => conversation.display_id.to_s,
+              'conversation_id' => '2143',
+              'phone' => '+5511965927865',
               'current_label' => 'primeiro-contato',
               'status' => 'pending'
             }
