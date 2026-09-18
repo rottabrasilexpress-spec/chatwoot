@@ -67,6 +67,7 @@ A janela adicional recebeu somente o evento `chat_labels` `644265`, não uma men
 - A implementação está publicada e operacional para mensagens inbound com nome em `message.senderName` e para o fallback em `chat.name/wa_name`.
 - A auditoria ainda não capturou um cliente totalmente novo com `history_count=0`; essa é a única validação operacional restante para confirmar a primeira aplicação da etiqueta em uma conversa sem histórico.
 - A janela seguinte de oito verificações não recebeu outro inbound de cliente.
+- A verificação posterior encontrou 13 webhooks: 12 eventos `chat_labels` e 1 mensagem `fromMe=true`; nenhum foi uma mensagem inbound de cliente e, portanto, nenhum poderia validar `history_count=0`.
 
 ## Segurança
 
