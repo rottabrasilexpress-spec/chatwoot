@@ -72,3 +72,29 @@ A janela adicional recebeu somente o evento `chat_labels` `644265`, não uma men
 ## Segurança
 
 Nenhum token, senha ou credencial foi registrado neste documento.
+
+## Correção final — nome independente da etapa
+
+O caso real `644498` mostrou uma cobertura que ainda faltava: a mensagem inbound chegou com `senderName`, `chat.name`, `wa_name` e `wa_contactName` vazios. A rota anterior encerrava antes de salvar o nome e antes de avaliar as etiquetas.
+
+Foi implementado no workflow principal, antes dos subfluxos de Primeiro contato e KELVIN:
+
+- `Nome inbound disponível?` mantém o caminho rápido quando já existe nome.
+- Quando o nome não vem no evento, `UAZAPI — Detalhes para nome inbound` consulta `POST /chat/details`.
+- `Consolidar nome inbound` recupera `name`, `wa_name` ou `wa_contactName`, preserva o contexto original e monta o SQL idempotente.
+- O Postgres decide `should_save`; somente quando necessário o `/contact/add` é chamado.
+- Mesmo sem nome retornado, o fluxo segue para as etiquetas sem bloquear o atendimento.
+
+## Publicação e testes finais
+
+- Correção intermediária publicada: versão `eadd72d7-07a6-45c9-a1d1-ea506d1db09a`.
+- Um teste real controlado `644569` expôs um erro de montagem do SQL (`\\n` literal); ele foi corrigido sem alterar outros nós.
+- Versão final publicada e ativa: `3ccd26cb-19d0-48e4-bf18-50850493698e`.
+- Teste `644600`, sem nome no evento: `/chat/details` retornou HTTP 200 com `Kelvin Martins`; SQL executou sem erro (`should_save=false`); Primeiro contato foi acionado e KELVIN foi avaliado.
+- Teste `644669`, com escopo de auditoria novo e sem nome no evento: `/chat/details` retornou HTTP 200 com `Caio Mazine`; `should_save=true`; `/contact/add` retornou HTTP 200; confirmação e Primeiro contato terminaram com sucesso.
+- O subfluxo Primeiro contato `644670` reconheceu histórico existente e não duplicou etiqueta.
+- Execuções KELVIN `644254` e `644214` continuam comprovando o caminho completo: detector de pré-orçamento, aplicação confirmada de KELVIN e remoção confirmada de Primeiro contato. A execução `644634` ignorou corretamente um texto que não era pré-orçamento.
+
+## Regra operacional consolidada
+
+Toda mensagem inbound elegível passa primeiro pela sincronização de nome, independentemente de estar em Primeiro contato, KELVIN, orçamento ou outra etapa. A aplicação das etiquetas permanece separada e idempotente; nenhum frontend do Chatwoot, follow-up, prompt, credencial ou outro workflow foi alterado.
