@@ -43,3 +43,10 @@ Não foram alterados endpoints, stores de mutação de etiquetas, workflows n8n,
 - O contorno usa `outline` com deslocamento interno, preservando dimensões, espaçamento, sombras e ações existentes do card.
 - Em `Quadrado`, `Redondo` e `Nítido`, nenhum contorno adicional é aplicado ao card.
 - Nenhum dado, etiqueta, follow-up, mensagem ou endpoint foi alterado.
+
+## Validação pós-deploy do ajuste
+
+- Commit `cd2d8a72` publicado em `rotta-custom-v1` e implantado no EasyPanel; o log terminou com `### Success` em 18/09/2026 às 18:56:42 GMT.
+- Health-check live: HTTP 200 (`{"status":"woot"}`). O bundle público contém `rotta-card-label-border` no JavaScript e no CSS.
+- Chrome, em cards reais de `caio-atencao`: `Contorno da mensagem` exibiu a linha fina amarela ao redor de cada card; `Quadrado` removeu o contorno imediatamente via sincronização entre abas.
+- Estado final restaurado para `Quadrado`; nenhuma etiqueta, mensagem ou conversa real foi modificada durante o teste.
