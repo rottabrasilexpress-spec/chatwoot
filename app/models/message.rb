@@ -443,6 +443,11 @@ class Message < ApplicationRecord
     return if conversation.muted?
     return unless incoming?
 
+    if conversation.rotta_archived?
+      conversation.resolve! unless conversation.resolved?
+      return
+    end
+
     conversation.open! if conversation.snoozed?
 
     reopen_resolved_conversation if conversation.resolved?

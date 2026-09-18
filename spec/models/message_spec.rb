@@ -261,6 +261,18 @@ RSpec.describe Message do
       expect(message.conversation.resolved?).to be true
     end
 
+    it 'keeps a Rotta archived-label conversation archived when a contact sends a message' do
+      with_modified_env 'ROTTABRASIL_CHATWOOT_ACCOUNT_ID' => conversation.account_id.to_s do
+        conversation.update!(label_list: ['arquivado'])
+        expect(conversation.reload).to be_resolved
+        conversation.update!(status: :open)
+
+        message.save!
+
+        expect(message.conversation.reload).to be_resolved
+      end
+    end
+
     it 'reopens snoozed conversation when the message is from a contact' do
       conversation.snoozed!
       message.save!
