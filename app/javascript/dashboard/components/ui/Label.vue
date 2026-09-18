@@ -43,6 +43,10 @@ export default {
       type: String,
       default: '',
     },
+    presentation: {
+      type: String,
+      default: '',
+    },
   },
   emits: ['remove'],
   computed: {
@@ -54,17 +58,20 @@ export default {
     labelClass() {
       return `label ${this.colorScheme} ${this.variant} ${
         this.small ? 'small' : ''
-      }`;
+      } ${this.presentation ? `rotta-label-${this.presentation}` : ''}`;
     },
     labelStyle() {
+      const style = this.color ? { '--rotta-label-color': this.color } : {};
+
       if (this.bgColor) {
         return {
+          ...style,
           background: this.bgColor,
           color: this.textColor,
           border: `1px solid ${this.bgColor}`,
         };
       }
-      return {};
+      return style;
     },
     anchorStyle() {
       if (this.bgColor) {
@@ -189,6 +196,35 @@ export default {
 
   &.dashed {
     @apply bg-transparent text-n-slate-11 dark:text-n-slate-12 border border-dashed border-n-strong;
+  }
+
+  &.rotta-label-square {
+    border-radius: 4px;
+  }
+
+  &.rotta-label-round {
+    border-radius: 999px;
+  }
+
+  &.rotta-label-crisp {
+    border-color: var(--rotta-label-color, currentColor);
+    background: color-mix(
+      in srgb,
+      var(--rotta-label-color, transparent) 12%,
+      transparent
+    );
+    box-shadow: 0 0 0 1px
+      color-mix(in srgb, var(--rotta-label-color, transparent) 20%, transparent);
+    font-weight: 700;
+  }
+
+  &.rotta-label-message-border {
+    border-radius: 6px;
+    border-color: color-mix(
+      in srgb,
+      var(--rotta-label-color, currentColor) 72%,
+      currentColor
+    );
   }
 }
 

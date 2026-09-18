@@ -1,4 +1,6 @@
 import {
+  DEFAULT_LABEL_PRESENTATION,
+  LABEL_PRESENTATION_OPTIONS,
   getLabelFilterOptions,
   getLabelPresentationColor,
   getLabelPresentationTitle,
@@ -36,6 +38,16 @@ describe('Rotta label presentation', () => {
         label: 'Custom Label',
         color: '#64748b',
       },
+    ]);
+  });
+
+  it('exposes the four visual presentation choices with square as the default', () => {
+    expect(DEFAULT_LABEL_PRESENTATION).toBe('square');
+    expect(LABEL_PRESENTATION_OPTIONS.map(option => option.value)).toEqual([
+      'square',
+      'round',
+      'crisp',
+      'message-border',
     ]);
   });
 });

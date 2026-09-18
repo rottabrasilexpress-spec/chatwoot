@@ -4,6 +4,7 @@ import { useTimeoutFn } from '@vueuse/core';
 import { provideMessageContext } from './provider.js';
 import { useAlert, useTrack } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useConversationLabels } from 'dashboard/composables/useConversationLabels';
 import { emitter } from 'shared/helpers/mitt';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -12,6 +13,10 @@ import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { isRottaReplyMessage } from 'shared/mixins/inboxMixin';
+import {
+  getLabelPresentationColor,
+  useLabelPresentation,
+} from 'dashboard/helper/rottaLabelPresentation';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import {
   MESSAGE_TYPES,
@@ -160,6 +165,23 @@ const inboxGetter = useMapGetter('inboxes/getInbox');
 const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
 const isOnChatwootCloud = useMapGetter('globalConfig/isOnChatwootCloud');
 const { replaceInstallationName } = useBranding();
+const { accountLabels, savedLabels } = useConversationLabels();
+const { presentation } = useLabelPresentation();
+
+const messageLabelBorderColor = computed(() => {
+  if (presentation.value !== 'message-border') return '';
+
+  const activeLabel = accountLabels.value.find(label =>
+    savedLabels.value.includes(label.title)
+  );
+  return activeLabel ? getLabelPresentationColor(activeLabel) : '';
+});
+
+const messageBubbleShellStyle = computed(() =>
+  messageLabelBorderColor.value
+    ? { '--rotta-message-label-color': messageLabelBorderColor.value }
+    : {}
+);
 
 const isCaptainMessage = computed(() => {
   const senderType = props.sender?.type ?? props.senderType;
@@ -699,7 +721,13 @@ provideMessageContext({
         }"
         @contextmenu="openContextMenu($event)"
       >
-        <div class="rotta-message-bubble-shell relative min-w-0 max-w-full">
+        <div
+          class="rotta-message-bubble-shell relative min-w-0 max-w-full"
+          :class="{
+            'rotta-message-bubble-shell--label-border': messageLabelBorderColor,
+          }"
+          :style="messageBubbleShellStyle"
+        >
           <WhatsappReferral
             v-if="shouldShowWhatsappReferral"
             :referral="contentAttributes.referral"
@@ -802,6 +830,18 @@ provideMessageContext({
 
 .rotta-message-bubble-shell {
   isolation: isolate;
+}
+
+.rotta-message-bubble-shell--label-border
+  > :is(
+    .rotta-bubble-incoming,
+    .rotta-bubble-outgoing,
+    .left-bubble,
+    .right-bubble
+  ) {
+  border: 1px solid var(--rotta-message-label-color);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--rotta-message-label-color) 18%, transparent);
 }
 
 .rotta-message-action-trigger {

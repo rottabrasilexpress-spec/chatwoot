@@ -4,6 +4,7 @@ import { mapGetters } from 'vuex';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useConversationLabels } from 'dashboard/composables/useConversationLabels';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
+import { useLabelPresentation } from 'dashboard/helper/rottaLabelPresentation';
 import Spinner from 'shared/components/Spinner.vue';
 import LabelDropdown from 'shared/components/ui/label/LabelDropdown.vue';
 import AddLabel from 'shared/components/ui/dropdown/AddLabel.vue';
@@ -24,6 +25,7 @@ export default {
       addLabelToConversation,
       removeLabelFromConversation,
     } = useConversationLabels();
+    const { presentation } = useLabelPresentation();
 
     const showSearchDropdownLabel = ref(false);
 
@@ -59,6 +61,7 @@ export default {
       accountLabels,
       addLabelToConversation,
       removeLabelFromConversation,
+      presentation,
       showSearchDropdownLabel,
       closeDropdownLabel,
       toggleLabels,
@@ -98,6 +101,7 @@ export default {
           show-close
           :color="label.color"
           variant="smooth"
+          :presentation="presentation"
           class="max-w-[calc(100%-0.5rem)]"
           @remove="removeLabelFromConversation"
         />

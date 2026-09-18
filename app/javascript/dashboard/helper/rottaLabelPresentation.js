@@ -1,3 +1,5 @@
+import { computed, ref } from 'vue';
+
 export const LABEL_META = {
   'primeiro-contato': { title: 'Primeiro contato', color: '#16a34a' },
   'segundo-contato': { title: 'Segundo contato', color: '#f59e0b' },
@@ -34,6 +36,108 @@ export const LABEL_META = {
   kelvin: { title: 'Kelvin', color: '#c026d3' },
   'kelvin-caio': { title: 'KELVIN / CAIO', color: '#c026d3' },
   arquivado: { title: 'Arquivado', color: '#991b1b' },
+};
+
+export const LABEL_PRESENTATION_OPTIONS = [
+  {
+    value: 'square',
+    label: 'Quadrado',
+    description: 'Formato atual, com cantos discretos.',
+  },
+  {
+    value: 'round',
+    label: 'Redondo',
+    description: 'Cantos totalmente arredondados para leitura rápida.',
+  },
+  {
+    value: 'crisp',
+    label: 'Nítido',
+    description: 'Contraste e contorno reforçados sem aumentar o volume.',
+  },
+  {
+    value: 'message-border',
+    label: 'Contorno da mensagem',
+    description: 'A cor da etiqueta contorna o balão da conversa.',
+  },
+];
+
+export const DEFAULT_LABEL_PRESENTATION = 'square';
+const LABEL_PRESENTATION_VALUES = new Set(
+  LABEL_PRESENTATION_OPTIONS.map(option => option.value)
+);
+const presentationState = ref(DEFAULT_LABEL_PRESENTATION);
+let presentationStorageKey = '';
+
+const getPresentationStorageKey = () => {
+  if (typeof window === 'undefined') return '';
+
+  const accountId = window.location.pathname.match(
+    /\/app\/accounts\/([^/]+)/
+  )?.[1];
+  return `rotta-label-presentation:${accountId || 'default'}`;
+};
+
+const readStoredPresentation = () => {
+  if (typeof window === 'undefined') return DEFAULT_LABEL_PRESENTATION;
+
+  try {
+    const stored = window.localStorage.getItem(
+      getPresentationStorageKey() || 'rotta-label-presentation:default'
+    );
+    return LABEL_PRESENTATION_VALUES.has(stored)
+      ? stored
+      : DEFAULT_LABEL_PRESENTATION;
+  } catch (error) {
+    return DEFAULT_LABEL_PRESENTATION;
+  }
+};
+
+const ensurePresentationLoaded = () => {
+  const nextStorageKey = getPresentationStorageKey();
+  if (nextStorageKey === presentationStorageKey) return;
+
+  presentationStorageKey = nextStorageKey;
+  presentationState.value = readStoredPresentation();
+};
+
+ensurePresentationLoaded();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', event => {
+    if (event.key !== getPresentationStorageKey()) return;
+
+    presentationState.value = LABEL_PRESENTATION_VALUES.has(event.newValue)
+      ? event.newValue
+      : DEFAULT_LABEL_PRESENTATION;
+  });
+}
+
+export const useLabelPresentation = () => {
+  ensurePresentationLoaded();
+
+  const setPresentation = value => {
+    const nextPresentation = LABEL_PRESENTATION_VALUES.has(value)
+      ? value
+      : DEFAULT_LABEL_PRESENTATION;
+
+    presentationState.value = nextPresentation;
+
+    if (typeof window === 'undefined') return;
+
+    try {
+      window.localStorage.setItem(
+        presentationStorageKey || 'rotta-label-presentation:default',
+        nextPresentation
+      );
+    } catch (error) {
+      // Keep the current session usable when storage is unavailable.
+    }
+  };
+
+  return {
+    presentation: computed(() => presentationState.value),
+    setPresentation,
+  };
 };
 
 const titleCaseLabel = value =>

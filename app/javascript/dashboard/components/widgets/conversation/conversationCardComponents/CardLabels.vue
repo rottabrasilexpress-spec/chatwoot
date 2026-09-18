@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick, useSlots } from 'vue';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useLabelPresentation } from 'dashboard/helper/rottaLabelPresentation';
 
 const props = defineProps({
   conversationLabels: {
@@ -11,6 +12,7 @@ const props = defineProps({
 
 const slots = useSlots();
 const accountLabels = useMapGetter('labels/getLabels');
+const { presentation } = useLabelPresentation();
 
 const activeLabels = computed(() => {
   return accountLabels.value.filter(({ title }) =>
@@ -73,6 +75,7 @@ const onShowLabels = e => {
         :description="label.description"
         :color="label.color"
         variant="smooth"
+        :presentation="presentation"
         class="!mb-0 max-w-[calc(100%-0.5rem)]"
         small
         :class="{

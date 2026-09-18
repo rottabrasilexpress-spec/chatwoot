@@ -24,6 +24,10 @@ import {
   BaseTableRow,
   BaseTableCell,
 } from 'dashboard/components-next/table';
+import {
+  LABEL_PRESENTATION_OPTIONS,
+  useLabelPresentation,
+} from 'dashboard/helper/rottaLabelPresentation';
 
 const getters = useStoreGetters();
 const store = useStore();
@@ -39,6 +43,7 @@ const records = computed(() => getters['labels/getLabels'].value);
 const followUpConfigLoading = ref(false);
 const followUpConfigUnavailable = ref(false);
 const followUpConfigSaving = ref({});
+const { presentation, setPresentation } = useLabelPresentation();
 const fallbackFollowUpConfig = () =>
   Object.entries(CONFIGURED_DELAY_HOURS).map(([stageLabel, hours]) => ({
     stage_label: stageLabel,
@@ -307,6 +312,59 @@ onBeforeMount(async () => {
       </BaseSettingsHeader>
     </template>
     <template #body>
+      <section
+        class="rotta-label-style-panel"
+        aria-labelledby="rotta-label-style-title"
+      >
+        <div class="rotta-label-style-panel__header">
+          <div>
+            <h2 id="rotta-label-style-title">
+              Identidade visual das etiquetas
+            </h2>
+            <p>
+              Escolha como as etiquetas aparecem no atendimento. A alteração é
+              aplicada imediatamente nesta conta e neste navegador.
+            </p>
+          </div>
+          <span class="rotta-label-style-live">Atualiza na hora</span>
+        </div>
+
+        <div
+          class="rotta-label-style-options"
+          role="radiogroup"
+          aria-label="Estética das etiquetas"
+        >
+          <button
+            v-for="option in LABEL_PRESENTATION_OPTIONS"
+            :key="option.value"
+            type="button"
+            role="radio"
+            class="rotta-label-style-option"
+            :class="{
+              'is-selected': presentation === option.value,
+            }"
+            :aria-checked="presentation === option.value"
+            @click="setPresentation(option.value)"
+          >
+            <span
+              class="rotta-label-style-preview"
+              :class="`rotta-label-style-preview--${option.value}`"
+            >
+              <span class="rotta-label-style-sample">
+                <span class="rotta-label-style-sample__dot" />
+                Primeiro contato
+              </span>
+            </span>
+            <span class="rotta-label-style-option__name">
+              {{ option.label }}
+            </span>
+            <span class="rotta-label-style-option__description">
+              {{ option.description }}
+            </span>
+          </button>
+        </div>
+      </section>
+
       <section class="rotta-config-panel" aria-labelledby="rotta-config-title">
         <div class="rotta-config-panel__header">
           <div>
@@ -494,6 +552,149 @@ onBeforeMount(async () => {
 </template>
 
 <style scoped>
+.rotta-label-style-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  @apply bg-n-solid-2 border border-n-weak rounded-2xl;
+}
+
+.rotta-label-style-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.rotta-label-style-panel h2 {
+  margin: 0;
+  @apply text-n-slate-12;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.rotta-label-style-panel p {
+  max-width: 62ch;
+  margin: 0.35rem 0 0;
+  @apply text-n-slate-11;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.rotta-label-style-live {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.55rem;
+  @apply bg-n-teal-2 text-n-teal-11;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.rotta-label-style-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.rotta-label-style-option {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  @apply bg-n-solid-1 border border-n-weak text-n-slate-12;
+  border-radius: 0.85rem;
+  text-align: start;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+.rotta-label-style-option:hover {
+  @apply border-n-strong;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 7%);
+}
+
+.rotta-label-style-option:focus-visible {
+  outline: 2px solid rgb(var(--blue-9));
+  outline-offset: 2px;
+}
+
+.rotta-label-style-option.is-selected {
+  @apply border-n-brand bg-n-brand/10;
+  box-shadow: 0 0 0 1px rgb(var(--blue-9) / 18%);
+}
+
+.rotta-label-style-preview {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+  @apply bg-n-surface-2 border border-n-weak;
+  border-radius: 0.6rem;
+}
+
+.rotta-label-style-sample {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.5rem;
+  overflow: hidden;
+  color: #166534;
+  background: rgb(22 163 74 / 10%);
+  border: 1px solid rgb(22 163 74 / 48%);
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rotta-label-style-sample__dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  flex: 0 0 auto;
+  background: #16a34a;
+  border-radius: 999px;
+}
+
+.rotta-label-style-preview--round .rotta-label-style-sample {
+  border-radius: 999px;
+}
+
+.rotta-label-style-preview--crisp .rotta-label-style-sample {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 1px rgb(22 163 74 / 20%);
+  font-weight: 750;
+}
+
+.rotta-label-style-preview--message-border .rotta-label-style-sample {
+  background: #fff;
+  border-color: #16a34a;
+  border-radius: 0.65rem;
+  box-shadow: 0 0 0 1px rgb(22 163 74 / 18%);
+}
+
+.rotta-label-style-option__name {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.rotta-label-style-option__description {
+  min-height: 2.1rem;
+  @apply text-n-slate-11;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
 .rotta-config-panel {
   display: flex;
   flex-direction: column;

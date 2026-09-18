@@ -10,6 +10,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import {
   getLabelPresentationColor,
   getLabelPresentationTitle,
+  useLabelPresentation,
 } from 'dashboard/helper/rottaLabelPresentation';
 
 const LABEL_ORDER_STORAGE_KEY = 'rotta-label-order';
@@ -39,6 +40,7 @@ const store = useStore();
 const isOpen = ref(false);
 const search = ref('');
 const labelOrder = ref([]);
+const { presentation } = useLabelPresentation();
 const draggedLabelTitle = ref('');
 const labelsPanelTitle = 'Etiquetas do cliente';
 const searchPlaceholder = 'Pesquisar etiquetas';
@@ -183,6 +185,7 @@ onMounted(loadLabelOrder);
         v-for="label in selectedLabels"
         :key="label.title"
         class="rotta-label-visible"
+        :class="`rotta-label-visible--${presentation}`"
         :style="{
           '--label-color': getLabelPresentationColor(label),
         }"
@@ -343,6 +346,22 @@ onMounted(loadLabelOrder);
   background: color-mix(in srgb, var(--label-color) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--label-color) 48%, transparent);
   border-radius: 999px;
+}
+
+.rotta-label-visible--square {
+  border-radius: 4px;
+}
+
+.rotta-label-visible--crisp {
+  border-color: var(--label-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--label-color) 20%, transparent);
+  font-weight: 700;
+}
+
+.rotta-label-visible--message-border {
+  background: transparent;
+  border-color: var(--label-color);
+  border-radius: 0.65rem;
 }
 
 .rotta-labels-shortcut--priority {
