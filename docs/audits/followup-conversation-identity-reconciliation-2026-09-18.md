@@ -172,3 +172,24 @@ Evidência: execução `638194` finalizou com `no_send_without_send`; a API
   envio instantâneo foi o teste autorizado de Kelvin, que gerou uma mensagem
   única. O instantâneo de orçamento do Caio foi deliberadamente bloqueado pela
   proteção de intervenção humana, e ficou auditado como histórico sem envio.
+
+## Correção e reteste — instantâneos após intervenção humana (18/09/2026)
+
+### Reprodução
+
+- A execução `638194` reproduziu o defeito em `orcamento-instantaneo` para `5511991262866`: a LLM retornou `should_send=false` com motivo de intervenção humana recente, e o job terminou como `no_send_without_send`.
+- O caso mínimo ficou red-capable: antes da correção, o teste retornou `RED: instantâneo foi bloqueado após resposta humana recente` com exit code 1.
+
+### Correção publicada
+
+- `Preparar Resumo Contextual` passou a marcar as etapas instantâneas e instruir a LLM a não bloquear por mensagem de agente/dono.
+- `Interpretar Resumo e Mensagem` passou a forçar `should_send=true` para instantâneos quando há mensagem válida, mantendo o bloqueio apenas para pedido explícito do cliente e preservando o comportamento das etapas programadas.
+- Atualização atômica de 2 nós sem warnings; publicação confirmada no n8n na versão ativa `d22b09b0-1989-4168-9e98-b39c0ce786bc`.
+
+### Reteste real
+
+- Kelvin, `5511965927865`: execução `639279`; `contato-instantaneo` enviou exatamente uma mensagem, confirmou UAZAPI e migrou para `Primeiro contato`.
+- Caio, `5511991262866`: execução `639325`; `orcamento-instantaneo` enviou exatamente uma mensagem mesmo com intervenção humana recente e migrou para `Orçamento feito`.
+- Chrome confirmou atualização dinâmica no histórico, na etiqueta, no Perfil e no quadro; não houve duplicidade nem `Conciliação pendente`.
+- `+1 dia` e `−1 dia` foram testados nos dois cartões. Os botões ficaram desabilitados durante a chamada, e a reversão retornou o horário original.
+- As etiquetas de teste foram removidas ao final; os dois telefones não permaneceram no quadro operacional.
