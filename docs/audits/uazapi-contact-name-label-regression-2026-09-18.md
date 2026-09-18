@@ -52,6 +52,8 @@ Alteração atômica de dois nós:
 
 Ainda não apareceu, durante a janela desta auditoria, uma conversa completamente nova com `history_count=0`. Portanto, o caminho de primeira aplicação física da etiqueta em um cliente sem histórico deve ser confirmado na próxima mensagem real de um novo contato; o caminho de contexto e o salvamento do nome já foram comprovados.
 
+A janela adicional recebeu somente o evento `chat_labels` `644265`, não uma mensagem de cliente; não foi encontrado inbound novo com `fromMe=false` nesse período.
+
 ## Segurança
 
 Nenhum token, senha ou credencial foi registrado neste documento.
