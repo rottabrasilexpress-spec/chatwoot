@@ -46,3 +46,18 @@ somente um job pendente de Terceiro para Último contato, com 72 horas de atraso
 
 No Chrome, a conversa mostrou exclusivamente `Terceiro contato`, uma única
 mensagem nova e o card lateral sincronizado com a próxima etapa e seus atalhos.
+
+## Regressão de conciliação visual — 18/09/2026
+
+O cenário real de `contato-instantaneo` para Kelvin confirmou que o motor
+autoritativo criou somente o job de `primeiro-contato` para a conversa `#2143`.
+O cartão extra de `segundo-contato` era um placeholder local do navegador:
+após uma transição rápida de etiquetas, ele permanecia mesmo depois de a API
+confirmar outra etapa da mesma conversa e era mostrado como `Conciliação
+pendente`.
+
+A projeção do painel passou a descartar todos os placeholders locais daquela
+conversa assim que a fila retorna uma etapa ativa confirmada. O motor n8n, as
+etiquetas do Chatwoot, os horários e as mensagens não são modificados por essa
+correção. Foi incluído um teste de regressão para o caso com marcadores de
+Primeiro e Segundo contato e confirmação remota de Primeiro contato.

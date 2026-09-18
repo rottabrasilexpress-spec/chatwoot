@@ -246,6 +246,33 @@ export const isStaleHistoricalJob = job => {
 export const operationalFollowUpJobs = jobs =>
   (Array.isArray(jobs) ? jobs : []).filter(job => !isHistoricalJob(job));
 
+// A label event reaches the board before the worker has persisted its job.
+// Once the API confirms any active stage for that conversation, its local
+// placeholders are no longer authoritative. Clearing all of them (rather
+// than only the matching stage) prevents a rapid label transition from
+// leaving an obsolete stage as a permanent "Conciliação pendente" card.
+export const reconcilePendingEnrollments = (
+  enrollments,
+  jobs,
+  now = Date.now(),
+  maxAgeMs = 60000
+) => {
+  const confirmedConversationIds = new Set(
+    operationalFollowUpJobs(jobs)
+      .map(job => job?.conversation_id)
+      .filter(Boolean)
+      .map(String)
+  );
+
+  return (Array.isArray(enrollments) ? enrollments : []).filter(item => {
+    const age = now - Number(item?.created_at || 0);
+    return (
+      age < maxAgeMs &&
+      !confirmedConversationIds.has(String(item?.conversation_id || ''))
+    );
+  });
+};
+
 export const deduplicateFollowUpJobs = jobs => {
   // This is intentionally a board-level projection: the admin response and
   // conversation message history remain untouched. The operational board has

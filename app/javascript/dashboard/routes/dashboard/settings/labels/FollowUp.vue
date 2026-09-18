@@ -33,6 +33,7 @@ import {
   activeFollowUpStageCount,
   deduplicateFollowUpJobs,
   operationalFollowUpJobs,
+  reconcilePendingEnrollments,
   orderedFollowUpStages,
   displayTrailStagesFor,
   nextFollowUpStageFor,
@@ -732,16 +733,10 @@ loadQueue = async () => {
       ...(body.config || {}),
       timezone: body.timezone || body.meta?.timezone || TIMEZONE,
     };
-    const returnedKeys = new Set(
-      reconciledJobs.value.map(
-        job =>
-          `${job.conversation_id}:${canonicalFollowUpStage(currentStage(job))}`
-      )
-    );
-    pendingEnrollments.value = pendingEnrollments.value.filter(
-      item =>
-        !returnedKeys.has(pendingJobKey(item)) &&
-        now.value - item.created_at < 60000
+    pendingEnrollments.value = reconcilePendingEnrollments(
+      pendingEnrollments.value,
+      reconciledJobs.value,
+      now.value
     );
     lastSyncedAt.value = Date.now();
   } catch (error) {

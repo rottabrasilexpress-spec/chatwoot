@@ -8,6 +8,7 @@ import {
   isStaleHistoricalJob,
   deduplicateFollowUpJobs,
   operationalFollowUpJobs,
+  reconcilePendingEnrollments,
   isWithinDispatchWindow,
   kanbanBucketFor,
   delayHoursFor,
@@ -50,6 +51,40 @@ describe('follow-up helpers', () => {
     ];
 
     expect(operationalFollowUpJobs(jobs)).toEqual([jobs[1]]);
+  });
+
+  it('drops every local placeholder once the server confirms a conversation stage', () => {
+    const pending = [
+      {
+        conversation_id: 2143,
+        label: 'primeiro-contato',
+        created_at: 1000,
+      },
+      {
+        conversation_id: 2143,
+        label: 'segundo-contato',
+        created_at: 1000,
+      },
+      {
+        conversation_id: 99,
+        label: 'primeiro-contato',
+        created_at: 1000,
+      },
+    ];
+
+    expect(
+      reconcilePendingEnrollments(
+        pending,
+        [
+          {
+            conversation_id: 2143,
+            current_label: 'primeiro-contato',
+            status: 'pending',
+          },
+        ],
+        2000
+      )
+    ).toEqual([pending[2]]);
   });
 
   it('counts only stages with current active follow-up jobs', () => {
