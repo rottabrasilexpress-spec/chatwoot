@@ -83,12 +83,6 @@
       "DISMISS": "Fechar alerta Caio Atenção",
       "OPEN": "Abrir conversa"
     },
-    "ARCHIVED_MESSAGE_ALERT": {
-      "TITLE": "Cliente nos arquivados enviou mensagem",
-      "CONVERSATION": "Conversa #{id}",
-      "DISMISS": "Dispensar aviso",
-      "OPEN": "Abrir conversa"
-    },
     "NO_RESPONSE": "Sem resposta",
     "RESPONSE": "Resposta",
     "RATING_TITLE": "Classificação",

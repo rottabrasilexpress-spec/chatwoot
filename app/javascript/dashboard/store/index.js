@@ -63,7 +63,6 @@ import captainScenarios from './captain/scenarios';
 import captainTools from './captain/tools';
 import captainCustomTools from './captain/customTools';
 import caioAttentionAlerts from './modules/caioAttentionAlerts';
-import archivedMessageAlerts from './modules/archivedMessageAlerts';
 
 const plugins = [];
 
@@ -132,7 +131,6 @@ export default createStore({
     captainTools,
     captainCustomTools,
     caioAttentionAlerts,
-    archivedMessageAlerts,
   },
   plugins,
 });

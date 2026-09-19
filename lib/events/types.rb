@@ -40,7 +40,6 @@ module Events::Types
 
   # message events
   MESSAGE_CREATED = 'message.created'
-  ARCHIVED_MESSAGE_ALERT_CREATED = 'conversation.archived_message_alert'
   FIRST_REPLY_CREATED = 'first.reply.created'
   REPLY_CREATED = 'reply.created'
   MESSAGE_UPDATED = 'message.updated'

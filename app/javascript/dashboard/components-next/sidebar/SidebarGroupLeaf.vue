@@ -15,7 +15,6 @@ const props = defineProps({
   color: { type: String, default: '' },
   hideTreeLine: { type: Boolean, default: false },
   thinTreeLine: { type: Boolean, default: false },
-  attention: { type: Boolean, default: false },
 });
 
 const { resolvePermissions, resolveFeatureFlag } = useSidebarContext();
@@ -40,7 +39,6 @@ const TREE_CONNECTOR =
       [TREE_CONNECTOR]: !hideTreeLine,
       'before:!w-px last:after:!border-b last:after:!border-s':
         !hideTreeLine && thinTreeLine,
-      'rotta-archived-alert': attention,
     }"
   >
     <component
@@ -68,29 +66,3 @@ const TREE_CONNECTOR =
     </component>
   </Policy>
 </template>
-
-<style scoped>
-.rotta-archived-alert :deep(a) {
-  animation: rotta-archived-alert-pulse 1.2s ease-in-out infinite;
-  outline: 2px solid rgb(245 158 11 / 42%);
-  outline-offset: -2px;
-}
-
-@keyframes rotta-archived-alert-pulse {
-  0%,
-  100% {
-    background-color: transparent;
-  }
-
-  50% {
-    background-color: rgb(245 158 11 / 18%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rotta-archived-alert :deep(a) {
-    animation: none;
-    background-color: rgb(245 158 11 / 18%);
-  }
-}
-</style>

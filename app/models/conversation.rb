@@ -150,7 +150,6 @@ class Conversation < ApplicationRecord
   before_save :track_rotta_archived_at
   before_save :archive_conversation_when_label_added
   before_save :restore_conversation_when_archived_label_removed
-  before_save :enforce_rotta_archived_status
   before_save :set_status_changed_at
   before_save :clear_rotta_human_assignee
   before_save :clear_rotta_team_assignment
@@ -283,10 +282,6 @@ class Conversation < ApplicationRecord
     dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
   end
 
-  def rotta_archived?
-    rotta_account? && rotta_archived_label_present?(label_list)
-  end
-
   private
 
   def execute_after_update_commit_callbacks
@@ -366,16 +361,6 @@ class Conversation < ApplicationRecord
     attributes = (additional_attributes || {}).deep_dup
     attributes.delete('rotta_archived_previous_status')
     self.additional_attributes = attributes
-  end
-
-  def enforce_rotta_archived_status
-    return unless rotta_archived?
-    return if resolved?
-
-    # The Rotta archived label is authoritative. Keep the conversation out of
-    # the active queue even when an automation, bot reply, or API update tries
-    # to reopen it after the label was applied.
-    self.status = :resolved
   end
 
   def rotta_archived_label_added?

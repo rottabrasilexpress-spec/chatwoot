@@ -16,7 +16,6 @@ import { markCallDismissed, isLocalCall } from 'dashboard/helper/voice';
 import { VOICE_CALL_DIRECTION } from 'dashboard/components-next/message/constants';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import CaioAttentionAlertAudio from './CaioAttentionAlertAudio';
-import { conversationHasRottaArchivedLabel } from '../store/modules/conversations/helpers';
 
 const { isImpersonating } = useImpersonation();
 const UNREAD_COUNTS_REFETCH_THROTTLE_MS = 1000;
@@ -41,7 +40,6 @@ class ActionCableConnector extends BaseActionCableConnector {
     this.labelCatalogRefreshTimer = null;
     this.events = {
       'message.created': this.onMessageCreated,
-      'conversation.archived_message_alert': this.onArchivedMessageAlert,
       'message.updated': this.onMessageUpdated,
       'conversation.created': this.onConversationCreated,
       'conversation.status_changed': this.onStatusChange,
@@ -139,57 +137,11 @@ class ActionCableConnector extends BaseActionCableConnector {
     } = data;
     DashboardAudioNotificationHelper.onNewMessage(data);
     this.app.$store.dispatch('addMessage', data);
-    this.receiveArchivedMessageAlert(data);
     this.app.$store.dispatch('updateConversationLastActivity', {
       lastActivityAt,
       conversationId,
     });
     this.fetchConversationStats();
-  };
-
-  receiveArchivedMessageAlert = data => {
-    const conversationId =
-      data?.conversation_id || data?.conversation?.display_id;
-    const storedConversation = conversationId
-      ? this.app.$store.getters.getConversationById?.(conversationId)
-      : null;
-    const eventConversation = data?.conversation || {};
-    const conversation = {
-      ...storedConversation,
-      ...eventConversation,
-      labels:
-        eventConversation.labels?.length > 0
-          ? eventConversation.labels
-          : storedConversation?.labels,
-      rotta_archived:
-        eventConversation.rotta_archived ?? storedConversation?.rotta_archived,
-    };
-    const isIncomingMessage =
-      Number(data?.message_type) === 0 ||
-      data?.message_type === 'incoming' ||
-      String(data?.sender?.type).toLowerCase() === 'contact';
-    const isArchivedConversation =
-      conversation?.status === 'resolved' ||
-      conversationHasRottaArchivedLabel(conversation);
-    if (!isIncomingMessage || !isArchivedConversation) return;
-
-    const inboxId = conversation?.inbox_id;
-    if (!conversationId || !inboxId) return;
-
-    this.app.$store.dispatch('archivedMessageAlerts/receive', {
-      alert_id: `archived-message:${data.id || `${conversationId}:${data.created_at}`}`,
-      conversation_id: conversationId,
-      inbox_id: inboxId,
-      contact: {
-        name: data.sender?.name || '',
-        phone_number: data.sender?.phone_number || '',
-      },
-      message: data.content || data.processed_message_content || '',
-    });
-  };
-
-  onArchivedMessageAlert = data => {
-    this.app.$store.dispatch('archivedMessageAlerts/receive', data);
   };
 
   // eslint-disable-next-line class-methods-use-this

@@ -7,59 +7,8 @@ export const findPendingMessageIndex = (chat, message) => {
   );
 };
 
-export const isRottaArchivedLabel = label => {
-  const normalized = String(label || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/^\d+-/, '');
-
-  return normalized === 'arquivado' || normalized === 'arquivados';
-};
-
-export const conversationHasRottaArchivedLabel = conversation => {
-  const labels = Array.isArray(conversation?.labels)
-    ? conversation.labels
-    : [conversation?.labels];
-
-  return Boolean(
-    conversation?.rotta_archived || labels.some(isRottaArchivedLabel)
-  );
-};
-
-export const filterByStatus = (
-  chatStatus,
-  filterStatus,
-  conversationType,
-  labels = [],
-  rottaArchived = false,
-  chatLabels = []
-) => {
-  // The active workspace excludes resolved conversations. Archived and label
-  // views intentionally keep them available because they are workflow views.
-  const isArchivedView = conversationType === 'archived' || labels.length > 0;
-  if (
-    !isArchivedView &&
-    conversationHasRottaArchivedLabel({
-      rotta_archived: rottaArchived,
-      labels: chatLabels,
-    })
-  ) {
-    return false;
-  }
-
-  if (filterStatus !== 'all') return chatStatus === filterStatus;
-  if (isArchivedView) return true;
-  return (
-    !conversationHasRottaArchivedLabel({
-      rotta_archived: rottaArchived,
-      labels: chatLabels,
-    }) && chatStatus !== 'resolved'
-  );
-};
+export const filterByStatus = (chatStatus, filterStatus) =>
+  filterStatus === 'all' ? true : chatStatus === filterStatus;
 
 export const filterByInbox = (shouldFilter, inboxId, chatInboxId) => {
   const isOnInbox = Number(inboxId) === chatInboxId;
@@ -115,7 +64,6 @@ export const applyPageFilters = (conversation, filters) => {
   const { inboxId, status, labels = [], teamId, conversationType } = filters;
   const {
     status: chatStatus,
-    rotta_archived: rottaArchived,
     inbox_id: chatInboxId,
     labels: chatLabels = [],
     meta = {},
@@ -128,14 +76,7 @@ export const applyPageFilters = (conversation, filters) => {
   const team = meta.team || {};
   const { id: chatTeamId } = team;
 
-  let shouldFilter = filterByStatus(
-    chatStatus,
-    status,
-    conversationType,
-    labels,
-    rottaArchived,
-    chatLabels
-  );
+  let shouldFilter = filterByStatus(chatStatus, status);
   shouldFilter = filterByInbox(shouldFilter, inboxId, chatInboxId);
   shouldFilter = filterByTeam(shouldFilter, teamId, chatTeamId);
   shouldFilter = filterByLabel(shouldFilter, labels, chatLabels);

@@ -1339,14 +1339,6 @@ RSpec.describe Conversation do
       expect(conversation).to be_resolved
     end
 
-    it 'keeps an archived conversation resolved when a later update tries to reopen it' do
-      conversation.update!(label_list: [archived_label.title])
-
-      conversation.update!(status: :open)
-
-      expect(conversation.reload).to be_resolved
-    end
-
     it 'reopens a previously resolved conversation when its archived label is removed' do
       conversation.update!(status: :resolved, label_list: [archived_label.title])
 

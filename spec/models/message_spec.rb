@@ -141,12 +141,7 @@ RSpec.describe Message do
             source_id: message.conversation.contact_inbox.source_id
           },
           last_activity_at: message.conversation.last_activity_at.to_i,
-          unread_count: message.conversation.unread_incoming_messages.count,
-          status: message.conversation.status,
-          rotta_archived: false,
-          labels: [],
-          display_id: message.conversation.display_id,
-          inbox_id: message.conversation.inbox_id
+          unread_count: message.conversation.unread_incoming_messages.count
         },
         sentiment: {},
         sender: message.sender.push_event_data,
@@ -261,37 +256,6 @@ RSpec.describe Message do
       message.save!
 
       expect(message.conversation.resolved?).to be true
-    end
-
-    it 'keeps a Rotta archived-label conversation archived when a contact sends a message' do
-      with_modified_env 'ROTTABRASIL_CHATWOOT_ACCOUNT_ID' => conversation.account_id.to_s do
-        conversation.update!(label_list: ['arquivado'])
-        expect(conversation.reload).to be_resolved
-        conversation.update!(status: :open)
-
-        message.save!
-
-        expect(message.conversation.reload).to be_resolved
-      end
-    end
-
-    it 'keeps a Rotta archived-label conversation archived when an automated reply uses a stale instance' do
-      with_modified_env 'ROTTABRASIL_CHATWOOT_ACCOUNT_ID' => conversation.account_id.to_s do
-        conversation.update!(label_list: ['arquivado'])
-
-        # Simulate the label being persisted by another request after the
-        # message producer already loaded its conversation instance.
-        conversation.update_columns(
-          cached_label_list: 'arquivado',
-          status: Conversation.statuses[:open]
-        )
-        conversation.status = 'open'
-
-        automated_reply = build(:message, message_type: :outgoing, conversation: conversation)
-        automated_reply.save!
-
-        expect(automated_reply.conversation.reload).to be_resolved
-      end
     end
 
     it 'reopens snoozed conversation when the message is from a contact' do

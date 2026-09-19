@@ -121,57 +121,6 @@ describe('#applyPageFilters', () => {
       };
       expect(applyPageFilters(conversationList[1], filters)).toEqual(true);
     });
-
-    it('hides resolved conversations from the active workspace', () => {
-      expect(applyPageFilters(conversationList[2], { status: 'all' })).toEqual(
-        false
-      );
-    });
-
-    it('hides explicitly archived conversations from the active workspace', () => {
-      expect(
-        applyPageFilters(
-          { ...conversationList[1], status: 'open', rotta_archived: true },
-          { status: 'all' }
-        )
-      ).toEqual(false);
-    });
-
-    it('hides conversations with the archived label from the active workspace', () => {
-      expect(
-        applyPageFilters(
-          { ...conversationList[1], status: 'open', labels: ['[3] Arquivado'] },
-          { status: 'all' }
-        )
-      ).toEqual(false);
-    });
-
-    it('hides an archived label even when the live status is open', () => {
-      expect(
-        applyPageFilters(
-          { ...conversationList[1], status: 'open', labels: ['arquivado'] },
-          { status: 'open' }
-        )
-      ).toEqual(false);
-    });
-
-    it('keeps resolved conversations in archived and label views', () => {
-      expect(
-        applyPageFilters(conversationList[2], {
-          status: 'all',
-          conversationType: 'archived',
-        })
-      ).toEqual(true);
-      expect(
-        applyPageFilters(
-          { ...conversationList[2], labels: ['arquivado'] },
-          {
-            status: 'all',
-            labels: ['arquivado'],
-          }
-        )
-      ).toEqual(true);
-    });
   });
 
   describe('#filter-unread', () => {

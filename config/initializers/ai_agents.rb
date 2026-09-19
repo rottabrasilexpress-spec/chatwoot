@@ -3,10 +3,6 @@
 require 'agents'
 
 Rails.application.config.after_initialize do
-  # The Agents SDK is optional for the application boot. Keep the web process
-  # available if its external configuration is intentionally deferred.
-  next if ENV['ROTTABRASIL_SKIP_AI_AGENTS_BOOTSTRAP'] == 'true'
-
   api_key = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_API_KEY')&.value
   model = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_MODEL')&.value.presence || LlmConstants::DEFAULT_MODEL
   api_endpoint = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value || LlmConstants::OPENAI_API_ENDPOINT

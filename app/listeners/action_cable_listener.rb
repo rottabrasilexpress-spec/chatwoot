@@ -44,7 +44,6 @@ class ActionCableListener < BaseListener
     tokens = user_tokens(account, conversation.inbox.members) + contact_tokens(conversation.contact_inbox, message)
 
     broadcast(account, tokens, MESSAGE_CREATED, message.push_event_data)
-    broadcast_archived_message_alert(message, account)
   end
 
   def message_updated(event)
@@ -258,26 +257,6 @@ class ActionCableListener < BaseListener
       CONVERSATION_CAIO_ATTENTION_ADDED,
       alert.merge(account_id: conversation.account_id)
     )
-  end
-
-  def broadcast_archived_message_alert(message, account)
-    conversation = message.conversation
-    return unless message.incoming? && conversation.rotta_archived?
-
-    tokens = user_tokens(account, conversation.inbox.members)
-    return if tokens.blank?
-
-    broadcast(account, tokens, ARCHIVED_MESSAGE_ALERT_CREATED,
-              {
-                alert_id: "archived-message:#{message.id}",
-                conversation_id: conversation.display_id,
-                inbox_id: conversation.inbox_id,
-                contact: {
-                  name: conversation.contact.name.to_s,
-                  phone_number: conversation.contact.phone_number.to_s
-                },
-                message: (message.content.presence || message.processed_message_content).to_s
-              })
   end
 end
 

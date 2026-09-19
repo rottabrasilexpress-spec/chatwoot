@@ -1539,7 +1539,7 @@
     ]
   },
   "entrypoints/dashboard.js": {
-    "file": "assets/dashboard-B_WTlrHo.js",
+    "file": "assets/dashboard-lm2KRVCv.js",
     "name": "entrypoints\\dashboard.js",
     "src": "entrypoints/dashboard.js",
     "isEntry": true,
@@ -1550,7 +1550,7 @@
       "__commonjsHelpers-gnU0ypJ3.js",
       "_index-BHzjGB0I.js",
       "_Validators-CFClgfk0.js",
-      "_DashboardIcon-WC2l1qMR.js",
+      "_DashboardIcon-DSI-4JLG.js",
       "_index-DCCIZ59i.js",
       "_typing-CXcijpev.js",
       "_index-D6INv5GD.js",
@@ -1583,7 +1583,7 @@
       "dashboard/components-next/call/FloatingCallWidget.vue"
     ],
     "css": [
-      "assets/dashboard-pq6NZI7L.css"
+      "assets/dashboard-kq1C0d5B.css"
     ],
     "assets": [
       "assets/facebook_login-_skaVloV.png",
