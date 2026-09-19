@@ -111,6 +111,7 @@ class GlobalAiAssistant::ContextBuilder
       follow_up_jobs: follow_up_jobs_for(conversation.display_id),
       last_activity_at: conversation.last_activity_at&.iso8601,
       last_message: last_message&.content.to_s.truncate(240),
+      last_message_at: last_message&.created_at&.iso8601,
       recent_history: recent_messages.map do |message|
         {
           created_at: message.created_at.iso8601,
