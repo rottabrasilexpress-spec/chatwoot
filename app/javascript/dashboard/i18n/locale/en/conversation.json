@@ -326,6 +326,7 @@
       "DICTATION_RECORDING": "Recording dictation. Click again to stop.",
       "DICTATION_PERMISSION_ERROR": "Allow microphone access to use dictation.",
       "DICTATION_ERROR": "Dictation could not be transcribed. Existing text was preserved.",
+      "DICTATION_EMPTY": "No speech was detected. Try again while speaking closer to the microphone.",
       "DRAG_DROP": "Drag and drop here to attach",
       "IMAGE_UPLOAD_SUCCESS": "Image uploaded successfully",
       "START_AUDIO_RECORDING": "Start audio recording",

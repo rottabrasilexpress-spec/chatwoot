@@ -1275,6 +1275,9 @@ export default {
         if (text) {
           const separator = messageBeforeTranscription.trim() ? '\n' : '';
           this.message = `${messageBeforeTranscription}${separator}${text}`;
+        } else {
+          this.message = messageBeforeTranscription;
+          useAlert(this.$t('CONVERSATION.REPLYBOX.DICTATION_EMPTY'));
         }
       } catch (error) {
         // Keep the exact composer content that existed before the request.

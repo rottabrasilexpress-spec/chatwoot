@@ -36,6 +36,7 @@ class GlobalAiAssistant::ContextBuilder
   def matching_conversations
     scope = account.conversations.includes(:contact, :inbox).order(last_activity_at: :desc)
     return scope.none unless operational_question?
+    return scope.where(display_id: explicit_conversation_id) if explicit_conversation_id.present?
     return scope.limit(MAX_CARDS) if question.blank?
     return scope.limit(MAX_FOLLOW_UP_CARDS) if follow_up_question?
 
@@ -43,6 +44,10 @@ class GlobalAiAssistant::ContextBuilder
     return scope.where(id: merged_ids).order(last_activity_at: :desc) if merged_ids.present?
 
     scope.none
+  end
+
+  def explicit_conversation_id
+    @explicit_conversation_id ||= question.match(/\bconversa\s*#?\s*(\d+)\b/i)&.captures&.first&.to_i
   end
 
   def matching_conversation_ids(scope)

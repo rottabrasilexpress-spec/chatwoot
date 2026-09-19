@@ -33,5 +33,38 @@ RSpec.describe GlobalAiAssistant::ContextBuilder do
 
       expect(result[:cards].pluck(:conversation_id)).to eq([matching_conversation.display_id])
     end
+
+    it 'finds a conversation by display id and exposes its newest message as authoritative context' do
+      conversation = create(:conversation, account: account)
+      create(
+        :message,
+        account: account,
+        inbox: conversation.inbox,
+        conversation: conversation,
+        message_type: :outgoing,
+        content: 'contexto antigo'
+      )
+      newest_message = create(
+        :message,
+        account: account,
+        inbox: conversation.inbox,
+        conversation: conversation,
+        message_type: :outgoing,
+        content: 'contexto atualizado'
+      )
+
+      result = described_class.new(
+        account: account,
+        question: "qual foi a mensagem mais recente da conversa #{conversation.display_id}?"
+      ).call
+
+      expect(result[:cards].pluck(:conversation_id)).to eq([conversation.display_id])
+      expect(result[:cards].first[:last_message]).to eq('contexto atualizado')
+      expect(result[:cards].first[:last_activity_at]).to eq(conversation.last_activity_at&.iso8601)
+      expect(result[:cards].first[:recent_history].last).to include(
+        content: 'contexto atualizado',
+        created_at: newest_message.created_at.iso8601
+      )
+    end
   end
 end

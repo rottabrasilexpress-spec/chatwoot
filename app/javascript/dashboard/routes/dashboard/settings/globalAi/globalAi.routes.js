@@ -1,7 +1,8 @@
 import { frontendURL } from '../../../../helper/URLHelper';
 import { ROLES } from 'dashboard/constants/permissions.js';
 import SettingsWrapper from '../SettingsWrapper.vue';
-import GlobalAiAssistant from './GlobalAiAssistant.vue';
+
+const GlobalAiAssistant = () => import('./GlobalAiAssistant.vue');
 
 export default {
   routes: [

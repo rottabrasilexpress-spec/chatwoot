@@ -50,27 +50,31 @@ const fileName = file => {
     <div
       v-for="(attachment, index) in nonRecordedAudioAttachments"
       :key="attachment.id"
-      class="flex items-center p-1 bg-n-slate-3 gap-1 rounded-md w-[15rem]"
+      class="flex items-center gap-2 p-2 rounded-lg bg-n-slate-3 w-[min(100%,20rem)]"
+      :title="fileName(attachment.resource)"
     >
-      <div class="max-w-[4rem] flex-shrink-0 w-6 flex items-center">
+      <div class="flex items-center flex-shrink-0 w-9">
         <img
           v-if="isTypeImage(attachment.resource)"
-          class="object-cover w-6 h-6 rounded-sm"
+          class="object-cover w-9 h-9 rounded-md"
           :src="attachment.thumb"
+          :alt="`Pré-visualização de ${fileName(attachment.resource)}`"
         />
-        <span v-else class="relative w-6 h-6 text-lg text-left -top-px">
+        <span
+          v-else
+          class="relative w-9 h-9 text-lg text-left -top-px"
+          aria-hidden="true"
+        >
           📄
         </span>
       </div>
-      <div class="max-w-3/5 min-w-[50%] overflow-hidden text-ellipsis">
+      <div class="flex-1 min-w-0 overflow-hidden text-ellipsis">
         <span
-          class="h-4 overflow-hidden text-sm font-medium text-ellipsis whitespace-nowrap"
+          class="block overflow-hidden text-sm font-medium text-ellipsis whitespace-nowrap"
         >
           {{ fileName(attachment.resource) }}
         </span>
-      </div>
-      <div class="w-[30%] justify-center">
-        <span class="overflow-hidden text-xs text-ellipsis whitespace-nowrap">
+        <span class="block mt-0.5 text-xs text-n-slate-10">
           {{ formatFileSize(attachment.resource) }}
         </span>
       </div>
@@ -80,6 +84,7 @@ const fileName = file => {
           slate
           xs
           icon="i-lucide-x"
+          :aria-label="`Remover ${fileName(attachment.resource)}`"
           @click="onRemoveAttachment(index)"
         />
       </div>

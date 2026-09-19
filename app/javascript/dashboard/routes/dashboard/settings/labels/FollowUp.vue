@@ -883,10 +883,10 @@ onUnmounted(() => {
           <article class="rotta-summary-card">
             <span>Na fila</span>
             <strong>{{ activeJobs.length }}</strong>
-            <small
-              >{{ queueJobs.length - activeJobs.length }} histórico(s) no
-              painel</small
-            >
+            <small>
+              {{ queueJobs.length - activeJobs.length }} registro(s)
+              encerrado(s)
+            </small>
           </article>
           <article class="rotta-summary-card rotta-summary-card--due">
             <span>Prontos agora</span>

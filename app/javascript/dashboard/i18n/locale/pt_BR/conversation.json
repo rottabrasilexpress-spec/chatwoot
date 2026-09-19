@@ -283,6 +283,7 @@
       "DICTATION_RECORDING": "Gravando ditado. Clique novamente para parar.",
       "DICTATION_PERMISSION_ERROR": "Permita o acesso ao microfone para usar o ditado.",
       "DICTATION_ERROR": "Não foi possível transcrever o ditado. O texto existente foi preservado.",
+      "DICTATION_EMPTY": "Nenhuma fala foi identificada. Tente novamente falando mais perto do microfone.",
       "DRAG_DROP": "Arraste e solte aqui para anexar",
       "IMAGE_UPLOAD_SUCCESS": "Imagem enviada com sucesso",
       "START_AUDIO_RECORDING": "Iniciar gravação de áudio",

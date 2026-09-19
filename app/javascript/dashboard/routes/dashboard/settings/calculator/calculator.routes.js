@@ -1,7 +1,8 @@
 import { frontendURL } from '../../../../helper/URLHelper';
 import { ROLES } from 'dashboard/constants/permissions.js';
 import SettingsWrapper from '../SettingsWrapper.vue';
-import CalculatorIndex from './Index.vue';
+
+const CalculatorIndex = () => import('./Index.vue');
 
 export default {
   routes: [

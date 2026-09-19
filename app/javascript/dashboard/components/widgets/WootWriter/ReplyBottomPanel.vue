@@ -317,6 +317,7 @@ export default {
         v-if="!isEditorDisabled"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_EMOJI_ICON')"
         icon="i-ph-smiley-sticker"
+        :aria-label="$t('CONVERSATION.REPLYBOX.TIP_EMOJI_ICON')"
         slate
         faded
         sm
@@ -342,6 +343,7 @@ export default {
           v-if="showAttachButton"
           v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON')"
           icon="i-ph-paperclip"
+          :aria-label="$t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON')"
           slate
           faded
           sm
@@ -362,6 +364,7 @@ export default {
         v-if="showMessageSignatureButton"
         v-tooltip.top-end="signatureToggleTooltip"
         icon="i-ph-signature"
+        :aria-label="signatureToggleTooltip"
         slate
         faded
         sm
@@ -375,12 +378,14 @@ export default {
         color="slate"
         sm
         :aria-pressed="quotedReplyEnabled"
+        :aria-label="quotedReplyToggleTooltip"
         @click="$emit('toggleQuotedReply')"
       />
       <NextButton
         v-if="enableWhatsAppTemplates"
         v-tooltip.top-end="$t('CONVERSATION.FOOTER.WHATSAPP_TEMPLATES')"
         icon="i-ph-whatsapp-logo"
+        :aria-label="$t('CONVERSATION.FOOTER.WHATSAPP_TEMPLATES')"
         slate
         faded
         sm
@@ -388,8 +393,9 @@ export default {
       />
       <NextButton
         v-if="enableContentTemplates"
-        v-tooltip.top-end="'Content Templates'"
+        v-tooltip.top-end="$t('CONTENT_TEMPLATES.MODAL.TITLE')"
         icon="i-ph-whatsapp-logo"
+        :aria-label="$t('CONTENT_TEMPLATES.MODAL.TITLE')"
         slate
         faded
         sm
@@ -418,6 +424,7 @@ export default {
         v-if="enableInsertArticleInReply"
         v-tooltip.top-end="$t('HELP_CENTER.ARTICLE_SEARCH.OPEN_ARTICLE_SEARCH')"
         icon="i-ph-article-ny-times"
+        :aria-label="$t('HELP_CENTER.ARTICLE_SEARCH.OPEN_ARTICLE_SEARCH')"
         slate
         faded
         sm
@@ -466,6 +473,14 @@ export default {
 
 .right-wrap {
   @apply flex;
+}
+
+.left-wrap,
+.right-wrap {
+  :deep(button) {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
 }
 
 :deep(.file-uploads) {

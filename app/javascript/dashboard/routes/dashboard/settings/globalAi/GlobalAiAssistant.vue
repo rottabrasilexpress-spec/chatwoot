@@ -229,7 +229,34 @@ onMounted(loadAccess);
 <template>
   <!-- eslint-disable vue/no-bare-strings-in-template -->
   <section
-    v-if="!isLoadingAccess && access.allowed"
+    v-if="isLoadingAccess"
+    class="flex flex-col w-full min-h-[calc(100vh-7rem)] gap-5 pb-8"
+    aria-live="polite"
+    aria-busy="true"
+  >
+    <header class="px-1">
+      <div class="w-48 h-7 rounded-lg bg-n-alpha-2 animate-pulse" />
+      <div
+        class="w-full max-w-2xl h-4 mt-3 rounded bg-n-alpha-2 animate-pulse"
+      />
+    </header>
+    <div class="grid flex-1 min-h-0 grid-cols-1 gap-5 xl:grid-cols-2">
+      <section
+        v-for="panel in 2"
+        :key="panel"
+        class="p-5 overflow-hidden border rounded-2xl border-n-weak bg-n-surface-1"
+      >
+        <div class="w-48 h-5 rounded bg-n-alpha-2 animate-pulse" />
+        <div class="w-72 h-3 mt-3 rounded bg-n-alpha-2 animate-pulse" />
+        <div class="h-[30rem] mt-6 rounded-xl bg-n-alpha-1 animate-pulse" />
+      </section>
+    </div>
+    <span class="sr-only"
+      >Carregando o assistente global e o contexto atualizado da conta.</span
+    >
+  </section>
+  <section
+    v-else-if="access.allowed"
     class="flex flex-col w-full min-h-[calc(100vh-7rem)] gap-5 pb-8"
   >
     <header class="flex flex-wrap items-start justify-between gap-4 px-1">
