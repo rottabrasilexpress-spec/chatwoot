@@ -209,6 +209,8 @@ RSpec.describe 'Conversations API', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(response.parsed_body.dig('payload', 'archived_count')).to eq(1)
+        expect(response.parsed_body.dig('payload', 'all_count')).to eq(0)
+        expect(response.parsed_body.dig('payload', 'inboxes')).to eq({})
       ensure
         if previous_account_id
           ENV['ROTTABRASIL_CHATWOOT_ACCOUNT_ID'] = previous_account_id
