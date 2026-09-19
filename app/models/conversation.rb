@@ -282,6 +282,10 @@ class Conversation < ApplicationRecord
     dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
   end
 
+  def rotta_archived?
+    rotta_account? && rotta_archived_label_present?(label_list)
+  end
+
   private
 
   def execute_after_update_commit_callbacks

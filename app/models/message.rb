@@ -173,6 +173,10 @@ class Message < ApplicationRecord
       assignee_id: conversation.assignee_id,
       unread_count: conversation.unread_incoming_messages.count,
       last_activity_at: conversation.last_activity_at.to_i,
+      status: conversation.status,
+      rotta_archived: conversation.rotta_archived?,
+      display_id: conversation.display_id,
+      inbox_id: conversation.inbox_id,
       contact_inbox: { source_id: conversation.contact_inbox.source_id }
     }
   end
@@ -337,6 +341,7 @@ class Message < ApplicationRecord
   def execute_after_create_commit_callbacks
     # rails issue with order of active record callbacks being executed https://github.com/rails/rails/issues/20911
     reopen_conversation
+    enforce_rotta_archived_conversation_status
     mark_pending_conversation_as_open_for_human_response
     set_conversation_activity
     dispatch_create_events
@@ -440,9 +445,24 @@ class Message < ApplicationRecord
     return if conversation.muted?
     return unless incoming?
 
+    conversation.reload if conversation.account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
+
+    if conversation.rotta_archived?
+      conversation.resolve! unless conversation.resolved?
+      return
+    end
+
     conversation.open! if conversation.snoozed?
 
     reopen_resolved_conversation if conversation.resolved?
+  end
+
+  def enforce_rotta_archived_conversation_status
+    conversation.reload if conversation.account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
+    return unless conversation.rotta_archived?
+    return if conversation.resolved?
+
+    conversation.resolve!
   end
 
   def mark_pending_conversation_as_open_for_human_response

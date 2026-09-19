@@ -137,11 +137,42 @@ class ActionCableConnector extends BaseActionCableConnector {
     } = data;
     DashboardAudioNotificationHelper.onNewMessage(data);
     this.app.$store.dispatch('addMessage', data);
+    this.notifyArchivedCustomerMessage(data);
     this.app.$store.dispatch('updateConversationLastActivity', {
       lastActivityAt,
       conversationId,
     });
     this.fetchConversationStats();
+  };
+
+  notifyArchivedCustomerMessage = data => {
+    const conversation = data?.conversation || {};
+    const isIncoming =
+      Number(data?.message_type) === 0 || data?.message_type === 'incoming';
+    const isArchived =
+      conversation.status === 'resolved' &&
+      conversation.rotta_archived === true;
+    if (!isIncoming || !isArchived) return;
+
+    const conversationId = data?.conversation_id || conversation.display_id;
+    const accountId = this.app.$store.getters.getCurrentAccountId;
+    if (!conversationId || !accountId) return;
+
+    const contactName = data?.sender?.name || `Conversa #${conversationId}`;
+    emitter.emit('newToastMessage', {
+      message: `${contactName}, cliente dos Arquivados, enviou uma mensagem. Possível retomada de fechamento.`,
+      action: {
+        type: 'link',
+        message: 'Ver conversa',
+        variant: 'danger',
+        duration: 12000,
+        to: {
+          name: 'archived_conversation',
+          params: { accountId, conversationId },
+        },
+      },
+    });
+    this.throttledFetchConversationUnreadCounts();
   };
 
   // eslint-disable-next-line class-methods-use-this

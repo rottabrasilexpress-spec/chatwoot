@@ -131,6 +131,67 @@ describe('ActionCableConnector - Copilot Tests', () => {
     });
   });
 
+  describe('archived customer message alert', () => {
+    const archivedMessage = {
+      id: 123,
+      account_id: 1,
+      conversation_id: 42,
+      created_at: 1710000000,
+      message_type: 0,
+      content: 'Quero retomar o orçamento.',
+      conversation: {
+        status: 'resolved',
+        rotta_archived: true,
+        display_id: 42,
+        inbox_id: 7,
+        last_activity_at: 1710000000,
+      },
+      sender: {
+        type: 'Contact',
+        name: 'Cliente de teste',
+      },
+    };
+
+    it('shows an actionable warning and refreshes the archived unread badge', () => {
+      actionCable.notifyArchivedCustomerMessage(archivedMessage);
+
+      expect(emitter.emit).toHaveBeenCalledWith(
+        'newToastMessage',
+        expect.objectContaining({
+          message: expect.stringContaining('Cliente de teste'),
+          action: expect.objectContaining({
+            type: 'link',
+            to: expect.objectContaining({
+              name: 'archived_conversation',
+              params: expect.objectContaining({ conversationId: 42 }),
+            }),
+          }),
+        })
+      );
+      expect(mockDispatch).toHaveBeenCalledWith('conversationUnreadCounts/get');
+    });
+
+    it('does not warn for outgoing messages or active conversations', () => {
+      actionCable.notifyArchivedCustomerMessage({
+        ...archivedMessage,
+        message_type: 1,
+      });
+      actionCable.notifyArchivedCustomerMessage({
+        ...archivedMessage,
+        conversation: {
+          ...archivedMessage.conversation,
+          status: 'open',
+          rotta_archived: false,
+        },
+      });
+
+      expect(emitter.emit).not.toHaveBeenCalledWith(
+        'newToastMessage',
+        expect.anything()
+      );
+    });
+  });
+
   describe('conversation unread count event handlers', () => {
     it('should register the conversation.unread_count_changed event handler', () => {
       expect(Object.keys(actionCable.events)).toContain(
