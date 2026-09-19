@@ -19,14 +19,18 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
   MAX_CHAT_PAGES = ENV.fetch('ROTTABRASIL_UAZAPI_RECONCILIATION_MAX_PAGES', '20').to_i.clamp(1, 100)
   REQUEST_TIMEOUT = 20
   LOCK_TTL = 4.minutes
+  CURSOR_KEY = 'rotta:uazapi:history-reconciliation:last-success-at'
+  CURSOR_OVERLAP = 10.minutes
 
   def perform
     return if instance_token.blank? || webhook_token.blank?
 
     with_reconciliation_lock do
-      each_recent_chat do |chat|
-        replay_missing_messages(chat)
+      cutoff = reconciliation_cutoff
+      each_recent_chat(cutoff) do |chat|
+        replay_missing_messages(chat, cutoff)
       end
+      Redis::Alfred.set(CURSOR_KEY, Time.current.to_f)
     end
   rescue StandardError => e
     Rails.logger.error("[RottaUazapiReconciliation] class=#{e.class.name} error=#{e.message.to_s.first(200)}")
@@ -45,9 +49,7 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     Redis::Alfred.delete(lock_key) if acquired
   end
 
-  def each_recent_chat
-    cutoff = LOOKBACK.ago
-
+  def each_recent_chat(cutoff)
     MAX_CHAT_PAGES.times do |page|
       chats = response_records(
         uazapi_post('/chat/find', sort: '-wa_lastMsgTimestamp', limit: CHAT_PAGE_SIZE, offset: page * CHAT_PAGE_SIZE),
@@ -61,14 +63,12 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     end
   end
 
-  def replay_missing_messages(chat)
+  def replay_missing_messages(chat, cutoff)
     chat_id = value_for_keys(chat, %w[wa_chatid chatid chatId chat_id jid remoteJid remote_jid])
     return if chat_id.blank? || chat_id.to_s.end_with?('@g.us')
 
     payload = uazapi_post('/message/find', chatid: chat_id, limit: MESSAGE_LIMIT)
     messages = response_records(payload, %w[messages data records])
-    cutoff = LOOKBACK.ago
-
     messages.select { |message| recent?(message_timestamp(message), cutoff) }
             .sort_by { |message| message_timestamp(message) || Time.at(0) }
             .each { |message| replay_message(message) }
@@ -129,6 +129,13 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
 
   def recent?(timestamp, cutoff)
     timestamp.nil? || timestamp >= cutoff
+  end
+
+  def reconciliation_cutoff
+    last_success_at = parse_timestamp(Redis::Alfred.get(CURSOR_KEY))
+    return LOOKBACK.ago unless last_success_at
+
+    [last_success_at - CURSOR_OVERLAP, LOOKBACK.ago].max
   end
 
   def chat_timestamp(chat)
