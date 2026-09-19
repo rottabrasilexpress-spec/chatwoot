@@ -26,7 +26,12 @@ class Api::V1::Accounts::Conversations::UnreadCountsController < Api::V1::Accoun
 
   def ensure_unread_counts_enabled
     return if Current.account.feature_enabled?('conversation_unread_counts')
+    return if rotta_account?
 
     render json: { error: I18n.t('errors.conversations.unread_counts.feature_not_enabled') }, status: :forbidden
+  end
+
+  def rotta_account?
+    Current.account.id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   end
 end

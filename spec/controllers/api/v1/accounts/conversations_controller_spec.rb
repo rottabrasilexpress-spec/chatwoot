@@ -191,6 +191,31 @@ RSpec.describe 'Conversations API', type: :request do
         expect(response).to have_http_status(:forbidden)
         expect(response.parsed_body['error']).to eq('Conversation unread counts feature not enabled for this account')
       end
+
+      it 'returns archived counts for the Rotta account even when the native feature is disabled' do
+        previous_account_id = ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', nil)
+        ENV['ROTTABRASIL_CHATWOOT_ACCOUNT_ID'] = account.id.to_s
+        allow_any_instance_of(Conversations::UnreadCounts::Counter).to receive(:perform).and_return(
+          all_count: 0,
+          archived_count: 1,
+          inboxes: {},
+          labels: {},
+          teams: {}
+        )
+
+        get "/api/v1/accounts/#{account.id}/conversations/unread_counts",
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body.dig('payload', 'archived_count')).to eq(1)
+      ensure
+        if previous_account_id
+          ENV['ROTTABRASIL_CHATWOOT_ACCOUNT_ID'] = previous_account_id
+        else
+          ENV.delete('ROTTABRASIL_CHATWOOT_ACCOUNT_ID')
+        end
+      end
     end
   end
 
