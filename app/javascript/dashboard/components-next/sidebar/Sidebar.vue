@@ -110,7 +110,8 @@ const showGlobalAi = computed(() =>
 );
 
 const fetchConversationUnreadCounts = ([currentAccountId, isEnabled]) => {
-  if (!currentAccountId || !isEnabled) return;
+  const isRottaAccount = Number(currentAccountId) === 1;
+  if (!currentAccountId || (!isEnabled && !isRottaAccount)) return;
 
   store.dispatch('conversationUnreadCounts/get');
 };
