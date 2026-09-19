@@ -275,6 +275,25 @@ RSpec.describe Message do
       end
     end
 
+    it 'keeps a Rotta archived-label conversation archived when an automated reply uses a stale instance' do
+      with_modified_env 'ROTTABRASIL_CHATWOOT_ACCOUNT_ID' => conversation.account_id.to_s do
+        conversation.update!(label_list: ['arquivado'])
+
+        # Simulate the label being persisted by another request after the
+        # message producer already loaded its conversation instance.
+        conversation.update_columns(
+          cached_label_list: 'arquivado',
+          status: Conversation.statuses[:open]
+        )
+        conversation.status = 'open'
+
+        automated_reply = build(:message, message_type: :outgoing, conversation: conversation)
+        automated_reply.save!
+
+        expect(automated_reply.conversation.reload).to be_resolved
+      end
+    end
+
     it 'reopens snoozed conversation when the message is from a contact' do
       conversation.snoozed!
       message.save!

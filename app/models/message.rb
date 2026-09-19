@@ -446,6 +446,14 @@ class Message < ApplicationRecord
     return if conversation.muted?
     return unless incoming?
 
+    # The archived label can be applied by a different request immediately
+    # before this message is persisted. Refresh the Rotta conversation before
+    # any native reopen path runs, otherwise a stale instance can briefly
+    # reopen an archived conversation into Todos.
+    if conversation.account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
+      conversation.reload
+    end
+
     if conversation.rotta_archived?
       conversation.resolve! unless conversation.resolved?
       return
@@ -457,6 +465,12 @@ class Message < ApplicationRecord
   end
 
   def enforce_rotta_archived_conversation_status
+    # Bot/AI replies do not pass through #reopen_conversation. They can still
+    # be built from a conversation instance loaded before the archived label
+    # was applied, so make the archived decision from the persisted state.
+    if conversation.account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
+      conversation.reload
+    end
     return unless conversation.rotta_archived?
     return if conversation.resolved?
 
