@@ -201,6 +201,30 @@ describe('ActionCableConnector - Copilot Tests', () => {
       );
     });
 
+    it('registers and forwards the dedicated archived alert event', () => {
+      const alert = {
+        alert_id: 'archived-message:456',
+        conversation_id: 42,
+        inbox_id: 7,
+        contact: { name: 'Cliente de teste', phone_number: '5511999999999' },
+        message: 'Nova mensagem',
+      };
+
+      expect(actionCable.events['conversation.archived_message_alert']).toBe(
+        actionCable.onArchivedMessageAlert
+      );
+
+      actionCable.onReceived({
+        event: 'conversation.archived_message_alert',
+        data: { ...alert, account_id: 1 },
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'archivedMessageAlerts/receive',
+        expect.objectContaining(alert)
+      );
+    });
+
     it('does not dispatch an alert for outgoing or active conversations', () => {
       actionCable.receiveArchivedMessageAlert({
         ...archivedMessage,

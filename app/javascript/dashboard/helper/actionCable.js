@@ -41,6 +41,7 @@ class ActionCableConnector extends BaseActionCableConnector {
     this.labelCatalogRefreshTimer = null;
     this.events = {
       'message.created': this.onMessageCreated,
+      'conversation.archived_message_alert': this.onArchivedMessageAlert,
       'message.updated': this.onMessageUpdated,
       'conversation.created': this.onConversationCreated,
       'conversation.status_changed': this.onStatusChange,
@@ -171,6 +172,10 @@ class ActionCableConnector extends BaseActionCableConnector {
       },
       message: data.content || data.processed_message_content || '',
     });
+  };
+
+  onArchivedMessageAlert = data => {
+    this.app.$store.dispatch('archivedMessageAlerts/receive', data);
   };
 
   // eslint-disable-next-line class-methods-use-this
