@@ -12,6 +12,7 @@ services:
       NODE_ENV: production
       RAILS_ENV: production
       INSTALLATION_ENV: docker
+      ROTTABRASIL_SKIP_AI_AGENTS_BOOTSTRAP: "true"
     entrypoint: docker/entrypoints/rails.sh
     # Database preparation is executed as a deliberate release operation. Running it
     # on every web-container restart can block Puma behind the config reconciliation
