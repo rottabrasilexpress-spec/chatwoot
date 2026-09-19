@@ -3,8 +3,9 @@
 require 'net/http'
 require 'uri'
 
-# Recovers incoming WhatsApp messages whose webhook could not reach Chatwoot
-# during an outage. Every recovered message is replayed through the existing
+# Recovers WhatsApp messages whose webhook could not reach Chatwoot during an
+# outage, including customer messages and outgoing human/AI replies. Every
+# recovered message is replayed through the existing
 # Uazapi webhook endpoint, which remains the single persistence/deduplication
 # path for live and historical traffic.
 class RottaUazapiHistoryReconciliationJob < ApplicationJob
@@ -14,7 +15,7 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
   CHATWOOT_INTERNAL_URL = ENV.fetch('ROTTABRASIL_CHATWOOT_INTERNAL_URL', 'http://rails:3000').freeze
   LOOKBACK = ENV.fetch('ROTTABRASIL_UAZAPI_RECONCILIATION_HOURS', '72').to_i.clamp(1, 720).hours
   CHAT_PAGE_SIZE = ENV.fetch('ROTTABRASIL_UAZAPI_RECONCILIATION_CHAT_PAGE_SIZE', '50').to_i.clamp(10, 100)
-  MESSAGE_LIMIT = ENV.fetch('ROTTABRASIL_UAZAPI_RECONCILIATION_MESSAGE_LIMIT', '100').to_i.clamp(10, 500)
+  MESSAGE_LIMIT = ENV.fetch('ROTTABRASIL_UAZAPI_RECONCILIATION_MESSAGE_LIMIT', '500').to_i.clamp(10, 500)
   MAX_CHAT_PAGES = ENV.fetch('ROTTABRASIL_UAZAPI_RECONCILIATION_MAX_PAGES', '20').to_i.clamp(1, 100)
   REQUEST_TIMEOUT = 20
   LOCK_TTL = 4.minutes
@@ -24,7 +25,7 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
 
     with_reconciliation_lock do
       each_recent_chat do |chat|
-        replay_missing_incoming_messages(chat)
+        replay_missing_messages(chat)
       end
     end
   rescue StandardError => e
@@ -60,7 +61,7 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     end
   end
 
-  def replay_missing_incoming_messages(chat)
+  def replay_missing_messages(chat)
     chat_id = value_for_keys(chat, %w[wa_chatid chatid chatId chat_id jid remoteJid remote_jid])
     return if chat_id.blank? || chat_id.to_s.end_with?('@g.us')
 
@@ -68,7 +69,7 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     messages = response_records(payload, %w[messages data records])
     cutoff = LOOKBACK.ago
 
-    messages.select { |message| incoming?(message) && recent?(message_timestamp(message), cutoff) }
+    messages.select { |message| recent?(message_timestamp(message), cutoff) }
             .sort_by { |message| message_timestamp(message) || Time.at(0) }
             .each { |message| replay_message(message) }
   end
@@ -126,10 +127,6 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     []
   end
 
-  def incoming?(message)
-    !ActiveModel::Type::Boolean.new.cast(value_for_keys(message, %w[from_me fromMe fromme wasSentByApi]))
-  end
-
   def recent?(timestamp, cutoff)
     timestamp.nil? || timestamp >= cutoff
   end
@@ -178,4 +175,3 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     ENV['ROTTABRASIL_UAZAPI_WEBHOOK_TOKEN'].presence
   end
 end
-

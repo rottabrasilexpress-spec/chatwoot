@@ -37,13 +37,15 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     )
   end
 
-  it 'replays only recent incoming messages through the idempotent webhook path' do
+  it 'replays recent incoming and outgoing messages through the idempotent webhook path' do
     perform_job
 
-    expect(
-      a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')
-        .with { |request| JSON.parse(request.body).dig('data', 'messageid') == 'incoming-1' }
-    ).to have_been_made.once
+    %w[incoming-1 outgoing-1].each do |message_id|
+      expect(
+        a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')
+          .with { |request| JSON.parse(request.body).dig('data', 'messageid') == message_id }
+      ).to have_been_made.once
+    end
   end
 
   it 'does not overlap reconciliation runs' do
@@ -54,4 +56,3 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     expect(a_request(:post, 'https://uazapi.test/chat/find')).not_to have_been_made
   end
 end
-
