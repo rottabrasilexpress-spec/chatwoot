@@ -185,6 +185,22 @@ describe('ActionCableConnector - Copilot Tests', () => {
       );
     });
 
+    it('dispatches an alert when the archived label is present in the event', () => {
+      actionCable.receiveArchivedMessageAlert({
+        ...archivedMessage,
+        conversation: {
+          ...archivedMessage.conversation,
+          status: 'open',
+          labels: ['[3] Arquivado'],
+        },
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'archivedMessageAlerts/receive',
+        expect.objectContaining({ conversation_id: 42 })
+      );
+    });
+
     it('does not dispatch an alert for outgoing or active conversations', () => {
       actionCable.receiveArchivedMessageAlert({
         ...archivedMessage,

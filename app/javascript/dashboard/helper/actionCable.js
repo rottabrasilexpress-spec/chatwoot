@@ -16,6 +16,7 @@ import { markCallDismissed, isLocalCall } from 'dashboard/helper/voice';
 import { VOICE_CALL_DIRECTION } from 'dashboard/components-next/message/constants';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import CaioAttentionAlertAudio from './CaioAttentionAlertAudio';
+import { conversationHasRottaArchivedLabel } from '../store/modules/conversations/helpers';
 
 const { isImpersonating } = useImpersonation();
 const UNREAD_COUNTS_REFETCH_THROTTLE_MS = 1000;
@@ -149,10 +150,11 @@ class ActionCableConnector extends BaseActionCableConnector {
     const conversation = data?.conversation;
     const isIncomingMessage =
       Number(data?.message_type) === 0 ||
+      data?.message_type === 'incoming' ||
       String(data?.sender?.type).toLowerCase() === 'contact';
     const isArchivedConversation =
       conversation?.status === 'resolved' ||
-      conversation?.rotta_archived === true;
+      conversationHasRottaArchivedLabel(conversation);
     if (!isIncomingMessage || !isArchivedConversation) return;
 
     const conversationId = data?.conversation_id || conversation?.display_id;

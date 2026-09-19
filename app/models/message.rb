@@ -175,6 +175,7 @@ class Message < ApplicationRecord
       last_activity_at: conversation.last_activity_at.to_i,
       status: conversation.status,
       rotta_archived: conversation.respond_to?(:rotta_archived?) && conversation.rotta_archived?,
+      labels: conversation.label_list,
       display_id: conversation.display_id,
       inbox_id: conversation.inbox_id,
       contact_inbox: { source_id: conversation.contact_inbox.source_id }

@@ -7,18 +7,48 @@ export const findPendingMessageIndex = (chat, message) => {
   );
 };
 
+export const isRottaArchivedLabel = label => {
+  const normalized = String(label || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/^\d+-/, '');
+
+  return normalized === 'arquivado' || normalized === 'arquivados';
+};
+
+export const conversationHasRottaArchivedLabel = conversation => {
+  const labels = Array.isArray(conversation?.labels)
+    ? conversation.labels
+    : [conversation?.labels];
+
+  return Boolean(
+    conversation?.rotta_archived || labels.some(isRottaArchivedLabel)
+  );
+};
+
 export const filterByStatus = (
   chatStatus,
   filterStatus,
   conversationType,
-  labels = []
+  labels = [],
+  rottaArchived = false,
+  chatLabels = []
 ) => {
   if (filterStatus !== 'all') return chatStatus === filterStatus;
 
   // The active workspace excludes resolved conversations. Archived and label
   // views intentionally keep them available because they are workflow views.
   if (conversationType === 'archived' || labels.length > 0) return true;
-  return chatStatus !== 'resolved';
+  return (
+    !conversationHasRottaArchivedLabel({
+      rotta_archived: rottaArchived,
+      labels: chatLabels,
+    }) && chatStatus !== 'resolved'
+  );
 };
 
 export const filterByInbox = (shouldFilter, inboxId, chatInboxId) => {
@@ -75,6 +105,7 @@ export const applyPageFilters = (conversation, filters) => {
   const { inboxId, status, labels = [], teamId, conversationType } = filters;
   const {
     status: chatStatus,
+    rotta_archived: rottaArchived,
     inbox_id: chatInboxId,
     labels: chatLabels = [],
     meta = {},
@@ -91,7 +122,9 @@ export const applyPageFilters = (conversation, filters) => {
     chatStatus,
     status,
     conversationType,
-    labels
+    labels,
+    rottaArchived,
+    chatLabels
   );
   shouldFilter = filterByInbox(shouldFilter, inboxId, chatInboxId);
   shouldFilter = filterByTeam(shouldFilter, teamId, chatTeamId);

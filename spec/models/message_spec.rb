@@ -144,6 +144,7 @@ RSpec.describe Message do
           unread_count: message.conversation.unread_incoming_messages.count,
           status: message.conversation.status,
           rotta_archived: false,
+          labels: [],
           display_id: message.conversation.display_id,
           inbox_id: message.conversation.inbox_id
         },

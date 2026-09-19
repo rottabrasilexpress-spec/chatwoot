@@ -128,6 +128,24 @@ describe('#applyPageFilters', () => {
       );
     });
 
+    it('hides explicitly archived conversations from the active workspace', () => {
+      expect(
+        applyPageFilters(
+          { ...conversationList[1], status: 'open', rotta_archived: true },
+          { status: 'all' }
+        )
+      ).toEqual(false);
+    });
+
+    it('hides conversations with the archived label from the active workspace', () => {
+      expect(
+        applyPageFilters(
+          { ...conversationList[1], status: 'open', labels: ['[3] Arquivado'] },
+          { status: 'all' }
+        )
+      ).toEqual(false);
+    });
+
     it('keeps resolved conversations in archived and label views', () => {
       expect(
         applyPageFilters(conversationList[2], {
