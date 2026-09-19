@@ -146,6 +146,15 @@ describe('#applyPageFilters', () => {
       ).toEqual(false);
     });
 
+    it('hides an archived label even when the live status is open', () => {
+      expect(
+        applyPageFilters(
+          { ...conversationList[1], status: 'open', labels: ['arquivado'] },
+          { status: 'open' }
+        )
+      ).toEqual(false);
+    });
+
     it('keeps resolved conversations in archived and label views', () => {
       expect(
         applyPageFilters(conversationList[2], {

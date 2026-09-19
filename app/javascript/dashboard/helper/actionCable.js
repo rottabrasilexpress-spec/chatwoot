@@ -148,7 +148,22 @@ class ActionCableConnector extends BaseActionCableConnector {
   };
 
   receiveArchivedMessageAlert = data => {
-    const conversation = data?.conversation;
+    const conversationId =
+      data?.conversation_id || data?.conversation?.display_id;
+    const storedConversation = conversationId
+      ? this.app.$store.getters.getConversationById?.(conversationId)
+      : null;
+    const eventConversation = data?.conversation || {};
+    const conversation = {
+      ...storedConversation,
+      ...eventConversation,
+      labels:
+        eventConversation.labels?.length > 0
+          ? eventConversation.labels
+          : storedConversation?.labels,
+      rotta_archived:
+        eventConversation.rotta_archived ?? storedConversation?.rotta_archived,
+    };
     const isIncomingMessage =
       Number(data?.message_type) === 0 ||
       data?.message_type === 'incoming' ||
@@ -158,7 +173,6 @@ class ActionCableConnector extends BaseActionCableConnector {
       conversationHasRottaArchivedLabel(conversation);
     if (!isIncomingMessage || !isArchivedConversation) return;
 
-    const conversationId = data?.conversation_id || conversation?.display_id;
     const inboxId = conversation?.inbox_id;
     if (!conversationId || !inboxId) return;
 

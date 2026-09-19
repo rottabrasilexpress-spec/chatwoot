@@ -342,6 +342,7 @@ class Message < ApplicationRecord
   def execute_after_create_commit_callbacks
     # rails issue with order of active record callbacks being executed https://github.com/rails/rails/issues/20911
     reopen_conversation
+    enforce_rotta_archived_conversation_status
     mark_pending_conversation_as_open_for_human_response
     set_conversation_activity
     dispatch_create_events
@@ -453,6 +454,16 @@ class Message < ApplicationRecord
     conversation.open! if conversation.snoozed?
 
     reopen_resolved_conversation if conversation.resolved?
+  end
+
+  def enforce_rotta_archived_conversation_status
+    return unless conversation.rotta_archived?
+    return if conversation.resolved?
+
+    # Archived is authoritative for the Rotta inbox, including after an
+    # automation or bot reply. Keep the conversation in Arquivados before the
+    # message-created event reaches the realtime clients.
+    conversation.resolve!
   end
 
   def mark_pending_conversation_as_open_for_human_response

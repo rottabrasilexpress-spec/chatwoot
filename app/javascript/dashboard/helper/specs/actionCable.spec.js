@@ -201,6 +201,29 @@ describe('ActionCableConnector - Copilot Tests', () => {
       );
     });
 
+    it('uses the stored conversation when the message event omits its labels', () => {
+      store.$store.getters.getConversationById = vi.fn(() => ({
+        id: 42,
+        status: 'open',
+        labels: ['arquivado'],
+        inbox_id: 7,
+      }));
+
+      actionCable.receiveArchivedMessageAlert({
+        ...archivedMessage,
+        conversation: {
+          status: 'open',
+          inbox_id: 7,
+          labels: [],
+        },
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'archivedMessageAlerts/receive',
+        expect.objectContaining({ conversation_id: 42 })
+      );
+    });
+
     it('registers and forwards the dedicated archived alert event', () => {
       const alert = {
         alert_id: 'archived-message:456',

@@ -38,11 +38,21 @@ export const filterByStatus = (
   rottaArchived = false,
   chatLabels = []
 ) => {
-  if (filterStatus !== 'all') return chatStatus === filterStatus;
-
   // The active workspace excludes resolved conversations. Archived and label
   // views intentionally keep them available because they are workflow views.
-  if (conversationType === 'archived' || labels.length > 0) return true;
+  const isArchivedView = conversationType === 'archived' || labels.length > 0;
+  if (
+    !isArchivedView &&
+    conversationHasRottaArchivedLabel({
+      rotta_archived: rottaArchived,
+      labels: chatLabels,
+    })
+  ) {
+    return false;
+  }
+
+  if (filterStatus !== 'all') return chatStatus === filterStatus;
+  if (isArchivedView) return true;
   return (
     !conversationHasRottaArchivedLabel({
       rotta_archived: rottaArchived,
