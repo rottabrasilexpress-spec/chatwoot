@@ -163,6 +163,11 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   def update_last_seen_on_conversation(last_seen_at, update_assignee)
     updates = { agent_last_seen_at: last_seen_at }
     updates[:assignee_last_seen_at] = last_seen_at if update_assignee.present?
+    if @conversation.rotta_archived?
+      attributes = (@conversation.additional_attributes || {}).deep_dup
+      attributes.delete('rotta_archived_pending_at')
+      updates[:additional_attributes] = attributes
+    end
 
     # rubocop:disable Rails/SkipsModelValidations
     @conversation.update_columns(updates)

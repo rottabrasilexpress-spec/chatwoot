@@ -48,6 +48,7 @@ COPY app/services/rotta_calculator.rb /app/app/services/rotta_calculator.rb
 COPY app/services/rotta_calculator /app/app/services/rotta_calculator
 COPY app/services/rotta/caio_attention_alert.rb /app/app/services/rotta/caio_attention_alert.rb
 COPY app/services/conversations/request_attention_service.rb /app/app/services/conversations/request_attention_service.rb
+COPY app/services/conversations/unread_counts/counter.rb /app/app/services/conversations/unread_counts/counter.rb
 COPY app/services/messages/customer_deletion_service.rb /app/app/services/messages/customer_deletion_service.rb
 COPY app/services/messages/send_on_api_service.rb /app/app/services/messages/send_on_api_service.rb
 COPY app/services/messages/uazapi_action_service.rb /app/app/services/messages/uazapi_action_service.rb

@@ -175,6 +175,7 @@ class Message < ApplicationRecord
       last_activity_at: conversation.last_activity_at.to_i,
       status: conversation.status,
       rotta_archived: conversation.rotta_archived?,
+      labels: conversation.label_list,
       display_id: conversation.display_id,
       inbox_id: conversation.inbox_id,
       contact_inbox: { source_id: conversation.contact_inbox.source_id }
@@ -342,6 +343,7 @@ class Message < ApplicationRecord
     # rails issue with order of active record callbacks being executed https://github.com/rails/rails/issues/20911
     reopen_conversation
     enforce_rotta_archived_conversation_status
+    mark_rotta_archived_conversation_pending
     mark_pending_conversation_as_open_for_human_response
     set_conversation_activity
     dispatch_create_events
@@ -463,6 +465,17 @@ class Message < ApplicationRecord
     return if conversation.resolved?
 
     conversation.resolve!
+  end
+
+  def mark_rotta_archived_conversation_pending
+    return unless incoming? && !private?
+
+    conversation.reload if conversation.account_id.to_i == ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
+    return unless conversation.rotta_archived?
+
+    attributes = (conversation.additional_attributes || {}).deep_dup
+    attributes['rotta_archived_pending_at'] = created_at.iso8601
+    conversation.update_column(:additional_attributes, attributes)
   end
 
   def mark_pending_conversation_as_open_for_human_response

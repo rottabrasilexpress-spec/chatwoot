@@ -150,8 +150,8 @@ class ActionCableConnector extends BaseActionCableConnector {
     const isIncoming =
       Number(data?.message_type) === 0 || data?.message_type === 'incoming';
     const isArchived =
-      conversation.status === 'resolved' &&
-      conversation.rotta_archived === true;
+      conversation.rotta_archived === true ||
+      this.hasArchivedLabel(conversation.labels);
     if (!isIncoming || !isArchived) return;
 
     const conversationId = data?.conversation_id || conversation.display_id;
@@ -179,11 +179,18 @@ class ActionCableConnector extends BaseActionCableConnector {
   onReload = () => window.location.reload();
 
   onStatusChange = data => {
+    if (this.keepArchivedConversationOutOfActiveList(data)) return;
+
     this.app.$store.dispatch('updateConversation', data);
     this.fetchConversationStats();
   };
 
   onConversationUpdated = data => {
+    if (this.keepArchivedConversationOutOfActiveList(data)) {
+      this.fetchConversationStats();
+      return;
+    }
+
     this.app.$store.dispatch('updateConversation', data);
     this.fetchConversationStats();
 
@@ -199,6 +206,37 @@ class ActionCableConnector extends BaseActionCableConnector {
       this.scheduleLabelCatalogRefresh();
       emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, data);
     }
+  };
+
+  keepArchivedConversationOutOfActiveList = conversation => {
+    const isArchived =
+      conversation?.status === 'resolved' &&
+      this.hasArchivedLabel(conversation?.labels);
+    const routeName = this.app.$router?.currentRoute?.value?.name;
+    const isArchivedRoute = [
+      'archived_conversations',
+      'archived_conversation',
+    ].includes(routeName);
+
+    if (!isArchived || isArchivedRoute) return false;
+
+    this.app.$store.commit('DELETE_CONVERSATION', conversation.id);
+    this.throttledFetchConversationUnreadCounts();
+    return true;
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  hasArchivedLabel = labels => {
+    const normalizedLabels = Array(labels).map(label =>
+      String(label)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/^\[?\d+\]?[-\s]*/, '')
+    );
+    return normalizedLabels.some(label =>
+      ['arquivado', 'arquivados'].includes(label)
+    );
   };
 
   scheduleLabelCatalogRefresh = () => {

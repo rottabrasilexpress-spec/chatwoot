@@ -118,13 +118,35 @@ RSpec.describe Conversations::UnreadCounts::Counter do
   end
 
   it 'counts unread resolved conversations separately for the archived badge' do
-    archived = create(:conversation, account: account, inbox: visible_inbox, status: :resolved, agent_last_seen_at: 1.hour.ago)
-    create(:message, account: account, inbox: visible_inbox, conversation: archived, message_type: :incoming)
+    archived = create(
+      :conversation,
+      account: account,
+      inbox: visible_inbox,
+      status: :resolved,
+      additional_attributes: { 'rotta_archived_pending_at' => Time.current.iso8601 }
+    )
     create_unread_conversation(account: account, inbox: visible_inbox)
 
     result = described_class.new(account: account, user: agent).perform
 
     expect(result[:all_count]).to eq(1)
+    expect(result[:archived_count]).to eq(1)
+  end
+
+
+  it 'keeps an archived pending conversation counted after an automated reply marks messages as read' do
+    archived = create(
+      :conversation,
+      account: account,
+      inbox: visible_inbox,
+      status: :resolved,
+      agent_last_seen_at: Time.current,
+      additional_attributes: { 'rotta_archived_pending_at' => 1.minute.ago.iso8601 }
+    )
+    create(:message, account: account, inbox: visible_inbox, conversation: archived, message_type: :outgoing)
+
+    result = described_class.new(account: account, user: agent).perform
+
     expect(result[:archived_count]).to eq(1)
   end
 end

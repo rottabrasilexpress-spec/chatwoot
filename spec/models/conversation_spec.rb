@@ -1347,6 +1347,15 @@ RSpec.describe Conversation do
       expect(conversation.reload).to be_open
     end
 
+    it 'rejects every attempt to reopen a conversation while the archived label exists' do
+      conversation.update!(label_list: [archived_label.title])
+
+      conversation.open!
+
+      expect(conversation.reload).to be_resolved
+      expect(conversation.label_list).to eq([archived_label.title])
+    end
+
     it 'reopens pending and snoozed conversations into Todos' do
       pending_conversation = create(:conversation, account: account, status: :pending)
       snoozed_conversation = create(

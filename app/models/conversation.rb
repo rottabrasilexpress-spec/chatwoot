@@ -150,6 +150,7 @@ class Conversation < ApplicationRecord
   before_save :track_rotta_archived_at
   before_save :archive_conversation_when_label_added
   before_save :restore_conversation_when_archived_label_removed
+  before_save :keep_rotta_archived_conversation_resolved
   before_save :set_status_changed_at
   before_save :clear_rotta_human_assignee
   before_save :clear_rotta_team_assignment
@@ -365,6 +366,13 @@ class Conversation < ApplicationRecord
     attributes = (additional_attributes || {}).deep_dup
     attributes.delete('rotta_archived_previous_status')
     self.additional_attributes = attributes
+  end
+
+  def keep_rotta_archived_conversation_resolved
+    return unless rotta_archived?
+
+    self.status = :resolved
+    self.snoozed_until = nil
   end
 
   def rotta_archived_label_added?

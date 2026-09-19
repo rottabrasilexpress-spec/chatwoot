@@ -144,6 +144,7 @@ RSpec.describe Message do
           unread_count: message.conversation.unread_incoming_messages.count,
           status: message.conversation.status,
           rotta_archived: false,
+          labels: message.conversation.label_list,
           display_id: message.conversation.display_id,
           inbox_id: message.conversation.inbox_id
         },
@@ -270,6 +271,17 @@ RSpec.describe Message do
         create(:message, message_type: :outgoing, conversation: conversation)
 
         expect(conversation.reload).to be_resolved
+      end
+    end
+
+    it 'marks an archived Rotta conversation pending when the customer sends a message' do
+      with_modified_env 'ROTTABRASIL_CHATWOOT_ACCOUNT_ID' => conversation.account_id.to_s do
+        conversation.update!(label_list: ['arquivado'])
+
+        message.save!
+
+        expect(conversation.reload).to be_resolved
+        expect(conversation.additional_attributes['rotta_archived_pending_at']).to be_present
       end
     end
 

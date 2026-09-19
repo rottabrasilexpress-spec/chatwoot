@@ -33,13 +33,16 @@ describe('ActionCableConnector - Copilot Tests', () => {
   let store;
   let actionCable;
   let mockDispatch;
+  let mockCommit;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockDispatch = vi.fn();
+    mockCommit = vi.fn();
     store = {
       $store: {
         dispatch: mockDispatch,
+        commit: mockCommit,
         getters: {
           getCurrentAccountId: 1,
           'accounts/isFeatureEnabledonAccount': vi.fn(() => true),
@@ -142,6 +145,7 @@ describe('ActionCableConnector - Copilot Tests', () => {
       conversation: {
         status: 'resolved',
         rotta_archived: true,
+        labels: ['arquivado'],
         display_id: 42,
         inbox_id: 7,
         last_activity_at: 1710000000,
@@ -182,12 +186,71 @@ describe('ActionCableConnector - Copilot Tests', () => {
           ...archivedMessage.conversation,
           status: 'open',
           rotta_archived: false,
+          labels: [],
         },
       });
 
       expect(emitter.emit).not.toHaveBeenCalledWith(
         'newToastMessage',
         expect.anything()
+      );
+    });
+
+    it('warns from the archived label even if a stale event omits the status marker', () => {
+      actionCable.notifyArchivedCustomerMessage({
+        ...archivedMessage,
+        conversation: {
+          ...archivedMessage.conversation,
+          status: 'open',
+          rotta_archived: false,
+          labels: ['[1] Arquivado'],
+        },
+      });
+
+      expect(emitter.emit).toHaveBeenCalledWith(
+        'newToastMessage',
+        expect.objectContaining({
+          message: expect.stringContaining('Cliente de teste'),
+        })
+      );
+    });
+  });
+
+  describe('archived conversation list isolation', () => {
+    it('removes an archived conversation from the active list on a realtime update', () => {
+      actionCable.app.$router = {
+        currentRoute: { value: { name: 'home' } },
+      };
+
+      actionCable.onConversationUpdated({
+        id: 42,
+        status: 'resolved',
+        labels: ['arquivado'],
+      });
+
+      expect(mockCommit).toHaveBeenCalledWith('DELETE_CONVERSATION', 42);
+      expect(mockDispatch).not.toHaveBeenCalledWith(
+        'updateConversation',
+        expect.anything()
+      );
+    });
+
+    it('keeps archived conversations visible inside the archived route', () => {
+      actionCable.app.$router = {
+        currentRoute: { value: { name: 'archived_conversations' } },
+      };
+      const conversation = {
+        id: 42,
+        status: 'resolved',
+        labels: ['arquivado'],
+      };
+
+      actionCable.onConversationUpdated(conversation);
+
+      expect(mockCommit).not.toHaveBeenCalledWith('DELETE_CONVERSATION', 42);
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'updateConversation',
+        conversation
       );
     });
   });
