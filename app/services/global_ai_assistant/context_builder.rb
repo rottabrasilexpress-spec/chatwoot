@@ -94,7 +94,11 @@ class GlobalAiAssistant::ContextBuilder
                                   .to_a
                                   .reverse
     last_message = recent_messages.last
-    evidence = pending_evidence(recent_messages)
+    evidence = if latest_message_question?
+                 latest_message_evidence(last_message)
+               else
+                 pending_evidence(recent_messages)
+               end
 
     {
       conversation_id: conversation.display_id,
@@ -165,6 +169,21 @@ class GlobalAiAssistant::ContextBuilder
       role: candidate.incoming? ? 'cliente' : 'equipe',
       content: candidate.content.to_s.truncate(320),
       reason: pending_reason(candidate.content)
+    }
+  end
+
+  def latest_message_question?
+    question.match?(/mensagem\s+mais\s+recente|[úu]ltima\s+mensagem|[úu]ltimo\s+recado/i)
+  end
+
+  def latest_message_evidence(message)
+    return nil unless message
+
+    {
+      created_at: message.created_at.iso8601,
+      role: message.incoming? ? 'cliente' : 'equipe',
+      content: message.content.to_s.truncate(320),
+      reason: 'mensagem mais recente'
     }
   end
 

@@ -61,6 +61,11 @@ RSpec.describe GlobalAiAssistant::ContextBuilder do
       expect(result[:cards].pluck(:conversation_id)).to eq([conversation.display_id])
       expect(result[:cards].first[:last_message]).to eq('contexto atualizado')
       expect(result[:cards].first[:last_activity_at]).to eq(conversation.last_activity_at&.iso8601)
+      expect(result[:cards].first[:evidence]).to include(
+        content: 'contexto atualizado',
+        created_at: newest_message.created_at.iso8601,
+        reason: 'mensagem mais recente'
+      )
       expect(result[:cards].first[:recent_history].last).to include(
         content: 'contexto atualizado',
         created_at: newest_message.created_at.iso8601

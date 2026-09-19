@@ -499,6 +499,21 @@ describe('ReplyBox', () => {
       expect(wrapper.vm.isTranscribing).toBe(false);
     });
 
+    it('preserves the draft when speech transcription returns no text', async () => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Api' },
+      });
+      wrapper.vm.message = 'Mensagem anterior';
+      vi.spyOn(AudioTranscriptionApi, 'create').mockResolvedValueOnce({
+        data: { text: '' },
+      });
+
+      await wrapper.vm.onDictationRecording({ name: 'dictation.webm' });
+
+      expect(wrapper.vm.message).toBe('Mensagem anterior');
+      expect(wrapper.vm.isTranscribing).toBe(false);
+    });
+
     it('updates the editor with the live dictation transcript before recording ends', async () => {
       const { wrapper } = mountWith({});
       wrapper.vm.message = 'Mensagem anterior';

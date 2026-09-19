@@ -478,8 +478,8 @@ export default {
 .left-wrap,
 .right-wrap {
   :deep(button) {
-    min-width: 2.75rem;
-    min-height: 2.75rem;
+    min-width: 3rem;
+    min-height: 3rem;
   }
 }
 
