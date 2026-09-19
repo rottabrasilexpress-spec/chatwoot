@@ -89,6 +89,13 @@ rotta_uazapi_contact_avatar_sync_job:
   class: 'RottaUazapiContactAvatarSyncJob'
   queue: uazapi_sync
 
+# executed every minute; reconciles incoming WhatsApp messages that could not
+# reach Chatwoot while the web service was unavailable
+rotta_uazapi_history_reconciliation_job:
+  cron: '* * * * *'
+  class: 'RottaUazapiHistoryReconciliationJob'
+  queue: uazapi_sync
+
 # executed daily; keeps the webhook audit ledger bounded without retaining raw WhatsApp content
 rotta_uazapi_webhook_delivery_retention_job:
   cron: '30 2 * * *'
