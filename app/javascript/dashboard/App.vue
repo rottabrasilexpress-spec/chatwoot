@@ -160,7 +160,10 @@ export default {
     <WootSnackbarBox />
     <NetworkNotification />
     <CaioAttentionAlertHost v-if="currentAccountId" />
-    <ArchivedMessageAlertHost v-if="currentAccountId" />
+    <!-- Keep the archived alert host mounted so realtime incoming events are
+         not lost while the account context is still settling. The host stays
+         visually hidden until an archived message is received. -->
+    <ArchivedMessageAlertHost />
   </div>
   <LoadingState v-else />
 </template>
