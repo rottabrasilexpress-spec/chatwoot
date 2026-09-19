@@ -13,7 +13,10 @@ services:
       RAILS_ENV: production
       INSTALLATION_ENV: docker
     entrypoint: docker/entrypoints/rails.sh
-    command: ["sh", "-c", "bundle exec rails db:chatwoot_prepare && exec bundle exec rails s -p 3000 -b 0.0.0.0"]
+    # Database preparation is executed as a deliberate release operation. Running it
+    # on every web-container restart can block Puma behind the config reconciliation
+    # even when the database is already current.
+    command: ["sh", "-c", "exec bundle exec rails s -p 3000 -b 0.0.0.0"]
     restart: always
 
   sidekiq:
