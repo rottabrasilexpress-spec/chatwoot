@@ -365,6 +365,7 @@ class Conversation < ApplicationRecord
 
     attributes = (additional_attributes || {}).deep_dup
     attributes.delete('rotta_archived_previous_status')
+    attributes.delete('rotta_archived_pending_at')
     self.additional_attributes = attributes
   end
 

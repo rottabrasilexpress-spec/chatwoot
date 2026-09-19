@@ -84,7 +84,17 @@ class Conversations::UnreadCounts::Counter
   def archived_unread_count
     relation = account.conversations
                       .resolved
-                      .where("additional_attributes->>'rotta_archived_pending_at' IS NOT NULL")
+                      .left_joins(:messages)
+                      .where(<<~SQL.squish, incoming_type: Message.message_types[:incoming], account_id: account.id)
+                        conversations.additional_attributes->>'rotta_archived_pending_at' IS NOT NULL
+                        OR (
+                          conversations.additional_attributes->>'rotta_archived_at' IS NOT NULL
+                          AND messages.message_type = :incoming_type
+                          AND messages.account_id = :account_id
+                          AND messages.created_at > (conversations.additional_attributes->>'rotta_archived_at')::timestamptz
+                        )
+                      SQL
+                      .distinct
 
     Conversations::PermissionFilterService.new(relation, user, account).perform.count
   end

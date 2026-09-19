@@ -149,4 +149,27 @@ RSpec.describe Conversations::UnreadCounts::Counter do
 
     expect(result[:archived_count]).to eq(1)
   end
+
+  it 'recovers the pending count from an incoming message created after the conversation was archived' do
+    archived_at = 5.minutes.ago
+    archived = create(
+      :conversation,
+      account: account,
+      inbox: visible_inbox,
+      status: :resolved,
+      additional_attributes: { 'rotta_archived_at' => archived_at.iso8601 }
+    )
+    create(
+      :message,
+      account: account,
+      inbox: visible_inbox,
+      conversation: archived,
+      message_type: :incoming,
+      created_at: 1.minute.ago
+    )
+
+    result = described_class.new(account: account, user: agent).perform
+
+    expect(result[:archived_count]).to eq(1)
+  end
 end
