@@ -55,13 +55,14 @@ const rottaCopy = {
   cancel: 'Cancelar',
 };
 
-const openFocusMode = async () => {
-  const confirmed = await focusModeDialog.value?.showConfirmation();
-  if (!confirmed) return;
+const openFocusMode = () => focusModeDialog.value?.open();
+
+const confirmFocusMode = () => {
   const target = router.resolve({
     name: 'conversation_focus_workspace',
     params: { accountId: route.params.accountId },
   });
+  focusModeDialog.value?.close();
   window.open(target.href, '_blank', 'noopener,noreferrer');
 };
 
@@ -207,9 +208,8 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
           v-if="showRottaShortcuts"
           v-tooltip.top-end="rottaCopy.focusMode"
           icon="i-lucide-panels-top-left"
-          slate
+          orange
           xs
-          faded
           :aria-label="rottaCopy.focusMode"
           @click="openFocusMode"
         />
@@ -263,11 +263,12 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
     </div>
     <Dialog
       ref="focusModeDialog"
-      type="info"
+      type="edit"
       :title="rottaCopy.focusModeTitle"
       :description="rottaCopy.focusModeDescription"
       :confirm-button-label="rottaCopy.focusModeConfirm"
       :cancel-button-label="rottaCopy.cancel"
+      @confirm="confirmFocusMode"
     />
   </div>
 </template>
