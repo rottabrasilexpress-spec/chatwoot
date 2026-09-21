@@ -77,6 +77,12 @@ export default {
     bypassUpgradePage() {
       return isUpgradePageBypassRoute(this.$route.name);
     },
+    isConversationFocusMode() {
+      return (
+        this.$route.name === 'conversation_focus_workspace' ||
+        this.$route.query.conversationFocusPanel === '1'
+      );
+    },
     previouslyUsedDisplayType() {
       const {
         previously_used_conversation_display_type: conversationDisplayType,
@@ -131,6 +137,7 @@ export default {
 <template>
   <div class="flex flex-grow overflow-hidden text-n-slate-12">
     <NextSidebar
+      v-if="!isConversationFocusMode"
       :is-mobile-sidebar-open="isMobileSidebarOpen"
       @toggle-account-modal="toggleAccountModal"
       @open-key-shortcut-modal="toggleKeyShortcutModal"
@@ -148,6 +155,7 @@ export default {
         :bypass-upgrade-page="bypassUpgradePage"
       >
         <MobileSidebarLauncher
+          v-if="!isConversationFocusMode"
           :is-mobile-sidebar-open="isMobileSidebarOpen"
           @toggle="toggleMobileSidebar"
         />
@@ -156,6 +164,7 @@ export default {
         <router-view />
         <CopilotLauncher />
         <MobileSidebarLauncher
+          v-if="!isConversationFocusMode"
           :is-mobile-sidebar-open="isMobileSidebarOpen"
           @toggle="toggleMobileSidebar"
         />

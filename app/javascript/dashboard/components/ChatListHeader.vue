@@ -1,11 +1,13 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { formatNumber } from '@chatwoot/utils';
 
 import ConversationBasicFilter from './widgets/conversation/ConversationBasicFilter.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import FilterSelect from 'dashboard/components-next/filter/inputs/FilterSelect.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 
 const props = defineProps({
   pageTitle: { type: String, required: true },
@@ -35,12 +37,32 @@ const emit = defineEmits([
   'markAllAsRead',
 ]);
 
+const route = useRoute();
+const router = useRouter();
+const focusModeDialog = ref(null);
+
 const rottaCopy = {
   markAllRead: 'Marcar tudo como lido',
   searchPlaceholder: 'Pesquisar conversas...',
   searchLabel: 'Pesquisar conversas',
   clearSearch: 'Limpar pesquisa',
   newConversation: 'Iniciar nova conversa',
+  focusMode: 'Abrir modo focado de conversas',
+  focusModeTitle: 'Abrir central focada de conversas?',
+  focusModeDescription:
+    'Uma nova janela será aberta sem a barra lateral, com layouts de uma a quatro conversas simultâneas. O Chatwoot atual continuará funcionando normalmente.',
+  focusModeConfirm: 'Abrir central focada',
+  cancel: 'Cancelar',
+};
+
+const openFocusMode = async () => {
+  const confirmed = await focusModeDialog.value?.showConfirmation();
+  if (!confirmed) return;
+  const target = router.resolve({
+    name: 'conversation_focus_workspace',
+    params: { accountId: route.params.accountId },
+  });
+  window.open(target.href, '_blank', 'noopener,noreferrer');
 };
 
 const onBasicFilterChange = (value, type) => {
@@ -181,6 +203,16 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
             :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
           />
         </div>
+        <NextButton
+          v-if="showRottaShortcuts"
+          v-tooltip.top-end="rottaCopy.focusMode"
+          icon="i-lucide-panels-top-left"
+          slate
+          xs
+          faded
+          :aria-label="rottaCopy.focusMode"
+          @click="openFocusMode"
+        />
         <ConversationBasicFilter
           v-if="!hasAppliedFiltersOrActiveFolders"
           :is-on-expanded-layout="isOnExpandedLayout"
@@ -229,6 +261,14 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
         </template>
       </ComposeConversation>
     </div>
+    <Dialog
+      ref="focusModeDialog"
+      type="info"
+      :title="rottaCopy.focusModeTitle"
+      :description="rottaCopy.focusModeDescription"
+      :confirm-button-label="rottaCopy.focusModeConfirm"
+      :cancel-button-label="rottaCopy.cancel"
+    />
   </div>
 </template>
 

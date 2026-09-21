@@ -610,7 +610,7 @@ describe('ReplyBox', () => {
     });
   });
 
-  it('ignores a second submission while the first message is still sending', () => {
+  it('ignores a repeated trigger for the same draft while it is sending', () => {
     let resolveSend;
     const sendMessage = vi.fn(
       () =>
@@ -621,8 +621,11 @@ describe('ReplyBox', () => {
     const context = {
       isReplyButtonDisabled: false,
       isSendingMessage: false,
+      queuedSendIntent: null,
+      activeSendFingerprint: '',
       showMentions: false,
       message: 'Mensagem única',
+      attachedFiles: [],
       isPrivate: false,
       isATwilioWhatsAppChannel: false,
       isAWhatsAppCloudChannel: false,
@@ -642,5 +645,59 @@ describe('ReplyBox', () => {
 
     expect(sendMessage).toHaveBeenCalledOnce();
     resolveSend();
+  });
+
+  it('queues a new draft submitted while the previous message is sending', async () => {
+    let resolveFirstSend;
+    const sendMessage = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveFirstSend = resolve;
+          })
+      )
+      .mockResolvedValueOnce();
+    const context = {
+      isReplyButtonDisabled: false,
+      isSendingMessage: false,
+      queuedSendIntent: null,
+      activeSendFingerprint: '',
+      showMentions: false,
+      message: 'Primeira mensagem',
+      attachedFiles: [],
+      isPrivate: false,
+      isATwilioWhatsAppChannel: false,
+      isAWhatsAppCloudChannel: false,
+      is360DialogWhatsAppChannel: false,
+      isAnInstagramChannel: false,
+      isATiktokChannel: false,
+      getCopilotAcceptedMessage: vi.fn().mockReturnValue(''),
+      getMessagePayload: vi.fn(function (message) {
+        return { message, private: false };
+      }),
+      sendMessage,
+      clearEmailField: vi.fn(),
+      clearMessage: vi.fn(function () {
+        this.message = '';
+      }),
+      hideEmojiPicker: vi.fn(),
+      setReplyMode: vi.fn(),
+      $nextTick: callback => callback(),
+      confirmOnSendReply: ReplyBox.methods.confirmOnSendReply,
+    };
+
+    ReplyBox.methods.confirmOnSendReply.call(context);
+    context.message = 'Segunda mensagem';
+    ReplyBox.methods.confirmOnSendReply.call(context);
+
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(context.queuedSendIntent.message).toBe('Segunda mensagem');
+
+    resolveFirstSend();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sendMessage).toHaveBeenCalledTimes(2);
   });
 });

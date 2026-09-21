@@ -79,6 +79,7 @@ export default {
       currentChat: 'getSelectedChat',
     }),
     showConversationList() {
+      if (this.$route.query.conversationFocusPanel === '1') return false;
       return this.isStackedLayout ? !this.conversationId : true;
     },
     showMessageView() {
@@ -102,6 +103,7 @@ export default {
     },
 
     shouldShowSidebar() {
+      if (this.$route.query.conversationFocusPanel === '1') return false;
       if (!this.currentChat.id) {
         return false;
       }

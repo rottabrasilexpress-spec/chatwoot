@@ -146,6 +146,8 @@ export default {
       isUploadingAudio: false,
       isFinalizingAudioForSend: false,
       isSendingMessage: false,
+      queuedSendIntent: null,
+      activeSendFingerprint: '',
       replyType: REPLY_EDITOR_MODES.REPLY,
       draftConversationId: null,
       draftReplyMode: null,
@@ -901,10 +903,33 @@ export default {
       this.showContentTemplatesModal = false;
     },
     confirmOnSendReply() {
-      if (this.isSendingMessage || this.isReplyButtonDisabled) {
+      if (this.isReplyButtonDisabled) {
+        return;
+      }
+
+      const fingerprint = JSON.stringify({
+        message: this.message,
+        attachedFiles: this.attachedFiles.map(
+          file => file.id || file.blob_id || file.name || file.file?.name
+        ),
+        isPrivate: this.isPrivate,
+      });
+
+      if (this.isSendingMessage) {
+        // A repeated keydown/click for the same editor state is a duplicate.
+        // A genuinely new draft is queued and sent as soon as the active
+        // request settles, so fast operators never lose a submission.
+        if (fingerprint !== this.activeSendFingerprint) {
+          this.queuedSendIntent = {
+            message: this.message,
+            attachedFiles: [...this.attachedFiles],
+            isPrivate: this.isPrivate,
+          };
+        }
         return;
       }
       this.isSendingMessage = true;
+      this.activeSendFingerprint = fingerprint;
 
       let sendOperation;
       try {
@@ -951,6 +976,22 @@ export default {
 
       Promise.resolve(sendOperation).finally(() => {
         this.isSendingMessage = false;
+        this.activeSendFingerprint = '';
+
+        const queuedIntent = this.queuedSendIntent;
+        this.queuedSendIntent = null;
+        if (queuedIntent) {
+          this.message = queuedIntent.message;
+          this.attachedFiles = queuedIntent.attachedFiles;
+          if (this.isPrivate !== queuedIntent.isPrivate) {
+            this.setReplyMode(
+              queuedIntent.isPrivate
+                ? REPLY_EDITOR_MODES.NOTE
+                : REPLY_EDITOR_MODES.REPLY
+            );
+          }
+          this.$nextTick(() => this.confirmOnSendReply());
+        }
       });
     },
     sendMessageAsMultipleMessages(message, copilotAcceptedMessage = '') {

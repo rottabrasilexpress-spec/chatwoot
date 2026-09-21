@@ -45,6 +45,14 @@ const redirectFolderConversationIfUnavailable = async (to, _from, next) => {
 export default {
   routes: [
     {
+      path: frontendURL('accounts/:accountId/conversations-focus'),
+      name: 'conversation_focus_workspace',
+      meta: {
+        permissions: CONVERSATION_PERMISSIONS,
+      },
+      component: () => import('./ConversationFocusWorkspace.vue'),
+    },
+    {
       path: frontendURL('accounts/:accountId/dashboard'),
       name: 'home',
       meta: {
