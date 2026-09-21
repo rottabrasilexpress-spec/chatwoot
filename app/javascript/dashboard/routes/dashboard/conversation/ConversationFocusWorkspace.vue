@@ -10,6 +10,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
+import { getLastMessage } from 'dashboard/helper/conversationHelper';
 
 const STORAGE_KEY = 'rotta-conversation-focus-workspace-v2';
 const route = useRoute();
@@ -62,10 +63,7 @@ const conversationName = id =>
 const panelUrl = id =>
   `/app/accounts/${route.params.accountId}/conversations/${id}?conversationFocusPanel=1`;
 const previewText = conversation => {
-  const latestMessage =
-    conversation.last_non_activity_message ||
-    conversation.lastNonActivityMessage ||
-    conversation.messages?.at(-1);
+  const latestMessage = getLastMessage(conversation);
   return latestMessage?.content || copy.noMessage;
 };
 const previewTime = conversation => {
