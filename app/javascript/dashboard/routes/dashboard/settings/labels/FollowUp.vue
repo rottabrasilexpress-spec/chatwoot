@@ -29,6 +29,7 @@ import {
   compactDispatchText,
   isArchivedStage,
   isHistoricalJob,
+  isWithinDispatchWindow,
   isStaleHistoricalJob,
   activeFollowUpStageCount,
   deduplicateFollowUpJobs,
@@ -627,6 +628,76 @@ const statusClass = (status, job = null) => {
   return 'rotta-status--pending';
 };
 
+const firstReadableError = job => {
+  const rawError = [
+    job?.last_error,
+    job?.error_message,
+    job?.failure_reason,
+    job?.error,
+    job?.reason,
+    job?.details,
+  ].find(value => value !== undefined && value !== null && value !== '');
+
+  if (!rawError) return '';
+  if (typeof rawError === 'string') return rawError.trim();
+  if (typeof rawError?.message === 'string') return rawError.message.trim();
+
+  try {
+    return JSON.stringify(rawError);
+  } catch {
+    return String(rawError);
+  }
+};
+
+const isOutsideDispatchWindow = job => {
+  if (
+    isHistoricalJob(job) ||
+    job?.pending_enrollment ||
+    deliveryEvidence(job)?.message_id ||
+    String(job?.status || '').startsWith('failed')
+  ) {
+    return false;
+  }
+
+  const scheduledAt = new Date(job?.scheduled_at).getTime();
+  return (
+    Number.isFinite(scheduledAt) &&
+    scheduledAt <= now.value &&
+    !isWithinDispatchWindow(now.value, dispatchWindow(job))
+  );
+};
+
+const followUpFeedback = job => {
+  const error = firstReadableError(job);
+  const hasFailed =
+    String(job?.status || '').startsWith('failed') ||
+    job?.status === 'sync_failed';
+
+  if (hasFailed) {
+    return {
+      tone: 'error',
+      icon: 'i-lucide-circle-alert',
+      title: statusText(job.status, job),
+      detail:
+        error ||
+        (job.status === 'sync_failed'
+          ? 'A etiqueta ainda não foi confirmada pelo fluxo. Verifique a integração do n8n.'
+          : 'O fluxo não informou a causa. Tente novamente e consulte a execução no n8n.'),
+    };
+  }
+
+  if (isOutsideDispatchWindow(job)) {
+    return {
+      tone: 'waiting',
+      icon: 'i-lucide-moon-star',
+      title: 'Aguardando horário comercial',
+      detail: `Envio liberado entre ${windowText(job)}. Próxima tentativa: ${scheduleText(job)}.`,
+    };
+  }
+
+  return null;
+};
+
 const request = async payload => {
   const response = await rottaFollowUpAPI.create(payload);
   const body = response.data || {};
@@ -1164,6 +1235,23 @@ onUnmounted(() => {
                   </div>
 
                   <div
+                    v-if="followUpFeedback(job)"
+                    class="rotta-follow-up-feedback"
+                    :class="`rotta-follow-up-feedback--${followUpFeedback(job).tone}`"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <Icon
+                      :icon="followUpFeedback(job).icon"
+                      class="rotta-follow-up-feedback__icon"
+                    />
+                    <div>
+                      <strong>{{ followUpFeedback(job).title }}</strong>
+                      <span>{{ followUpFeedback(job).detail }}</span>
+                    </div>
+                  </div>
+
+                  <div
                     v-if="isHistoryExpanded(job)"
                     class="rotta-board-card__footer"
                   >
@@ -1452,6 +1540,21 @@ onUnmounted(() => {
                         {{ labelInfo(displayStageFor(job)).title }} ·
                         {{ evidenceConfirmationText(job) }}
                       </small>
+                      <div
+                        v-if="followUpFeedback(job)"
+                        class="rotta-follow-up-feedback rotta-follow-up-feedback--table"
+                        :class="`rotta-follow-up-feedback--${followUpFeedback(job).tone}`"
+                        role="status"
+                      >
+                        <Icon
+                          :icon="followUpFeedback(job).icon"
+                          class="rotta-follow-up-feedback__icon"
+                        />
+                        <div>
+                          <strong>{{ followUpFeedback(job).title }}</strong>
+                          <span>{{ followUpFeedback(job).detail }}</span>
+                        </div>
+                      </div>
                     </td>
                     <td>
                       <div v-if="!isHistoricalJob(job)" class="rotta-actions">
@@ -1691,6 +1794,22 @@ onUnmounted(() => {
                     }}
                   </small>
                 </span>
+              </div>
+              <div
+                v-if="followUpFeedback(job)"
+                class="rotta-follow-up-feedback"
+                :class="`rotta-follow-up-feedback--${followUpFeedback(job).tone}`"
+                role="status"
+                aria-live="polite"
+              >
+                <Icon
+                  :icon="followUpFeedback(job).icon"
+                  class="rotta-follow-up-feedback__icon"
+                />
+                <div>
+                  <strong>{{ followUpFeedback(job).title }}</strong>
+                  <span>{{ followUpFeedback(job).detail }}</span>
+                </div>
               </div>
               <div
                 v-if="!isHistoricalJob(job)"
@@ -2600,6 +2719,61 @@ onUnmounted(() => {
   @apply text-n-slate-11 bg-n-slate-2;
 }
 
+.rotta-follow-up-feedback {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: 0.65rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.rotta-follow-up-feedback__icon {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.05rem;
+  flex: 0 0 auto;
+}
+
+.rotta-follow-up-feedback > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.rotta-follow-up-feedback strong,
+.rotta-follow-up-feedback span {
+  overflow-wrap: anywhere;
+}
+
+.rotta-follow-up-feedback strong {
+  color: inherit;
+  font-weight: 600;
+}
+
+.rotta-follow-up-feedback span {
+  color: color-mix(in srgb, currentColor 88%, transparent);
+}
+
+.rotta-follow-up-feedback--error {
+  @apply text-n-ruby-11 bg-n-ruby-2 border-n-ruby-6;
+}
+
+.rotta-follow-up-feedback--waiting {
+  @apply text-n-amber-11 bg-n-amber-2 border-n-amber-6;
+}
+
+.rotta-follow-up-feedback--table {
+  min-width: 14rem;
+  max-width: 22rem;
+  margin-top: 0.4rem;
+}
+
 .rotta-delivery-evidence {
   @apply text-n-slate-11;
   display: block;
@@ -2712,6 +2886,16 @@ onUnmounted(() => {
 
   .rotta-schedule {
     white-space: normal;
+  }
+
+  .rotta-follow-up-feedback {
+    padding: 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .rotta-follow-up-feedback--table {
+    min-width: 0;
+    max-width: none;
   }
 
   .rotta-view-tabs {
