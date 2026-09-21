@@ -4,6 +4,8 @@ import {
   countdownPartsFor,
   dispatchWindowFor,
   effectiveDispatchAt,
+  isFollowUpForToday,
+  isFollowUpOverdue,
   isHistoricalJob,
   isStaleHistoricalJob,
   deduplicateFollowUpJobs,
@@ -285,6 +287,49 @@ describe('follow-up helpers', () => {
         timezone: WINDOW.timezone,
       })
     ).toBe('attention');
+  });
+
+  it('separates follow-ups planned for today from ones waiting for the next open window', () => {
+    const now = Date.parse('2026-09-08T12:00:00Z'); // 09:00 BRT
+
+    expect(
+      isFollowUpForToday(
+        { status: 'pending', scheduled_at: '2026-09-08T16:00:00Z' },
+        now,
+        WINDOW
+      )
+    ).toBe(true);
+    expect(
+      isFollowUpOverdue(
+        { status: 'pending', scheduled_at: '2026-09-08T16:00:00Z' },
+        now,
+        WINDOW
+      )
+    ).toBe(false);
+
+    const beforeWindow = Date.parse('2026-09-08T07:00:00Z'); // 04:00 BRT
+    expect(
+      isFollowUpOverdue(
+        { status: 'pending', scheduled_at: '2026-09-08T06:00:00Z' },
+        beforeWindow,
+        WINDOW
+      )
+    ).toBe(true);
+    expect(
+      isFollowUpForToday(
+        { status: 'pending', scheduled_at: '2026-09-08T06:00:00Z' },
+        beforeWindow,
+        WINDOW
+      )
+    ).toBe(false);
+
+    expect(
+      isFollowUpForToday(
+        { status: 'pending', scheduled_at: '2026-09-09T16:00:00Z' },
+        now,
+        WINDOW
+      )
+    ).toBe(false);
   });
 
   it('normalises an API dispatch window without discarding its timezone', () => {

@@ -31,8 +31,9 @@ import {
   isHistoricalJob,
   isWithinDispatchWindow,
   isStaleHistoricalJob,
-  activeFollowUpStageCount,
   deduplicateFollowUpJobs,
+  isFollowUpForToday,
+  isFollowUpOverdue,
   operationalFollowUpJobs,
   reconcilePendingEnrollments,
   orderedFollowUpStages,
@@ -255,8 +256,8 @@ const evidenceConfirmationText = job => {
   const status = String(deliveryEvidence(job)?.status || '').toLowerCase();
   if (status === 'read') return 'Confirmação de leitura recebida';
   if (status === 'delivered') return 'Confirmação de entrega recebida';
-  if (status === 'sent') return 'Aguardando confirmação da Uazapi';
-  return 'Evento de envio registrado';
+  if (status === 'sent') return 'Aguardando confirmação de envio';
+  return 'Envio registrado';
 };
 
 const toggleJobHistory = job => {
@@ -402,10 +403,6 @@ const activeJobs = computed(() =>
   operationalJobs.value.filter(job => Boolean(trailViewForJob(job)))
 );
 
-const activeStageCount = computed(() =>
-  activeFollowUpStageCount(activeJobs.value)
-);
-
 const viewCount = view => {
   return operationalJobs.value.filter(job =>
     jobBelongsToFollowUpView(job, view)
@@ -514,16 +511,18 @@ const jobsForColumn = columnKey => {
   });
 };
 
-const dueCount = computed(
+const todayCount = computed(
   () =>
-    activeJobs.value.filter(job => {
-      const timestamp = effectiveDispatchAt(
-        job.scheduled_at,
-        now.value,
-        dispatchWindow(job)
-      );
-      return Number.isFinite(timestamp) && timestamp <= now.value;
-    }).length
+    activeJobs.value.filter(job =>
+      isFollowUpForToday(job, now.value, responseMeta.value)
+    ).length
+);
+
+const overdueCount = computed(
+  () =>
+    activeJobs.value.filter(job =>
+      isFollowUpOverdue(job, now.value, responseMeta.value)
+    ).length
 );
 
 const formatDate = value => {
@@ -567,22 +566,21 @@ const countdownText = job => {
 
 const delayText = job => {
   const metadata = delayHoursFor(job);
-  if (metadata.hours === null) return 'Delay não informado';
+  if (metadata.hours === null) return 'Intervalo não informado';
   if (metadata.hours === 0) return 'Imediato';
-  return `${metadata.hours}h programadas${metadata.source === 'configured' ? ' · configuração Rotta' : ''}`;
+  return `Intervalo: ${metadata.hours} horas`;
 };
 
 const windowText = job => {
   const window = dispatchWindow(job);
-  const source = window.source === 'api' ? '' : ' · padrão Rotta';
-  return `${window.start}–${window.end} BRT${source}`;
+  return `Horário permitido: ${window.start}–${window.end}`;
 };
 
 const scheduleText = job => {
   if (job.pending_enrollment) {
     return job.status === 'sync_failed'
-      ? 'Conciliação não confirmada'
-      : 'Sincronizando etiqueta…';
+      ? 'Etiqueta não confirmada'
+      : 'Atualizando etiqueta…';
   }
   if (!job.scheduled_at) return 'Sem horário definido';
   const target = effectiveDispatchAt(
@@ -597,12 +595,12 @@ const scheduleText = job => {
 const statusText = (status, job = null) => {
   if (deliveryEvidence(job)?.message_id) return evidenceStatusText(job);
   const values = {
-    pending: 'Na fila',
-    processing: 'Processando',
-    syncing: 'Sincronizando etiqueta',
-    sync_failed: 'Conciliação pendente',
-    failed_send: 'Falha no envio',
-    failed_labels: 'Falha nas etiquetas',
+    pending: 'Aguardando envio',
+    processing: 'Atualizando',
+    syncing: 'Atualizando etiqueta',
+    sync_failed: 'Etiqueta não confirmada',
+    failed_send: 'Envio não concluído',
+    failed_labels: 'Etiqueta não atualizada',
     sent_history: 'Histórico',
     history_only: 'Histórico',
   };
@@ -682,8 +680,8 @@ const followUpFeedback = job => {
       detail:
         error ||
         (job.status === 'sync_failed'
-          ? 'A etiqueta ainda não foi confirmada pelo fluxo. Verifique a integração do n8n.'
-          : 'O fluxo não informou a causa. Tente novamente e consulte a execução no n8n.'),
+          ? 'A etiqueta ainda não foi confirmada. Verifique a conexão do envio.'
+          : 'Não foi possível identificar a causa. Tente novamente.'),
     };
   }
 
@@ -944,7 +942,7 @@ onUnmounted(() => {
       <BaseSettingsHeader
         v-model:search-query="searchQuery"
         title="Follow-up da Rotta"
-        description="Kanban operacional por etiqueta, janela de envio e trilha do cliente. O n8n continua como executor do WhatsApp."
+        description="Acompanhe os envios por etiqueta, data e horário."
         search-placeholder="Buscar cliente, telefone ou etiqueta"
       >
         <template #actions>
@@ -960,25 +958,17 @@ onUnmounted(() => {
     </template>
 
     <template #body>
-      <section class="rotta-follow-up" aria-label="Fila de follow-up">
+      <section class="rotta-follow-up" aria-label="Resumo dos follow-ups">
         <div class="rotta-summary-grid">
-          <article class="rotta-summary-card">
-            <span>Na fila</span>
-            <strong>{{ activeJobs.length }}</strong>
-            <small>
-              {{ queueJobs.length - activeJobs.length }} registro(s)
-              encerrado(s)
-            </small>
+          <article class="rotta-summary-card rotta-summary-card--today">
+            <span>Para hoje</span>
+            <strong>{{ todayCount }}</strong>
+            <small>follow-ups com envio previsto para hoje</small>
           </article>
-          <article class="rotta-summary-card rotta-summary-card--due">
-            <span>Prontos agora</span>
-            <strong>{{ dueCount }}</strong>
-            <small>aguardando o worker</small>
-          </article>
-          <article class="rotta-summary-card">
-            <span>Etapas ativas</span>
-            <strong>{{ activeStageCount }}</strong>
-            <small>trilhas com clientes</small>
+          <article class="rotta-summary-card rotta-summary-card--overdue">
+            <span>Em atraso</span>
+            <strong>{{ overdueCount }}</strong>
+            <small>aguardando o próximo horário permitido</small>
           </article>
           <button
             type="button"
@@ -1089,7 +1079,7 @@ onUnmounted(() => {
                   ? `ao vivo · sincronizado em ${formatDate(lastSyncedAt)}`
                   : 'sincronizando…'
               }}
-              · janela {{ dispatchWindow({}).start }}–{{
+              · horário permitido {{ dispatchWindow({}).start }}–{{
                 dispatchWindow({}).end
               }}
             </p>
@@ -1310,8 +1300,8 @@ onUnmounted(() => {
                           >Último disparo registrado</small
                         >
                         <small v-else
-                          >O job será substituído aqui assim que o n8n
-                          confirmar</small
+                          >O acompanhamento aparecerá aqui assim que a etiqueta
+                          for confirmada</small
                         >
                       </div>
                     </div>
@@ -1403,7 +1393,7 @@ onUnmounted(() => {
                         <Icon icon="i-lucide-radio-tower" class="size-3.5" />
                         {{
                           job.status === 'sync_failed'
-                            ? 'Confira o webhook do n8n'
+                            ? 'Não foi possível confirmar a etiqueta'
                             : 'Atualização em tempo real'
                         }}
                       </span>
@@ -1492,10 +1482,10 @@ onUnmounted(() => {
                           deliveryEvidence(job)?.message_id
                             ? `${labelInfo(displayStageFor(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
                             : normaliseHistory(job).length
-                              ? 'Etapas disparadas registradas pelo worker'
+                              ? 'Etapas já enviadas'
                               : job.pending_enrollment
-                                ? 'Etiqueta recebida; aguardando o job correspondente do n8n'
-                                : 'Aguardando o histórico de disparos do worker'
+                                ? 'Etiqueta recebida; atualizando o acompanhamento'
+                                : 'O histórico de envios ainda não está disponível'
                         }}
                       </span>
                     </div>
@@ -1737,8 +1727,8 @@ onUnmounted(() => {
                               deliveryEvidence(job)?.message_id
                                 ? `${labelInfo(displayStageFor(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
                                 : normaliseHistory(job).length
-                                  ? 'Etapas disparadas registradas pelo worker'
-                                  : 'Aguardando o histórico de disparos do worker'
+                                  ? 'Etapas já enviadas'
+                                  : 'O histórico de envios ainda não está disponível'
                             }}
                           </span>
                         </div>
@@ -1829,8 +1819,8 @@ onUnmounted(() => {
                       deliveryEvidence(job)?.message_id
                         ? `${labelInfo(displayStageFor(job)).title} · ${evidenceStatusText(job)} em ${formatDate(deliveryEvidence(job).created_at)} — ${evidenceConfirmationText(job)}`
                         : normaliseHistory(job).length
-                          ? 'Etapas disparadas registradas pelo worker'
-                          : 'Aguardando o histórico de disparos do worker'
+                          ? 'Etapas já enviadas'
+                          : 'O histórico de envios ainda não está disponível'
                     }}
                   </span>
                 </div>
@@ -2135,7 +2125,7 @@ onUnmounted(() => {
 
 .rotta-summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
@@ -2191,9 +2181,13 @@ button.rotta-summary-card:focus-visible {
   line-height: 1.15;
 }
 
-.rotta-summary-card--due strong,
+.rotta-summary-card--today strong,
 .rotta-due {
   @apply text-n-teal-11;
+}
+
+.rotta-summary-card--overdue strong {
+  @apply text-n-amber-11;
 }
 
 .rotta-summary-card--failures strong {

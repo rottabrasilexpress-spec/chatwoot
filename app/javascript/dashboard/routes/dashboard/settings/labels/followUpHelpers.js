@@ -480,6 +480,47 @@ export const effectiveDispatchAt = (
   return scheduled;
 };
 
+const localDateKey = (date, timezone = TIMEZONE) => {
+  const parts = dateTimeParts(date, timezone);
+  if (!parts.year || !parts.month || !parts.day) return '';
+  return [parts.year, parts.month, parts.day]
+    .map((value, index) =>
+      index === 0 ? value : String(value).padStart(2, '0')
+    )
+    .join('-');
+};
+
+// A follow-up is late only when its original time has passed and the next
+// allowed sending time is still in the future because the sending window is
+// closed. A job due during the open window belongs to "Para hoje".
+export const isFollowUpOverdue = (job, now = Date.now(), responseMeta = {}) => {
+  if (isHistoricalJob(job)) return false;
+
+  const scheduled = new Date(job?.scheduled_at).getTime();
+  if (!Number.isFinite(scheduled) || scheduled > now) return false;
+
+  const window = dispatchWindowFor(job, responseMeta);
+  const effective = effectiveDispatchAt(scheduled, now, window);
+  return Number.isFinite(effective) && effective > now;
+};
+
+export const isFollowUpForToday = (
+  job,
+  now = Date.now(),
+  responseMeta = {}
+) => {
+  if (isHistoricalJob(job) || isFollowUpOverdue(job, now, responseMeta)) {
+    return false;
+  }
+
+  const window = dispatchWindowFor(job, responseMeta);
+  const effective = effectiveDispatchAt(job?.scheduled_at, now, window);
+  if (!Number.isFinite(effective)) return false;
+
+  const timezone = window.timezone || TIMEZONE;
+  return localDateKey(effective, timezone) === localDateKey(now, timezone);
+};
+
 const compactDateTime = (date, timezone = TIMEZONE) => {
   if (!Number.isFinite(new Date(date).getTime())) return '';
 
@@ -510,8 +551,8 @@ export const compactDispatchText = (
 
   if (job?.pending_enrollment) {
     return job.status === 'sync_failed'
-      ? 'Disparo pendente'
-      : 'Disparo sincronizando…';
+      ? 'Envio aguardando confirmação'
+      : 'Atualizando envio…';
   }
 
   const target = effectiveDispatchAt(
