@@ -2,6 +2,14 @@ class DashboardController < ActionController::Base
   include SwitchLocale
   include PortalHomeData
 
+  ROTTA_WOOT_BRANDING = {
+    'INSTALLATION_NAME' => 'RottaWoot',
+    'BRAND_NAME' => 'RottaWoot',
+    'LOGO_THUMBNAIL' => '/brand-assets/rottabrasil-mark-transparent.png',
+    'LOGO' => '/brand-assets/rottabrasil-logo.png',
+    'LOGO_DARK' => '/brand-assets/rottabrasil-logo-dark.png'
+  }.freeze
+
   GLOBAL_CONFIG_KEYS = %w[
     LOGO
     LOGO_DARK
@@ -47,7 +55,7 @@ class DashboardController < ActionController::Base
   end
 
   def set_global_config
-    @global_config = GlobalConfig.get(*GLOBAL_CONFIG_KEYS).merge(app_config)
+    @global_config = GlobalConfig.get(*GLOBAL_CONFIG_KEYS).merge(ROTTA_WOOT_BRANDING, app_config)
   end
 
   def set_dashboard_scripts

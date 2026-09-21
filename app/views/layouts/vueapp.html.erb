@@ -18,7 +18,7 @@
       <link class="favicon" rel="icon" type="image/png" sizes="512x512" href="/brand-assets/rottabrasil-mark.png">
       <link rel="manifest" href="/manifest.json">
     <% end %>
-    <link rel="icon" type="image/png" sizes="512x512" href="<%= @global_config['LOGO_THUMBNAIL'] %>">
+    <link rel="icon" type="image/png" sizes="512x512" href="/brand-assets/rottabrasil-mark-transparent.png">
     <%= csrf_meta_tags %>
     <meta name="rotta-google-maps-api-key" content="<%= (ENV['NEXT_PUBLIC_GOOGLE_MAPS_API_KEY'].presence || ENV['GOOGLE_MAPS_BROWSER_API_KEY'].presence || '').to_s %>">
     <script>
