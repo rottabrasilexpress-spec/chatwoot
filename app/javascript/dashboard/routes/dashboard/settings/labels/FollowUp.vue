@@ -91,6 +91,7 @@ const boardMode = ref(initialBoardMode);
 const customHours = ref({});
 const dispatchDialogRef = ref(null);
 const pendingDispatchJob = ref(null);
+const showFailures = ref(false);
 let refreshTimer;
 let clockTimer;
 let refreshRequested = false;
@@ -698,6 +699,16 @@ const followUpFeedback = job => {
   return null;
 };
 
+const failureJobs = computed(() =>
+  operationalJobs.value.filter(job => {
+    const status = String(job?.status || '');
+    return status === 'sync_failed' || status.startsWith('failed');
+  })
+);
+
+const exactFailureText = job =>
+  firstReadableError(job) || 'O fluxo não informou o erro exato.';
+
 const request = async payload => {
   const response = await rottaFollowUpAPI.create(payload);
   const body = response.data || {};
@@ -969,7 +980,101 @@ onUnmounted(() => {
             <strong>{{ activeStageCount }}</strong>
             <small>trilhas com clientes</small>
           </article>
+          <button
+            type="button"
+            class="rotta-summary-card rotta-summary-card--failures"
+            :class="{
+              'rotta-summary-card--failures-active': showFailures,
+            }"
+            :aria-expanded="showFailures"
+            aria-controls="rotta-follow-up-failures"
+            @click="showFailures = !showFailures"
+          >
+            <span>Falhas</span>
+            <strong>{{ failureJobs.length }}</strong>
+            <small>
+              {{
+                failureJobs.length
+                  ? 'ver clientes e motivos'
+                  : 'nenhuma ocorrência'
+              }}
+            </small>
+          </button>
         </div>
+
+        <section
+          v-if="showFailures"
+          id="rotta-follow-up-failures"
+          class="rotta-failures"
+          aria-labelledby="rotta-follow-up-failures-title"
+        >
+          <header class="rotta-failures__header">
+            <div>
+              <h2 id="rotta-follow-up-failures-title">Falhas de follow-up</h2>
+              <p>Ocorrências atuais informadas pelo fluxo de disparo.</p>
+            </div>
+            <Button
+              label="Fechar"
+              icon="i-lucide-x"
+              size="sm"
+              slate
+              ghost
+              @click="showFailures = false"
+            />
+          </header>
+
+          <div v-if="failureJobs.length" class="rotta-failures__list">
+            <article
+              v-for="job in failureJobs"
+              :key="`failure-${job.job_id}`"
+              class="rotta-failure-row"
+            >
+              <button
+                type="button"
+                class="rotta-failure-row__client"
+                @click="openConversation(job)"
+              >
+                <strong>{{ job.customer_name || 'Cliente sem nome' }}</strong>
+                <span>{{ job.phone || 'Telefone não informado' }}</span>
+              </button>
+              <div class="rotta-failure-row__context">
+                <span
+                  class="rotta-label-pill"
+                  :style="{
+                    '--label-color': labelInfo(displayStageFor(job)).color,
+                  }"
+                >
+                  {{ labelInfo(displayStageFor(job)).title }}
+                </span>
+                <small>{{ formatDate(job.scheduled_at) }}</small>
+              </div>
+              <div class="rotta-failure-row__reason">
+                <span
+                  class="rotta-status"
+                  :class="statusClass(job.status, job)"
+                >
+                  {{ statusText(job.status, job) }}
+                </span>
+                <p>{{ exactFailureText(job) }}</p>
+              </div>
+              <Button
+                label="Abrir conversa"
+                icon="i-lucide-arrow-up-right"
+                size="sm"
+                slate
+                ghost
+                @click="openConversation(job)"
+              />
+            </article>
+          </div>
+          <div v-else class="rotta-failures__empty" role="status">
+            <Icon icon="i-lucide-circle-check" class="size-5" />
+            <div>
+              <strong>Nenhuma falha atual</strong>
+              <span>Os disparos ativos não reportaram erros.</span>
+            </div>
+          </div>
+        </section>
 
         <div class="rotta-toolbar">
           <div class="rotta-toolbar__title">
@@ -2030,7 +2135,7 @@ onUnmounted(() => {
 
 .rotta-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
@@ -2045,8 +2150,30 @@ onUnmounted(() => {
 .rotta-summary-card {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0.15rem;
   padding: 1rem;
+  text-align: start;
+}
+
+button.rotta-summary-card {
+  width: 100%;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+button.rotta-summary-card:hover,
+button.rotta-summary-card:focus-visible,
+.rotta-summary-card--failures-active {
+  @apply border-n-ruby-7 bg-n-ruby-2;
+}
+
+button.rotta-summary-card:focus-visible {
+  outline: 2px solid rgb(var(--ruby-7));
+  outline-offset: 2px;
 }
 
 .rotta-summary-card span,
@@ -2067,6 +2194,130 @@ onUnmounted(() => {
 .rotta-summary-card--due strong,
 .rotta-due {
   @apply text-n-teal-11;
+}
+
+.rotta-summary-card--failures strong {
+  @apply text-n-ruby-11;
+}
+
+.rotta-failures {
+  @apply bg-n-solid-2 border border-n-ruby-6;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+
+.rotta-failures__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  @apply border-b border-n-weak;
+}
+
+.rotta-failures__header h2 {
+  margin: 0;
+  @apply text-n-slate-12;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.rotta-failures__header p {
+  margin: 0.2rem 0 0;
+  @apply text-n-slate-11;
+  font-size: 0.75rem;
+}
+
+.rotta-failures__list {
+  display: grid;
+}
+
+.rotta-failure-row {
+  display: grid;
+  grid-template-columns:
+    minmax(10rem, 1fr) minmax(10rem, 0.8fr) minmax(16rem, 2fr)
+    auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  @apply border-b border-n-weak;
+}
+
+.rotta-failure-row:last-child {
+  border-bottom: 0;
+}
+
+.rotta-failure-row__client {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0;
+  color: inherit;
+  text-align: start;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.rotta-failure-row__client strong,
+.rotta-failure-row__client span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rotta-failure-row__client strong {
+  @apply text-n-slate-12;
+  font-size: 0.8rem;
+}
+
+.rotta-failure-row__client span,
+.rotta-failure-row__context small {
+  @apply text-n-slate-11;
+  font-size: 0.7rem;
+}
+
+.rotta-failure-row__context,
+.rotta-failure-row__reason {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.rotta-failure-row__reason p {
+  max-width: 100%;
+  margin: 0;
+  @apply text-n-ruby-11;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rotta-failures__empty {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1rem;
+  @apply text-n-teal-11;
+}
+
+.rotta-failures__empty > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.rotta-failures__empty strong {
+  font-size: 0.8rem;
+}
+
+.rotta-failures__empty span {
+  font-size: 0.72rem;
 }
 
 .rotta-toolbar {
@@ -2844,6 +3095,18 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1023px) {
+  .rotta-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rotta-failure-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .rotta-failure-row__reason {
+    grid-column: 1 / -1;
+  }
+
   .rotta-queue__desktop {
     display: none;
   }
@@ -2869,6 +3132,26 @@ onUnmounted(() => {
   .rotta-summary-card strong {
     grid-row: span 2;
     grid-column: 2;
+  }
+
+  .rotta-failures__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rotta-failure-row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    padding: 0.85rem;
+  }
+
+  .rotta-failure-row__reason {
+    grid-column: auto;
+  }
+
+  .rotta-failure-row > :deep(button) {
+    width: 100%;
+    min-height: 2.75rem;
   }
 
   .rotta-toolbar {

@@ -33,4 +33,19 @@ describe('follow-up responsive board', () => {
       /@media \(max-width:\s*640px\)[\s\S]*?\.rotta-follow-up-feedback\s*\{[^}]*font-size:\s*0\.75rem/s
     );
   });
+
+  it('provides a responsive failure summary with exact worker errors', () => {
+    expect(followUpSource).toContain('Falhas de follow-up');
+    expect(followUpSource).toContain('exactFailureText(job)');
+    expect(followUpSource).toContain('O fluxo não informou o erro exato.');
+    expect(followUpSource).toMatch(
+      /\.rotta-summary-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,/s
+    );
+    expect(followUpSource).toMatch(
+      /@media \(max-width:\s*640px\)[\s\S]*?\.rotta-failure-row\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s
+    );
+    expect(followUpSource).toMatch(
+      /\.rotta-failure-row__reason p\s*\{[^}]*overflow-wrap:\s*anywhere/s
+    );
+  });
 });
