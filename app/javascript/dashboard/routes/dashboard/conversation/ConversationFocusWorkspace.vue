@@ -11,6 +11,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
 import { getLastMessage } from 'dashboard/helper/conversationHelper';
+import wootConstants from 'dashboard/constants/globals';
 
 const STORAGE_KEY = 'rotta-conversation-focus-workspace-v2';
 const route = useRoute();
@@ -149,6 +150,13 @@ onMounted(async () => {
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
+  await store.dispatch('updateChatListFilters', {
+    assigneeType: wootConstants.ASSIGNEE_TYPE.ALL,
+    status: wootConstants.STATUS_TYPE.OPEN,
+    sortBy: wootConstants.SORT_BY_TYPE.LATEST,
+    page: 1,
+    perPage: 50,
+  });
   await store.dispatch('fetchAllConversations', { force: true });
   if (!selectedIds.value.length && conversations.value[0]?.id)
     selectedIds.value = [conversations.value[0].id];
