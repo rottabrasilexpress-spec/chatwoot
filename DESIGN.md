@@ -18,4 +18,6 @@ O produto herda a linguagem operacional do Chatwoot customizado: alta densidade,
 - Cabeçalho curto com identidade da função e seletor de 1–4 painéis.
 - Lista de clientes fixa à esquerda no desktop, estreita no celular.
 - Painéis reutilizam a conversa nativa em instâncias isoladas, evitando divergência funcional.
+- Conversas podem ser abertas por clique ou arrastadas diretamente da fila para um painel.
+- Cada painel aceita redimensionamento horizontal manual e preserva a largura escolhida.
 - O arranjo é persistido localmente e restaurado na abertura seguinte.

@@ -61,8 +61,13 @@ const conversationName = id =>
   conversationById(id)?.meta?.sender?.name || `Conversa #${id}`;
 const panelUrl = id =>
   `/app/accounts/${route.params.accountId}/conversations/${id}?conversationFocusPanel=1`;
-const previewText = conversation =>
-  conversation.lastNonActivityMessage?.content || copy.noMessage;
+const previewText = conversation => {
+  const latestMessage =
+    conversation.last_non_activity_message ||
+    conversation.lastNonActivityMessage ||
+    conversation.messages?.at(-1);
+  return latestMessage?.content || copy.noMessage;
+};
 const previewTime = conversation => {
   const raw =
     conversation.timestamp ||
