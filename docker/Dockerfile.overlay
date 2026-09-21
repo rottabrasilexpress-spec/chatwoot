@@ -26,6 +26,7 @@ COPY db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb /app/db
 COPY db/migrate/20260911000100_create_deleted_message_contents.rb /app/db/migrate/20260911000100_create_deleted_message_contents.rb
 COPY db/migrate/20260913000000_create_global_ai_assistant.rb /app/db/migrate/20260913000000_create_global_ai_assistant.rb
 COPY db/migrate/20260917000000_create_global_ai_action_receipts.rb /app/db/migrate/20260917000000_create_global_ai_action_receipts.rb
+COPY db/migrate/20260919163000_brand_rotta_woot.rb /app/db/migrate/20260919163000_brand_rotta_woot.rb
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_deleted_message_content_retention_job.rb /app/app/jobs/rotta_deleted_message_content_retention_job.rb
@@ -33,6 +34,7 @@ COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi
 COPY app/jobs/rotta_uazapi_webhook_delivery_retention_job.rb /app/app/jobs/rotta_uazapi_webhook_delivery_retention_job.rb
 COPY app/jobs/rotta_uazapi_history_reconciliation_job.rb /app/app/jobs/rotta_uazapi_history_reconciliation_job.rb
 COPY app/controllers/api/v1/accounts/rotta_follow_up_controller.rb /app/app/controllers/api/v1/accounts/rotta_follow_up_controller.rb
+COPY app/controllers/dashboard_controller.rb /app/app/controllers/dashboard_controller.rb
 COPY app/controllers/api/v1/accounts_controller.rb /app/app/controllers/api/v1/accounts_controller.rb
 COPY app/controllers/api/v1/accounts/conversations_controller.rb /app/app/controllers/api/v1/accounts/conversations_controller.rb
 COPY app/controllers/api/v1/accounts/conversations/unread_counts_controller.rb /app/app/controllers/api/v1/accounts/conversations/unread_counts_controller.rb
