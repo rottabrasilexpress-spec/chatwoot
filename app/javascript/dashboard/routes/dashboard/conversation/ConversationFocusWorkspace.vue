@@ -105,7 +105,7 @@ onMounted(async () => {
           v-for="size in 4"
           :key="size"
           type="button"
-          :class="{ active: layout === size }"
+          :class="{ '!bg-n-brand !text-white': layout === size }"
           :aria-pressed="layout === size"
           @click="layout = size"
         >
@@ -232,10 +232,6 @@ onMounted(async () => {
   border-radius: 0.55rem;
   font-size: 0.8rem;
   color: var(--color-n-slate-11);
-}
-.layout-switcher button.active {
-  background: var(--color-n-brand);
-  color: white;
 }
 .focus-body {
   display: flex;
