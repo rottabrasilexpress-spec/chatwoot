@@ -92,7 +92,7 @@ const boardMode = ref(initialBoardMode);
 const customHours = ref({});
 const dispatchDialogRef = ref(null);
 const pendingDispatchJob = ref(null);
-const showFailures = ref(false);
+const summaryPanel = ref(null);
 let refreshTimer;
 let clockTimer;
 let refreshRequested = false;
@@ -518,12 +518,15 @@ const todayCount = computed(
     ).length
 );
 
-const overdueCount = computed(
-  () =>
-    activeJobs.value.filter(job =>
-      isFollowUpOverdue(job, now.value, responseMeta.value)
-    ).length
+const overdueJobs = computed(() =>
+  activeJobs.value.filter(job =>
+    isFollowUpOverdue(job, now.value, responseMeta.value)
+  )
 );
+
+const overdueCount = computed(() => overdueJobs.value.length);
+
+const allCount = computed(() => activeJobs.value.length);
 
 const formatDate = value => {
   if (!value) return 'Sem data';
@@ -703,6 +706,58 @@ const failureJobs = computed(() =>
     return status === 'sync_failed' || status.startsWith('failed');
   })
 );
+
+const summaryPanelJobs = computed(() => {
+  const panelJobs =
+    summaryPanel.value === 'overdue' ? overdueJobs.value : failureJobs.value;
+  return [...panelJobs].sort((left, right) => {
+    const targetDifference =
+      nextFollowUpTimestamp(left) - nextFollowUpTimestamp(right);
+    if (targetDifference !== 0) return targetDifference;
+    return String(left?.customer_name || '').localeCompare(
+      String(right?.customer_name || ''),
+      'pt-BR'
+    );
+  });
+});
+
+const summaryPanelTitle = computed(() =>
+  summaryPanel.value === 'overdue'
+    ? 'Follow-ups em atraso'
+    : 'Falhas de follow-up'
+);
+
+const summaryPanelDescription = computed(() =>
+  summaryPanel.value === 'overdue'
+    ? 'Clientes cujo horário chegou, mas aguardam a próxima janela permitida.'
+    : 'Ocorrências atuais informadas pelo fluxo de disparo.'
+);
+
+const summaryPanelEmptyTitle = computed(() =>
+  summaryPanel.value === 'overdue'
+    ? 'Nenhum follow-up em atraso'
+    : 'Nenhuma falha atual'
+);
+
+const summaryPanelEmptyDescription = computed(() =>
+  summaryPanel.value === 'overdue'
+    ? 'Todos os envios estão dentro do horário permitido.'
+    : 'Os disparos ativos não reportaram erros.'
+);
+
+const toggleSummaryPanel = panel => {
+  summaryPanel.value = summaryPanel.value === panel ? null : panel;
+};
+
+const closeSummaryPanel = () => {
+  summaryPanel.value = null;
+};
+
+const selectAllFollowUps = () => {
+  selectedView.value = 'all';
+  selectedStage.value = 'all';
+  summaryPanel.value = null;
+};
 
 const exactFailureText = job =>
   firstReadableError(job) || 'O fluxo não informou o erro exato.';
@@ -960,25 +1015,51 @@ onUnmounted(() => {
     <template #body>
       <section class="rotta-follow-up" aria-label="Resumo dos follow-ups">
         <div class="rotta-summary-grid">
+          <button
+            type="button"
+            class="rotta-summary-card rotta-summary-card--all"
+            :class="{
+              'rotta-summary-card--all-active':
+                selectedView === 'all' && selectedStage === 'all',
+            }"
+            aria-label="Mostrar todos os follow-ups ativos"
+            @click="selectAllFollowUps"
+          >
+            <span>Todos</span>
+            <strong>{{ allCount }}</strong>
+            <small>follow-ups ativos em todas as etapas</small>
+          </button>
           <article class="rotta-summary-card rotta-summary-card--today">
             <span>Para hoje</span>
             <strong>{{ todayCount }}</strong>
             <small>follow-ups com envio previsto para hoje</small>
           </article>
-          <article class="rotta-summary-card rotta-summary-card--overdue">
+          <button
+            type="button"
+            class="rotta-summary-card rotta-summary-card--overdue"
+            :class="{
+              'rotta-summary-card--overdue-active': summaryPanel === 'overdue',
+            }"
+            :aria-expanded="summaryPanel === 'overdue'"
+            aria-controls="rotta-follow-up-summary-panel"
+            aria-label="Mostrar follow-ups em atraso"
+            @click="toggleSummaryPanel('overdue')"
+          >
             <span>Em atraso</span>
             <strong>{{ overdueCount }}</strong>
             <small>aguardando o próximo horário permitido</small>
-          </article>
+          </button>
           <button
             type="button"
             class="rotta-summary-card rotta-summary-card--failures"
             :class="{
-              'rotta-summary-card--failures-active': showFailures,
+              'rotta-summary-card--failures-active':
+                summaryPanel === 'failures',
             }"
-            :aria-expanded="showFailures"
-            aria-controls="rotta-follow-up-failures"
-            @click="showFailures = !showFailures"
+            :aria-expanded="summaryPanel === 'failures'"
+            aria-controls="rotta-follow-up-summary-panel"
+            aria-label="Mostrar falhas do follow-up"
+            @click="toggleSummaryPanel('failures')"
           >
             <span>Falhas</span>
             <strong>{{ failureJobs.length }}</strong>
@@ -993,15 +1074,20 @@ onUnmounted(() => {
         </div>
 
         <section
-          v-if="showFailures"
-          id="rotta-follow-up-failures"
-          class="rotta-failures"
-          aria-labelledby="rotta-follow-up-failures-title"
+          v-if="summaryPanel"
+          id="rotta-follow-up-summary-panel"
+          class="rotta-failures rotta-summary-panel"
+          :class="{
+            'rotta-summary-panel--overdue': summaryPanel === 'overdue',
+          }"
+          aria-labelledby="rotta-follow-up-summary-panel-title"
         >
           <header class="rotta-failures__header">
             <div>
-              <h2 id="rotta-follow-up-failures-title">Falhas de follow-up</h2>
-              <p>Ocorrências atuais informadas pelo fluxo de disparo.</p>
+              <h2 id="rotta-follow-up-summary-panel-title">
+                {{ summaryPanelTitle }}
+              </h2>
+              <p>{{ summaryPanelDescription }}</p>
             </div>
             <Button
               label="Fechar"
@@ -1009,14 +1095,14 @@ onUnmounted(() => {
               size="sm"
               slate
               ghost
-              @click="showFailures = false"
+              @click="closeSummaryPanel"
             />
           </header>
 
-          <div v-if="failureJobs.length" class="rotta-failures__list">
+          <div v-if="summaryPanelJobs.length" class="rotta-failures__list">
             <article
-              v-for="job in failureJobs"
-              :key="`failure-${job.job_id}`"
+              v-for="job in summaryPanelJobs"
+              :key="`${summaryPanel}-${job.job_id}`"
               class="rotta-failure-row"
             >
               <button
@@ -1045,7 +1131,13 @@ onUnmounted(() => {
                 >
                   {{ statusText(job.status, job) }}
                 </span>
-                <p>{{ exactFailureText(job) }}</p>
+                <p v-if="summaryPanel === 'failures'">
+                  {{ exactFailureText(job) }}
+                </p>
+                <p v-else>
+                  {{ countdownText(job) }} ·
+                  {{ windowText(job) }}
+                </p>
               </div>
               <Button
                 label="Abrir conversa"
@@ -1058,10 +1150,17 @@ onUnmounted(() => {
             </article>
           </div>
           <div v-else class="rotta-failures__empty" role="status">
-            <Icon icon="i-lucide-circle-check" class="size-5" />
+            <Icon
+              :icon="
+                summaryPanel === 'overdue'
+                  ? 'i-lucide-clock-check'
+                  : 'i-lucide-circle-check'
+              "
+              class="size-5"
+            />
             <div>
-              <strong>Nenhuma falha atual</strong>
-              <span>Os disparos ativos não reportaram erros.</span>
+              <strong>{{ summaryPanelEmptyTitle }}</strong>
+              <span>{{ summaryPanelEmptyDescription }}</span>
             </div>
           </div>
         </section>
@@ -1286,6 +1385,10 @@ onUnmounted(() => {
                       <div>
                         <strong>{{ scheduleText(job) }}</strong>
                         <small
+                          class="rotta-board-card__countdown"
+                          :class="{
+                            'rotta-board-card__countdown--ready': isDue(job),
+                          }"
                           v-if="
                             !job.pending_enrollment && !isHistoricalJob(job)
                           "
@@ -2125,7 +2228,7 @@ onUnmounted(() => {
 
 .rotta-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
@@ -2156,7 +2259,24 @@ button.rotta-summary-card {
 }
 
 button.rotta-summary-card:hover,
-button.rotta-summary-card:focus-visible,
+button.rotta-summary-card:focus-visible {
+  @apply border-n-blue-7 bg-n-blue-2;
+}
+
+.rotta-summary-card--all-active,
+button.rotta-summary-card--all:hover,
+button.rotta-summary-card--all:focus-visible {
+  @apply border-n-blue-7 bg-n-blue-2;
+}
+
+.rotta-summary-card--overdue-active,
+button.rotta-summary-card--overdue:hover,
+button.rotta-summary-card--overdue:focus-visible {
+  @apply border-n-amber-7 bg-n-amber-2;
+}
+
+button.rotta-summary-card--failures:hover,
+button.rotta-summary-card--failures:focus-visible,
 .rotta-summary-card--failures-active {
   @apply border-n-ruby-7 bg-n-ruby-2;
 }
@@ -2186,6 +2306,10 @@ button.rotta-summary-card:focus-visible {
   @apply text-n-teal-11;
 }
 
+.rotta-summary-card--all strong {
+  @apply text-n-blue-11;
+}
+
 .rotta-summary-card--overdue strong {
   @apply text-n-amber-11;
 }
@@ -2198,6 +2322,10 @@ button.rotta-summary-card:focus-visible {
   @apply bg-n-solid-2 border border-n-ruby-6;
   overflow: hidden;
   border-radius: 1rem;
+}
+
+.rotta-summary-panel--overdue {
+  @apply border-n-amber-6;
 }
 
 .rotta-failures__header {
@@ -2544,9 +2672,22 @@ button.rotta-summary-card:focus-visible {
   gap: 0.5rem;
 }
 
+.rotta-board-card__topline {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
 .rotta-client--board {
+  min-width: min(100%, 8rem);
+  flex: 1 1 8rem;
+}
+
+.rotta-board-card__topline > .rotta-status {
   min-width: 0;
-  flex: 1;
+  max-width: 100%;
+  overflow: hidden;
+  flex: 0 1 auto;
+  text-overflow: ellipsis;
 }
 
 .rotta-board-card__labels {
@@ -2623,6 +2764,15 @@ button.rotta-summary-card:focus-visible {
 .rotta-board-card__schedule-meta {
   @apply text-n-slate-11;
   font-size: 0.67rem;
+}
+
+.rotta-board-card__schedule-main small.rotta-board-card__countdown {
+  @apply text-n-blue-11;
+  font-weight: 600;
+}
+
+.rotta-board-card__schedule-main small.rotta-board-card__countdown--ready {
+  @apply text-n-teal-11;
 }
 
 .rotta-board-card__schedule-meta {
