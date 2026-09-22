@@ -120,6 +120,36 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
     expect(conversation.reload.label_list).to include('Caio Atenção')
   end
 
+  it 'uses conversation context for an interested customer asking for a vehicle detail that needs human confirmation' do
+    conversation.update_labels(['Orçamento feito'])
+    create(:message, account: account, inbox: inbox, conversation: conversation,
+                     message_type: :incoming, content_type: :text,
+                     content: 'Seria o transporte mais serviços', created_at: 2.minutes.ago)
+    create(:message, account: account, inbox: inbox, conversation: conversation,
+                     message_type: :outgoing, content_type: :text,
+                     content: 'O setor responsável confirma o veículo e o valor final.', created_at: 1.minute.ago)
+    message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                               message_type: :incoming, content_type: :text,
+                               content: 'Meu marido está pedindo se você pode mandar o tamanho do caminhão?')
+    decision = Rotta::AutomaticLabels::HumanNeedClassifier::Decision.new(
+      needs_human: true, confidence: 0.94, reason: 'detalhe do veículo depende de confirmação operacional'
+    )
+    classifier = instance_double(Rotta::AutomaticLabels::HumanNeedClassifier)
+
+    expect(Rotta::AutomaticLabels::HumanNeedClassifier).to receive(:new).and_return(classifier)
+    expect(classifier).to receive(:call) do |context|
+      expect(context[:last_message]).to eq(message.content)
+      expect(context[:recent_messages].map { |item| item[:content] }).to include(
+        'Seria o transporte mais serviços', 'O setor responsável confirma o veículo e o valor final.'
+      )
+      decision
+    end
+
+    described_class.new(message).perform
+
+    expect(conversation.reload.label_list).to include('Orçamento feito', 'Caio Atenção')
+  end
+
   it 'checks Caio Atenção trail eligibility while holding the conversation lock' do
     account.update!(rotta_automatic_labels: { caio_attention: true })
     conversation.update_labels(['Primeiro contato'])
