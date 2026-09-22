@@ -24,10 +24,43 @@ const formattedContent = computed(() => {
 </script>
 
 <template>
-  <span v-dompurify-html="formattedContent" class="prose prose-bubble" />
+  <span
+    v-dompurify-html="formattedContent"
+    class="prose prose-bubble rotta-message-content"
+  />
 </template>
 
 <style scoped>
+.rotta-message-content {
+  display: block;
+}
+
+/* Keep formatted WhatsApp-style messages compact without changing typography
+ * for articles, templates, or any other prose content in the application. */
+.rotta-message-content :deep(p) {
+  margin-block: 0.2rem;
+  line-height: 1.3;
+}
+
+.rotta-message-content :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.rotta-message-content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.rotta-message-content :deep(ul),
+.rotta-message-content :deep(ol) {
+  margin-block: 0.2rem;
+  line-height: 1.3;
+}
+
+.rotta-message-content :deep(li) {
+  margin-block: 0;
+  line-height: 1.3;
+}
+
 .prose-bubble :deep(.prosemirror-mention-node) {
   display: inline-block;
   padding: 0 0.25rem;
