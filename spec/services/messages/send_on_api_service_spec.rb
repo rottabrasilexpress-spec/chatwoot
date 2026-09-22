@@ -25,7 +25,9 @@ RSpec.describe Messages::SendOnApiService do
         body: hash_including(
           'number' => '5511965927865',
           'text' => 'Teste Uazapi',
-          'readchat' => true
+          'readchat' => true,
+          'track_source' => 'chatwoot-human',
+          'track_id' => "message-#{message.id}"
         )
       )
       .to_return(
@@ -46,6 +48,22 @@ RSpec.describe Messages::SendOnApiService do
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text').with do |request|
       JSON.parse(request.body).fetch('text') == 'Teste Uazapi'
     end).to have_been_made
+  end
+
+  it 'does not mark automated Chatwoot messages as human interventions' do
+    allow(message).to receive(:sender_type).and_return('AgentBot')
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .with(body: hash_including('track_source' => 'chatwoot'))
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBAUTOMATED123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: message).perform
+
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .with(body: hash_including('track_source' => 'chatwoot-human'))).not_to have_been_made
   end
 
   it 'preserves WhatsApp formatting, emojis, blank lines and separators verbatim' do
@@ -318,7 +336,8 @@ RSpec.describe Messages::SendOnApiService do
           'number' => '5511965927865',
           'type' => 'ptt',
           'file' => 'https://chatwoot.example/voice.ogg',
-          'track_source' => 'chatwoot'
+          'track_source' => 'chatwoot-human',
+          'track_id' => "message-#{message.id}"
         )
       )
       .to_return(

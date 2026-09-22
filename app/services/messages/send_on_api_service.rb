@@ -40,7 +40,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     }
     body[:forward] = true if content_attributes[:rotta_forwarded]
     body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
-    body[:track_source] = 'chatwoot'
+    body[:track_source] = uazapi_track_source
     body[:track_id] = "message-#{message.id}"
 
     response = post_to_uazapi(UAZAPI_PATH, body)
@@ -76,7 +76,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       text: outgoing_text,
       delay: 2,
       readchat: true,
-      track_source: 'chatwoot',
+      track_source: uazapi_track_source,
       track_id: "message-#{message.id}"
     }
     body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
@@ -99,6 +99,10 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def uazapi_base_url
     ENV.fetch('ROTTABRASIL_UAZAPI_BASE_URL', 'https://transportadoras.uazapi.com').delete_suffix('/')
+  end
+
+  def uazapi_track_source
+    message.sender_type == 'User' ? 'chatwoot-human' : 'chatwoot'
   end
 
   def outgoing_text
@@ -216,7 +220,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
         'rotta_uazapi' => true,
         'external_echo' => true,
         'rotta_uazapi_pending_echo' => true,
-        'uazapi_track_source' => 'chatwoot',
+        'uazapi_track_source' => uazapi_track_source,
         'uazapi_track_id' => "message-#{message.id}",
         'rotta_uazapi_claimed_at' => Time.current.iso8601
       )
