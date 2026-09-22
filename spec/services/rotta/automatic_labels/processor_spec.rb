@@ -65,12 +65,59 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
     message = create(:message, account: account, inbox: inbox, conversation: conversation,
                                message_type: :incoming, content_type: :text,
                                content: 'Quero fechar, preciso falar com um atendente')
+    expect(Rotta::AutomaticLabels::HumanNeedClassifier).not_to receive(:new)
 
     2.times { described_class.new(message).perform }
 
     expect(conversation.reload.label_list).to include('Caio Atenção')
     expect(conversation.label_list.count('Caio Atenção')).to eq(1)
     expect(account.rotta_automatic_label_logs.where(event_key: "#{message.id}:caio_attention").count).to eq(1)
+  end
+
+  it 'does not call the LLM for messages without a human-need signal' do
+    conversation.update_labels(['Orçamento feito'])
+    message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                               message_type: :incoming, content_type: :text, content: 'Obrigado, entendido')
+
+    expect(Rotta::AutomaticLabels::HumanNeedClassifier).not_to receive(:new)
+
+    described_class.new(message).perform
+  end
+
+  it 'keeps Caio Atenção off when the LLM is uncertain or returns false' do
+    conversation.update_labels(['Orçamento feito'])
+    message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                               message_type: :incoming, content_type: :text,
+                               content: 'Qual é o valor aproximado?')
+    allow(Rotta::AutomaticLabels::HumanNeedClassifier).to receive(:new).and_return(
+      instance_double(Rotta::AutomaticLabels::HumanNeedClassifier,
+                      call: Rotta::AutomaticLabels::HumanNeedClassifier::Decision.new(
+                        needs_human: false, confidence: 0.61, reason: 'pergunta que a IA pode responder'
+                      ))
+    )
+
+    described_class.new(message).perform
+
+    expect(conversation.reload.label_list).not_to include('Caio Atenção')
+    expect(account.rotta_automatic_label_logs.find_by(event_key: "#{message.id}:caio_attention")).to have_attributes(
+      status: 'skipped'
+    )
+  end
+
+  it 'calls the LLM only for an ambiguous human-need signal' do
+    conversation.update_labels(['Orçamento feito'])
+    message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                               message_type: :incoming, content_type: :text,
+                               content: 'Qual é o valor aproximado?')
+    decision = Rotta::AutomaticLabels::HumanNeedClassifier::Decision.new(
+      needs_human: true, confidence: 0.91, reason: 'contexto exige confirmação humana'
+    )
+    classifier = instance_double(Rotta::AutomaticLabels::HumanNeedClassifier, call: decision)
+    expect(Rotta::AutomaticLabels::HumanNeedClassifier).to receive(:new).and_return(classifier)
+
+    described_class.new(message).perform
+
+    expect(conversation.reload.label_list).to include('Caio Atenção')
   end
 
   it 'checks Caio Atenção trail eligibility while holding the conversation lock' do
