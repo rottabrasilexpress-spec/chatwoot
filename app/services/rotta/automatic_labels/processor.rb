@@ -4,7 +4,7 @@ class Rotta::AutomaticLabels::Processor
                      orcamento-5-dias orcamento-10-dias orcamento-instantaneo].freeze
   HUMAN_NEED = /\b(valor|pre[cç]o|quanto|or[cç]amento final|c[aá]lculo final|proposta final|pagamento|pix|boleto|cart[aã]o|parcel|contrat|fechar|fechamento|reserv|agend|disponibil|data|coleta|entrega|reclam|problema|urgent|desconto|caro|barato|humano|atendente|setor)\b/i
   CLEAR_HUMAN_NEED = /\b(atendente|humano|caio|contrat|fechar|fechamento|reserv|pagamento|pix|boleto|cart[aã]o|reclam|problema|urgent|desconto|negoci|setor financeiro)\b/i
-  AMBIGUOUS_HUMAN_NEED = /\b(valor|pre[cç]o|quanto|or[cç]amento final|c[aá]lculo final|proposta final|parcel|agend|disponibil|data|coleta|entrega|caro|barato|setor)\b/i
+  AMBIGUOUS_HUMAN_NEED = /\b(valor|pre[cç]o|quanto|or[cç]amento final|c[aá]lculo final|proposta final|parcel|agend|disponibil|data|coleta|entrega|caro|barato|setor|caminh[aã]o|ve[ií]culo|tamanho|dimens(?:ão|ões)|capacidade|porte)\b/i
   CAIO_MIN_CONFIDENCE = 0.80
 
   def initialize(message)
@@ -143,7 +143,7 @@ class Rotta::AutomaticLabels::Processor
   def llm_context
     {
       last_message: @message.content.to_s,
-      recent_messages: @conversation.messages.where.not(id: @message.id).order(created_at: :desc).limit(3).reverse.map do |message|
+      recent_messages: @conversation.messages.where.not(id: @message.id).reorder(created_at: :desc, id: :desc).limit(6).to_a.reverse.map do |message|
         {
           role: message.message_type == 'incoming' ? 'cliente' : 'empresa',
           content: message.content.to_s

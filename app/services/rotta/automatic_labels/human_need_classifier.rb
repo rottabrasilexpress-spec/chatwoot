@@ -7,7 +7,7 @@ class Rotta::AutomaticLabels::HumanNeedClassifier
   MAX_TOKENS = 120
   TIMEOUT_SECONDS = 6
   MAX_MESSAGE_CHARS = 700
-  MAX_CONTEXT_MESSAGES = 4
+  MAX_CONTEXT_MESSAGES = 7
 
   Decision = Struct.new(:needs_human, :confidence, :reason, keyword_init: true) do
     def needs_human?
@@ -63,6 +63,9 @@ class Rotta::AutomaticLabels::HumanNeedClassifier
       Você é um classificador interno da Rotta Brasil Express. Decida somente se a última mensagem do cliente exige atendimento humano do Caio.
       Considere verdadeiro quando o cliente pede explicitamente um atendente, quer fechar/confirmar contratação, reclama de um problema,
       pede negociação, pagamento, disponibilidade operacional ou outra ação que a IA não deve concluir sozinha.
+      Use as mensagens recentes para entender a intenção: se o cliente demonstrou interesse ou escolheu uma opção do orçamento e pergunta
+      sobre tamanho, capacidade ou adequação do caminhão/veículo, marque verdadeiro quando isso depender de confirmação operacional.
+      Também marque verdadeiro se a resposta segura já foi prometida pelo setor responsável e a última mensagem pede essa confirmação.
       Considere falso para saudações, confirmação de recebimento, perguntas operacionais que a IA consegue responder e mensagens sem pedido humano.
       Use somente o contexto recebido. Não crie fatos, não altere etiquetas e não responda ao cliente.
       Retorne SOMENTE JSON válido neste formato: {"needs_human":true,"confidence":0.0,"reason":"motivo curto"}.
