@@ -187,4 +187,47 @@ describe('useConversationLabels', () => {
       action: { variant: 'danger' },
     });
   });
+
+  it('uses the latest local intent when labels are clicked before the first request finishes', async () => {
+    let resolveFirst;
+    store.getters['conversationLabels/getConversationLabels'].mockReturnValue([
+      'Label 1',
+    ]);
+    store.dispatch
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockResolvedValueOnce({ status: 'success' });
+
+    const {
+      addLabelToConversation,
+      removeLabelFromConversation,
+      activeLabels,
+    } = useConversationLabels();
+    const add = addLabelToConversation({ title: 'Label 2' });
+
+    await vi.waitFor(() => expect(resolveFirst).toBeTypeOf('function'));
+    expect(activeLabels.value.map(({ title }) => title)).toEqual([
+      'Label 1',
+      'Label 2',
+    ]);
+
+    const remove = removeLabelFromConversation('Label 2');
+    expect(activeLabels.value.map(({ title }) => title)).toEqual(['Label 1']);
+
+    resolveFirst({ status: 'superseded' });
+    await Promise.all([add, remove]);
+
+    expect(
+      store.dispatch.mock.calls
+        .map(([, payload]) => payload)
+        .filter(payload => payload?.conversationId)
+    ).toEqual([
+      { conversationId: 1, labels: ['Label 1', 'Label 2'] },
+      { conversationId: 1, labels: ['Label 1'] },
+    ]);
+  });
 });

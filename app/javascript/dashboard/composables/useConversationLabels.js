@@ -1,4 +1,4 @@
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import {
@@ -28,12 +28,35 @@ const isArchivedLabel = label =>
 export function useConversationLabels() {
   const store = useStore();
   const getters = useStoreGetters();
+  const pendingLabelSelections = ref(new Map());
 
   const normalizeLabels = value => {
-    if (Array.isArray(value)) return value;
-    if (Array.isArray(value?.labels)) return value.labels;
+    if (Array.isArray(value)) return [...new Set(value)];
+    if (Array.isArray(value?.labels)) return [...new Set(value.labels)];
     return [];
   };
+
+  const conversationKey = id => String(id ?? '');
+
+  const setPendingLabels = (id, labels) => {
+    const next = new Map(pendingLabelSelections.value);
+    const key = conversationKey(id);
+
+    if (labels === null) {
+      next.delete(key);
+    } else {
+      next.set(key, normalizeLabels(labels));
+    }
+
+    pendingLabelSelections.value = next;
+  };
+
+  const pendingLabelsFor = id =>
+    pendingLabelSelections.value.get(conversationKey(id));
+
+  const labelsMatch = (left, right) =>
+    normalizeLabels(left).join('\u0000') ===
+    normalizeLabels(right).join('\u0000');
 
   /**
    * The currently selected chat
@@ -58,6 +81,9 @@ export function useConversationLabels() {
    * @type {import('vue').ComputedRef<Array>}
    */
   const savedLabels = computed(() => {
+    const pendingLabels = pendingLabelsFor(conversationId.value);
+    if (pendingLabels) return pendingLabels;
+
     const hasStoredLabels = store.getters[
       'conversationLabels/hasConversationLabels'
     ](conversationId.value);
@@ -97,56 +123,78 @@ export function useConversationLabels() {
    * @returns {Promise<void>}
    */
   const onUpdateLabels = async selectedLabels => {
-    const previousLabels = savedLabels.value;
+    const id = conversationId.value;
+    const previousLabels = [...savedLabels.value];
     const labels = Array.isArray(selectedLabels) ? selectedLabels : [];
     const archivedLabel = labels.find(isArchivedLabel);
-    const normalizedSelectedLabels = archivedLabel ? [archivedLabel] : labels;
+    const normalizedSelectedLabels = normalizeLabels(
+      archivedLabel ? [archivedLabel] : labels
+    );
+    setPendingLabels(id, normalizedSelectedLabels);
     const intent = normalizedSelectedLabels
       .map(normalizedLabelKey)
       .sort()
       .join('|');
-    return withIdempotentConversationLabelMutation(
-      [conversationId.value],
-      `set:${intent}`,
-      async () => {
-        const updated = await store.dispatch('conversationLabels/update', {
-          conversationId: conversationId.value,
-          labels: normalizedSelectedLabels,
-        });
-
-        if (updated?.status === 'superseded') return true;
-        if (updated?.status !== 'success' && updated !== true) return false;
-
-        await store.dispatch('labels/get', { forceNetwork: true });
-        if (
-          updated?.version != null &&
-          !isConversationLabelMutationCurrent(
-            conversationId.value,
-            updated.version
-          )
-        ) {
-          return true;
-        }
-
-        const addedLabels = normalizedSelectedLabels.filter(
-          label => !previousLabels.includes(label)
-        );
-        const removedLabels = previousLabels.filter(
-          label => !normalizedSelectedLabels.includes(label)
-        );
-
-        addedLabels.forEach(label => {
-          useAlert(`Etiqueta "${label}" adicionada à conversa.`, {
-            ...(isArchivedLabel(label) ? { variant: 'danger' } : {}),
+    try {
+      const updated = await withIdempotentConversationLabelMutation(
+        [id],
+        `set:${intent}`,
+        async () => {
+          const result = await store.dispatch('conversationLabels/update', {
+            conversationId: id,
+            labels: normalizedSelectedLabels,
           });
-        });
-        removedLabels.forEach(label =>
-          useAlert(`Etiqueta "${label}" removida da conversa.`)
-        );
 
-        return true;
+          if (result?.status === 'superseded') return result;
+          if (result?.status !== 'success' && result !== true) return false;
+
+          await store.dispatch('labels/get', { forceNetwork: true });
+          if (
+            result?.version != null &&
+            !isConversationLabelMutationCurrent(id, result.version)
+          ) {
+            return result;
+          }
+
+          const addedLabels = normalizedSelectedLabels.filter(
+            label => !previousLabels.includes(label)
+          );
+          const removedLabels = previousLabels.filter(
+            label => !normalizedSelectedLabels.includes(label)
+          );
+
+          addedLabels.forEach(label => {
+            useAlert(`Etiqueta "${label}" adicionada à conversa.`, {
+              ...(isArchivedLabel(label) ? { variant: 'danger' } : {}),
+            });
+          });
+          removedLabels.forEach(label =>
+            useAlert(`Etiqueta "${label}" removida da conversa.`)
+          );
+
+          return result;
+        }
+      );
+
+      if (
+        (updated === true || updated?.status === 'success') &&
+        labelsMatch(pendingLabelsFor(id), normalizedSelectedLabels)
+      ) {
+        setPendingLabels(id, null);
       }
-    );
+      if (
+        (updated === false || updated?.status === 'failed') &&
+        labelsMatch(pendingLabelsFor(id), normalizedSelectedLabels)
+      ) {
+        setPendingLabels(id, null);
+      }
+      return updated;
+    } catch {
+      if (labelsMatch(pendingLabelsFor(id), normalizedSelectedLabels)) {
+        setPendingLabels(id, null);
+      }
+      return false;
+    }
   };
 
   /**
