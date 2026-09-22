@@ -16,6 +16,7 @@ COPY config/installation_config.yml /app/config/installation_config.yml
 COPY config/schedule.yml /app/config/schedule.yml
 COPY config/sidekiq-uazapi.yml /app/config/sidekiq-uazapi.yml
 COPY config/routes.rb /app/config/routes.rb
+COPY db/migrate/20260921120000_create_rotta_automatic_label_logs.rb /app/db/migrate/20260921120000_create_rotta_automatic_label_logs.rb
 COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migrate/20260820000000_set_rotta_brasil_express_branding.rb
 COPY db/migrate/20260821000001_archive_existing_rotta_conversations.rb /app/db/migrate/20260821000001_archive_existing_rotta_conversations.rb
 COPY db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb /app/db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb
@@ -28,6 +29,9 @@ COPY db/migrate/20260913000000_create_global_ai_assistant.rb /app/db/migrate/202
 COPY db/migrate/20260917000000_create_global_ai_action_receipts.rb /app/db/migrate/20260917000000_create_global_ai_action_receipts.rb
 COPY db/migrate/20260919163000_brand_rotta_woot.rb /app/db/migrate/20260919163000_brand_rotta_woot.rb
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
+COPY app/dispatchers/async_dispatcher.rb /app/app/dispatchers/async_dispatcher.rb
+COPY app/listeners/rotta_automatic_label_listener.rb /app/app/listeners/rotta_automatic_label_listener.rb
+COPY app/jobs/rotta/automatic_labels_job.rb /app/app/jobs/rotta/automatic_labels_job.rb
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_deleted_message_content_retention_job.rb /app/app/jobs/rotta_deleted_message_content_retention_job.rb
 COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi_contact_avatar_sync_job.rb
@@ -50,6 +54,7 @@ COPY app/services/rotta_uazapi_call_event_service.rb /app/app/services/rotta_uaz
 COPY app/services/rotta_calculator.rb /app/app/services/rotta_calculator.rb
 COPY app/services/rotta_calculator /app/app/services/rotta_calculator
 COPY app/services/rotta/caio_attention_alert.rb /app/app/services/rotta/caio_attention_alert.rb
+COPY app/services/rotta/automatic_labels /app/app/services/rotta/automatic_labels
 COPY app/services/conversations/request_attention_service.rb /app/app/services/conversations/request_attention_service.rb
 COPY app/services/conversations/unread_counts/counter.rb /app/app/services/conversations/unread_counts/counter.rb
 COPY app/services/messages/customer_deletion_service.rb /app/app/services/messages/customer_deletion_service.rb
@@ -69,6 +74,7 @@ COPY enterprise/app/models/copilot_message.rb /app/enterprise/app/models/copilot
 COPY app/models/message_star.rb /app/app/models/message_star.rb
 COPY app/models/uazapi_webhook_delivery.rb /app/app/models/uazapi_webhook_delivery.rb
 COPY app/models/account.rb /app/app/models/account.rb
+COPY app/models/rotta_automatic_label_log.rb /app/app/models/rotta_automatic_label_log.rb
 COPY app/models/global_ai_thread.rb /app/app/models/global_ai_thread.rb
 COPY app/models/global_ai_message.rb /app/app/models/global_ai_message.rb
 COPY app/models/global_ai_action_receipt.rb /app/app/models/global_ai_action_receipt.rb
@@ -83,6 +89,7 @@ COPY app/views/installation/onboarding/index.html.erb /app/app/views/installatio
 COPY app/views/super_admin/application/_navigation.html.erb /app/app/views/super_admin/application/_navigation.html.erb
 COPY app/views/super_admin/devise/sessions/new.html.erb /app/app/views/super_admin/devise/sessions/new.html.erb
 COPY app/views/api/v1/accounts/labels/index.json.jbuilder /app/app/views/api/v1/accounts/labels/index.json.jbuilder
+COPY app/controllers/api/v1/accounts/rotta_automatic_labels_controller.rb /app/app/controllers/api/v1/accounts/rotta_automatic_labels_controller.rb
 COPY app/views/api/v1/models/_message.json.jbuilder /app/app/views/api/v1/models/_message.json.jbuilder
 COPY app/views/api/v1/accounts/conversations/messages/deleted_content.json.jbuilder /app/app/views/api/v1/accounts/conversations/messages/deleted_content.json.jbuilder
 COPY app/views/api/v1/conversations/partials/_conversation.json.jbuilder /app/app/views/api/v1/conversations/partials/_conversation.json.jbuilder
