@@ -20,7 +20,6 @@ RSpec.describe Messages::SendOnApiService do
         headers: {
           'Accept' => 'application/json',
           'Content-Type' => 'application/json',
-          'convert' => 'true',
           'token' => 'test-token'
         },
         body: hash_including(
@@ -47,6 +46,32 @@ RSpec.describe Messages::SendOnApiService do
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text').with do |request|
       JSON.parse(request.body).fetch('text') == 'Teste Uazapi'
     end).to have_been_made
+  end
+
+  it 'preserves WhatsApp formatting, emojis, blank lines and separators verbatim' do
+    formatted_content = "ORÇAMENTO FINAL - ROTTA BRASIL EXPRESS\r\n\r\n💰 *OPÇÕES DE INVESTIMENTO*\r\n\r\n*Valor:* ✅ R$ 7.993,73\r\n\r\n---\r\n\r\n🌐 SITE: www.rottabrasilexpress.com.br"
+    message.update!(content: formatted_content)
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .with do |request|
+        headers = request.headers.transform_keys(&:downcase)
+        payload = JSON.parse(request.body)
+
+        headers['convert'].blank? &&
+          payload['text'] == formatted_content.gsub(/\r\n?/, "\n") &&
+          payload['text'].include?('💰 *OPÇÕES DE INVESTIMENTO*') &&
+          payload['text'].include?("\n\n---\n\n")
+      end
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBFORMATTED123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.source_id).to eq('3EBFORMATTED123')
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made
   end
 
   it 'uses the contact phone when WhatsApp identified the conversation with an LID' do

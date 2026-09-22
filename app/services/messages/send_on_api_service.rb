@@ -102,7 +102,10 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   end
 
   def outgoing_text
-    message.outgoing_content.to_s
+    # UAZAPI receives WhatsApp's native text syntax. Keep emojis, single
+    # asterisks, blank lines and separators intact; only normalize platform
+    # line endings so Windows input does not introduce stray carriage returns.
+    message.outgoing_content.to_s.gsub(/\r\n?/, "\n")
   end
 
   def post_to_uazapi(path, body)
@@ -125,7 +128,6 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     {
       'Accept' => 'application/json',
       'Content-Type' => 'application/json',
-      'convert' => 'true',
       'token' => token
     }
   end
