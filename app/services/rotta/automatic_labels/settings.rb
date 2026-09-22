@@ -7,9 +7,9 @@ class Rotta::AutomaticLabels::Settings
   end
 
   def self.update(account, values)
-    current = for(account)
+    current = self.for(account)
     permitted = values.to_h.stringify_keys.slice(*KEYS)
     account.update!(rotta_automatic_labels: current.merge(permitted.transform_values { |value| ActiveModel::Type::Boolean.new.cast(value) }))
-    for(account)
+    self.for(account)
   end
 end
