@@ -143,6 +143,14 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       raise ArgumentError, 'Contato identificado por LID, mas sem telefone válido para resposta'
     end
 
+    # Chatwoot intentionally generates an opaque UUID for ContactInbox records
+    # backed by Channel::Api. It is an internal conversation key, not the
+    # WhatsApp recipient. For direct Uazapi chats, the contact phone is the
+    # authoritative destination; using the UUID makes the provider reject or
+    # misroute the message.
+    phone_digits = conversation.contact.phone_number.to_s.gsub(/\D/, '')
+    return phone_digits if phone_digits.present?
+
     digits = source_id.gsub(/\D/, '')
     raise ArgumentError, 'Contato sem número WhatsApp válido' if digits.blank?
 

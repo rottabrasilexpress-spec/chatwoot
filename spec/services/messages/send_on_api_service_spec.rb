@@ -65,6 +65,23 @@ RSpec.describe Messages::SendOnApiService do
     expect(message.reload.source_id).to eq('3EBLIDFALLBACK123')
   end
 
+  it 'uses the contact phone when an API contact inbox has Chatwoot internal UUID source id' do
+    contact_inbox.update!(source_id: SecureRandom.uuid)
+    conversation.contact.update!(phone_number: '+55 34 99141-6802')
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .with(body: hash_including('number' => '5534991416802'))
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBUUIDPHONE123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.source_id).to eq('3EBUUIDPHONE123')
+  end
+
   it 'never includes the agent name in WhatsApp message text, even when the legacy flag is enabled' do
     api_channel.update!(additional_attributes: {
       'rotta_include_agent_name_in_whatsapp' => true
