@@ -73,6 +73,33 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
     expect(account.rotta_automatic_label_logs.where(event_key: "#{message.id}:caio_attention").count).to eq(1)
   end
 
+  it 'checks Caio Atenção trail eligibility while holding the conversation lock' do
+    account.update!(rotta_automatic_labels: { caio_attention: true })
+    conversation.update_labels(['Primeiro contato'])
+    message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                               message_type: :incoming, content_type: :text,
+                               content: 'Quero falar com um atendente')
+    processor = described_class.new(message)
+    lock_held = false
+
+    allow(conversation).to receive(:with_lock).and_wrap_original do |original, &block|
+      lock_held = true
+      begin
+        original.call(&block)
+      ensure
+        lock_held = false
+      end
+    end
+    allow(processor).to receive(:canonical_labels) do
+      expect(lock_held).to be(true)
+      ['primeiro-contato']
+    end
+
+    processor.perform
+
+    expect(conversation.reload.label_list).not_to include('Caio Atenção')
+  end
+
   it 'does nothing while every automation is disabled' do
     account.update!(rotta_automatic_labels: {})
     message = create(:message, account: account, inbox: inbox, conversation: conversation,

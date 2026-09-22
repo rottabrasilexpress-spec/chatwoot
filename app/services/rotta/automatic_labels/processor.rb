@@ -43,12 +43,15 @@ class Rotta::AutomaticLabels::Processor
   end
 
   def apply_caio_attention
-    labels = canonical_labels
-    return record('caio_attention', 'blocked', nil, reason: 'contact_trail') if (labels & CONTACT_STAGES).any?
-    return record('caio_attention', 'blocked', nil, reason: 'outside_budget_trail') if (labels & BUDGET_STAGES).empty?
     return record('caio_attention', 'skipped', nil, reason: 'no_human_need') unless @message.content.to_s.match?(HUMAN_NEED)
 
-    mutate_labels('caio_attention', add: 'caio-atencao')
+    @conversation.with_lock do
+      labels = canonical_labels
+      return record('caio_attention', 'blocked', nil, reason: 'contact_trail') if (labels & CONTACT_STAGES).any?
+      return record('caio_attention', 'blocked', nil, reason: 'outside_budget_trail') if (labels & BUDGET_STAGES).empty?
+
+      mutate_labels_locked('caio_attention', add: 'caio-atencao')
+    end
   end
 
   def prior_incoming_exists?
@@ -60,25 +63,29 @@ class Rotta::AutomaticLabels::Processor
 
   def mutate_labels(key, add:, remove: nil)
     @conversation.with_lock do
-      current = @conversation.label_list.to_a
-      add_title = account_label_title(add)
-      raise "Etiqueta #{add} não foi encontrada nesta conta." unless add_title
-
-      updated = (current + [add_title]).uniq
-      if remove
-        remove_title = account_label_title(remove)
-        updated -= [remove_title] if remove_title
-      end
-      return record(key, 'no_op', nil, labels: current) if updated.sort == current.sort
-
-      @conversation.update_labels(updated)
-      @conversation.reload
-      unless @conversation.label_list.include?(add_title) && (!remove || remove_title.nil? || !@conversation.label_list.include?(remove_title))
-        raise 'A confirmação autoritativa das etiquetas falhou.'
-      end
-
-      record(key, 'applied', nil, labels: @conversation.label_list)
+      mutate_labels_locked(key, add:, remove:)
     end
+  end
+
+  def mutate_labels_locked(key, add:, remove: nil)
+    current = @conversation.label_list.to_a
+    add_title = account_label_title(add)
+    raise "Etiqueta #{add} não foi encontrada nesta conta." unless add_title
+
+    updated = (current + [add_title]).uniq
+    if remove
+      remove_title = account_label_title(remove)
+      updated -= [remove_title] if remove_title
+    end
+    return record(key, 'no_op', nil, labels: current) if updated.sort == current.sort
+
+    @conversation.update_labels(updated)
+    @conversation.reload
+    unless @conversation.label_list.include?(add_title) && (!remove || remove_title.nil? || !@conversation.label_list.include?(remove_title))
+      raise 'A confirmação autoritativa das etiquetas falhou.'
+    end
+
+    record(key, 'applied', nil, labels: @conversation.label_list)
   end
 
   def account_label_title(slug)
