@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n';
 import { useStoreGetters, useStore } from 'dashboard/composables/store';
 import { picoSearch } from '@chatwoot/pico-search';
 import rottaFollowUpAPI from 'dashboard/api/rottaFollowUp';
+import rottaAutomaticLabelsAPI from 'dashboard/api/rottaAutomaticLabels';
 import {
   canonicalFollowUpStage,
   CONFIGURED_DELAY_HOURS,
@@ -41,6 +42,36 @@ const selectedLabel = ref({});
 const searchQuery = ref('');
 const records = computed(() => getters['labels/getLabels'].value);
 const followUpConfigLoading = ref(false);
+const automationLoading = ref(false);
+const automationSaving = ref(false);
+const automationSettings = ref({
+  first_contact: false,
+  kelvin: false,
+  caio_attention: false,
+});
+const automationLogs = ref([]);
+const pendingAutomation = ref(null);
+const showAutomationConfirmation = ref(false);
+const automationOptions = [
+  {
+    key: 'first_contact',
+    title: 'Primeiro contato',
+    description:
+      'Identifica a primeira mensagem do cliente e inicia a trilha de contato.',
+  },
+  {
+    key: 'kelvin',
+    title: 'KELVIN',
+    description:
+      'Após o pré-orçamento confirmado, aplica KELVIN e encerra Primeiro contato.',
+  },
+  {
+    key: 'caio_attention',
+    title: 'Caio Atenção',
+    description:
+      'Na trilha de orçamento, sinaliza pedidos que precisam de atendimento humano.',
+  },
+];
 const followUpConfigUnavailable = ref(false);
 const followUpConfigSaving = ref({});
 const { presentation, setPresentation } = useLabelPresentation();
@@ -172,6 +203,72 @@ const loadFollowUpConfig = async () => {
   }
 };
 
+const loadAutomationSettings = async () => {
+  automationLoading.value = true;
+  try {
+    const { data } = await rottaAutomaticLabelsAPI.getSettings();
+    automationSettings.value = {
+      ...automationSettings.value,
+      ...data.settings,
+    };
+    automationLogs.value = data.logs || [];
+  } catch (error) {
+    useAlert(
+      error?.message || 'Não foi possível carregar as etiquetas automáticas.'
+    );
+  } finally {
+    automationLoading.value = false;
+  }
+};
+
+const requestAutomationChange = option => {
+  pendingAutomation.value = {
+    ...option,
+    enabled: !automationSettings.value[option.key],
+  };
+  showAutomationConfirmation.value = true;
+};
+
+const closeAutomationConfirmation = () => {
+  showAutomationConfirmation.value = false;
+  pendingAutomation.value = null;
+};
+
+const confirmAutomationChange = async () => {
+  if (!pendingAutomation.value) return;
+  automationSaving.value = true;
+  const next = {
+    ...automationSettings.value,
+    [pendingAutomation.value.key]: pendingAutomation.value.enabled,
+  };
+  try {
+    const { data } = await rottaAutomaticLabelsAPI.updateSettings({
+      settings: next,
+    });
+    automationSettings.value = data.settings;
+    automationLogs.value = data.logs || automationLogs.value;
+    useAlert(
+      `${pendingAutomation.value.title} ${pendingAutomation.value.enabled ? 'ativada' : 'desativada'}.`
+    );
+    closeAutomationConfirmation();
+  } catch (error) {
+    useAlert(
+      error?.message || 'Não foi possível alterar a automação. Tente novamente.'
+    );
+  } finally {
+    automationSaving.value = false;
+  }
+};
+
+const automationStatusLabel = status =>
+  ({
+    applied: 'Aplicada',
+    failed: 'Falha',
+    blocked: 'Bloqueada',
+    skipped: 'Ignorada',
+    no_op: 'Sem alteração',
+  })[status] || status;
+
 const configDelayMinutes = row => {
   const days = Math.max(0, Number(row.days) || 0);
   const hours = Math.max(0, Number(row.hours) || 0);
@@ -276,7 +373,7 @@ const tableHeaders = computed(() => {
 
 onBeforeMount(async () => {
   await store.dispatch('labels/get');
-  await loadFollowUpConfig();
+  await Promise.all([loadFollowUpConfig(), loadAutomationSettings()]);
 });
 </script>
 
@@ -312,6 +409,76 @@ onBeforeMount(async () => {
       </BaseSettingsHeader>
     </template>
     <template #body>
+      <section
+        class="rotta-automation-panel"
+        aria-labelledby="rotta-automation-title"
+      >
+        <div class="rotta-automation-panel__header">
+          <div>
+            <h2 id="rotta-automation-title">Etiquetas automáticas</h2>
+            <p>
+              Controle cada regra separadamente. As três começam desativadas e
+              toda mudança exige confirmação.
+            </p>
+          </div>
+          <span class="rotta-automation-recommendation">
+            Recomendado: ativar as três
+          </span>
+        </div>
+
+        <div v-if="automationLoading" class="rotta-config-loading">
+          Carregando automações…
+        </div>
+        <div v-else class="rotta-automation-options">
+          <article
+            v-for="option in automationOptions"
+            :key="option.key"
+            class="rotta-automation-option"
+          >
+            <div class="rotta-automation-option__copy">
+              <strong>{{ option.title }}</strong>
+              <p>{{ option.description }}</p>
+            </div>
+            <button
+              type="button"
+              class="rotta-automation-switch"
+              :class="{ 'is-active': automationSettings[option.key] }"
+              :aria-pressed="automationSettings[option.key]"
+              :aria-label="`${automationSettings[option.key] ? 'Desativar' : 'Ativar'} ${option.title}`"
+              @click="requestAutomationChange(option)"
+            >
+              <span />
+              {{ automationSettings[option.key] ? 'Ativada' : 'Desativada' }}
+            </button>
+          </article>
+        </div>
+
+        <details class="rotta-automation-logs">
+          <summary>Ver registros recentes de aplicação e erros</summary>
+          <div v-if="!automationLogs.length" class="rotta-automation-empty">
+            Nenhuma execução registrada ainda.
+          </div>
+          <div v-else class="rotta-automation-log-list">
+            <div
+              v-for="log in automationLogs"
+              :key="log.id"
+              class="rotta-automation-log"
+            >
+              <span :class="`is-${log.status}`">{{
+                automationStatusLabel(log.status)
+              }}</span>
+              <strong>{{ log.automation_key }}</strong>
+              <a
+                :href="`/app/accounts/${getters.getCurrentAccountId.value}/conversations/${log.conversation_id}`"
+              >
+                Conversa #{{ log.conversation_id }}
+              </a>
+              <p v-if="log.error_message">{{ log.error_message }}</p>
+            </div>
+          </div>
+        </details>
+      </section>
+
       <section
         class="rotta-label-style-panel"
         aria-labelledby="rotta-label-style-title"
@@ -538,6 +705,39 @@ onBeforeMount(async () => {
       <EditLabel :selected-response="selectedLabel" @close="hideEditPopup" />
     </woot-modal>
 
+    <woot-modal
+      v-model:show="showAutomationConfirmation"
+      :on-close="closeAutomationConfirmation"
+    >
+      <div v-if="pendingAutomation" class="rotta-automation-confirmation">
+        <h3>
+          {{ pendingAutomation.enabled ? 'Ativar' : 'Desativar' }}
+          {{ pendingAutomation.title }}?
+        </h3>
+        <p>{{ pendingAutomation.description }}</p>
+        <p class="rotta-automation-confirmation__notice">
+          Para manter a passagem completa entre as etapas, recomendamos ativar
+          Primeiro contato, KELVIN e Caio Atenção juntas.
+        </p>
+        <p v-if="!pendingAutomation.enabled">
+          A desativação vale somente para eventos futuros. Etiquetas já
+          aplicadas não serão removidas.
+        </p>
+        <div class="rotta-automation-confirmation__actions">
+          <Button label="Cancelar" slate @click="closeAutomationConfirmation" />
+          <Button
+            :label="
+              pendingAutomation.enabled
+                ? 'Confirmar ativação'
+                : 'Confirmar desativação'
+            "
+            :is-loading="automationSaving"
+            @click="confirmAutomationChange"
+          />
+        </div>
+      </div>
+    </woot-modal>
+
     <woot-delete-modal
       v-model:show="showDeleteConfirmationPopup"
       :on-close="closeDeletePopup"
@@ -552,6 +752,170 @@ onBeforeMount(async () => {
 </template>
 
 <style scoped>
+.rotta-automation-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  @apply bg-n-solid-2 border border-n-weak rounded-2xl;
+}
+.rotta-automation-panel__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+.rotta-automation-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  @apply text-n-slate-12;
+}
+.rotta-automation-panel p {
+  margin: 0.3rem 0 0;
+  max-width: 68ch;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  @apply text-n-slate-11;
+}
+.rotta-automation-recommendation {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 650;
+  @apply bg-n-amber-3 text-n-amber-11;
+}
+.rotta-automation-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.rotta-automation-option {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem;
+  border-radius: 0.85rem;
+  @apply bg-n-solid-1 border border-n-weak;
+}
+.rotta-automation-option__copy strong {
+  @apply text-n-slate-12;
+}
+.rotta-automation-switch {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.45rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  @apply bg-n-slate-3 text-n-slate-11;
+}
+.rotta-automation-switch span {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  @apply bg-n-slate-8;
+}
+.rotta-automation-switch.is-active {
+  @apply bg-n-teal-3 text-n-teal-11;
+}
+.rotta-automation-switch.is-active span {
+  @apply bg-n-teal-9;
+}
+.rotta-automation-switch:focus-visible {
+  outline: 2px solid rgb(var(--blue-9));
+  outline-offset: 2px;
+}
+.rotta-automation-logs {
+  padding-top: 0.2rem;
+}
+.rotta-automation-logs summary {
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 650;
+  @apply text-n-slate-12;
+}
+.rotta-automation-empty {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  @apply text-n-slate-10;
+}
+.rotta-automation-log-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+.rotta-automation-log {
+  display: grid;
+  grid-template-columns: 6rem 8rem 1fr;
+  gap: 0.6rem;
+  align-items: center;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  font-size: 0.72rem;
+  @apply bg-n-solid-1 border border-n-weak text-n-slate-11;
+}
+.rotta-automation-log p {
+  grid-column: 1 / -1;
+  margin: 0;
+  overflow-wrap: anywhere;
+  @apply text-n-ruby-11;
+}
+.rotta-automation-log > span {
+  font-weight: 650;
+}
+.rotta-automation-log > span.is-failed {
+  @apply text-n-ruby-11;
+}
+.rotta-automation-log > span.is-applied {
+  @apply text-n-teal-11;
+}
+.rotta-automation-confirmation {
+  padding: 1.25rem;
+  max-width: 34rem;
+}
+.rotta-automation-confirmation h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  @apply text-n-slate-12;
+}
+.rotta-automation-confirmation p {
+  line-height: 1.5;
+  @apply text-n-slate-11;
+}
+.rotta-automation-confirmation__notice {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  @apply bg-n-amber-3 text-n-amber-12;
+}
+.rotta-automation-confirmation__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+@media (max-width: 767px) {
+  .rotta-automation-panel__header {
+    flex-direction: column;
+  }
+  .rotta-automation-options {
+    grid-template-columns: 1fr;
+  }
+  .rotta-automation-log {
+    grid-template-columns: 1fr;
+  }
+  .rotta-automation-log p {
+    grid-column: auto;
+  }
+}
 .rotta-label-style-panel {
   display: flex;
   flex-direction: column;

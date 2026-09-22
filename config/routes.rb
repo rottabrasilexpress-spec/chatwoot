@@ -344,6 +344,7 @@ Rails.application.routes.draw do
             end
           end
           resources :labels, only: [:index, :show, :create, :update, :destroy]
+          resource :rotta_automatic_labels, only: [:show, :update]
 
           resources :notifications, only: [:index, :update, :destroy] do
             collection do

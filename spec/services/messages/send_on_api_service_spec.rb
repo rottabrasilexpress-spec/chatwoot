@@ -49,6 +49,22 @@ RSpec.describe Messages::SendOnApiService do
     end).to have_been_made
   end
 
+  it 'uses the contact phone when WhatsApp identified the conversation with an LID' do
+    contact_inbox.update!(source_id: '123456789012345@lid')
+    conversation.contact.update!(phone_number: '+55 44 99736-6408')
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .with(body: hash_including('number' => '5544997366408'))
+      .to_return(
+        status: 200,
+        body: { 'key' => { 'id' => '3EBLIDFALLBACK123' } }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.source_id).to eq('3EBLIDFALLBACK123')
+  end
+
   it 'never includes the agent name in WhatsApp message text, even when the legacy flag is enabled' do
     api_channel.update!(additional_attributes: {
       'rotta_include_agent_name_in_whatsapp' => true

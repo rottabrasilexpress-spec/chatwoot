@@ -132,7 +132,16 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def recipient_number
     source_id = conversation.contact_inbox.source_id.to_s.strip
-    return source_id if source_id.end_with?('@g.us', '@newsletter', '@lid', '@s.whatsapp.net')
+    return source_id if source_id.end_with?('@g.us', '@newsletter', '@s.whatsapp.net')
+
+    # Modern WhatsApp inbound events may identify a person with an opaque LID.
+    # The send endpoint expects the actual telephone number for one-to-one chats.
+    if source_id.end_with?('@lid')
+      phone_digits = conversation.contact.phone_number.to_s.gsub(/\D/, '')
+      return phone_digits if phone_digits.present?
+
+      raise ArgumentError, 'Contato identificado por LID, mas sem telefone válido para resposta'
+    end
 
     digits = source_id.gsub(/\D/, '')
     raise ArgumentError, 'Contato sem número WhatsApp válido' if digits.blank?
