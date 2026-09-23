@@ -53,7 +53,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     return fail_message(provider_error(response)) unless response.success?
 
     provider_id = provider_message_id(response)
-    persist_provider_acceptance(provider_id)
+    persist_provider_id(provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] message=#{message.id} sent provider_id_present=#{provider_id.present?}")
   rescue StandardError => e
     if @uazapi_request_accepted
@@ -95,7 +95,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     return fail_message(provider_error(response)) unless response.success?
 
     provider_id = provider_message_id(response)
-    persist_provider_acceptance(provider_id)
+    persist_provider_id(provider_id) if provider_id.present?
     Rails.logger.info("[ROTTABRASIL_API] voice message=#{message.id} sent provider_id_present=#{provider_id.present?}")
   rescue StandardError => e
     if @uazapi_request_accepted
@@ -341,16 +341,10 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     )
   end
 
-  def persist_provider_acceptance(provider_id)
-    message.with_lock do
-      attributes = message.content_attributes.to_h.stringify_keys
-      attributes.delete('rotta_human_lock_confirmation_pending')
-      attributes.delete('rotta_uazapi_pending_echo') if provider_id.present?
-      status = message.status.in?(%w[delivered read]) ? message.status : :sent
-      updates = { status: status, external_error: nil, content_attributes: attributes }
-      updates[:source_id] = provider_id if provider_id.present?
-      message.update!(updates)
-    end
+  def persist_provider_id(provider_id)
+    attributes = message.content_attributes.to_h.stringify_keys
+    attributes.delete('rotta_uazapi_pending_echo')
+    message.update!(source_id: provider_id, content_attributes: attributes)
   end
 
   def fail_message(error)
