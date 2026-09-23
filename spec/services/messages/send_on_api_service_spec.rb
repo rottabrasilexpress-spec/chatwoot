@@ -156,6 +156,7 @@ RSpec.describe Messages::SendOnApiService do
     expect(message.reload.status).to eq('sent')
     expect(message.source_id).to eq('3EBHUMANLOCKRETRY123')
     expect(message.content_attributes).to include('rotta_human_lock_ack_message_id' => message.id.to_s)
+    expect(message.content_attributes).not_to have_key('rotta_human_lock_confirmation_pending')
   end
 
   it 'blocks the WhatsApp send when the n8n confirmation body is incomplete' do

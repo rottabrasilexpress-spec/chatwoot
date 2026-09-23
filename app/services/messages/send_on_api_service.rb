@@ -184,6 +184,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def persist_human_lock_ack
     attributes = message.content_attributes.to_h.stringify_keys
+    attributes.delete('rotta_human_lock_confirmation_pending')
     message.update!(
       content_attributes: attributes.merge(
         'rotta_human_lock_ack_message_id' => message.id.to_s,
@@ -194,6 +195,9 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def fail_human_lock_message(status_code = nil, detail = nil)
     attributes = message.content_attributes.to_h.stringify_keys
+    # The human-lock handshake happens before UAZAPI is called. Release only
+    # the send claim so Chatwoot can safely retry after the lock service recovers.
+    attributes.delete('rotta_uazapi_pending_echo')
     attributes['rotta_human_lock_confirmation_pending'] = true
     message.update!(
       status: :failed,
