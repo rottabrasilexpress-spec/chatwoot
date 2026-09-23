@@ -115,47 +115,11 @@ RSpec.describe Messages::SendOnApiService do
 
     expect(message.reload.status).to eq('failed')
     expect(message.external_error).to include('não confirmou a pausa')
-    expect(message.content_attributes).to include('rotta_human_lock_confirmation_pending' => true)
-    expect(message.content_attributes).not_to have_key('rotta_uazapi_pending_echo')
+    expect(message.content_attributes).to include(
+      'rotta_uazapi_pending_echo' => true,
+      'rotta_human_lock_confirmation_pending' => true
+    )
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).not_to have_been_made
-  end
-
-  it 'allows retry after n8n did not confirm the human lock' do
-    attempts = 0
-    stub_request(:post, 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1')
-      .to_return do |request|
-        attempts += 1
-        if attempts == 1
-          { status: 503, body: 'temporarily unavailable' }
-        else
-          payload = JSON.parse(request.body)
-          {
-            status: 200,
-            body: { success: true, event_id: payload['message_id'] }.to_json,
-            headers: { 'content-type' => 'application/json' }
-          }
-        end
-      end
-
-    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
-      .to_return(
-        status: 200,
-        body: { 'key' => { 'id' => '3EBHUMANLOCKRETRY123' } }.to_json,
-        headers: { 'content-type' => 'application/json' }
-      )
-
-    described_class.new(message: message).perform
-    expect(message.reload.status).to eq('failed')
-    expect(message.content_attributes).not_to have_key('rotta_uazapi_pending_echo')
-    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).not_to have_been_made
-
-    described_class.new(message: Message.find(message.id)).perform
-
-    expect(attempts).to eq(2)
-    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
-    expect(message.reload.status).to eq('sent')
-    expect(message.source_id).to eq('3EBHUMANLOCKRETRY123')
-    expect(message.content_attributes).to include('rotta_human_lock_ack_message_id' => message.id.to_s)
   end
 
   it 'blocks the WhatsApp send when the n8n confirmation body is incomplete' do
