@@ -8,6 +8,9 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     orcamento-tentativa-4 orcamento-5-dias orcamento-10-dias orcamento-15-dias
   ].freeze
   HISTORICAL_REMOTE_STATUSES = %w[history_only sent_history].freeze
+  RECOVERY_ACTIVE_STATUSES = %w[pending queued processing syncing sync_failed sending failed_send failed_labels].freeze
+  FIRST_CONTACT_STAGE = 'primeiro-contato'.freeze
+  MAX_RECONCILIATION_BATCH = 50
 
   def proxy
     payload = JSON.parse(request.raw_post.presence || '{}').slice(
@@ -34,6 +37,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     )
     body = response.body
     body = scope_list_body(body) if action == 'list' && body.is_a?(Hash)
+    body = reconcile_missing_first_contact_jobs(body) if action == 'list' && body.is_a?(Hash)
     body = add_delivery_evidence(body) if action == 'list' && body.is_a?(Hash)
     body = add_chatwoot_label_fallbacks(body) if action == 'list' && body.is_a?(Hash)
     render json: body, status: response.status
@@ -92,10 +96,10 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       return nil
     end
 
-    response = RottaFollowUp::AdminClient.request(
+    response = RottaFollowUp::AdminClient.request({
       action: 'list',
       account_id: Current.account.id
-    )
+    })
     remote_job = Array(response.body['jobs']).find do |job|
       job['job_id'].to_s == job_id &&
         job['account_id'].to_s == Current.account.id.to_s &&
@@ -120,12 +124,12 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   end
 
   def cancel_remote_job!(job_id, conversation_id:)
-    response = RottaFollowUp::AdminClient.request(
+    response = RottaFollowUp::AdminClient.request({
       action: 'cancel',
       job_id: job_id,
       conversation_id: conversation_id,
       account_id: Current.account.id
-    )
+    })
     return if response.success?
 
     raise "O painel não confirmou o cancelamento da etiqueta (HTTP #{response.status})."
@@ -136,6 +140,142 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       job['account_id'].to_s == Current.account.id.to_s
     end
     body.merge('jobs' => jobs, 'total' => jobs.length)
+  end
+
+  # Chatwoot's labels are authoritative for enrollment. If the first-contact
+  # webhook was lost, ask the follow-up worker to idempotently rebuild the job,
+  # then fetch the queue again so the board renders the confirmed remote row.
+  def reconcile_missing_first_contact_jobs(body)
+    jobs = Array(body['jobs'])
+    first_contact_titles = Current.account.labels.pluck(:title).select do |title|
+      follow_up_label_key(title) == FIRST_CONTACT_STAGE
+    end
+    return body if first_contact_titles.empty?
+
+    active_jobs = jobs.select { |job| RECOVERY_ACTIVE_STATUSES.include?(job['status'].to_s) }
+    errors = body['reconciliation_errors'].is_a?(Hash) ? body['reconciliation_errors'].dup : {}
+    candidates = Current.account.conversations
+                        .tagged_with(first_contact_titles, any: true)
+                        .includes(:contact)
+                        .distinct
+                        .filter_map do |conversation|
+      active_labels = conversation.cached_label_list_array
+      active_stages = active_labels.filter_map do |label|
+        stage = follow_up_label_key(label)
+        stage if FOLLOW_UP_STAGE_KEYS.include?(stage)
+      end.uniq
+      next unless active_stages.include?(FIRST_CONTACT_STAGE)
+
+      conversation_id = conversation.display_id.to_s
+      phone = conversation.contact&.phone_number
+      normalized_phone = phone_key(phone)
+      if active_stages != [FIRST_CONTACT_STAGE]
+        errors[conversation_id] = 'Reconciliação automática pausada: há mais de uma etiqueta de etapa ativa. Confira as etiquetas antes de continuar.'
+        next
+      end
+      if normalized_phone.blank? || !normalized_phone.match?(/\A\d{10,15}\z/)
+        errors[conversation_id] = 'Reconciliação automática pausada: o contato não tem um telefone válido para o follow-up.'
+        next
+      end
+
+      has_operational_job = active_jobs.any? do |job|
+        job['conversation_id'].to_s == conversation_id || phone_key(job['phone'] || job['phone_number'] || job['contact_phone']) == normalized_phone
+      end
+      next if has_operational_job
+
+      cache_key = reconciliation_cache_key(conversation_id)
+      cached_result = Rails.cache.read(cache_key)
+      if cached_result.present?
+        errors[conversation_id] = cached_result == 'in_progress' ?
+          'Reconciliação em andamento; aguardando confirmação da fila.' : cached_result
+        next
+      end
+
+      {
+        conversation: conversation,
+        cache_key: cache_key,
+        payload: {
+          'conversation_id' => conversation_id,
+          'account_id' => Current.account.id.to_s,
+          'phone' => phone.to_s,
+          'customer_name' => conversation.contact&.name.to_s,
+          'stage_label' => FIRST_CONTACT_STAGE,
+          'active_labels' => [FIRST_CONTACT_STAGE],
+          'source_updated_at' => conversation.updated_at.iso8601(6)
+        }
+      }
+    end
+
+    return body.merge('reconciliation_errors' => errors) if candidates.empty?
+
+    batch = candidates.first(MAX_RECONCILIATION_BATCH)
+    batch.each { |candidate| Rails.cache.write(candidate[:cache_key], 'in_progress', expires_in: 30.seconds) }
+    reconciliation_error = nil
+    begin
+      reconciliation = RottaFollowUp::AdminClient.request({
+        action: 'reconcile',
+        account_id: Current.account.id,
+        conversations: batch.map { |candidate| candidate[:payload] }
+      })
+      unless reconciliation.success?
+        reconciliation_error = admin_response_error(reconciliation)
+      else
+        rejected = Array(reconciliation.body['rejected']).find do |item|
+          batch.any? { |candidate| candidate[:payload]['conversation_id'] == item['conversation_id'].to_s }
+        end
+        reconciliation_error = rejected['error'].to_s.truncate(240) if rejected
+      end
+    rescue RottaFollowUp::AdminClient::Error => e
+      reconciliation_error = e.message
+    rescue StandardError => e
+      Rails.logger.error("[RottaFollowUp] reconciliation #{e.class}: #{e.message}")
+      reconciliation_error = 'Falha inesperada ao reconciliar a etiqueta com a fila.'
+    end
+
+    refreshed_body = body
+    begin
+      refreshed = RottaFollowUp::AdminClient.request({ action: 'list', account_id: Current.account.id })
+      if refreshed.success? && refreshed.body.is_a?(Hash)
+        refreshed_body = scope_list_body(refreshed.body)
+      else
+        reconciliation_error ||= "A fila não confirmou a atualização (HTTP #{refreshed.status})."
+      end
+    rescue RottaFollowUp::AdminClient::Error => e
+      reconciliation_error ||= "Não foi possível confirmar a reconciliação: #{e.message}"
+    end
+
+    refreshed_jobs = Array(refreshed_body['jobs'])
+    batch.each do |candidate|
+      conversation_id = candidate[:payload]['conversation_id']
+      recovered = refreshed_jobs.any? do |job|
+        job['conversation_id'].to_s == conversation_id &&
+          follow_up_label_key(job['current_label'].presence || job['source_label']) == FIRST_CONTACT_STAGE &&
+          RECOVERY_ACTIVE_STATUSES.include?(job['status'].to_s)
+      end
+      if recovered
+        Rails.cache.delete(candidate[:cache_key])
+        errors.delete(conversation_id)
+      else
+        message = reconciliation_error ||
+                  'A fila recebeu a verificação, mas não confirmou a inscrição de primeiro contato. Confira possíveis jobs anteriores ou conflito de telefone.'
+        errors[conversation_id] = message
+        Rails.cache.write(candidate[:cache_key], message, expires_in: 20.seconds)
+      end
+    end
+
+    refreshed_body.merge('reconciliation_errors' => errors)
+  end
+
+  def reconciliation_cache_key(conversation_id)
+    "rotta_follow_up:first_contact_reconcile:#{Current.account.id}:#{conversation_id}"
+  end
+
+  def admin_response_error(response)
+    body = response.body.is_a?(Hash) ? response.body : {}
+    message = body['error'].presence || body['message'].presence || body['detail'].presence
+    return message.to_s.truncate(240) if message
+
+    "O painel de follow-up recusou a reconciliação (HTTP #{response.status})."
   end
 
   def follow_up_label_key(label)
@@ -223,15 +363,16 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       # A conversation must occupy one current stage. If an old label is
       # still present while the webhook catches up, keep a single explicit
       # reconciliation row instead of multiplying ghost cards.
-      [chatwoot_label_fallback(conversation, active_stage, active_labels)]
+      error_message = body.dig('reconciliation_errors', conversation.display_id.to_s)
+      [chatwoot_label_fallback(conversation, active_stage, active_labels, error_message: error_message)]
     end
 
     all_jobs = jobs + fallback_jobs
     body.merge('jobs' => all_jobs, 'total' => all_jobs.length)
   end
 
-  def chatwoot_label_fallback(conversation, stage, active_labels)
-    {
+  def chatwoot_label_fallback(conversation, stage, active_labels, error_message: nil)
+    fallback = {
       'job_id' => "pending:#{conversation.display_id}:#{stage}",
       'conversation_id' => conversation.display_id.to_s,
       'account_id' => Current.account.id.to_s,
@@ -244,6 +385,8 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       'active_labels' => active_labels,
       'reconciliation_source' => 'chatwoot_label'
     }
+    fallback['error_message'] = error_message if error_message.present?
+    fallback
   end
 
   def find_delivery_evidence(conversation, job)

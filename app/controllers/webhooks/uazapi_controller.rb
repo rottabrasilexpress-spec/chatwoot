@@ -280,7 +280,8 @@ class Webhooks::UazapiController < ActionController::API
 
     return process_outgoing_echo(payload, incoming) if from_me?(incoming)
 
-    provider_id = message_provider_id(incoming) || idless_message_fingerprint(payload, incoming)
+    edited_provider_id = edited_message_provider_id(incoming)
+    provider_id = edited_provider_id || message_provider_id(incoming) || idless_message_fingerprint(payload, incoming)
     conversation = find_conversation(incoming)
     return render json: { ok: true, ignored: 'conversa não localizada' } unless conversation
     associate_uazapi_delivery(conversation)
@@ -292,11 +293,19 @@ class Webhooks::UazapiController < ActionController::API
       'rotta_uazapi' => true,
       'uazapi_message_type' => value_for_keys(incoming, %w[type messageType])
     }.compact
+    attributes.merge!(incoming_edit_attributes(incoming)) if edited_provider_id.present?
     quoted_id = value_for_keys(incoming, %w[quoted quotedId quoted_id replyid reply_id])
     attributes['in_reply_to_external_id'] = quoted_id if quoted_id.present?
 
     message = with_uazapi_provider_lock(provider_id) do
-      if provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: provider_id).exists?
+      existing_message = conversation.messages.incoming.find_by(source_id: provider_id) if provider_id.present?
+      if existing_message && edited_provider_id.present?
+        updated_attributes = existing_message.content_attributes.to_h.stringify_keys.merge(
+          incoming_edit_attributes(incoming)
+        )
+        existing_message.update!(content: content, content_attributes: updated_attributes)
+        existing_message
+      elsif existing_message || (provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: provider_id).exists?)
         :duplicate
       else
         Messages::MessageBuilder.new(
@@ -499,6 +508,22 @@ class Webhooks::UazapiController < ActionController::API
 
   def message_provider_id(message)
     value_for_keys(message, %w[message_id messageId messageid id])&.to_s&.presence
+  end
+
+  def edited_message_provider_id(message)
+    value = value_for_keys(message, %w[edited editedMessage edited_message editOf edit_of])
+    value = value_for_keys(value, %w[message_id messageId messageid id]) if value.is_a?(Hash)
+    value&.to_s&.strip&.presence
+  end
+
+  def incoming_edit_attributes(message)
+    attributes = {
+      'edited' => true,
+      'uazapi_edited_at' => Time.current.iso8601
+    }
+    edit_event_id = message_provider_id(message)
+    attributes['uazapi_edit_message_id'] = edit_event_id if edit_event_id.present?
+    attributes
   end
 
   def idless_message_fingerprint(payload, message)

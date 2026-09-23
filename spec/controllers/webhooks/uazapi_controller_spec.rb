@@ -163,6 +163,99 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(conversation.messages.find_by!(source_id: 'uazapi-incoming-1').content).to eq('Mensagem recebida em tempo real')
     end
 
+    it 'updates the original incoming message when Uazapi sends an edit event' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      original_id = 'uazapi-original-incoming-edit'
+      original_payload = {
+        event: 'messages',
+        message: {
+          messageId: original_id,
+          chatid: '5511999999999@s.whatsapp.net',
+          fromMe: false,
+          type: 'text',
+          text: 'Texto antes da edição'
+        }
+      }
+      edited_payload = {
+        event: 'messages',
+        message: {
+          messageId: 'uazapi-edit-event-1',
+          edited: original_id,
+          chatid: '5511999999999@s.whatsapp.net',
+          fromMe: false,
+          type: 'text',
+          text: 'Texto final depois da edição'
+        }
+      }
+
+      post_uazapi(original_payload)
+      canonical_message = conversation.messages.incoming.find_by!(source_id: original_id)
+
+      expect do
+        post_uazapi(edited_payload)
+      end.not_to change { conversation.messages.incoming.count }
+
+      expect(response).to have_http_status(:success)
+      expect(conversation.messages.incoming.count).to eq(1)
+      expect(canonical_message.reload.content).to eq('Texto final depois da edição')
+      expect(canonical_message.content_attributes).to include(
+        'edited' => true,
+        'uazapi_edit_message_id' => 'uazapi-edit-event-1'
+      )
+    end
+
+    it 'uses the original provider ID when an edit event arrives before its original message' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(
+        :conversation,
+        account: account,
+        inbox: api_inbox,
+        contact: contact,
+        contact_inbox: contact_inbox
+      )
+      original_id = 'uazapi-original-before-edit'
+
+      post_uazapi(
+        event: 'messages',
+        message: {
+          messageId: 'uazapi-edit-event-before-original',
+          edited: original_id,
+          chatid: '5511999999999@s.whatsapp.net',
+          fromMe: false,
+          type: 'text',
+          text: 'Texto final da edição antecipada'
+        }
+      )
+      post_uazapi(
+        event: 'messages',
+        message: {
+          messageId: original_id,
+          chatid: '5511999999999@s.whatsapp.net',
+          fromMe: false,
+          type: 'text',
+          text: 'Texto original atrasado'
+        }
+      )
+
+      expect(response).to have_http_status(:success)
+      expect(conversation.messages.incoming.count).to eq(1)
+      expect(conversation.messages.incoming.first).to have_attributes(
+        source_id: original_id,
+        content: 'Texto final da edição antecipada'
+      )
+    end
+
     it 'persists an incoming media attachment from the Uazapi file URL' do
       api_channel = create(:channel_api, account: account)
       api_inbox = create(:inbox, channel: api_channel, account: account)
