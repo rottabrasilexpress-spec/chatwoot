@@ -8,23 +8,13 @@ RSpec.describe Messages::SendOnApiService do
   let(:message) { create(:message, message_type: :outgoing, content: 'Teste Uazapi', conversation: conversation, sender: agent) }
 
   before do
-    stub_const('ENV', ENV.to_h.merge(
+    environment = ENV.to_h
+    environment.delete('ROTTABRASIL_HUMAN_LOCK_WEBHOOK_URL')
+    environment.delete('ROTTABRASIL_HUMAN_LOCK_WEBHOOK_TOKEN')
+    stub_const('ENV', environment.merge(
                        'ROTTABRASIL_UAZAPI_BASE_URL' => 'https://transportadoras.uazapi.com',
-                       'ROTTABRASIL_UAZAPI_TOKEN' => 'test-token',
-                       'ROTTABRASIL_HUMAN_LOCK_WEBHOOK_URL' => 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1',
-                       'ROTTABRASIL_HUMAN_LOCK_WEBHOOK_TOKEN' => 'test-human-lock-token'
+                       'ROTTABRASIL_UAZAPI_TOKEN' => 'test-token'
                      ))
-
-    stub_request(:post, 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1')
-      .with(headers: { 'X-RottaWoot-Human-Token' => 'test-human-lock-token' })
-      .to_return do |request|
-        payload = JSON.parse(request.body)
-        {
-          status: 200,
-          body: { success: true, event_id: payload['message_id'] }.to_json,
-          headers: { 'content-type' => 'application/json' }
-        }
-      end
   end
 
   it 'sends text through Uazapi and stores the provider message id' do
@@ -61,6 +51,7 @@ RSpec.describe Messages::SendOnApiService do
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text').with do |request|
       JSON.parse(request.body).fetch('text') == 'Teste Uazapi'
     end).to have_been_made
+    expect(ENV).not_to include('ROTTABRASIL_HUMAN_LOCK_WEBHOOK_URL', 'ROTTABRASIL_HUMAN_LOCK_WEBHOOK_TOKEN')
   end
 
   it 'does not mark automated Chatwoot messages as human interventions' do
@@ -77,59 +68,6 @@ RSpec.describe Messages::SendOnApiService do
 
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')
       .with(body: hash_including('track_source' => 'chatwoot-human'))).not_to have_been_made
-    expect(a_request(:post, 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1')).not_to have_been_made
-  end
-
-  it 'confirms the human lock in n8n before sending through Uazapi' do
-    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
-      .to_return(
-        status: 200,
-        body: { 'key' => { 'id' => '3EBLOCKCONFIRMED123' } }.to_json,
-        headers: { 'content-type' => 'application/json' }
-      )
-
-    described_class.new(message: message).perform
-
-    expect(a_request(:post, 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1')
-      .with do |request|
-        payload = JSON.parse(request.body)
-        payload['event'] == 'rottawoot.human_message_created' &&
-          payload['message_id'] == message.id.to_s &&
-          payload['sender_type'] == 'User' &&
-          payload['message_type'] == 'outgoing' &&
-          payload['private'] == false &&
-          payload['remote_jid'] == '5511965927865@s.whatsapp.net' &&
-          payload['content'] == 'Teste Uazapi'
-      end).to have_been_made.once
-    expect(message.reload.content_attributes).to include(
-      'rotta_human_lock_ack_message_id' => message.id.to_s
-    )
-    expect(message.source_id).to eq('3EBLOCKCONFIRMED123')
-  end
-
-  it 'blocks the WhatsApp send when n8n does not confirm the human lock' do
-    stub_request(:post, 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1')
-      .to_return(status: 503, body: 'temporarily unavailable')
-
-    described_class.new(message: message).perform
-
-    expect(message.reload.status).to eq('failed')
-    expect(message.external_error).to include('não confirmou a pausa')
-    expect(message.content_attributes).to include(
-      'rotta_uazapi_pending_echo' => true,
-      'rotta_human_lock_confirmation_pending' => true
-    )
-    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).not_to have_been_made
-  end
-
-  it 'blocks the WhatsApp send when the n8n confirmation body is incomplete' do
-    stub_request(:post, 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1')
-      .to_return(status: 200, body: { success: true, event_id: 'different-message' }.to_json)
-
-    described_class.new(message: message).perform
-
-    expect(message.reload.status).to eq('failed')
-    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).not_to have_been_made
   end
 
   it 'preserves WhatsApp formatting, emojis, blank lines and separators verbatim' do
@@ -309,7 +247,6 @@ RSpec.describe Messages::SendOnApiService do
     described_class.new(message: Message.find(message.id)).perform
 
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.twice
-    expect(a_request(:post, 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1')).to have_been_made.once
     expect(message.reload.source_id).to eq('3EBRETRYLEGIT123')
     expect(message.status).to eq('sent')
   end

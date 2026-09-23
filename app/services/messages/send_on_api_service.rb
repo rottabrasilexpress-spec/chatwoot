@@ -1,8 +1,6 @@
 class Messages::SendOnApiService < Base::SendOnChannelService
   UAZAPI_PATH = '/send/text'.freeze
   UAZAPI_MEDIA_PATH = '/send/media'.freeze
-  HUMAN_LOCK_WEBHOOK_HEADER = 'X-RottaWoot-Human-Token'.freeze
-  HUMAN_LOCK_FAILURE_MESSAGE = 'A IA não confirmou a pausa deste atendimento. A mensagem não foi enviada; tente novamente em instantes.'.freeze
   UAZAPI_AMBIGUOUS_ERRORS = [
     Net::OpenTimeout,
     Net::ReadTimeout,
@@ -30,8 +28,6 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       return
     end
 
-    return unless confirm_human_intervention
-
     return perform_media_reply if message.attachments.present?
 
     content_attributes = message.content_attributes.to_h.with_indifferent_access
@@ -58,10 +54,6 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   rescue StandardError => e
     if @uazapi_request_accepted
       mark_delivery_confirmation_pending(e)
-    elsif @human_lock_required && !@human_lock_confirmed
-      fail_human_lock_message
-    elsif @human_lock_confirmed && !@human_lock_ack_persisted
-      fail_human_lock_message
     else
       fail_message("Falha ao enviar pela Uazapi: #{e.message}")
     end
@@ -103,108 +95,6 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     else
       fail_message("Falha ao enviar áudio pela Uazapi: #{e.message}")
     end
-  end
-
-  def confirm_human_intervention
-    return true unless human_intervention_message?
-
-    @human_lock_required = true
-    attributes = message.content_attributes.to_h.with_indifferent_access
-    if attributes[:rotta_human_lock_ack_message_id].to_s == message.id.to_s
-      @human_lock_confirmed = true
-      @human_lock_ack_persisted = true
-      return true
-    end
-
-    webhook_url = ENV.fetch('ROTTABRASIL_HUMAN_LOCK_WEBHOOK_URL')
-    webhook_token = ENV.fetch('ROTTABRASIL_HUMAN_LOCK_WEBHOOK_TOKEN')
-    response = HTTParty.post(
-      webhook_url,
-      headers: {
-        'Accept' => 'application/json',
-        'Content-Type' => 'application/json',
-        HUMAN_LOCK_WEBHOOK_HEADER => webhook_token
-      },
-      body: human_intervention_payload.to_json,
-      timeout: 15
-    )
-
-    return fail_human_lock_message(response.code) unless response.success?
-
-    result = response.parsed_response
-    unless result.is_a?(Hash) && result['success'] == true && result['event_id'].to_s == message.id.to_s
-      return fail_human_lock_message(response.code, 'resposta sem confirmação válida')
-    end
-
-    @human_lock_confirmed = true
-    persist_human_lock_ack
-    @human_lock_ack_persisted = true
-    true
-  rescue KeyError => e
-    Rails.logger.error("[ROTTABRASIL_HUMAN_LOCK] message=#{message.id} configuration_missing=#{e.key}")
-    fail_human_lock_message
-  rescue StandardError => e
-    Rails.logger.error("[ROTTABRASIL_HUMAN_LOCK] message=#{message.id} confirmation_failed=#{e.class.name}")
-    fail_human_lock_message
-  end
-
-  def human_intervention_message?
-    message.sender_type == 'User' && (message.outgoing? || message.template?) && !message.private?
-  end
-
-  def human_intervention_payload
-    {
-      event: 'rottawoot.human_message_created',
-      message_id: message.id.to_s,
-      account_id: message.account_id,
-      inbox_id: message.inbox_id,
-      conversation_id: message.conversation_id,
-      sender_type: message.sender_type,
-      sender_id: message.sender_id,
-      message_type: message.message_type,
-      private: message.private?,
-      instance: 'rotta',
-      remote_jid: human_intervention_remote_jid,
-      content: outgoing_text,
-      content_type: message.content_type,
-      track_source: 'chatwoot-human',
-      track_id: "message-#{message.id}"
-    }
-  end
-
-  def human_intervention_remote_jid
-    source_id = contact_inbox.source_id.to_s.strip
-    return source_id if source_id.end_with?('@s.whatsapp.net', '@g.us')
-
-    phone_digits = contact.phone_number.to_s.gsub(/\D/, '')
-    return "#{phone_digits}@s.whatsapp.net" if phone_digits.present?
-
-    raise ArgumentError, 'Contato sem identificador WhatsApp válido para pausar a IA'
-  end
-
-  def persist_human_lock_ack
-    attributes = message.content_attributes.to_h.stringify_keys
-    message.update!(
-      content_attributes: attributes.merge(
-        'rotta_human_lock_ack_message_id' => message.id.to_s,
-        'rotta_human_lock_confirmed_at' => Time.current.iso8601
-      )
-    )
-  end
-
-  def fail_human_lock_message(status_code = nil, detail = nil)
-    attributes = message.content_attributes.to_h.stringify_keys
-    attributes['rotta_human_lock_confirmation_pending'] = true
-    message.update!(
-      status: :failed,
-      external_error: HUMAN_LOCK_FAILURE_MESSAGE,
-      content_attributes: attributes
-    )
-    Rails.logger.error(
-      "[ROTTABRASIL_HUMAN_LOCK] message=#{message.id} send_blocked=true " \
-      "http_status=#{status_code || 'unavailable'} detail=#{detail || 'confirmation unavailable'}"
-    )
-    false
   end
 
   def uazapi_base_url
