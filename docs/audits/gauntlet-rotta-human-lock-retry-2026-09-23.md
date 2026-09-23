@@ -50,15 +50,6 @@ webhook node in that workflow.
    WhatsApp send path from releasing the claim before UAZAPI is called.
 7. The feature branch was pushed to GitHub. It has not been merged or deployed.
 
-## Separate risk identified during review
-
-The existing generic UAZAPI failure path treats every non-2xx response as a
-confirmed rejection and releases its echo claim. If the provider could accept a
-message and then return HTTP 5xx, retrying could duplicate it. This review did
-not establish UAZAPI's guarantee for 5xx responses; the behavior predates this
-patch and is not changed here. Confirm the provider contract before broadening
-the retry policy.
-
 ## Remaining gate
 
 The new shared secret must be entered by the user in the exclusive n8n Header
