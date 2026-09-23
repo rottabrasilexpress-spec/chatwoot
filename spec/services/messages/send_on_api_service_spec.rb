@@ -154,6 +154,7 @@ RSpec.describe Messages::SendOnApiService do
     expect(attempts).to eq(2)
     expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
     expect(message.reload.status).to eq('sent')
+    expect(message.external_error).to be_blank
     expect(message.source_id).to eq('3EBHUMANLOCKRETRY123')
     expect(message.content_attributes).to include('rotta_human_lock_ack_message_id' => message.id.to_s)
     expect(message.content_attributes).not_to have_key('rotta_human_lock_confirmation_pending')
@@ -349,6 +350,24 @@ RSpec.describe Messages::SendOnApiService do
     expect(a_request(:post, 'https://saas.via-cargo.com/webhook/rottawoot-human-intervention-v1')).to have_been_made.once
     expect(message.reload.source_id).to eq('3EBRETRYLEGIT123')
     expect(message.status).to eq('sent')
+    expect(message.external_error).to be_blank
+  end
+
+  it 'clears a previous failure when Uazapi accepts a retry without returning an id' do
+    message.update!(status: :failed, external_error: 'previous send failure')
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(
+        status: 200,
+        body: { 'success' => true }.to_json,
+        headers: { 'content-type' => 'application/json' }
+      )
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.status).to eq('sent')
+    expect(message.external_error).to be_blank
+    expect(message.source_id).to be_blank
+    expect(message.content_attributes).to include('rotta_uazapi_pending_echo' => true)
   end
 
   it 'sends an audio message only once when duplicate delivery jobs overlap' do
