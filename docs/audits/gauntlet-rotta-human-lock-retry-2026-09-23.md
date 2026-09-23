@@ -49,6 +49,10 @@ webhook node in that workflow.
    not create a second human event. An independent review found no duplicate
    WhatsApp send path from releasing the claim before UAZAPI is called.
 7. The feature branch was pushed to GitHub. It has not been merged or deployed.
+8. Recheck after the push: n8n had zero executions after
+   `2026-09-23T19:26:44Z`; the feature branch remains at `f4201888`, while the
+   production branch remains at `c95f224d`. No evidence of credential setup,
+   production webhook receipt, merge, or deployment was found.
 
 ## Separate risk identified during review
 
