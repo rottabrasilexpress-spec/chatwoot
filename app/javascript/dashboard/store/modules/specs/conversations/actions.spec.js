@@ -502,35 +502,60 @@ describe('#actions', () => {
       ]);
     });
 
-    it('does not block the foreground load on a stalled prefetch', async () => {
-      vi.useFakeTimers();
+    it('fetches the current label list without waiting for a background request', async () => {
       commit.mockClear();
       dispatch.mockClear();
       axios.get.mockReset();
+      axios.get.mockResolvedValue({ data: { data: dataReceived } });
 
-      let requestCount = 0;
-      axios.get.mockImplementation(() => {
-        requestCount += 1;
-        if (requestCount === 1) return new Promise(() => {});
-        return Promise.resolve({ data: dataReceived });
-      });
-
-      // Start the background request and let the foreground request take
-      // over after the bounded handoff window.
-      actions.prefetchConversationViews({}, [dataToSend]);
-      await Promise.resolve();
-      const foreground = actions.fetchAllConversations({
+      await actions.fetchAllConversations({
         commit,
         dispatch,
         state: { conversationFilters: dataToSend },
       });
 
-      await vi.advanceTimersByTimeAsync(2500);
-      await foreground;
-
-      expect(requestCount).toBe(2);
+      expect(axios.get).toHaveBeenCalledTimes(1);
       expect(commit).toHaveBeenCalledWith(types.CLEAR_LIST_LOADING_STATUS);
-      vi.useRealTimers();
+    });
+
+    it('ignores an older response after the user switches label views', async () => {
+      commit.mockClear();
+      dispatch.mockClear();
+      axios.get.mockReset();
+      let resolveFirst;
+      axios.get
+        .mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              resolveFirst = resolve;
+            })
+        )
+        .mockResolvedValueOnce({ data: { data: dataReceived } });
+
+      const first = actions.fetchAllConversations({
+        commit,
+        dispatch,
+        state: { conversationFilters: { labels: ['kelvin'], page: 1 } },
+      });
+      const second = actions.fetchAllConversations({
+        commit,
+        dispatch,
+        state: { conversationFilters: { labels: ['caio-atencao'], page: 1 } },
+      });
+      await second;
+      resolveFirst({ data: { data: dataReceived } });
+      await first;
+
+      expect(
+        commit.mock.calls.filter(
+          ([type]) => type === types.SET_ALL_CONVERSATION
+        )
+      ).toHaveLength(1);
+      expect(
+        commit.mock.calls.filter(
+          ([type]) => type === types.CLEAR_LIST_LOADING_STATUS
+        )
+      ).toHaveLength(1);
     });
   });
 

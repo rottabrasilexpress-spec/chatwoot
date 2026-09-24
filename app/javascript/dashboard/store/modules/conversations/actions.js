@@ -19,45 +19,7 @@ import {
   syncConversationCallVisibility,
 } from 'dashboard/helper/voice';
 
-const conversationPrefetchCache = new Map();
-const conversationPrefetchInFlight = new Map();
-const PREFETCH_HANDOFF_TIMEOUT_MS = 2500;
-
-const conversationPrefetchKey = params =>
-  JSON.stringify(params, Object.keys(params).sort());
-
-const prefetchConversationList = params => {
-  const key = conversationPrefetchKey(params);
-  if (conversationPrefetchCache.has(key)) return Promise.resolve();
-
-  const runningRequest = conversationPrefetchInFlight.get(key);
-  if (runningRequest) return runningRequest;
-
-  const request = ConversationApi.get(params)
-    .then(response => {
-      conversationPrefetchCache.set(key, response.data.data);
-    })
-    .catch(() => {
-      // A background request must never interrupt the active conversation view.
-    })
-    .finally(() => {
-      conversationPrefetchInFlight.delete(key);
-    });
-
-  conversationPrefetchInFlight.set(key, request);
-  return request;
-};
-
-const waitForPrefetchHandoff = request => {
-  let timeoutId;
-  const timeout = new Promise(resolve => {
-    timeoutId = setTimeout(resolve, PREFETCH_HANDOFF_TIMEOUT_MS);
-  });
-
-  return Promise.race([request, timeout]).finally(() => {
-    clearTimeout(timeoutId);
-  });
-};
+let latestConversationListRequestId = 0;
 
 export const hasMessageFailedWithExternalError = pendingMessage => {
   // This helper is used to check if the message has failed with an external error.
@@ -83,65 +45,27 @@ const actions = {
     }
   },
 
-  fetchAllConversations: async (
-    { commit, state, dispatch },
-    { force = false } = {}
-  ) => {
+  fetchAllConversations: async ({ commit, state, dispatch }) => {
+    latestConversationListRequestId += 1;
+    const requestId = latestConversationListRequestId;
     commit(types.SET_LIST_LOADING_STATUS);
     try {
-      const params = state.conversationFilters;
-      const key = conversationPrefetchKey(params);
-      let data;
-
-      if (!force) {
-        const runningRequest = conversationPrefetchInFlight.get(key);
-        // Prefetch is an optimization, never a prerequisite for rendering.
-        // If it stalls, continue with the foreground request instead of
-        // keeping the entire conversation list in a permanent loading state.
-        if (runningRequest) await waitForPrefetchHandoff(runningRequest);
-        data = conversationPrefetchCache.get(key);
-        conversationPrefetchCache.delete(key);
-      }
-
-      if (!data) {
-        conversationPrefetchCache.delete(key);
-        const response = await ConversationApi.get(params);
-        data = response.data.data;
-      }
+      const params = { ...state.conversationFilters };
+      const response = await ConversationApi.get(params);
+      if (requestId !== latestConversationListRequestId) return;
 
       buildConversationList(
         { commit, dispatch },
         params,
-        data,
+        response.data.data,
         params.assigneeType
       );
     } catch (error) {
+      if (requestId !== latestConversationListRequestId) return;
       // Do not leave the conversation list in a permanent loading state when
       // the initial request fails (for example, during a transient outage).
       commit(types.CLEAR_LIST_LOADING_STATUS);
     }
-  },
-
-  prefetchConversationViews: async (_context, views = []) => {
-    const uniqueViews = views.filter(
-      (params, index, collection) =>
-        collection.findIndex(
-          item =>
-            conversationPrefetchKey(item) === conversationPrefetchKey(params)
-        ) === index
-    );
-
-    // Keep the requests off the critical path and avoid opening a burst of
-    // connections against the production Chatwoot instance.
-    for (let index = 0; index < uniqueViews.length; index += 3) {
-      const batch = uniqueViews.slice(index, index + 3);
-      // eslint-disable-next-line no-await-in-loop
-      await Promise.all(batch.map(prefetchConversationList));
-    }
-  },
-
-  invalidateConversationPrefetch() {
-    conversationPrefetchCache.clear();
   },
 
   fetchFilteredConversations: async ({ commit, dispatch }, params) => {

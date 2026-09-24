@@ -22,12 +22,10 @@ import SidebarChangelogButton from './SidebarChangelogButton.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
-import wootConstants from 'dashboard/constants/globals';
 import {
   SIDEBAR_LABEL_DEFINITIONS,
   findSidebarLabel,
 } from '../../store/modules/labels';
-import { buildConversationPrefetchViews } from './rottaPrefetch';
 import { canViewCalculator } from 'dashboard/routes/dashboard/settings/calculator/calculatorVisibility';
 import { canViewGlobalAi } from 'dashboard/routes/dashboard/settings/globalAi/globalAiVisibility';
 
@@ -232,8 +230,15 @@ useEventListener(document, 'mouseup', onResizeEnd);
 useEventListener(document, 'touchmove', onResizeMove, { passive: false });
 useEventListener(document, 'touchend', onResizeEnd);
 
-const labels = useMapGetter('labels/getLabelsOnSidebar');
 const allLabels = useMapGetter('labels/getLabels');
+// Count refreshes replace the label array. Watch only the label catalog, not
+// the array itself, or each successful refresh starts another network request.
+const sidebarLabelCatalog = computed(() =>
+  allLabels.value
+    .map(label => `${label.id}:${label.title}`)
+    .sort()
+    .join('|')
+);
 const allUnreadCount = useMapGetter(
   'conversationUnreadCounts/getAllUnreadCount'
 );
@@ -310,54 +315,10 @@ watch([accountId, currentUserId], fetchSidebarSortPreferences, {
 });
 
 watch(
-  [accountId, allLabels],
-  ([currentAccountId, currentLabels]) => {
-    if (!currentAccountId || !currentLabels.length) return;
+  [accountId, sidebarLabelCatalog],
+  ([currentAccountId, catalog]) => {
+    if (!currentAccountId || !catalog) return;
     refreshSidebarLabelCounts();
-  },
-  { immediate: true }
-);
-
-const prefetchSignature = ref('');
-
-const prefetchConversationViews = () => {
-  if (!accountId.value || !labels.value.length) return;
-
-  const common = {
-    assigneeType: wootConstants.ASSIGNEE_TYPE.ALL,
-    status: wootConstants.STATUS_TYPE.ALL,
-    sortBy: wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC,
-    page: 1,
-  };
-
-  const sidebarLabelTitles = SIDEBAR_LABEL_DEFINITIONS.map(
-    definition => findSidebarLabel(allLabels.value, definition)?.title
-  )
-    .filter(Boolean)
-    .filter((title, index, titles) => titles.indexOf(title) === index);
-
-  const views = buildConversationPrefetchViews({
-    common,
-    unreadConversationType: wootConstants.CONVERSATION_TYPE.UNREAD,
-    priorityConversationType: wootConstants.CONVERSATION_TYPE.PRIORITY,
-    archivedConversationType: wootConstants.CONVERSATION_TYPE.ARCHIVED,
-    sidebarLabelTitles,
-  });
-
-  store.dispatch('prefetchConversationViews', views);
-};
-
-watch(
-  [accountId, labels],
-  ([currentAccountId, currentLabels]) => {
-    if (!currentAccountId || !currentLabels.length) return;
-    const signature = `${currentAccountId}:${currentLabels
-      .map(label => label.title)
-      .sort()
-      .join('|')}`;
-    if (signature === prefetchSignature.value) return;
-    prefetchSignature.value = signature;
-    prefetchConversationViews();
   },
   { immediate: true }
 );
