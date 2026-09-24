@@ -53,6 +53,7 @@ COPY app/listeners/webhook_listener.rb /app/app/listeners/webhook_listener.rb
 COPY app/services/rotta_uazapi_call_event_service.rb /app/app/services/rotta_uazapi_call_event_service.rb
 COPY app/services/rotta_calculator.rb /app/app/services/rotta_calculator.rb
 COPY app/services/rotta_calculator /app/app/services/rotta_calculator
+COPY app/services/rotta_ai_status /app/app/services/rotta_ai_status
 COPY app/services/rotta/caio_attention_alert.rb /app/app/services/rotta/caio_attention_alert.rb
 COPY app/services/rotta/automatic_labels /app/app/services/rotta/automatic_labels
 COPY app/services/conversations/request_attention_service.rb /app/app/services/conversations/request_attention_service.rb
