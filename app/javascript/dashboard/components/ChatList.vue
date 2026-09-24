@@ -7,6 +7,7 @@ import {
   watch,
   onMounted,
   onBeforeUnmount,
+  nextTick,
 } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
@@ -116,6 +117,8 @@ const isSearchingConversations = ref(false);
 const conversationsPerPage = 25;
 let conversationSearchTimer = null;
 let conversationSearchRequestId = 0;
+let resetFetchQueued = false;
+let isChatListUnmounted = false;
 const advancedFilterTypes = ref(
   advancedFilterOptions.map(filter => ({
     ...filter,
@@ -686,19 +689,26 @@ function fetchConversations() {
 }
 
 function resetAndFetchData() {
-  appliedFilter.value = [];
-  resetBulkActions();
-  store.dispatch('conversationPage/reset');
-  store.dispatch('emptyAllConversations');
-  store.dispatch('clearConversationFilters');
-  if (hasActiveFolders.value) {
-    const payload = activeFolder.value.query;
-    fetchSavedFilteredConversations(payload);
-  }
-  if (props.foldersId) {
-    return;
-  }
-  fetchConversations();
+  if (resetFetchQueued) return;
+  resetFetchQueued = true;
+  nextTick(() => {
+    resetFetchQueued = false;
+    if (isChatListUnmounted) return;
+
+    appliedFilter.value = [];
+    resetBulkActions();
+    store.dispatch('conversationPage/reset');
+    store.dispatch('emptyAllConversations');
+    store.dispatch('clearConversationFilters');
+    if (hasActiveFolders.value) {
+      const payload = activeFolder.value.query;
+      fetchSavedFilteredConversations(payload);
+    }
+    if (props.foldersId) {
+      return;
+    }
+    fetchConversations();
+  });
 }
 
 function refreshActiveLabelStats() {
@@ -1003,6 +1013,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  isChatListUnmounted = true;
   stopResizingConversationList();
   clearTimeout(conversationSearchTimer);
 });
