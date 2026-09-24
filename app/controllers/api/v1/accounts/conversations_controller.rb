@@ -4,7 +4,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   include HmacConcern
   include ConversationCustomAttributesConcern
 
-  before_action :conversation, except: [:index, :meta, :search, :create, :filter]
+  before_action :conversation, except: [:index, :meta, :search, :create, :filter, :ai_status]
   before_action :inbox, :contact, :contact_inbox, only: [:create]
 
   ATTACHMENT_RESULTS_PER_PAGE = 100
@@ -24,6 +24,30 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     result = conversation_finder.perform
     @conversations = result[:conversations]
     @conversations_count = result[:count]
+  end
+
+  def ai_status
+    conversation_ids = params[:conversation_ids]
+    unless conversation_ids.is_a?(Array) && conversation_ids.size.between?(1, RottaAiStatus::Client::MAX_BATCH_SIZE)
+      return render json: { error: 'conversation_ids must contain 1 to 100 IDs' }, status: :unprocessable_entity
+    end
+
+    ids = conversation_ids.map(&:to_s)
+    unless ids.all? { |id| id.match?(/\A\d{1,20}\z/) }
+      return render json: { error: 'conversation_ids must be numeric' }, status: :unprocessable_entity
+    end
+
+    conversations = Current.account.conversations.includes(:contact_inbox, :inbox).where(display_id: ids)
+    conversations.each { |record| authorize record, :show? }
+    remote_jids = conversations.index_with { |record| whatsapp_remote_jid(record) }
+    statuses = RottaAiStatus::Client.new.statuses_for(remote_jids.values.compact.uniq)
+
+    render json: {
+      statuses: ids.map do |id|
+        remote_jid = remote_jids.find { |record, _jid| record.display_id.to_s == id }&.last
+        { conversation_id: id, state: remote_jid ? statuses.fetch(remote_jid, 'unknown') : 'unknown' }
+      end
+    }
   end
 
   def attachments
@@ -150,6 +174,21 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   private
+
+  def whatsapp_remote_jid(conversation)
+    return unless conversation.inbox&.channel_type == 'Channel::Whatsapp'
+
+    source_id = conversation.contact_inbox&.source_id.to_s.strip
+    return if source_id.blank?
+    return if source_id.match?(/\A[A-Z]{2}\.(?:ENT\.)?[A-Za-z0-9]{1,128}\z/)
+    return source_id if source_id.match?(/\A\d{10,20}@(s\.whatsapp\.net|g\.us|lid)\z/i)
+    return unless source_id.match?(/\A\+?[\d\s().-]+\z/)
+
+    digits = source_id.gsub(/\D/, '')
+    return unless digits.length.between?(10, 15)
+
+    "#{digits}@s.whatsapp.net"
+  end
 
   def permitted_update_params
     # TODO: Move the other conversation attributes to this method and remove specific endpoints for each attribute

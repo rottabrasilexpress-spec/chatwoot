@@ -16,6 +16,7 @@ import SLACardLabel from 'dashboard/components-next/Conversation/Sla/SLACardLabe
 import CardStatusIcon from './CardStatusIcon.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import ConversationAiStatus from 'dashboard/components/widgets/conversation/ConversationAiStatus.vue';
 import { conversationActivityTimestamp } from 'shared/helpers/timeHelper';
 
 const props = defineProps({
@@ -168,11 +169,14 @@ const selectedModel = computed({
         @open-contact="emit('openContact')"
       />
 
-      <h4
-        class="text-heading-3 my-0 capitalize truncate text-n-slate-12 font-medium w-32 flex-shrink-0"
-      >
-        {{ currentContact.name }}
-      </h4>
+      <div class="flex items-center gap-1 min-w-0 w-40 flex-shrink-0">
+        <h4
+          class="text-heading-3 my-0 capitalize truncate text-n-slate-12 font-medium min-w-0 flex-1"
+        >
+          {{ currentContact.name }}
+        </h4>
+        <ConversationAiStatus :conversation-id="chat.id" density="card" />
+      </div>
 
       <CardContent
         :last-message="lastMessageInChat"

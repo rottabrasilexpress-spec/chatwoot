@@ -8,6 +8,14 @@
       "REPLIED_BELOW": "Customer replied below"
     },
     "SELECT_A_CONVERSATION": "Please select a conversation from left pane",
+    "AI_STATUS": {
+      "ACTIVE": "AI assistant is on",
+      "BLOCKED": "AI assistant is paused",
+      "UNKNOWN": "AI assistant status could not be verified",
+      "ON": "ON",
+      "OFF": "OFF",
+      "UNKNOWN_SHORT": "?"
+    },
     "CSAT_REPLY_MESSAGE": "Please rate the conversation",
     "404": "Sorry, we cannot find the conversation. Please try again",
     "SWITCH_VIEW_LAYOUT": "Switch the layout",

@@ -17,6 +17,7 @@ import CardPriorityIcon from 'dashboard/components-next/Conversation/Conversatio
 import UnreadBadge from 'dashboard/components-next/Conversation/ConversationCard/UnreadBadge.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import VoiceCallStatus from './VoiceCallStatus.vue';
+import ConversationAiStatus from './ConversationAiStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 import { conversationActivityTimestamp } from 'shared/helpers/timeHelper';
@@ -282,12 +283,15 @@ watch(
               />
             </div>
           </div>
-          <h4
-            class="conversation--user text-sm my-0 mx-2 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap min-w-0 text-n-slate-12"
-            :class="hasUnread ? 'font-semibold' : 'font-medium'"
-          >
-            {{ currentContactDisplayName }}
-          </h4>
+          <div class="flex items-center gap-1 min-w-0 mx-2">
+            <h4
+              class="conversation--user text-sm my-0 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap min-w-0 flex-1 text-n-slate-12"
+              :class="hasUnread ? 'font-semibold' : 'font-medium'"
+            >
+              {{ currentContactDisplayName }}
+            </h4>
+            <ConversationAiStatus :conversation-id="chat.id" density="card" />
+          </div>
         </div>
         <div class="rotta-card-meta">
           <Icon

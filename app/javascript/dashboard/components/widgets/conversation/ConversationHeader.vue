@@ -8,6 +8,7 @@ import InboxName from '../InboxName.vue';
 import MoreActions from './MoreActions.vue';
 import Avatar from 'next/avatar/Avatar.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
+import ConversationAiStatus from './ConversationAiStatus.vue';
 import ConversationCallButton from './ConversationCallButton.vue';
 import wootConstants from 'dashboard/constants/globals';
 import { conversationListPageURL } from 'dashboard/helper/URLHelper';
@@ -164,6 +165,11 @@ const copyConversationId = async () => {
           >
             {{ currentContact.name }}
           </span>
+          <ConversationAiStatus
+            v-if="currentChat?.id"
+            :conversation-id="currentChat.id"
+            density="header"
+          />
           <fluent-icon
             v-if="!isHMACVerified"
             v-tooltip="$t('CONVERSATION.UNVERIFIED_SESSION')"

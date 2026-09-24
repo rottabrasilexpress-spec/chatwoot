@@ -17,6 +17,7 @@ import ComposeConversation from 'dashboard/components-next/NewConversation/Compo
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import VoiceCallButton from 'dashboard/components-next/Contacts/VoiceCallButton.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
+import ConversationAiStatus from 'dashboard/components/widgets/conversation/ConversationAiStatus.vue';
 import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 
 export default {
@@ -31,6 +32,7 @@ export default {
     ContactDeleteModal,
     VoiceCallButton,
     InlineInput,
+    ConversationAiStatus,
   },
   props: {
     contact: {
@@ -237,6 +239,11 @@ export default {
             >
               {{ contact.name }}
             </h3>
+            <ConversationAiStatus
+              v-if="currentChat?.id"
+              :conversation-id="currentChat.id"
+              density="profile"
+            />
             <NextButton
               ghost
               xs

@@ -63,8 +63,11 @@ import captainScenarios from './captain/scenarios';
 import captainTools from './captain/tools';
 import captainCustomTools from './captain/customTools';
 import caioAttentionAlerts from './modules/caioAttentionAlerts';
+import conversationAiStatus, {
+  conversationAiStatusPlugin,
+} from './modules/conversationAiStatus';
 
-const plugins = [];
+const plugins = [conversationAiStatusPlugin];
 
 export default createStore({
   modules: {
@@ -131,6 +134,7 @@ export default createStore({
     captainTools,
     captainCustomTools,
     caioAttentionAlerts,
+    conversationAiStatus,
   },
   plugins,
 });

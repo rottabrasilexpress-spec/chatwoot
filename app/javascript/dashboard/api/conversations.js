@@ -21,6 +21,12 @@ class ConversationApi extends ApiClient {
   getUnreadCounts() {
     return axios.get(`${this.url}/unread_counts`);
   }
+
+  getAiStatuses(conversationIds) {
+    return axios.post(`${this.url}/ai_status`, {
+      conversation_ids: conversationIds,
+    });
+  }
 }
 
 export default new ConversationApi();
