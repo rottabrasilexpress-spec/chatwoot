@@ -227,6 +227,15 @@ class Conversation < ApplicationRecord
     (cached_label_list || '').split(',').map(&:strip)
   end
 
+  # The cached string can lag behind the taggings after concurrent label
+  # changes. Use the association for labels displayed to agents so a card in
+  # Todos cannot claim a label that its filtered view no longer contains.
+  def labels_for_display
+    taggings.filter_map do |tagging|
+      tagging.tag.name if tagging.context == 'labels'
+    end
+  end
+
   def notifiable_assignee_change?
     return false unless saved_change_to_assignee_id?
     return false if assignee_id.blank?

@@ -92,6 +92,7 @@ COPY app/views/api/v1/accounts/labels/index.json.jbuilder /app/app/views/api/v1/
 COPY app/controllers/api/v1/accounts/rotta_automatic_labels_controller.rb /app/app/controllers/api/v1/accounts/rotta_automatic_labels_controller.rb
 COPY app/views/api/v1/models/_message.json.jbuilder /app/app/views/api/v1/models/_message.json.jbuilder
 COPY app/views/api/v1/accounts/conversations/messages/deleted_content.json.jbuilder /app/app/views/api/v1/accounts/conversations/messages/deleted_content.json.jbuilder
+COPY app/views/api/v1/accounts/conversations/messages/index.json.jbuilder /app/app/views/api/v1/accounts/conversations/messages/index.json.jbuilder
 COPY app/views/api/v1/conversations/partials/_conversation.json.jbuilder /app/app/views/api/v1/conversations/partials/_conversation.json.jbuilder
 COPY enterprise/app/services/llm/speech_to_text_service.rb /app/enterprise/app/services/llm/speech_to_text_service.rb
 COPY enterprise/app/services/messages/dictation_transcription_service.rb /app/enterprise/app/services/messages/dictation_transcription_service.rb

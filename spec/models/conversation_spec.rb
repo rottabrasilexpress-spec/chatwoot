@@ -1035,6 +1035,17 @@ RSpec.describe Conversation do
     end
   end
 
+  describe 'labels_for_display' do
+    let(:conversation) { create(:conversation) }
+
+    it 'uses actual taggings when the cached label is stale' do
+      conversation.update_column(:cached_label_list, 'kelvin')
+
+      expect(conversation.reload.cached_label_list_array).to include('kelvin')
+      expect(conversation.labels_for_display).to be_empty
+    end
+  end
+
   describe '#last_activity_at' do
     let(:conversation) { create(:conversation) }
     let(:message_params) do

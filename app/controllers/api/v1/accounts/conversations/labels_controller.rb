@@ -1,6 +1,10 @@
 class Api::V1::Accounts::Conversations::LabelsController < Api::V1::Accounts::Conversations::BaseController
   include LabelConcern
 
+  def index
+    @labels = @conversation.labels_for_display
+  end
+
   def create
     @conversation.with_lock do
       if params.key?(:add) || params.key?(:remove)
@@ -13,7 +17,7 @@ class Api::V1::Accounts::Conversations::LabelsController < Api::V1::Accounts::Co
         @conversation.update_labels(permitted_params[:labels])
       end
 
-      @labels = @conversation.label_list
+      @labels = @conversation.labels_for_display
     end
   end
 
