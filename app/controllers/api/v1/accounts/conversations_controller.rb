@@ -37,7 +37,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
       return render json: { error: 'conversation_ids must be numeric' }, status: :unprocessable_entity
     end
 
-    conversations = Current.account.conversations.includes(:contact_inbox, :inbox).where(display_id: ids)
+    conversations = Current.account.conversations.includes(:contact_inbox, :inbox, :contact).where(display_id: ids)
     conversations.each { |record| authorize record, :show? }
     remote_jids = conversations.index_with { |record| whatsapp_remote_jid(record) }
     statuses = RottaAiStatus::Client.new.statuses_for(remote_jids.values.compact.uniq)
@@ -176,18 +176,23 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   private
 
   def whatsapp_remote_jid(conversation)
-    return unless conversation.inbox&.channel_type == 'Channel::Whatsapp'
+    channel_type = conversation.inbox&.channel_type
+    return unless %w[Channel::Whatsapp Channel::Api].include?(channel_type)
 
     source_id = conversation.contact_inbox&.source_id.to_s.strip
-    return if source_id.blank?
-    return if source_id.match?(/\A[A-Z]{2}\.(?:ENT\.)?[A-Za-z0-9]{1,128}\z/)
     return source_id if source_id.match?(/\A\d{10,20}@(s\.whatsapp\.net|g\.us|lid)\z/i)
-    return unless source_id.match?(/\A\+?[\d\s().-]+\z/)
 
-    digits = source_id.gsub(/\D/, '')
-    return unless digits.length.between?(10, 15)
+    # The UAZAPI inbox is Channel::Api. Its source_id is commonly an internal
+    # UUID; the contact phone is the WhatsApp recipient, as in SendOnApiService.
+    candidates = channel_type == 'Channel::Api' ? [conversation.contact&.phone_number, source_id] : [source_id]
+    candidates.each do |candidate|
+      next unless candidate.to_s.match?(/\A\+?[\d\s().-]+\z/)
 
-    "#{digits}@s.whatsapp.net"
+      digits = candidate.gsub(/\D/, '')
+      return "#{digits}@s.whatsapp.net" if digits.length.between?(10, 15)
+    end
+
+    nil
   end
 
   def permitted_update_params

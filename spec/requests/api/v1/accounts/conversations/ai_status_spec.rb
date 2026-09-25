@@ -30,6 +30,24 @@ RSpec.describe 'Conversation AI status API', type: :request do
     expect(client).to have_received(:statuses_for).with(['5511991234567@s.whatsapp.net'])
   end
 
+  it 'uses the contact phone for a UAZAPI API inbox with an opaque source ID' do
+    api_channel = create(:channel_api, account: account)
+    api_inbox = api_channel.inbox
+    create(:inbox_member, user: agent, inbox: api_inbox)
+    api_conversation = create(:conversation, account: account, inbox: api_inbox)
+    api_conversation.contact.update!(phone_number: '+55 11 99123-4567')
+    api_conversation.contact_inbox.update!(source_id: SecureRandom.uuid)
+
+    post path,
+         params: { conversation_ids: [api_conversation.display_id] },
+         headers: agent.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(JSON.parse(response.body).dig('statuses', 0, 'state')).to eq('blocked')
+    expect(client).to have_received(:statuses_for).with(['5511991234567@s.whatsapp.net'])
+  end
+
   it 'returns unknown when the conversation has no exact WhatsApp source ID' do
     conversation.contact_inbox.update!(source_id: 'not-a-phone')
 
