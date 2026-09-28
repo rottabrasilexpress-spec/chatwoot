@@ -28,6 +28,9 @@ describe('#URL Helpers', () => {
         '/app/accounts/1/label/support'
       );
     });
+    it('keeps archived list route when the archive label is also present', () => {
+      expect(conversationListPageURL({ accountId: 1, label: 'arquivado', conversationType: 'archived' })).toBe('/app/accounts/1/archived/conversations');
+    });
 
     it('should return url to team', () => {
       expect(conversationListPageURL({ accountId: 1, teamId: 1 })).toBe(
@@ -56,6 +59,9 @@ describe('#URL Helpers', () => {
     });
   });
   describe('conversationUrl', () => {
+    it('keeps archived conversation route when the archive label is also present', () => {
+      expect(conversationUrl({ accountId: 1, id: 3023, label: 'arquivado', conversationType: 'archived' })).toBe('accounts/1/archived/conversations/3023');
+    });
     it('should return direct conversation URL if activeInbox is nil', () => {
       expect(conversationUrl({ accountId: 1, id: 1 })).toBe(
         'accounts/1/conversations/1'

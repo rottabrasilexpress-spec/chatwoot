@@ -274,6 +274,17 @@ RSpec.describe Message do
       end
     end
 
+    it 'keeps a Rotta archived-label conversation archived after a human reply' do
+      with_modified_env 'ROTTABRASIL_CHATWOOT_ACCOUNT_ID' => conversation.account_id.to_s do
+        conversation.update!(label_list: ['arquivado'])
+
+        create(:message, message_type: :outgoing, conversation: conversation, sender: create(:user, account: conversation.account))
+
+        expect(conversation.reload).to be_resolved
+        expect(conversation.label_list).to include('arquivado')
+      end
+    end
+
     it 'marks an archived Rotta conversation pending when the customer sends a message' do
       with_modified_env 'ROTTABRASIL_CHATWOOT_ACCOUNT_ID' => conversation.account_id.to_s do
         conversation.update!(label_list: ['arquivado'])

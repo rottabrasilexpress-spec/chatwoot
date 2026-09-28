@@ -13,7 +13,9 @@ export const conversationUrl = ({
   foldersId,
 }) => {
   let url = `accounts/${accountId}/conversations/${id}`;
-  if (activeInbox) {
+  if (conversationType === 'archived') {
+    url = `accounts/${accountId}/archived/conversations/${id}`;
+  } else if (activeInbox) {
     url = `accounts/${accountId}/inbox/${activeInbox}/conversations/${id}`;
   } else if (label) {
     url = `accounts/${accountId}/label/${label}/conversations/${id}`;
@@ -33,8 +35,6 @@ export const conversationUrl = ({
     url = `accounts/${accountId}/unread/conversations/${id}`;
   } else if (conversationType === 'priority') {
     url = `accounts/${accountId}/priority/conversations/${id}`;
-  } else if (conversationType === 'archived') {
-    url = `accounts/${accountId}/archived/conversations/${id}`;
   }
   return url;
 };
@@ -48,7 +48,9 @@ export const conversationListPageURL = ({
   customViewId,
 }) => {
   let url = `accounts/${accountId}/dashboard`;
-  if (label) {
+  if (conversationType === 'archived') {
+    url = `accounts/${accountId}/archived/conversations`;
+  } else if (label) {
     url = `accounts/${accountId}/label/${label}`;
   } else if (teamId) {
     url = `accounts/${accountId}/team/${teamId}`;
