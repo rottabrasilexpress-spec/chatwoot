@@ -134,6 +134,100 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
       expect(response.parsed_body['total']).to eq(1)
     end
 
+    it 'reconciles a missing non-instant follow-up stage using its active Chatwoot label' do
+      create(:label, account: account, title: 'orcamento-tentativa-3')
+      conversation.contact.update!(phone_number: '+5511991262866', name: 'Cliente teste')
+      conversation.update_labels(['orcamento-tentativa-3'])
+      responses = [
+        instance_double(HTTParty::Response, body: { jobs: [] }.to_json, code: 200),
+        instance_double(HTTParty::Response, body: { ok: true, created: 1 }.to_json, code: 200),
+        instance_double(
+          HTTParty::Response,
+          body: {
+            jobs: [
+              {
+                'job_id' => 'recovered-budget-stage',
+                'account_id' => account.id.to_s,
+                'conversation_id' => conversation.display_id.to_s,
+                'phone' => '+5511991262866',
+                'source_label' => 'orcamento-tentativa-3',
+                'current_label' => 'orcamento-tentativa-3',
+                'status' => 'pending'
+              }
+            ]
+          }.to_json,
+          code: 200
+        )
+      ]
+      requests = []
+      allow(HTTParty).to receive(:post) do |url, **options|
+        requests << [url, options]
+        responses.fetch(requests.length - 1)
+      end
+
+      post endpoint,
+           headers: user.create_new_auth_token,
+           params: { action: 'list' },
+           as: :json
+
+      expect(response).to have_http_status(:success), response.body
+      expect(JSON.parse(requests[1].last[:body])).to include(
+        'action' => 'reconcile',
+        'conversations' => contain_exactly(hash_including(
+          'conversation_id' => conversation.display_id.to_s,
+          'stage_label' => 'orcamento-tentativa-3',
+          'active_labels' => ['orcamento-tentativa-3']
+        ))
+      )
+      expect(response.parsed_body['jobs'].sole).to include(
+        'job_id' => 'recovered-budget-stage',
+        'current_label' => 'orcamento-tentativa-3',
+        'status' => 'pending'
+      )
+      expect(response.parsed_body['total']).to eq(1)
+    end
+
+    it 'does not automatically reconcile instant follow-up labels' do
+      create(:label, account: account, title: 'contato-instantaneo')
+      conversation.contact.update!(phone_number: '+5511991262866')
+      conversation.update_labels(['contato-instantaneo'])
+      upstream = instance_double(HTTParty::Response, body: { jobs: [] }.to_json, code: 200)
+      allow(HTTParty).to receive(:post).and_return(upstream)
+
+      post endpoint, headers: user.create_new_auth_token, params: { action: 'list' }, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(HTTParty).to have_received(:post).once
+      expect(response.parsed_body['jobs'].sole).to include(
+        'status' => 'sync_failed',
+        'pending_enrollment' => true,
+        'source_label' => 'contato-instantaneo'
+      )
+    end
+
+    it 'pauses duplicate phone candidates without failing the rest of the list request' do
+      create(:label, account: account, title: 'segundo-contato')
+      duplicate_conversation = create(:conversation, account: account)
+      conversation.contact.update!(phone_number: '+5511991262866')
+      duplicate_conversation.contact.update!(phone_number: '5511991262866')
+      conversation.update_labels(['segundo-contato'])
+      duplicate_conversation.update_labels(['segundo-contato'])
+      upstream = instance_double(HTTParty::Response, body: { jobs: [] }.to_json, code: 200)
+      allow(HTTParty).to receive(:post).and_return(upstream)
+
+      post endpoint, headers: user.create_new_auth_token, params: { action: 'list' }, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(HTTParty).to have_received(:post).once
+      fallbacks = response.parsed_body['jobs']
+      expect(fallbacks.size).to eq(2)
+      expect(fallbacks).to all(include(
+        'status' => 'sync_failed',
+        'pending_enrollment' => true
+      ))
+      expect(fallbacks.map { |job| job['error_message'] }).to all(include('mesmo telefone'))
+    end
+
     it 'shows the exact reconciliation failure while keeping the active label visible' do
       create(:label, account: account, title: 'primeiro-contato')
       conversation.contact.update!(phone_number: '+5511991262866', name: 'Cliente teste')
@@ -267,6 +361,32 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
         'current_label' => 'primeiro-contato',
         'status' => 'pending'
       }
+    end
+
+    it 'blocks retrying an indeterminate send so the customer cannot receive a duplicate' do
+      indeterminate_job = remote_job.merge(
+        'status' => 'failed_send',
+        'error_message' => 'estado de envio indeterminado após timeout; revisar antes de reenviar'
+      )
+      upstream_response = instance_double(
+        HTTParty::Response,
+        body: { jobs: [indeterminate_job] }.to_json,
+        code: 200
+      )
+      allow(HTTParty).to receive(:post).and_return(upstream_response)
+
+      post endpoint,
+           headers: user.create_new_auth_token,
+           params: {
+             action: 'dispatch_now',
+             job_id: indeterminate_job['job_id'],
+             conversation_id: conversation.display_id
+           },
+           as: :json
+
+      expect(response).to have_http_status(:conflict)
+      expect(response.parsed_body['error']).to include('pode já ter sido entregue')
+      expect(HTTParty).to have_received(:post).once
     end
 
     it 'rejects a job from another account before forwarding a mutation' do
