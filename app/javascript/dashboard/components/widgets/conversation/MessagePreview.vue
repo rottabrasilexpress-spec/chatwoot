@@ -93,6 +93,12 @@ export default {
 
 <template>
   <div class="overflow-hidden text-ellipsis whitespace-nowrap">
+    <span
+      v-if="messageByAgent && !isMessagePrivate"
+      class="inline-flex align-middle rounded px-1.5 py-0.5 ltr:mr-1 rtl:ml-1 bg-n-blue-3 text-n-blue-11 text-[10px] leading-none font-semibold"
+    >
+      {{ $t('CONVERSATION.LAST_REPLY_FROM_TEAM') }}
+    </span>
     <MessageStatus
       v-if="deliveryStatus"
       :status="deliveryStatus"

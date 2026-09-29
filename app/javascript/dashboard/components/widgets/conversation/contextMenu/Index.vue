@@ -12,6 +12,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 const MENU = {
   MARK_AS_READ: 'mark-as-read',
   MARK_AS_UNREAD: 'mark-as-unread',
+  SELECT_CONVERSATION: 'select-conversation',
   PRIORITY: 'priority',
   LABEL: 'label',
   DELETE: 'delete',
@@ -56,6 +57,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    selected: {
+      type: Boolean,
+      default: false,
+    },
     allowedOptions: {
       type: Array,
       default: () => [],
@@ -97,6 +102,7 @@ export default {
     'requestAttention',
     'finalizeConversation',
     'issueContract',
+    'toggleSelection',
     'close',
   ],
   setup() {
@@ -204,6 +210,15 @@ export default {
         label: this.pinned ? 'Desafixar conversa' : 'Fixar conversa',
       };
     },
+    selectionOption() {
+      return {
+        key: MENU.SELECT_CONVERSATION,
+        icon: this.selected ? 'i-lucide-square-check' : 'i-lucide-square',
+        label: this.selected
+          ? this.$t('CONVERSATION.CARD_CONTEXT_MENU.DESELECT_CONVERSATION')
+          : this.$t('CONVERSATION.CARD_CONTEXT_MENU.SELECT_CONVERSATION'),
+      };
+    },
   },
   methods: {
     isAllowed(keys) {
@@ -246,6 +261,10 @@ export default {
       this.$emit('issueContract', this.chatId);
       this.$emit('close');
     },
+    toggleSelection() {
+      this.$emit('toggleSelection', this.chatId);
+      this.$emit('close');
+    },
     generateMenuLabelConfig(option, type = 'text') {
       return {
         key: option.id,
@@ -263,6 +282,16 @@ export default {
   <div
     class="p-1 rounded-md shadow-xl bg-n-alpha-3/50 backdrop-blur-[100px] outline-1 outline outline-n-weak/50"
   >
+    <MenuItem
+      v-if="isAllowed([MENU.SELECT_CONVERSATION])"
+      :option="selectionOption"
+      variant="icon"
+      @click.stop="toggleSelection"
+    />
+    <hr
+      v-if="isAllowed([MENU.SELECT_CONVERSATION])"
+      class="m-1 rounded border-b border-n-weak dark:border-n-weak"
+    />
     <template v-if="isAllowed([MENU.MARK_AS_READ, MENU.MARK_AS_UNREAD])">
       <MenuItem
         v-if="!hasUnreadMessages"

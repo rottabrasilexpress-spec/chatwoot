@@ -1,6 +1,7 @@
 {
   "CONVERSATION": {
     "SELECT_A_CONVERSATION": "Por favor, selecione uma conversa no painel da esquerda",
+    "LAST_REPLY_FROM_TEAM": "Nossa resposta",
     "CSAT_REPLY_MESSAGE": "Por favor, classifique a conversa",
     "404": "Desculpe, não conseguimos encontrar a conversa. Por favor, tente novamente",
     "SWITCH_VIEW_LAYOUT": "Alternar o layout",
@@ -215,6 +216,8 @@
       "UNFINALIZE_FAILED": "Não foi possível desfazer o envio para FINALIZADOS. Tente novamente.",
       "MARK_AS_UNREAD": "Marcar como não lida",
       "MARK_AS_READ": "Marcar como lida",
+      "SELECT_CONVERSATION": "Selecionar contato",
+      "DESELECT_CONVERSATION": "Desmarcar contato",
       "REOPEN": "Reabrir conversa",
       "SNOOZE": {
         "TITLE": "Adiar",

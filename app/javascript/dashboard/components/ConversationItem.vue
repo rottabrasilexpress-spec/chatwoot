@@ -45,6 +45,9 @@ const assignPriority = inject('assignPriority');
 const isConversationSelected = inject('isConversationSelected');
 const deleteConversation = inject('deleteConversation');
 const togglePinned = inject('togglePinned');
+const selectedConversationIds = useMapGetter(
+  'bulkActions/getSelectedConversationIds'
+);
 
 // --- Context menu state (shared by both layouts) ---
 const showContextMenu = ref(false);
@@ -125,6 +128,10 @@ const currentContact = computed(() =>
 );
 
 const isActiveChat = computed(() => currentChat.value.id === props.source.id);
+const isSelected = computed(() => isConversationSelected(props.source.id));
+const isSelectionModeActive = computed(
+  () => selectedConversationIds.value.length > 0
+);
 
 const inbox = computed(() => {
   const inboxId = props.source.inbox_id;
@@ -185,6 +192,11 @@ const onExpandedSelect = checked => {
   } else {
     deSelectConversation(props.source.id, inbox.value.id);
   }
+};
+
+const onToggleSelection = () => {
+  const toggle = isSelected.value ? deSelectConversation : selectConversation;
+  toggle(props.source.id, inbox.value.id);
 };
 
 const openContextMenu = e => {
@@ -328,7 +340,8 @@ const onFinalizeConversation = async () => {
     :current-contact="currentContact"
     :assignee="assignee"
     :inbox="inbox"
-    :selected="isConversationSelected(source.id)"
+    :selected="isSelected"
+    :selection-mode-active="isSelectionModeActive"
     :is-active-chat="isActiveChat"
     :show-assignee="showAssigneeForExpandedCard"
     :show-inbox-name="showInboxName"
@@ -350,7 +363,8 @@ const onFinalizeConversation = async () => {
     :current-contact="currentContact"
     :assignee="assignee"
     :inbox="inbox"
-    :selected="isConversationSelected(source.id)"
+    :selected="isSelected"
+    :selection-mode-active="isSelectionModeActive"
     :is-active-chat="isActiveChat"
     :show-assignee="showAssignee"
     :show-inbox-name="showInboxName"
@@ -377,6 +391,7 @@ const onFinalizeConversation = async () => {
       :has-unread-messages="hasUnreadMessages"
       :conversation-labels="source.labels"
       :pinned="isPinned"
+      :selected="isSelected"
       :conversation-url="conversationPath"
       :can-request-attention="canRequestAttention"
       :can-finalize="canFinalize && !isFinalizing"
@@ -395,6 +410,7 @@ const onFinalizeConversation = async () => {
       @request-attention="onRequestAttention"
       @finalize-conversation="onFinalizeConversation"
       @issue-contract="onIssueContract"
+      @toggle-selection="onToggleSelection"
       @close="closeContextMenu"
     />
   </ContextMenu>

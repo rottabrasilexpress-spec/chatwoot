@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 import {
@@ -32,6 +32,7 @@ const props = defineProps({
   assignee: { type: Object, default: () => ({}) },
   inbox: { type: Object, default: () => ({}) },
   selected: { type: Boolean, default: false },
+  selectionModeActive: { type: Boolean, default: false },
   isActiveChat: { type: Boolean, default: false },
   showAssignee: { type: Boolean, default: false },
   showInboxName: { type: Boolean, default: false },
@@ -47,7 +48,6 @@ const emit = defineEmits([
   'deSelectConversation',
 ]);
 
-const hovered = ref(false);
 const { t } = useI18n();
 
 const hasUnread = computed(() => hasUnreadIncomingMessage(props.chat));
@@ -163,14 +163,6 @@ const messagePreviewClass = computed(() => {
   ];
 });
 
-const onThumbnailHover = () => {
-  hovered.value = !props.hideThumbnail;
-};
-
-const onThumbnailLeave = () => {
-  hovered.value = false;
-};
-
 const onSelectConversation = checked => {
   if (checked) {
     emit('selectConversation', props.chat.id, props.inbox.id);
@@ -183,13 +175,6 @@ const selectedModel = computed({
   get: () => props.selected,
   set: value => onSelectConversation(value),
 });
-
-watch(
-  () => props.chat.id,
-  () => {
-    hovered.value = false;
-  }
-);
 </script>
 
 <template>
@@ -197,7 +182,7 @@ watch(
     class="relative flex items-start flex-grow-0 flex-shrink-0 w-auto max-w-full min-h-[5.25rem] py-0 cursor-pointer conversation border-b border-n-slate-3 hover:border-n-surface-1 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3 group hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
     :style="cardLabelBorderStyle"
     :class="{
-      'active animate-card-select bg-n-background !border-n-surface-1':
+      'active animate-card-select !bg-n-blue-3 dark:!bg-n-blue-4 ring-2 ring-inset ring-n-blue-9 !border-n-blue-9':
         isActiveChat,
       'selected bg-n-slate-2 !border-n-surface-1': selected,
       'rotta-kelvin-card': hasKelvinCaioLabel,
@@ -210,11 +195,7 @@ watch(
     @click="$emit('click', $event)"
     @contextmenu="$emit('contextmenu', $event)"
   >
-    <div
-      class="relative"
-      @mouseenter="onThumbnailHover"
-      @mouseleave="onThumbnailLeave"
-    >
+    <div class="relative">
       <button
         v-if="!hideThumbnail"
         type="button"
@@ -234,7 +215,7 @@ watch(
         />
       </button>
       <label
-        v-if="!hideThumbnail && (hovered || selected)"
+        v-if="!hideThumbnail && (selectionModeActive || selected)"
         class="rotta-conversation-select flex items-center justify-center rounded-full cursor-pointer absolute z-10"
         @click.stop
       >

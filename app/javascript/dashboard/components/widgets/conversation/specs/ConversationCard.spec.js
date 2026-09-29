@@ -82,6 +82,16 @@ describe('ConversationCard', () => {
     expect(wrapper.emitted('selectConversation')).toBeUndefined();
   });
 
+  it('does not reveal selection when hovering until bulk selection is active', async () => {
+    const wrapper = mountComponent({});
+
+    await wrapper.find('.rotta-contact-avatar').trigger('mouseenter');
+    expect(wrapper.find('.rotta-conversation-select').exists()).toBe(false);
+
+    await wrapper.setProps({ selectionModeActive: true });
+    expect(wrapper.find('.rotta-conversation-select').exists()).toBe(true);
+  });
+
   it('falls back to the WhatsApp phone number when the contact has no name', () => {
     const wrapper = mountComponent(
       {

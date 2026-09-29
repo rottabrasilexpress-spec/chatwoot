@@ -294,15 +294,22 @@ export default {
       this.messageSentSinceOpened = false;
       this.hasNewMessages = false;
       this.newMessagesCount = 0;
+      this.hasUserScrolled = false;
       this.resetReplyEditorHeight();
-      this.$nextTick(() => this.loadAllPreviousMessages());
+      this.$nextTick(() => {
+        this.scrollToLatestOnOpen();
+        this.loadAllPreviousMessages();
+      });
     },
     'currentChat.messages.length'(newLength, oldLength) {
       this.handleLiveMessageBatch(newLength, oldLength);
     },
     'currentChat.dataFetched'(dataFetched) {
       if (dataFetched) {
-        this.$nextTick(() => this.loadAllPreviousMessages());
+        this.$nextTick(() => {
+          if (!this.hasUserScrolled) this.scrollToLatestOnOpen();
+          this.loadAllPreviousMessages();
+        });
       }
     },
   },
@@ -347,7 +354,7 @@ export default {
 
       this.labelSuggestions = await this.getLabelSuggestions();
 
-      // once the labels are fetched, we need to scroll to bottom
+      // Once labels are fetched, keep the view at the latest message.
       // but we need to wait for the DOM to be updated
       // so we use the nextTick method
       this.$nextTick(() => {
@@ -359,7 +366,7 @@ export default {
         // only trigger the scroll to bottom if the user has not scrolled
         // and there's no active messageId that is selected in view
         if (!messageId && !this.hasUserScrolled) {
-          this.scrollToBottom();
+          this.scrollToLatestOnOpen();
         }
       });
     },
@@ -393,7 +400,7 @@ export default {
       this.conversationPanel = this.$el.querySelector('.conversation-panel');
       this.setScrollParams();
       this.conversationPanel.addEventListener('scroll', this.handleScroll);
-      this.$nextTick(() => this.scrollToBottom());
+      this.$nextTick(() => this.scrollToLatestOnOpen());
       this.isLoadingPrevious = false;
     },
     removeScrollListener() {
@@ -445,6 +452,10 @@ export default {
       this.$nextTick(() => {
         this.isProgrammaticScroll = false;
       });
+    },
+    scrollToLatestOnOpen() {
+      if (this.$route?.query?.messageId) return;
+      this.scrollToLatest();
     },
     scrollToBottom() {
       this.isProgrammaticScroll = true;
@@ -553,6 +564,8 @@ export default {
         this.historyLoadPromise = null;
         if (this.currentChat?.id !== conversationId) {
           this.$nextTick(() => this.loadAllPreviousMessages());
+        } else if (!this.hasUserScrolled) {
+          this.$nextTick(() => this.scrollToLatestOnOpen());
         }
       }
     },
@@ -600,7 +613,7 @@ export default {
         this.scrollFrameId = null;
         const scrollTop = this.pendingScrollTop;
 
-        if (this.isProgrammaticScroll) {
+        if (this.isProgrammaticScroll || this.isNearBottom()) {
           this.isProgrammaticScroll = false;
           this.hasUserScrolled = false;
         } else {

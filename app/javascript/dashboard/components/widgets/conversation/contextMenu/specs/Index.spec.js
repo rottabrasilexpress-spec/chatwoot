@@ -29,6 +29,46 @@ const mountComponent = props =>
   });
 
 describe('ConversationContextMenu', () => {
+  it('offers conversation selection and emits the selection action', async () => {
+    const wrapper = mountComponent();
+    const action = wrapper
+      .findAllComponents(MenuItem)
+      .find(item => item.props('option').key === 'select-conversation');
+
+    expect(action).toBeTruthy();
+    expect(action.props('option')).toMatchObject({
+      label: 'CONVERSATION.CARD_CONTEXT_MENU.SELECT_CONVERSATION',
+    });
+
+    await action.trigger('click');
+
+    expect(wrapper.emitted('toggleSelection')).toEqual([[42]]);
+    expect(wrapper.emitted('close')).toEqual([[]]);
+  });
+
+  it('offers deselection when the conversation is already selected', () => {
+    const wrapper = mountComponent({ selected: true });
+    const action = wrapper
+      .findAllComponents(MenuItem)
+      .find(item => item.props('option').key === 'select-conversation');
+
+    expect(action.text()).toBe(
+      'CONVERSATION.CARD_CONTEXT_MENU.DESELECT_CONVERSATION'
+    );
+  });
+
+  it('keeps selection out of restricted context menus', () => {
+    const wrapper = mountComponent({
+      allowedOptions: ['open-new-tab', 'copy-link'],
+    });
+
+    const action = wrapper
+      .findAllComponents(MenuItem)
+      .find(item => item.props('option').key === 'select-conversation');
+
+    expect(action).toBeUndefined();
+  });
+
   it('shows the purple contract label shortcut and emits the assignment action', async () => {
     const wrapper = mountComponent();
     const action = wrapper

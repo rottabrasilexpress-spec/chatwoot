@@ -25,6 +25,7 @@ const props = defineProps({
   assignee: { type: Object, default: () => ({}) },
   inbox: { type: Object, default: () => ({}) },
   selected: { type: Boolean, default: false },
+  selectionModeActive: { type: Boolean, default: false },
   isActiveChat: { type: Boolean, default: false },
   showAssignee: { type: Boolean, default: false },
   showInboxName: { type: Boolean, default: false },
@@ -86,7 +87,7 @@ const selectedModel = computed({
   <div
     class="conversation relative cursor-pointer group grid gap-4 items-center px-3 min-h-[4.25rem] border-b border-n-slate-3 hover:border-n-surface-1 hover:z-[1] before:content-[none] before:absolute before:-top-px before:inset-x-0 before:h-px before:bg-n-surface-1 before:pointer-events-none hover:before:content-['']"
     :class="{
-      'active animate-card-select bg-n-alpha-1 dark:bg-n-alpha-3 !border-n-surface-1':
+      'active animate-card-select !bg-n-blue-3 dark:!bg-n-blue-4 ring-2 ring-inset ring-n-blue-9 !border-n-blue-9':
         isActiveChat,
       'selected bg-n-slate-2 dark:bg-n-slate-3 !border-n-surface-1': selected,
       'rotta-incoming-card': lastMessageFromContact && unreadCount > 0,
@@ -99,7 +100,11 @@ const selectedModel = computed({
   >
     <!-- LEFT SECTION -->
     <div class="flex items-center gap-2 min-w-0 flex-1">
-      <div class="flex items-center justify-center flex-shrink-0" @click.stop>
+      <div
+        v-if="selectionModeActive || selected"
+        class="flex items-center justify-center flex-shrink-0"
+        @click.stop
+      >
         <Checkbox v-model="selectedModel" />
       </div>
 

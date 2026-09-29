@@ -27,6 +27,7 @@ vi.mock('dashboard/helper/conversationHelper', () => ({
 }));
 
 const ConversationCardStub = {
+  props: ['selected', 'selectionModeActive'],
   emits: ['contextmenu'],
   template: '<div @contextmenu="$emit(\'contextmenu\', $event)"></div>',
 };
@@ -35,6 +36,7 @@ const mountConversationItem = ({
   source,
   labels = [],
   routeLabel = '',
+  selected = false,
 } = {}) => {
   const store = createStore({
     getters: {
@@ -65,6 +67,12 @@ const mountConversationItem = ({
           ],
         },
       },
+      bulkActions: {
+        namespaced: true,
+        getters: {
+          getSelectedConversationIds: () => (selected ? [2441] : []),
+        },
+      },
     },
   });
   const dispatch = vi.spyOn(store, 'dispatch').mockResolvedValue(undefined);
@@ -78,7 +86,7 @@ const mountConversationItem = ({
     markAsUnread: vi.fn(),
     markAsRead: vi.fn(),
     assignPriority: vi.fn(),
-    isConversationSelected: () => false,
+    isConversationSelected: () => selected,
     deleteConversation: vi.fn(),
     togglePinned: vi.fn(),
   };
@@ -187,6 +195,45 @@ describe('ConversationItem contract shortcut', () => {
       [2441]
     );
     expect(dependencies.removeLabels).not.toHaveBeenCalled();
+  });
+});
+
+describe('ConversationItem selection shortcut', () => {
+  it('activates selection controls across the list after a conversation is selected', () => {
+    const { wrapper } = mountConversationItem({ selected: true });
+
+    expect(
+      wrapper.findComponent(ConversationCard).props('selectionModeActive')
+    ).toBe(true);
+  });
+
+  it('selects a conversation from the right-click menu', async () => {
+    const { wrapper, dependencies } = mountConversationItem();
+    await openContextMenu(wrapper);
+
+    const action = findMenuAction(wrapper, 'select-conversation');
+    expect(action).toBeTruthy();
+    expect(action.text()).toBe(
+      'CONVERSATION.CARD_CONTEXT_MENU.SELECT_CONVERSATION'
+    );
+
+    await action.trigger('click');
+
+    expect(dependencies.selectConversation).toHaveBeenCalledWith(2441, 1);
+  });
+
+  it('deselects a conversation from the right-click menu', async () => {
+    const { wrapper, dependencies } = mountConversationItem({ selected: true });
+    await openContextMenu(wrapper);
+
+    const action = findMenuAction(wrapper, 'select-conversation');
+    expect(action.text()).toBe(
+      'CONVERSATION.CARD_CONTEXT_MENU.DESELECT_CONVERSATION'
+    );
+
+    await action.trigger('click');
+
+    expect(dependencies.deSelectConversation).toHaveBeenCalledWith(2441, 1);
   });
 });
 

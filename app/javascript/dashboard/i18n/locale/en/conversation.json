@@ -8,6 +8,7 @@
       "REPLIED_BELOW": "Customer replied below"
     },
     "SELECT_A_CONVERSATION": "Please select a conversation from left pane",
+    "LAST_REPLY_FROM_TEAM": "Our reply",
     "AI_STATUS": {
       "ACTIVE": "AI assistant is on",
       "BLOCKED": "AI assistant is paused",
@@ -260,6 +261,8 @@
       "UNFINALIZE_FAILED": "The conversation could not be returned from FINALIZED. Try again.",
       "MARK_AS_UNREAD": "Mark as unread",
       "MARK_AS_READ": "Mark as read",
+      "SELECT_CONVERSATION": "Select conversation",
+      "DESELECT_CONVERSATION": "Deselect conversation",
       "REOPEN": "Reopen conversation",
       "SNOOZE": {
         "TITLE": "Snooze",
