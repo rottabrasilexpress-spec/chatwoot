@@ -6,19 +6,22 @@ class ConversationApi extends ApiClient {
     super('conversations', { accountScoped: true });
   }
 
-  get({
-    inboxId,
-    status,
-    assigneeType,
-    page,
-    labels,
-    teamId,
-    conversationType,
-    sortBy,
-    updatedWithin,
-    q,
-    perPage,
-  }, requestConfig = {}) {
+  get(
+    {
+      inboxId,
+      status,
+      assigneeType,
+      page,
+      labels,
+      teamId,
+      conversationType,
+      sortBy,
+      updatedWithin,
+      q,
+      perPage,
+    },
+    requestConfig = {}
+  ) {
     const params = {
       inbox_id: inboxId,
       team_id: teamId,
@@ -57,6 +60,14 @@ class ConversationApi extends ApiClient {
         q,
         page: 1,
       },
+    });
+  }
+
+  lookup({ q, page = 1, perPage = 50 }, requestConfig = {}) {
+    return axios.get(`${this.url}/search`, {
+      ...requestConfig,
+      params: { q, page, per_page: perPage, contact_search: true },
+      timeout: 15000,
     });
   }
 

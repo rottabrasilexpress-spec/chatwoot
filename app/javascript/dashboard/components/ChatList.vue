@@ -110,10 +110,17 @@ const resizeStartX = ref(0);
 const resizeStartWidth = ref(340);
 const resizeConversationsLabel = 'Redimensionar lista de conversas';
 const noSearchResultsLabel = 'Nenhuma conversa encontrada.';
+const searchErrorLabel =
+  'Não foi possível concluir a pesquisa. Os resultados já encontrados foram mantidos.';
+const retrySearchLabel = 'Tentar novamente';
 const conversationSearchQuery = ref('');
 const isMarkingAllAsRead = ref(false);
 const remoteSearchResults = ref(null);
 const isSearchingConversations = ref(false);
+const conversationSearchError = ref(false);
+const searchHasMore = ref(false);
+let searchPage = 1;
+let conversationSearchController = null;
 const conversationsPerPage = 25;
 let conversationSearchTimer = null;
 let conversationSearchRequestId = 0;
@@ -439,7 +446,7 @@ const filteredConversationList = computed(() => {
 
   return getConversationSearchResults({
     remoteResults: remoteSearchResults.value || [],
-    localResults: conversationList.value,
+    localResults: allChatList.value,
     query,
   });
 });
@@ -899,7 +906,7 @@ async function markAllVisibleAsRead() {
   }
 }
 
-async function searchConversationsRemotely(query, requestId) {
+async function searchConversationsRemotely(query, requestId, page = 1) {
   const normalizedQuery = query.trim();
   if (requestId !== conversationSearchRequestId) return;
 
@@ -910,20 +917,23 @@ async function searchConversationsRemotely(query, requestId) {
   }
 
   isSearchingConversations.value = true;
+  conversationSearchError.value = false;
+  conversationSearchController = new AbortController();
   try {
-    const { data } = await ConversationApi.get({
-      ...conversationFilters.value,
-      page: 1,
-      per_page: 100,
-      q: normalizedQuery,
-    });
+    const { data } = await ConversationApi.lookup(
+      { page, perPage: 50, q: normalizedQuery },
+      { signal: conversationSearchController.signal }
+    );
     if (requestId === conversationSearchRequestId) {
-      remoteSearchResults.value = data.data?.payload || [];
+      const records = data.payload || [];
+      remoteSearchResults.value =
+        page === 1 ? records : [...remoteSearchResults.value, ...records];
+      searchPage = page;
+      searchHasMore.value = records.length === 50;
     }
   } catch (error) {
     if (requestId === conversationSearchRequestId) {
-      remoteSearchResults.value = [];
-      useAlert('Não foi possível pesquisar as conversas. Tente novamente.');
+      conversationSearchError.value = true;
     }
   } finally {
     if (requestId === conversationSearchRequestId) {
@@ -936,9 +946,31 @@ function scheduleConversationSearch(query) {
   conversationSearchRequestId += 1;
   const requestId = conversationSearchRequestId;
   clearTimeout(conversationSearchTimer);
+  conversationSearchController?.abort();
+  remoteSearchResults.value = null;
+  conversationSearchError.value = false;
+  searchHasMore.value = false;
+  searchPage = 1;
+  isSearchingConversations.value = query.trim().length >= 2;
   conversationSearchTimer = setTimeout(
     () => searchConversationsRemotely(query, requestId),
     200
+  );
+}
+
+function loadMoreSearchResults() {
+  if (isSearchingConversations.value || !searchHasMore.value) return;
+  searchConversationsRemotely(
+    conversationSearchQuery.value,
+    conversationSearchRequestId,
+    searchPage + 1
+  );
+}
+
+function retryConversationSearch() {
+  searchConversationsRemotely(
+    conversationSearchQuery.value,
+    conversationSearchRequestId
   );
 }
 
@@ -1016,6 +1048,8 @@ onBeforeUnmount(() => {
   isChatListUnmounted = true;
   stopResizingConversationList();
   clearTimeout(conversationSearchTimer);
+  conversationSearchRequestId += 1;
+  conversationSearchController?.abort();
 });
 
 const deleteConversationDialogRef = ref(null);
@@ -1160,7 +1194,11 @@ watch(conversationSearchQuery, searchQuery => {
     />
 
     <p
-      v-if="!chatListLoading && !conversationList.length"
+      v-if="
+        !conversationSearchQuery.trim() &&
+        !chatListLoading &&
+        !conversationList.length
+      "
       class="flex overflow-auto justify-center items-center p-4"
     >
       {{ $t('CHAT_LIST.LIST.404') }}
@@ -1169,12 +1207,27 @@ watch(conversationSearchQuery, searchQuery => {
       v-if="
         conversationSearchQuery.trim() &&
         !isSearchingConversations &&
+        !conversationSearchError &&
         !filteredConversationList.length
       "
       class="flex overflow-auto justify-center items-center p-4 text-sm text-n-slate-10"
     >
       {{ noSearchResultsLabel }}
     </p>
+    <div
+      v-if="conversationSearchError"
+      class="p-3 text-sm text-n-slate-11"
+      role="status"
+    >
+      {{ searchErrorLabel }}
+      <button
+        class="text-n-brand underline ml-1"
+        :disabled="isSearchingConversations"
+        @click="retryConversationSearch"
+      >
+        {{ retrySearchLabel }}
+      </button>
+    </div>
     <ConversationBulkActions
       :conversations="selectedConversations"
       :all-conversations-selected="allConversationsSelected"
@@ -1184,6 +1237,7 @@ watch(conversationSearchQuery, searchQuery => {
     <ConversationList
       :conversation-list="filteredConversationList"
       :is-loading="chatListLoading || isSearchingConversations"
+      :search-mode="Boolean(conversationSearchQuery.trim())"
       :show-end-of-list-message="showEndOfListMessage"
       :label="label"
       :team-id="teamId"
@@ -1191,7 +1245,11 @@ watch(conversationSearchQuery, searchQuery => {
       :conversation-type="conversationType"
       :show-assignee="showAssigneeInConversationCard"
       :is-on-expanded-layout="isOnExpandedLayout"
-      @load-more="loadMoreConversations"
+      @load-more="
+        conversationSearchQuery.trim()
+          ? loadMoreSearchResults()
+          : loadMoreConversations()
+      "
     />
     <Dialog
       ref="deleteConversationDialogRef"

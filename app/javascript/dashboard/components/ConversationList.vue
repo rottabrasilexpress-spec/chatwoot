@@ -11,6 +11,7 @@ import wootConstants from 'dashboard/constants/globals';
 
 const props = defineProps({
   conversationList: { type: Array, default: () => [] },
+  searchMode: { type: Boolean, default: false },
   isLoading: { type: Boolean, default: false },
   showEndOfListMessage: { type: Boolean, default: false },
   label: { type: String, default: '' },
@@ -90,6 +91,7 @@ defineExpose({ conversationListRef });
     >
       <ConversationItem
         :source="item"
+        :search-mode="searchMode"
         :label="label"
         :team-id="teamId"
         :folders-id="foldersId"

@@ -169,6 +169,11 @@ class ConversationFinder
   def filter_by_query
     return unless params[:q]
 
+    if params[:contact_search] == 'true'
+      @conversations = Conversations::ContactSearchService.new(@conversations, params[:q]).perform
+      return
+    end
+
     allowed_message_types = [Message.message_types[:incoming], Message.message_types[:outgoing]]
     query = 'messages.content ILIKE :search OR contacts.name ILIKE :search OR contacts.phone_number ILIKE :search'
     query_parameters = { search: "%#{params[:q]}%" }
@@ -179,14 +184,15 @@ class ConversationFinder
       query_parameters[:phone_search] = "%#{phone_query}%"
     end
 
-    @conversations = conversations.joins(:messages).left_joins(:contact)
+    matching_ids = @conversations.joins(:messages).left_joins(:contact)
                                   .left_joins(:contact_inbox)
                                   .where(
                                     "(#{query})",
                                     query_parameters
                                   )
                                   .where(messages: { message_type: allowed_message_types })
-                                  .distinct
+                                  .select('conversations.id')
+    @conversations = @conversations.where(id: matching_ids)
   end
 
   def filter_by_status

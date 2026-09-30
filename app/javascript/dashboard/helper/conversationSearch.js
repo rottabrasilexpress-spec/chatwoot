@@ -12,9 +12,6 @@ export const conversationMatchesSearch = (conversation, query) => {
 
   const contact = conversation.contact || {};
   const sender = conversation.meta?.sender || {};
-  const labels = (conversation.labels || []).map(label =>
-    typeof label === 'string' ? label : label?.title
-  );
   const searchableFields = [
     conversation.id,
     conversation.display_id,
@@ -25,8 +22,6 @@ export const conversationMatchesSearch = (conversation, query) => {
     contact.phone_number,
     contact.email,
     conversation.contact_inbox?.source_id,
-    conversation.last_non_activity_message?.content,
-    ...labels,
   ].filter(Boolean);
 
   if (normalizeText(searchableFields.join(' ')).includes(normalizedQuery)) {
@@ -34,7 +29,7 @@ export const conversationMatchesSearch = (conversation, query) => {
   }
 
   const phoneQuery = digitsOnly(query);
-  if (phoneQuery.length < 4) return false;
+  if (!phoneQuery || !/^[+\d\s().-]+$/.test(query)) return false;
 
   const searchablePhoneNumbers = [
     sender.phone_number,
@@ -54,14 +49,47 @@ export const getConversationSearchResults = ({
 }) => {
   const conversationsById = new Map();
 
-  [...remoteResults, ...localResults].forEach(conversation => {
+  // The server is authoritative for fuzzy suggestions; an exact-only local
+  // filter must not throw away the suggestions returned by PostgreSQL.
+  [
+    ...remoteResults,
+    ...localResults.filter(conversation =>
+      conversationMatchesSearch(conversation, query)
+    ),
+  ].forEach(conversation => {
     const key = conversation.id ?? conversation;
     if (!conversationsById.has(key)) {
       conversationsById.set(key, conversation);
     }
   });
 
-  return [...conversationsById.values()].filter(conversation =>
-    conversationMatchesSearch(conversation, query)
+  return [...conversationsById.values()];
+};
+
+export const getSearchConversationDestination = conversation => {
+  const labels = (conversation.labels || []).map(label =>
+    typeof label === 'string' ? label : label?.title
   );
+  const normalizeLabel = label =>
+    normalizeText(label).replace(/[^a-z0-9]/g, '');
+  if (
+    conversation.rotta_archived ||
+    conversation.status === 'resolved' ||
+    labels.some(label =>
+      ['arquivado', 'arquivados'].includes(normalizeLabel(label))
+    )
+  ) {
+    return { conversationType: 'archived' };
+  }
+  const groups = [
+    ['finalizados'],
+    ['clientesfechados'],
+    ['emitircontrato'],
+    ['caioatencao'],
+    ['kelvin', 'kelvincaio'],
+  ];
+  const label = groups
+    .map(group => labels.find(value => group.includes(normalizeLabel(value))))
+    .find(Boolean);
+  return label ? { label } : {};
 };

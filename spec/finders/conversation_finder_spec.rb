@@ -24,6 +24,22 @@ describe ConversationFinder do
   end
 
   describe '#perform' do
+    context 'with the conversation-list global contact search' do
+      let(:params) { { q: 'Helosa', contact_search: 'true', per_page: 50 } }
+
+      it 'finds archived names with a typo and never needs a message join' do
+        contact = create(:contact, account: account, name: 'Heloísa Martins')
+        archived = create(:conversation, account: account, inbox: inbox, contact: contact, status: 'resolved')
+        expect(conversation_finder.perform[:conversations]).to include(archived)
+      end
+
+      it 'preserves permission filtering for other inboxes' do
+        contact = create(:contact, account: account, name: 'Heloísa Martins')
+        inaccessible = create(:conversation, account: account, inbox: restricted_inbox, contact: contact)
+        expect(conversation_finder.perform[:conversations]).not_to include(inaccessible)
+      end
+    end
+
     context 'with pinned conversations older than the first page' do
       let(:params) { { status: 'all', assignee_type: 'all', per_page: 1 } }
 

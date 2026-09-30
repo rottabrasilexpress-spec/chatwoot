@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
+import { getSearchConversationDestination } from 'dashboard/helper/conversationSearch';
 import { hasUnreadIncomingMessage } from 'dashboard/helper/conversationHelper';
 import { getLabelPresentationTitle } from 'dashboard/helper/rottaLabelPresentation';
 import ConversationCard from './widgets/conversation/ConversationCard.vue';
@@ -22,6 +23,7 @@ import {
 
 const props = defineProps({
   source: { type: Object, required: true },
+  searchMode: { type: Boolean, default: false },
   teamId: { type: [String, Number], default: 0 },
   label: { type: String, default: '' },
   conversationType: { type: String, default: '' },
@@ -156,6 +158,16 @@ const conversationPath = computed(() =>
       teamId: props.teamId,
       conversationType: props.conversationType,
       foldersId: props.foldersId,
+      ...(props.searchMode
+        ? {
+            activeInbox: 0,
+            label: '',
+            teamId: 0,
+            conversationType: '',
+            foldersId: 0,
+            ...getSearchConversationDestination(props.source),
+          }
+        : {}),
     })
   )
 );
@@ -174,7 +186,7 @@ const onCardClick = e => {
     return;
   }
 
-  if (isActiveChat.value) return;
+  if (isActiveChat.value && !props.searchMode) return;
   router.push({ path });
 };
 
