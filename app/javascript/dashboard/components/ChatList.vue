@@ -446,7 +446,7 @@ const filteredConversationList = computed(() => {
 
   return getConversationSearchResults({
     remoteResults: remoteSearchResults.value || [],
-    localResults: allChatList.value,
+    localResults: conversationList.value,
     query,
   });
 });

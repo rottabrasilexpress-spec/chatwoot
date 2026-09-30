@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+import chatListSource from '../../components/ChatList.vue?raw';
 import {
   conversationMatchesSearch,
   getConversationSearchResults,
@@ -5,6 +7,24 @@ import {
 } from '../conversationSearch';
 
 describe('conversationMatchesSearch', () => {
+  it('uses an array at the actual ChatList call site, not the parameterized Vuex getter', () => {
+    const contact = { id: 2143, meta: { sender: { name: 'Kelvin Martins' } } };
+    const source = chatListSource;
+    const start = source.indexOf('const filteredConversationList = computed(');
+    const end = source.indexOf('\n});', start) + 4;
+    const result = runInNewContext(
+      `${source.slice(start, end)}; filteredConversationList`,
+      {
+        computed: callback => callback(),
+        conversationSearchQuery: { value: 'Kelvin' },
+        remoteSearchResults: { value: [] },
+        conversationList: { value: [contact] },
+        allChatList: { value: () => [contact] },
+        getConversationSearchResults,
+      }
+    );
+    expect(result).toEqual([contact]);
+  });
   it('matches formatted WhatsApp numbers when the agent types only digits', () => {
     expect(
       conversationMatchesSearch(
