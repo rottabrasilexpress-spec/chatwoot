@@ -107,9 +107,14 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def outgoing_text
     # UAZAPI receives WhatsApp's native text syntax. Keep emojis, single
-    # asterisks, blank lines and separators intact; only normalize platform
-    # line endings so Windows input does not introduce stray carriage returns.
-    message.outgoing_content.to_s.gsub(/\r\n?/, "\n")
+    # asterisks, blank lines and separators intact. The editor serializes
+    # Shift+Enter as a markdown hard break (backslash + newline), which the
+    # WhatsApp API treats as literal text. Remove only that marker, not paths
+    # or escaped pairs of literal backslashes.
+    message.outgoing_content.to_s.gsub(/\r\n?/, "\n").gsub(/(\\+)\n/) do
+      slashes = Regexp.last_match(1)
+      "#{slashes.length.odd? ? slashes[0...-1] : slashes}\n"
+    end
   end
 
   def post_to_uazapi(path, body)

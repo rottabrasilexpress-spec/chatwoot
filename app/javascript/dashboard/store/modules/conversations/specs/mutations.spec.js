@@ -2,6 +2,25 @@ import { mutations } from '../index';
 import types from '../../../mutation-types';
 
 describe('#mutations', () => {
+  it('keeps fetched history when a list refresh includes an inactive conversation', () => {
+    const state = {
+      selectedChatId: 2,
+      allConversations: [
+        {
+          id: 1,
+          messages: [{ id: 5 }, { id: 6 }],
+          dataFetched: true,
+          allMessagesLoaded: true,
+        },
+      ],
+    };
+    mutations[types.SET_ALL_CONVERSATION](state, [
+      { id: 1, messages: [{ id: 6, status: 'read' }], unread_count: 0 },
+    ]);
+    expect(state.allConversations[0].messages.map(m => m.id)).toEqual([5, 6]);
+    expect(state.allConversations[0].dataFetched).toBe(true);
+    expect(state.allConversations[0].messages[1].status).toBe('read');
+  });
   describe('#ADD_MESSAGE', () => {
     it('merges partial updates without losing local message state', () => {
       const state = {

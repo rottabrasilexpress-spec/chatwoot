@@ -39,7 +39,10 @@ export const mutations = {
       );
       if (indexInCurrentList < 0) {
         newAllConversations.push(conversation);
-      } else if (conversation.id !== _state.selectedChatId) {
+      } else if (
+        conversation.id !== _state.selectedChatId &&
+        !newAllConversations[indexInCurrentList].dataFetched
+      ) {
         // If the conversation is already in the list, replace it
         // Added this to fix the issue of the conversation not being updated
         // When reconnecting to the websocket. If the selectedChatId is not the same as
@@ -49,10 +52,25 @@ export const mutations = {
         // If the conversation is already in the list and selectedChatId is the same,
         // replace all data except the messages array, attachments, dataFetched, allMessagesLoaded
         const existingConversation = newAllConversations[indexInCurrentList];
+        const messagesById = new Map(
+          (existingConversation.messages || []).map(message => [
+            message.id,
+            message,
+          ])
+        );
+        (conversation.messages || []).forEach(message => {
+          messagesById.set(message.id, {
+            ...messagesById.get(message.id),
+            ...message,
+          });
+        });
         newAllConversations[indexInCurrentList] = {
           ...conversation,
           allMessagesLoaded: existingConversation.allMessagesLoaded,
-          messages: existingConversation.messages,
+          messages:
+            conversation.id === _state.selectedChatId
+              ? existingConversation.messages
+              : Array.from(messagesById.values()).sort((a, b) => a.id - b.id),
           dataFetched: existingConversation.dataFetched,
         };
       }

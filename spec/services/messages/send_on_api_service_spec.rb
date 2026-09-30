@@ -7,6 +7,18 @@ RSpec.describe Messages::SendOnApiService do
   let(:agent) { create(:user, account: conversation.account, name: 'Caio') }
   let(:message) { create(:message, message_type: :outgoing, content: 'Teste Uazapi', conversation: conversation, sender: agent) }
 
+  describe 'WhatsApp line breaks' do
+    it 'removes the markdown hard-break marker but preserves actual blank lines and formatting' do
+      allow(message).to receive(:outgoing_content).and_return("*Olá* 😊\\\r\n\\\r\nPróxima linha")
+      expect(described_class.new(message: message).send(:outgoing_text)).to eq("*Olá* 😊\n\nPróxima linha")
+    end
+
+    it 'preserves literal backslashes inside paths and escaped trailing backslashes' do
+      allow(message).to receive(:outgoing_content).and_return("C:\\pasta\\arquivo\nTexto \\\\\nFinal")
+      expect(described_class.new(message: message).send(:outgoing_text)).to eq("C:\\pasta\\arquivo\nTexto \\\\\nFinal")
+    end
+  end
+
   before do
     environment = ENV.to_h
     environment.delete('ROTTABRASIL_HUMAN_LOCK_WEBHOOK_URL')
