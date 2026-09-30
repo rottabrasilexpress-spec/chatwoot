@@ -16,6 +16,13 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     Timeout::Error
   ].uniq.freeze
 
+  def self.whatsapp_text(content)
+    content.to_s.gsub(/\r\n?/, "\n").gsub(/(\\+)\n/) do
+      slashes = Regexp.last_match(1)
+      "#{slashes.length.odd? ? slashes[0...-1] : slashes}\n"
+    end
+  end
+
   private
 
   def channel_class
@@ -111,10 +118,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     # Shift+Enter as a markdown hard break (backslash + newline), which the
     # WhatsApp API treats as literal text. Remove only that marker, not paths
     # or escaped pairs of literal backslashes.
-    message.outgoing_content.to_s.gsub(/\r\n?/, "\n").gsub(/(\\+)\n/) do
-      slashes = Regexp.last_match(1)
-      "#{slashes.length.odd? ? slashes[0...-1] : slashes}\n"
-    end
+    self.class.whatsapp_text(message.outgoing_content)
   end
 
   def post_to_uazapi(path, body)

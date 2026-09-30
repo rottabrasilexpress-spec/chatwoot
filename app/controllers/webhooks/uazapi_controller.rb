@@ -453,7 +453,8 @@ class Webhooks::UazapiController < ActionController::API
       attributes = candidate.content_attributes
       pending = attributes.is_a?(Hash) &&
         ActiveModel::Type::Boolean.new.cast(attributes['rotta_uazapi_pending_echo'])
-      pending && candidate.content.to_s.strip == content.to_s.strip
+      pending && Messages::SendOnApiService.whatsapp_text(candidate.content).strip ==
+        Messages::SendOnApiService.whatsapp_text(content).strip
     end
   end
 

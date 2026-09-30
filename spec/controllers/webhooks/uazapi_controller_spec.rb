@@ -481,7 +481,7 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
         message_type: :outgoing,
         sender: create(:user, account: account),
         source_id: nil,
-        content: 'Eco chegou antes do ID',
+        content: "Eco chegou antes do ID\\\nSegunda linha",
         content_attributes: {
           'rotta_uazapi_pending_echo' => true,
           'external_echo' => true
@@ -497,7 +497,7 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
             fromMe: true,
             wasSentByApi: true,
             type: 'text',
-            text: chatwoot_message.content
+            text: "Eco chegou antes do ID\nSegunda linha"
           }
         }
       }
