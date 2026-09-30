@@ -170,10 +170,10 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     errors = body['reconciliation_errors'].is_a?(Hash) ? body['reconciliation_errors'].dup : {}
     candidates = Current.account.conversations
                         .tagged_with(reconcilable_titles, any: true)
-                        .includes(:contact)
+                        .includes(:contact, taggings: :tag)
                         .distinct
                         .filter_map do |conversation|
-      active_labels = conversation.cached_label_list_array
+      active_labels = conversation.labels_for_display
       active_stages = active_labels.filter_map do |label|
         stage = follow_up_label_key(label)
         stage if FOLLOW_UP_STAGE_KEYS.include?(stage)
@@ -373,15 +373,15 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
 
     fallback_jobs = Current.account.conversations
                                   .tagged_with(label_titles, any: true)
-                                  .includes(:contact)
+                                  .includes(:contact, taggings: :tag)
                                   .distinct
                                   .flat_map do |conversation|
       next [] if operational_conversation_ids.include?(conversation.display_id.to_s)
       next [] if operational_phone_keys.include?(phone_key(conversation.contact&.phone_number))
 
-      # `tagged_with` confirms the database relation; the maintained cache
-      # avoids one tag query per conversation on the five-second refresh.
-      active_labels = conversation.cached_label_list_array
+      # Use the preloaded taggings: the cached string can retain a removed
+      # stage after concurrent changes and create a false reconciliation error.
+      active_labels = conversation.labels_for_display
       active_stage = active_labels.filter_map do |label|
         stage = follow_up_label_key(label)
         next unless FOLLOW_UP_STAGE_KEYS.include?(stage)

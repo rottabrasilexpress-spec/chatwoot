@@ -76,6 +76,9 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
       create(:label, account: account, title: 'primeiro-contato')
       conversation.contact.update!(phone_number: '+5511991262866', name: 'Cliente teste')
       conversation.update_labels(['primeiro-contato'])
+      # Simulate the stale cache seen after rapid/concurrent stage changes.
+      # Enrollment must follow the actual taggings, not this previous stage.
+      conversation.update_column(:cached_label_list, 'segundo-contato')
       initial_list = instance_double(
         HTTParty::Response,
         body: { jobs: [] }.to_json,
