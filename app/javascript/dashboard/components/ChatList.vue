@@ -925,7 +925,7 @@ async function searchConversationsRemotely(query, requestId, page = 1) {
       { signal: conversationSearchController.signal }
     );
     if (requestId === conversationSearchRequestId) {
-      const records = data.payload || [];
+      const records = data.data?.payload || data.payload || [];
       remoteSearchResults.value =
         page === 1 ? records : [...remoteSearchResults.value, ...records];
       searchPage = page;

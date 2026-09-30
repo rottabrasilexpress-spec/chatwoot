@@ -24,6 +24,10 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     result = conversation_finder.perform
     @conversations = result[:conversations]
     @conversations_count = result[:count]
+    # Contact lookup powers the regular conversation cards, not the global
+    # search snippets. Reuse the bounded, full card serializer (labels/status/
+    # sender/latest message) instead of serializing the whole message history.
+    render :index if params[:contact_search] == 'true'
   end
 
   def ai_status
