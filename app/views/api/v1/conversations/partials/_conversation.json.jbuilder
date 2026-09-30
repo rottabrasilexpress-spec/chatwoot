@@ -27,12 +27,12 @@ json.meta do
 end
 
 json.id conversation.display_id
-if conversation.messages.where(account_id: conversation.account_id).last.blank?
+if conversation.messages.where(account_id: conversation.account_id).non_activity_messages.first.blank?
   json.messages []
 else
   json.messages [
     conversation.messages.where(account_id: conversation.account_id)
-                .includes([{ attachments: [{ file_attachment: [:blob] }] }]).last.then do |message|
+                .non_activity_messages.includes([{ attachments: [{ file_attachment: [:blob] }] }]).first.then do |message|
       Current.user.is_a?(User) ? message.agent_push_event_data : message.push_event_data
     end
   ]

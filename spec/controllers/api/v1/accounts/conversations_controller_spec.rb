@@ -46,6 +46,19 @@ RSpec.describe 'Conversations API', type: :request do
         expect(body[:data][:payload].first[:messages]).to eq([])
       end
 
+      it 'keeps the last real message in the card after a label activity' do
+        message = create(:message, conversation: conversation, account: account, message_type: :outgoing)
+        create(:message, conversation: conversation, account: account,
+                         message_type: :activity, content: 'Kelvin removeu orçamento tentativa', created_at: 1.second.from_now)
+
+        get "/api/v1/accounts/#{account.id}/conversations", headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        payload = response.parsed_body['data']['payload'].first
+        expect(payload['messages'].first['id']).to eq(message.id)
+        expect(conversation.messages.activity.count).to eq(1)
+      end
+
       it 'returns unattended conversations' do
         attended_conversation = create(:conversation, account: account, first_reply_created_at: Time.now.utc)
         # to ensure that waiting since value is populated
