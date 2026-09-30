@@ -24,6 +24,26 @@ describe ConversationFinder do
   end
 
   describe '#perform' do
+    context 'with pinned conversations older than the first page' do
+      let(:params) { { status: 'all', assignee_type: 'all', per_page: 1 } }
+
+      it 'returns the pinned conversation before pagination and keeps other attributes' do
+        pinned = create(:conversation, account: account, inbox: inbox,
+                                       last_activity_at: 1.month.ago,
+                                       custom_attributes: { rotta_pinned: true, existing_attribute: 'preserved' })
+        result = conversation_finder.perform
+
+        expect(result[:conversations].first).to eq(pinned)
+        expect(pinned.reload.custom_attributes['existing_attribute']).to eq('preserved')
+      end
+
+      it 'returns recent conversations first after manually unpinning' do
+        unpinned = create(:conversation, account: account, inbox: inbox,
+                                         last_activity_at: 1.month.ago, custom_attributes: { rotta_pinned: false })
+        expect(conversation_finder.perform[:conversations].first).not_to eq(unpinned)
+      end
+    end
+
     context 'with status' do
       let(:params) { { status: 'open', assignee_type: 'me' } }
 

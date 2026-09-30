@@ -100,7 +100,7 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
     create_prior_inbound_message
     message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
                                message_type: :incoming, content_type: :text,
-                               content: 'Qual é o valor aproximado?')
+                               content: 'O caminhão é grande?')
     allow(Rotta::AutomaticLabels::HumanNeedClassifier).to receive(:new).and_return(
       instance_double(Rotta::AutomaticLabels::HumanNeedClassifier,
                       call: Rotta::AutomaticLabels::HumanNeedClassifier::Decision.new(
@@ -121,7 +121,7 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
     create_prior_inbound_message
     message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
                                message_type: :incoming, content_type: :text,
-                               content: 'Qual é o valor aproximado?')
+                               content: 'O caminhão é grande?')
     decision = Rotta::AutomaticLabels::HumanNeedClassifier::Decision.new(
       needs_human: true, confidence: 0.91, reason: 'contexto exige confirmação humana'
     )
@@ -179,6 +179,23 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
     described_class.new(message).perform
 
     expect(conversation.reload.label_list).to include('orcamento-feito', 'caio-atencao')
+  end
+
+  ['Qual seria o valor?', 'Qual o prazo de entrega?', 'Pagamento à vista tem desconto?', 'Inclui os ajudantes?'].each do |question|
+    it "flags post-budget interest without requiring KELVIN or the LLM: #{question}" do
+      conversation.update_labels(['orcamento-feito'])
+      create_prior_inbound_message
+      message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                                 sender: conversation.contact, message_type: :incoming,
+                                 content_type: :text, content: question)
+      expect(Rotta::AutomaticLabels::HumanNeedClassifier).not_to receive(:new)
+
+      2.times { described_class.new(message).perform }
+
+      expect(conversation.reload.label_list).to include('orcamento-feito', 'caio-atencao')
+      expect(conversation.label_list.count('caio-atencao')).to eq(1)
+      expect(conversation.label_list).not_to include('kelvin')
+    end
   end
 
   it 'checks Caio Atenção trail eligibility while holding the conversation lock' do

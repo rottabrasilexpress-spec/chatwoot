@@ -6,6 +6,8 @@ class Rotta::AutomaticLabels::Processor
   CLEAR_HUMAN_NEED = /\b(atendente|humano|caio|contrat|fechar|fechamento|reserv|pagamento|pix|boleto|cart[aã]o|reclam|problema|urgent|desconto|negoci|setor financeiro)\b/i
   AMBIGUOUS_HUMAN_NEED = /\b(valor|pre[cç]o|quanto|or[cç]amento final|c[aá]lculo final|proposta final|parcel|agend|disponibil|data|coleta|entrega|caro|barato|setor|caminh[aã]o|ve[ií]culo|tamanho|dimens(?:ão|ões)|capacidade|porte)\b/i
   CAIO_MIN_CONFIDENCE = 0.80
+  POST_BUDGET_INTEREST_TOPIC = /\b(valor(?:es)?|pre[cç]os?|desconto|pagamento|[aà] vista|parcel\w*|prazo|entrega|coleta|datas?|disponibil\w*|ajudantes?|servi[cç]os?|montagem|desmontagem|inclu\w*|contrat\w*|reserv\w*)\b/i
+  POST_BUDGET_INTEREST_REQUEST = /\?|\b(qual|quais|quanto|quando|como|pode|posso|consigo|tem|h[aá]|queria|gostaria|quero|preciso|d[uú]vida|saber|confirma\w*)\b/i
 
   def initialize(message)
     @message = message
@@ -154,6 +156,7 @@ class Rotta::AutomaticLabels::Processor
 
   def caio_decision_kind
     content = @message.content.to_s
+    return :clear if content.match?(POST_BUDGET_INTEREST_TOPIC) && content.match?(POST_BUDGET_INTEREST_REQUEST)
     return :clear if content.match?(CLEAR_HUMAN_NEED)
     return :ambiguous if content.match?(AMBIGUOUS_HUMAN_NEED)
 

@@ -263,6 +263,12 @@ class ConversationFinder
   def conversations
     @conversations = conversations_base_query
 
+    # Pin priority must be applied before pagination, not only to loaded cards.
+    # Keep the existing permission, status, label and archive filters unchanged.
+    @conversations = @conversations.order(Arel.sql(
+      "CASE WHEN conversations.custom_attributes ->> 'rotta_pinned' IN ('true', '1') THEN 0 ELSE 1 END ASC"
+    ))
+
     sort_by, sort_order = SORT_OPTIONS[params[:sort_by]] || SORT_OPTIONS['last_activity_at_desc']
     @conversations = @conversations.send(sort_by, sort_order)
 
