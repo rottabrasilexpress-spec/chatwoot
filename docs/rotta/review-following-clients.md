@@ -76,8 +76,10 @@ A lista carrega na entrada e na mudança de sessão; foco da janela, retorno à 
 
 As evidências desta documentação são os componentes `ReviewResume.vue`, `FollowingClients.vue`, `FollowingButton.vue` e `ReviewResumeView.vue`; os helpers/composables citados; o controller, modelo e migration de acompanhamento; e a integração de Action Cable. A leitura foi feita no código local, sem navegador, comandos Docker, acesso a segredos ou implantação.
 
-Status confirmado para a implementação: **51 testes JavaScript frontend passaram**, após **49 nas verificações anteriores**. O resultado foi confirmado pelo usuário; esta atualização de documentação não reexecutou a suíte. A configuração `.codex/review-vitest.config.mjs` inclui os specs de revisão, roteamento, acompanhamento e seus componentes.
+Status confirmado pela execução da implementação: **51 testes JavaScript frontend passaram**, após **49 nas verificações anteriores**. A configuração `.codex/review-vitest.config.mjs` inclui os specs de revisão, roteamento, acompanhamento e seus componentes.
 
 Specs Ruby foram escritos em `spec/requests/api/v1/accounts/conversation_followings_spec.rb` e `spec/requests/api/v1/accounts/review_points_spec.rb`; não puderam ser executados localmente por ausência de Ruby. A aplicação das migrations, execução de backend e confirmação do fluxo integrado permanecem pendentes no ambiente de implantação.
 
-Antes de liberar, confirmar a sequência original apesar de mensagens novas, a prioridade de destinos, inclusão/remoção visível entre agentes autorizados, isolamento entre contas, exclusão de notas privadas, cursor com mais de 30 vínculos e recuperação por foco/reconexão. Confirmar também os fluxos nativos de conversa, envio, etiquetas e follow-up. **Deployment pendente: não há confirmação de recurso live.**
+Na primeira publicação 55c1c517, os GET/PATCH/DELETE do acompanhamento responderam HTTP200; inclusão/remoção e os dois avisos foram confirmados no contato interno Kelvin2143. Duas telas refletiram inclusão e remoção por eventos, sem recarregar. Cabeçalho móvel: largura390, scrollWidth390, botão dentro da área visível. A prévia mostrou a última mensagem pública.
+
+O teste de retomada identificou que JSONB devolve os campos em outra ordem, criando outra chave de Todos e fazendo o atalho mostrar uma sequência antiga. A correção usa a ordem explícita do contexto nativo e substitui pontos com o mesmo contexto semântico. Regressão específica acrescentada; segunda publicação e conferência final pendentes.

@@ -12,6 +12,7 @@ class Api::V1::Accounts::ReviewPointsController < Api::V1::Accounts::BaseControl
     saved.with_lock do
       state = saved.data
       points.each do |point|
+        state['views'].delete_if { |key, item| key != point['view'] && item['context'] == point['context'] }
         state['views'][point['view']] = point
         state['history'] = ([point] + state['history'].reject { |item| item['id'] == point['id'] }).first(5)
       end

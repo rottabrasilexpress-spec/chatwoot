@@ -152,8 +152,10 @@ export function useConversationReview() {
         if (session.value !== state) return;
         const destination = reviewWorkspaceDestination(conversation);
         const context = {
-          ...point.context,
-          label: destination.label || '',
+          label:
+            destination.conversationType === 'archived'
+              ? 'arquivado'
+              : destination.label || '',
           conversationType: destination.conversationType || '',
           inboxId: 0,
           teamId: 0,

@@ -185,4 +185,54 @@ describe('automatic review persistence', () => {
       'Graziela'
     );
   });
+  it('uses the native list key even when persisted JSONB fields arrive reordered', async () => {
+    const persisted = {
+      label: 'kelvin',
+      status: 'all',
+      teamId: 0,
+      filters: [],
+      inboxId: 0,
+      foldersId: 0,
+      assigneeType: 'all',
+      conversationType: '',
+    };
+    review.record(chats, chats[0], persisted, '#kelvin');
+    ConversationApi.show.mockResolvedValueOnce({
+      data: { ...chats[1], labels: ['kelvin'] },
+    });
+    await review.resume(review.session.value.history[0]);
+    expect(review.session.value.history[0].view).toBe(
+      JSON.stringify({
+        label: '',
+        conversationType: '',
+        inboxId: 0,
+        teamId: 0,
+        foldersId: 0,
+        status: 'all',
+        assigneeType: 'all',
+        filters: [],
+      })
+    );
+  });
+  it('keeps the shortcut under the native Arquivados context', async () => {
+    const archived = {
+      label: 'arquivado',
+      conversationType: 'archived',
+      inboxId: 0,
+      teamId: 0,
+      foldersId: 0,
+      status: 'all',
+      assigneeType: 'all',
+      filters: [],
+    };
+    review.record(chats, chats[0], archived, 'Arquivados');
+    ConversationApi.show.mockResolvedValueOnce({
+      data: { ...chats[1], labels: ['arquivado'] },
+    });
+    await review.resume(review.session.value.history[0]);
+    expect(push.mock.calls[0][0].path).toBe(
+      '/app/accounts/1/archived/conversations/2'
+    );
+    expect(review.session.value.history[0].view).toBe(JSON.stringify(archived));
+  });
 });

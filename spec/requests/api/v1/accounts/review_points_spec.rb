@@ -44,7 +44,8 @@ RSpec.describe 'Individual conversation review points', type: :request do
 
   it 'preserves points from other views on a partial update' do
     patch path, headers: agent.create_new_auth_token, params: { points: [point] }, as: :json
-    patch path, headers: agent.create_new_auth_token, params: { points: [point.merge(id: 'two', view: 'archived')] }, as: :json
+    patch path, headers: agent.create_new_auth_token,
+                params: { points: [point.merge(id: 'two', view: 'archived', context: point[:context].merge(conversationType: 'archived'))] }, as: :json
     expect(response.parsed_body['views'].keys).to contain_exactly('all', 'archived')
   end
 
@@ -64,5 +65,10 @@ RSpec.describe 'Individual conversation review points', type: :request do
     patch path, headers: agent.create_new_auth_token, params: { points: [point.except(:context)] }, as: :json
     expect(response).to have_http_status(:bad_request)
     expect(ConversationReviewState.count).to eq(0)
+  end
+  it 'replaces semantically identical contexts despite different serialized field order' do
+    patch path, headers: agent.create_new_auth_token, params: { points: [point] }, as: :json
+    patch path, headers: agent.create_new_auth_token, params: { points: [point.merge(id: 'two', view: 'reordered')] }, as: :json
+    expect(response.parsed_body['views'].keys).to eq(['reordered'])
   end
 end
