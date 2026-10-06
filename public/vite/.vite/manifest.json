@@ -1,592 +1,592 @@
 {
-  "../../node_modules/.pnpm/@rails+actioncable@7.2.201/node_modules/@rails/actioncable/src/index.js": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/@rails+actioncable@7.2.201/node_modules/@rails/actioncable/src/index.js": {
     "file": "assets/index-lVzqX2jn.js",
     "name": "index",
-    "src": "../../node_modules/.pnpm/@rails+actioncable@7.2.201/node_modules/@rails/actioncable/src/index.js",
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/@rails+actioncable@7.2.201/node_modules/@rails/actioncable/src/index.js",
     "isDynamicEntry": true
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ad.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ad.svg": {
     "file": "assets/ad-CDtWnnSA.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ad.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ad.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/af.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/af.svg": {
     "file": "assets/af-Cc32fsDB.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/af.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/af.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/arab.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/arab.svg": {
     "file": "assets/arab-PzQTPYwO.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/arab.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/arab.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/as.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/as.svg": {
     "file": "assets/as-_t1IQUdv.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/as.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/as.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/aw.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/aw.svg": {
     "file": "assets/aw-CLCX8uk5.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/aw.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/aw.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bm.svg": {
     "file": "assets/bm-D2j4bkLD.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bn.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bn.svg": {
     "file": "assets/bn-UGyQANfK.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bn.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bn.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bo.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bo.svg": {
     "file": "assets/bo-CP9m75_5.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bo.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bo.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/br.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/br.svg": {
     "file": "assets/br-Yf30zEjB.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/br.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/br.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bt.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bt.svg": {
     "file": "assets/bt-Cm0R6rAQ.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bt.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bt.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bz.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bz.svg": {
     "file": "assets/bz-CqiVUvof.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bz.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/bz.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/cy.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/cy.svg": {
     "file": "assets/cy-Bgo0XIP0.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/cy.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/cy.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/dg.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/dg.svg": {
     "file": "assets/dg-CPWO5scz.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/dg.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/dg.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/dm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/dm.svg": {
     "file": "assets/dm-ClJ_IDld.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/dm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/dm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/do.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/do.svg": {
     "file": "assets/do-DJGo0v5t.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/do.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/do.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/eac.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/eac.svg": {
     "file": "assets/eac-D_uIzpYR.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/eac.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/eac.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ec.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ec.svg": {
     "file": "assets/ec-sTVr1A3S.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ec.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ec.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/eg.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/eg.svg": {
     "file": "assets/eg-C1MYAOXe.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/eg.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/eg.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/es-ga.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/es-ga.svg": {
     "file": "assets/es-ga-RI_ZudJJ.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/es-ga.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/es-ga.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/es.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/es.svg": {
     "file": "assets/es-CR0ZfKpD.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/es.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/es.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/fj.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/fj.svg": {
     "file": "assets/fj-CJDn3VQ8.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/fj.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/fj.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/fk.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/fk.svg": {
     "file": "assets/fk-Be42QBCW.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/fk.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/fk.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gb-nir.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gb-nir.svg": {
     "file": "assets/gb-nir-BZUeOVwE.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gb-nir.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gb-nir.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gb-wls.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gb-wls.svg": {
     "file": "assets/gb-wls-lLp_JivI.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gb-wls.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gb-wls.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gq.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gq.svg": {
     "file": "assets/gq-BvOxIUGP.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gq.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gq.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gs.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gs.svg": {
     "file": "assets/gs-PK6r6yhR.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gs.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gs.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gt.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gt.svg": {
     "file": "assets/gt-Ufdm0MFv.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gt.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gt.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gu.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gu.svg": {
     "file": "assets/gu-wFhsTC1Y.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gu.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/gu.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/hr.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/hr.svg": {
     "file": "assets/hr-C7VqhX5l.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/hr.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/hr.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ht.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ht.svg": {
     "file": "assets/ht-HoSCtdNQ.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ht.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ht.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/im.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/im.svg": {
     "file": "assets/im-deD7ny0b.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/im.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/im.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/io.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/io.svg": {
     "file": "assets/io-BzKkDPkD.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/io.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/io.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ir.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ir.svg": {
     "file": "assets/ir-CXFV1BFU.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ir.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ir.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/je.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/je.svg": {
     "file": "assets/je-YWv5VSiQ.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/je.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/je.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/kh.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/kh.svg": {
     "file": "assets/kh-CAffWc0R.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/kh.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/kh.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ki.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ki.svg": {
     "file": "assets/ki-CM44VBPm.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ki.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ki.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ky.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ky.svg": {
     "file": "assets/ky-D_l3blFP.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ky.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ky.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/kz.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/kz.svg": {
     "file": "assets/kz-BBCbe9jj.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/kz.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/kz.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/li.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/li.svg": {
     "file": "assets/li-y6TPS81M.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/li.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/li.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/lk.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/lk.svg": {
     "file": "assets/lk-DIvkWByA.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/lk.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/lk.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/md.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/md.svg": {
     "file": "assets/md-DRw6DF0o.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/md.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/md.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/me.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/me.svg": {
     "file": "assets/me-BUFcTh_w.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/me.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/me.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mp.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mp.svg": {
     "file": "assets/mp-DOjKDFJv.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mp.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mp.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ms.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ms.svg": {
     "file": "assets/ms-D--tLJBo.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ms.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ms.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mt.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mt.svg": {
     "file": "assets/mt-DeenPMqd.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mt.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mt.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mx.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mx.svg": {
     "file": "assets/mx-4c9y9ryX.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mx.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/mx.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/nf.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/nf.svg": {
     "file": "assets/nf--j2oelto.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/nf.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/nf.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ni.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ni.svg": {
     "file": "assets/ni-ChnV2lR-.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ni.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/ni.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/om.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/om.svg": {
     "file": "assets/om-Ri__rIwP.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/om.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/om.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pf.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pf.svg": {
     "file": "assets/pf-CEX9Vx76.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pf.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pf.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pn.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pn.svg": {
     "file": "assets/pn-DEs-Vj71.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pn.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pn.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pt.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pt.svg": {
     "file": "assets/pt-BLLm3V0o.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pt.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/pt.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/py.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/py.svg": {
     "file": "assets/py-CRTEf2ay.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/py.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/py.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/rs.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/rs.svg": {
     "file": "assets/rs-D2wyuxjv.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/rs.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/rs.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sa.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sa.svg": {
     "file": "assets/sa-eH5F7cXy.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sa.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sa.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-ac.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-ac.svg": {
     "file": "assets/sh-ac-6pU0wZVL.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-ac.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-ac.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-hl.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-hl.svg": {
     "file": "assets/sh-hl-DWwv0HRi.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-hl.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-hl.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-ta.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-ta.svg": {
     "file": "assets/sh-ta-DNDOtP8t.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-ta.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sh-ta.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sm.svg": {
     "file": "assets/sm-DHRSzt4z.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sv.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sv.svg": {
     "file": "assets/sv-BGK8a8aZ.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sv.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sv.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sx.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sx.svg": {
     "file": "assets/sx-DzlMoqh2.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sx.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sx.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sz.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sz.svg": {
     "file": "assets/sz-DpZ3V1AK.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sz.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/sz.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/tc.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/tc.svg": {
     "file": "assets/tc-CYGgqbY-.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/tc.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/tc.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/tm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/tm.svg": {
     "file": "assets/tm-CCv743R_.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/tm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/tm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/un.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/un.svg": {
     "file": "assets/un-BQ1kEGox.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/un.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/un.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/va.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/va.svg": {
     "file": "assets/va-BntFJQHU.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/va.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/va.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/vg.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/vg.svg": {
     "file": "assets/vg-qlt33Cv3.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/vg.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/vg.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/vi.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/vi.svg": {
     "file": "assets/vi-1FTBesw2.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/vi.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/vi.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/xk.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/xk.svg": {
     "file": "assets/xk-B6uU6dIH.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/xk.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/xk.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/zm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/zm.svg": {
     "file": "assets/zm-CNg0kgkw.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/zm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/zm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/zw.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/zw.svg": {
     "file": "assets/zw-DGkTG73v.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/zw.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/1x1/zw.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ad.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ad.svg": {
     "file": "assets/ad-BOo-tPI4.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ad.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ad.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/af.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/af.svg": {
     "file": "assets/af-CI4E3ER1.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/af.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/af.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/arab.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/arab.svg": {
     "file": "assets/arab-DwNob5Qo.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/arab.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/arab.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/as.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/as.svg": {
     "file": "assets/as-D2gsNMrP.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/as.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/as.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/aw.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/aw.svg": {
     "file": "assets/aw-W0PWLK5p.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/aw.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/aw.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bm.svg": {
     "file": "assets/bm-BoWRAtUx.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bn.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bn.svg": {
     "file": "assets/bn-BDKbSv-u.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bn.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bn.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bo.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bo.svg": {
     "file": "assets/bo-BqtZbaiW.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bo.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bo.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/br.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/br.svg": {
     "file": "assets/br-DaE4AJQY.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/br.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/br.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bt.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bt.svg": {
     "file": "assets/bt-Csq9bKsA.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bt.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bt.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bz.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bz.svg": {
     "file": "assets/bz-YpwBidLU.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bz.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/bz.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/cy.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/cy.svg": {
     "file": "assets/cy-VQFkW-qk.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/cy.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/cy.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/dg.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/dg.svg": {
     "file": "assets/dg-B55Nvqqm.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/dg.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/dg.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/dm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/dm.svg": {
     "file": "assets/dm-BlhP-6zy.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/dm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/dm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/do.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/do.svg": {
     "file": "assets/do--tGVu9lQ.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/do.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/do.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/eac.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/eac.svg": {
     "file": "assets/eac-CZCl_pn7.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/eac.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/eac.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ec.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ec.svg": {
     "file": "assets/ec-LNhQ9L4k.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ec.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ec.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/eg.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/eg.svg": {
     "file": "assets/eg-BIzzVp3n.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/eg.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/eg.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/es-ga.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/es-ga.svg": {
     "file": "assets/es-ga-BbFllROk.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/es-ga.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/es-ga.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/es.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/es.svg": {
     "file": "assets/es-DL6RIaKh.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/es.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/es.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/fj.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/fj.svg": {
     "file": "assets/fj-DLvzYbo8.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/fj.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/fj.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/fk.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/fk.svg": {
     "file": "assets/fk-Ck9cznm4.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/fk.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/fk.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gb-nir.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gb-nir.svg": {
     "file": "assets/gb-nir-BOm9QMOa.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gb-nir.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gb-nir.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gb-wls.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gb-wls.svg": {
     "file": "assets/gb-wls-C4LdH8Nd.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gb-wls.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gb-wls.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gq.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gq.svg": {
     "file": "assets/gq-OBiOttRB.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gq.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gq.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gs.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gs.svg": {
     "file": "assets/gs-Di8hLP4g.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gs.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gs.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gt.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gt.svg": {
     "file": "assets/gt-CovS1bZs.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gt.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gt.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gu.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gu.svg": {
     "file": "assets/gu-Bkjkorus.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gu.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/gu.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/hr.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/hr.svg": {
     "file": "assets/hr-cWEworf7.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/hr.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/hr.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ht.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ht.svg": {
     "file": "assets/ht-DPCqX9cm.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ht.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ht.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/im.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/im.svg": {
     "file": "assets/im-BAoxVCMv.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/im.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/im.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/io.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/io.svg": {
     "file": "assets/io-Bkx8USW1.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/io.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/io.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ir.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ir.svg": {
     "file": "assets/ir-cCIgaNf6.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ir.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ir.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/je.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/je.svg": {
     "file": "assets/je-PUw16g1j.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/je.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/je.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/kh.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/kh.svg": {
     "file": "assets/kh-V4Sa3vlt.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/kh.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/kh.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ki.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ki.svg": {
     "file": "assets/ki-COZ8g898.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ki.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ki.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ky.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ky.svg": {
     "file": "assets/ky-BqProAqG.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ky.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ky.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/kz.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/kz.svg": {
     "file": "assets/kz-DBjWpOlG.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/kz.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/kz.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/li.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/li.svg": {
     "file": "assets/li-DgeenFRc.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/li.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/li.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/lk.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/lk.svg": {
     "file": "assets/lk-B2IfFxoh.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/lk.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/lk.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/md.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/md.svg": {
     "file": "assets/md-DArlF80d.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/md.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/md.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/me.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/me.svg": {
     "file": "assets/me-B32CQdRA.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/me.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/me.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mp.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mp.svg": {
     "file": "assets/mp-xI88Vk3c.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mp.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mp.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ms.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ms.svg": {
     "file": "assets/ms-7tNehsjt.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ms.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ms.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mt.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mt.svg": {
     "file": "assets/mt-0OWB-5b3.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mt.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mt.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mx.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mx.svg": {
     "file": "assets/mx-C7ivyfFO.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mx.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/mx.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/nf.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/nf.svg": {
     "file": "assets/nf-COchEj81.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/nf.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/nf.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ni.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ni.svg": {
     "file": "assets/ni-CC3zFI7h.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ni.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/ni.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/om.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/om.svg": {
     "file": "assets/om-DnUPbroW.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/om.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/om.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pf.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pf.svg": {
     "file": "assets/pf-CMTHIumB.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pf.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pf.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pn.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pn.svg": {
     "file": "assets/pn-vyD5VXw1.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pn.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pn.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pt.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pt.svg": {
     "file": "assets/pt-BV5okG4O.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pt.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/pt.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/py.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/py.svg": {
     "file": "assets/py-BfpB8kRi.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/py.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/py.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/rs.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/rs.svg": {
     "file": "assets/rs-Dv4N4BPN.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/rs.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/rs.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sa.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sa.svg": {
     "file": "assets/sa-DLf2NaXn.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sa.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sa.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-ac.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-ac.svg": {
     "file": "assets/sh-ac-Ch9Jh9Lp.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-ac.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-ac.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-hl.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-hl.svg": {
     "file": "assets/sh-hl-CnGxQM93.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-hl.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-hl.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-ta.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-ta.svg": {
     "file": "assets/sh-ta-clv2MsBt.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-ta.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sh-ta.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sm.svg": {
     "file": "assets/sm-1NcqoN_z.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sv.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sv.svg": {
     "file": "assets/sv-n55iiUxg.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sv.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sv.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sx.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sx.svg": {
     "file": "assets/sx-4BiL6F_v.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sx.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sx.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sz.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sz.svg": {
     "file": "assets/sz-BC3w3Gmj.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sz.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/sz.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/tc.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/tc.svg": {
     "file": "assets/tc-BB3tFO-G.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/tc.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/tc.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/tm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/tm.svg": {
     "file": "assets/tm-DYhdxDK7.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/tm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/tm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/un.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/un.svg": {
     "file": "assets/un-0G1DCZ6c.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/un.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/un.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/va.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/va.svg": {
     "file": "assets/va-maDzWwNR.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/va.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/va.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/vg.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/vg.svg": {
     "file": "assets/vg-DKEU1GdO.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/vg.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/vg.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/vi.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/vi.svg": {
     "file": "assets/vi-DatfOFqY.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/vi.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/vi.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/xk.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/xk.svg": {
     "file": "assets/xk-F5dDvX79.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/xk.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/xk.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/zm.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/zm.svg": {
     "file": "assets/zm-BmHUGSoa.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/zm.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/zm.svg"
   },
-  "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/zw.svg": {
+  "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/zw.svg": {
     "file": "assets/zw-Ceqd3Xj3.svg",
-    "src": "../../node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/zw.svg"
+    "src": "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/flag-icons@7.2.3/node_modules/flag-icons/flags/4x3/zw.svg"
   },
-  "_ArticleEditor-DU_dWYfj.js": {
-    "file": "assets/ArticleEditor-DU_dWYfj.js",
+  "_ArticleEditor-D-Svh345.js": {
+    "file": "assets/ArticleEditor-D-Svh345.js",
     "name": "ArticleEditor",
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_useBranding-DUcslGUa.js",
-      "_typing-CXcijpev.js",
-      "_HelpCenterLayout-CqTNRJkc.js",
+      "_typing-v5i7Jn01.js",
+      "_HelpCenterLayout-B84h7S90.js",
       "entrypoints/dashboard.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_index-DCCIZ59i.js",
-      "_Validators-CFClgfk0.js",
-      "_DashboardIcon-CaYOsZim.js",
-      "_index-BHzjGB0I.js",
+      "_Validators-CNb9OZJ-.js",
+      "_DashboardIcon-uvlPGU8h.js",
+      "_index-CVu9MuXj.js",
       "_utils.esm-DY_uR2pP.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_articleDiffHelper-CdaPscCk.js"
@@ -614,18 +614,18 @@
       "__plugin-vue_export-helper-C-KZiy6C.js"
     ]
   },
-  "_CategoryHeaderControls-Czjyg31X.js": {
-    "file": "assets/CategoryHeaderControls-Czjyg31X.js",
+  "_CategoryHeaderControls-BxC406EP.js": {
+    "file": "assets/CategoryHeaderControls-BxC406EP.js",
     "name": "CategoryHeaderControls",
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "entrypoints/dashboard.js",
       "_index-DCCIZ59i.js",
       "_Icon-CyI94jkG.js",
-      "_index-D6INv5GD.js"
+      "_index-DVuDFGbh.js"
     ],
     "dynamicImports": [
       "dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue"
@@ -638,17 +638,21 @@
     "file": "assets/CategoryHeaderControls-Czpy1wDC.css",
     "src": "_CategoryHeaderControls-Czpy1wDC.css"
   },
-  "_DashboardIcon-CaYOsZim.js": {
-    "file": "assets/DashboardIcon-CaYOsZim.js",
+  "_DashboardIcon-Cg7T2_xK.css": {
+    "file": "assets/DashboardIcon-Cg7T2_xK.css",
+    "src": "_DashboardIcon-Cg7T2_xK.css"
+  },
+  "_DashboardIcon-uvlPGU8h.js": {
+    "file": "assets/DashboardIcon-uvlPGU8h.js",
     "name": "DashboardIcon",
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "_js.cookie-Cz0CWeBA.js",
       "_Icon-CyI94jkG.js",
       "_index-DCCIZ59i.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_utils.esm-DY_uR2pP.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_index-DPTuQ6cd.js"
@@ -702,24 +706,20 @@
       "assets/DashboardIcon-Cg7T2_xK.css"
     ]
   },
-  "_DashboardIcon-Cg7T2_xK.css": {
-    "file": "assets/DashboardIcon-Cg7T2_xK.css",
-    "src": "_DashboardIcon-Cg7T2_xK.css"
-  },
   "_HTMLSanitizer-cciupgGC.js": {
     "file": "assets/HTMLSanitizer-cciupgGC.js",
     "name": "HTMLSanitizer"
   },
-  "_HelpCenterLayout-CqTNRJkc.js": {
-    "file": "assets/HelpCenterLayout-CqTNRJkc.js",
+  "_HelpCenterLayout-B84h7S90.js": {
+    "file": "assets/HelpCenterLayout-B84h7S90.js",
     "name": "HelpCenterLayout",
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_DashboardIcon-CaYOsZim.js",
-      "_Validators-CFClgfk0.js",
+      "_DashboardIcon-uvlPGU8h.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "entrypoints/dashboard.js",
-      "_index-BHzjGB0I.js"
+      "_index-CVu9MuXj.js"
     ]
   },
   "_Icon-CyI94jkG.js": {
@@ -748,15 +748,15 @@
     "file": "assets/UnreadMessageList-BKgtCOt3.css",
     "src": "_UnreadMessageList-BKgtCOt3.css"
   },
-  "_UnreadMessageList-BV7K2DU8.js": {
-    "file": "assets/UnreadMessageList-BV7K2DU8.js",
+  "_UnreadMessageList-CeKxYtjv.js": {
+    "file": "assets/UnreadMessageList-CeKxYtjv.js",
     "name": "UnreadMessageList",
     "imports": [
       "_useBranding-DUcslGUa.js",
       "entrypoints/widget.js",
       "_module-CYHy4Xpg.js",
       "_vue-dompurify-html-BxCprq0H.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_colorHelper-DkkSNPxc.js"
     ],
@@ -764,8 +764,8 @@
       "assets/UnreadMessageList-BKgtCOt3.css"
     ]
   },
-  "_Validators-CFClgfk0.js": {
-    "file": "assets/Validators-CFClgfk0.js",
+  "_Validators-CNb9OZJ-.js": {
+    "file": "assets/Validators-CNb9OZJ-.js",
     "name": "Validators",
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
@@ -815,17 +815,6 @@
     "file": "assets/helper-BVTgYTlr.js",
     "name": "helper"
   },
-  "_index-BHzjGB0I.js": {
-    "file": "assets/index-BHzjGB0I.js",
-    "name": "index",
-    "imports": [
-      "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_useBranding-DUcslGUa.js",
-      "_Validators-CFClgfk0.js",
-      "_index-DPTuQ6cd.js",
-      "_index-DN3rM4CW.js"
-    ]
-  },
   "_index-BULps9oy.js": {
     "file": "assets/index-BULps9oy.js",
     "name": "index",
@@ -833,14 +822,15 @@
       "__plugin-vue_export-helper-C-KZiy6C.js"
     ]
   },
-  "_index-D6INv5GD.js": {
-    "file": "assets/index-D6INv5GD.js",
+  "_index-CVu9MuXj.js": {
+    "file": "assets/index-CVu9MuXj.js",
     "name": "index",
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_index-DN3rM4CW.js",
+      "_useBranding-DUcslGUa.js",
+      "_Validators-CNb9OZJ-.js",
       "_index-DPTuQ6cd.js",
-      "_Validators-CFClgfk0.js"
+      "_index-DN3rM4CW.js"
     ]
   },
   "_index-DCCIZ59i.js": {
@@ -859,6 +849,16 @@
     "name": "index",
     "imports": [
       "_index-DN3rM4CW.js"
+    ]
+  },
+  "_index-DVuDFGbh.js": {
+    "file": "assets/index-DVuDFGbh.js",
+    "name": "index",
+    "imports": [
+      "__plugin-vue_export-helper-C-KZiy6C.js",
+      "_index-DN3rM4CW.js",
+      "_index-DPTuQ6cd.js",
+      "_Validators-CNb9OZJ-.js"
     ]
   },
   "_index-DfsDTqrj.js": {
@@ -894,15 +894,15 @@
       "_index-DN3rM4CW.js"
     ]
   },
-  "_typing-CXcijpev.js": {
-    "file": "assets/typing-CXcijpev.js",
+  "_typing-v5i7Jn01.js": {
+    "file": "assets/typing-v5i7Jn01.js",
     "name": "typing",
     "imports": [
       "_index-DPTuQ6cd.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_index-DN3rM4CW.js",
-      "_index-BHzjGB0I.js",
-      "_index-D6INv5GD.js",
+      "_index-CVu9MuXj.js",
+      "_index-DVuDFGbh.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useBranding-DUcslGUa.js",
       "_utils.esm-DY_uR2pP.js",
@@ -967,25 +967,25 @@
     "src": "dashboard/assets/images/typing.gif"
   },
   "dashboard/components-next/call/FloatingCallWidget.vue": {
-    "file": "assets/FloatingCallWidget-CN5AswDJ.js",
+    "file": "assets/FloatingCallWidget-tU845nSp.js",
     "name": "FloatingCallWidget",
     "src": "dashboard/components-next/call/FloatingCallWidget.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "entrypoints/dashboard.js",
-      "_DashboardIcon-CaYOsZim.js",
-      "_index-BHzjGB0I.js",
+      "_DashboardIcon-uvlPGU8h.js",
+      "_index-CVu9MuXj.js",
       "_helper-BVTgYTlr.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_utils.esm-DY_uR2pP.js",
       "_index-DCCIZ59i.js",
-      "_typing-CXcijpev.js",
+      "_typing-v5i7Jn01.js",
       "_index-DPTuQ6cd.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_index-BULps9oy.js",
@@ -1000,7 +1000,7 @@
     ]
   },
   "dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue": {
-    "file": "assets/EmojiIconPicker-49PNWCSj.js",
+    "file": "assets/EmojiIconPicker-CszmmQiS.js",
     "name": "EmojiIconPicker",
     "src": "dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue",
     "isDynamicEntry": true,
@@ -1008,20 +1008,20 @@
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_useBranding-DUcslGUa.js",
       "_index-BULps9oy.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "entrypoints/dashboard.js",
       "_pickerHelper-Cq51HCii.js",
       "_utils.esm-DY_uR2pP.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_js.cookie-Cz0CWeBA.js",
       "_Icon-CyI94jkG.js",
       "_index-DCCIZ59i.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_index-DPTuQ6cd.js",
-      "_index-BHzjGB0I.js",
-      "_typing-CXcijpev.js",
+      "_index-CVu9MuXj.js",
+      "_typing-v5i7Jn01.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1292,7 +1292,7 @@
     "isDynamicEntry": true
   },
   "dashboard/routes/dashboard/commands/commandbar.vue": {
-    "file": "assets/commandbar-BPCTmulJ.js",
+    "file": "assets/commandbar-DkCX5zAu.js",
     "name": "commandbar",
     "src": "dashboard/routes/dashboard/commands/commandbar.vue",
     "isDynamicEntry": true,
@@ -1301,15 +1301,15 @@
       "_useBranding-DUcslGUa.js",
       "_index-DCCIZ59i.js",
       "entrypoints/dashboard.js",
-      "_Validators-CFClgfk0.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_Validators-CNb9OZJ-.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "_utils.esm-DY_uR2pP.js",
       "__commonjsHelpers-gnU0ypJ3.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "_index-DPTuQ6cd.js",
       "_index-DN3rM4CW.js",
-      "_typing-CXcijpev.js",
-      "_index-D6INv5GD.js",
+      "_typing-v5i7Jn01.js",
+      "_index-DVuDFGbh.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1328,26 +1328,26 @@
     ]
   },
   "dashboard/routes/dashboard/conversation/ConversationFocusWorkspace.vue": {
-    "file": "assets/ConversationFocusWorkspace-aY-keBKS.js",
+    "file": "assets/ConversationFocusWorkspace-C-n37e7m.js",
     "name": "ConversationFocusWorkspace",
     "src": "dashboard/routes/dashboard/conversation/ConversationFocusWorkspace.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "entrypoints/dashboard.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_utils.esm-DY_uR2pP.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "_index-DPTuQ6cd.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "_js.cookie-Cz0CWeBA.js",
       "_Icon-CyI94jkG.js",
       "_index-DCCIZ59i.js",
-      "_index-D6INv5GD.js",
-      "_typing-CXcijpev.js",
+      "_index-DVuDFGbh.js",
+      "_typing-v5i7Jn01.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1363,29 +1363,62 @@
       "assets/ConversationFocusWorkspace-DcX42HLL.css"
     ]
   },
+  "dashboard/routes/dashboard/conversation/ReviewResumeView.vue": {
+    "file": "assets/ReviewResumeView-qcgywMqn.js",
+    "name": "ReviewResumeView",
+    "src": "dashboard/routes/dashboard/conversation/ReviewResumeView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "__plugin-vue_export-helper-C-KZiy6C.js",
+      "entrypoints/dashboard.js",
+      "_useBranding-DUcslGUa.js",
+      "_utils.esm-DY_uR2pP.js",
+      "__commonjsHelpers-gnU0ypJ3.js",
+      "_index-CVu9MuXj.js",
+      "_Validators-CNb9OZJ-.js",
+      "_index-DN3rM4CW.js",
+      "_index-DPTuQ6cd.js",
+      "_DashboardIcon-uvlPGU8h.js",
+      "_js.cookie-Cz0CWeBA.js",
+      "_Icon-CyI94jkG.js",
+      "_index-DCCIZ59i.js",
+      "_index-DVuDFGbh.js",
+      "_typing-v5i7Jn01.js",
+      "_vue-dompurify-html-BxCprq0H.js",
+      "_useKeyboardNavigableList-D9sp9zFm.js",
+      "_helper-BVTgYTlr.js",
+      "_index-BULps9oy.js",
+      "_module-CYHy4Xpg.js",
+      "_chatwoot-viz-W5YGyys2.js",
+      "_index-DfsDTqrj.js",
+      "_constants-lVAyZKq6.js",
+      "_IframeLoader-DPoPvA-j.js",
+      "_HTMLSanitizer-cciupgGC.js"
+    ]
+  },
   "dashboard/routes/dashboard/helpcenter/pages/PortalsArticlesEditPage.vue": {
-    "file": "assets/PortalsArticlesEditPage-C4m2dfCe.js",
+    "file": "assets/PortalsArticlesEditPage-CrM0BOBR.js",
     "name": "PortalsArticlesEditPage",
     "src": "dashboard/routes/dashboard/helpcenter/pages/PortalsArticlesEditPage.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "_index-DCCIZ59i.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "entrypoints/dashboard.js",
       "_articleDiffHelper-CdaPscCk.js",
-      "_ArticleEditor-DU_dWYfj.js",
+      "_ArticleEditor-D-Svh345.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_utils.esm-DY_uR2pP.js",
       "_js.cookie-Cz0CWeBA.js",
       "_Icon-CyI94jkG.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_index-DPTuQ6cd.js",
-      "_index-BHzjGB0I.js",
-      "_typing-CXcijpev.js",
+      "_index-CVu9MuXj.js",
+      "_typing-v5i7Jn01.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1396,31 +1429,31 @@
       "_constants-lVAyZKq6.js",
       "_IframeLoader-DPoPvA-j.js",
       "_HTMLSanitizer-cciupgGC.js",
-      "_HelpCenterLayout-CqTNRJkc.js"
+      "_HelpCenterLayout-B84h7S90.js"
     ]
   },
   "dashboard/routes/dashboard/helpcenter/pages/PortalsArticlesIndexPage.vue": {
-    "file": "assets/PortalsArticlesIndexPage-1sjWesfU.js",
+    "file": "assets/PortalsArticlesIndexPage-CAs4NGgw.js",
     "name": "PortalsArticlesIndexPage",
     "src": "dashboard/routes/dashboard/helpcenter/pages/PortalsArticlesIndexPage.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "entrypoints/dashboard.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "_utils.esm-DY_uR2pP.js",
       "_articleDiffHelper-CdaPscCk.js",
       "_index-DCCIZ59i.js",
-      "_HelpCenterLayout-CqTNRJkc.js",
-      "_CategoryHeaderControls-Czjyg31X.js",
+      "_HelpCenterLayout-B84h7S90.js",
+      "_CategoryHeaderControls-BxC406EP.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "_index-DPTuQ6cd.js",
-      "_typing-CXcijpev.js",
-      "_index-D6INv5GD.js",
+      "_typing-v5i7Jn01.js",
+      "_index-DVuDFGbh.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1436,28 +1469,28 @@
     ]
   },
   "dashboard/routes/dashboard/helpcenter/pages/PortalsArticlesNewPage.vue": {
-    "file": "assets/PortalsArticlesNewPage-B6SHQPy9.js",
+    "file": "assets/PortalsArticlesNewPage-CUPnfk1K.js",
     "name": "PortalsArticlesNewPage",
     "src": "dashboard/routes/dashboard/helpcenter/pages/PortalsArticlesNewPage.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "_index-DCCIZ59i.js",
-      "_DashboardIcon-CaYOsZim.js",
-      "_ArticleEditor-DU_dWYfj.js",
+      "_DashboardIcon-uvlPGU8h.js",
+      "_ArticleEditor-D-Svh345.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_utils.esm-DY_uR2pP.js",
       "_js.cookie-Cz0CWeBA.js",
       "_Icon-CyI94jkG.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_index-DPTuQ6cd.js",
-      "_typing-CXcijpev.js",
-      "_index-BHzjGB0I.js",
+      "_typing-v5i7Jn01.js",
+      "_index-CVu9MuXj.js",
       "_vue-dompurify-html-BxCprq0H.js",
-      "_HelpCenterLayout-CqTNRJkc.js",
+      "_HelpCenterLayout-B84h7S90.js",
       "entrypoints/dashboard.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1472,26 +1505,26 @@
     ]
   },
   "dashboard/routes/dashboard/helpcenter/pages/PortalsCategoriesIndexPage.vue": {
-    "file": "assets/PortalsCategoriesIndexPage-dinf_LqZ.js",
+    "file": "assets/PortalsCategoriesIndexPage-CUbF_907.js",
     "name": "PortalsCategoriesIndexPage",
     "src": "dashboard/routes/dashboard/helpcenter/pages/PortalsCategoriesIndexPage.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "entrypoints/dashboard.js",
       "_index-DCCIZ59i.js",
-      "_DashboardIcon-CaYOsZim.js",
-      "_HelpCenterLayout-CqTNRJkc.js",
-      "_CategoryHeaderControls-Czjyg31X.js",
+      "_DashboardIcon-uvlPGU8h.js",
+      "_HelpCenterLayout-B84h7S90.js",
+      "_CategoryHeaderControls-BxC406EP.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_utils.esm-DY_uR2pP.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "_index-DPTuQ6cd.js",
-      "_typing-CXcijpev.js",
-      "_index-D6INv5GD.js",
+      "_typing-v5i7Jn01.js",
+      "_index-DVuDFGbh.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1507,25 +1540,25 @@
     ]
   },
   "dashboard/routes/dashboard/helpcenter/pages/PortalsLocalesIndexPage.vue": {
-    "file": "assets/PortalsLocalesIndexPage-IxLf8JaO.js",
+    "file": "assets/PortalsLocalesIndexPage-Dl9d0h_7.js",
     "name": "PortalsLocalesIndexPage",
     "src": "dashboard/routes/dashboard/helpcenter/pages/PortalsLocalesIndexPage.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
       "entrypoints/dashboard.js",
-      "_HelpCenterLayout-CqTNRJkc.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_HelpCenterLayout-B84h7S90.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "_index-DCCIZ59i.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_utils.esm-DY_uR2pP.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "_index-DPTuQ6cd.js",
-      "_typing-CXcijpev.js",
-      "_index-D6INv5GD.js",
+      "_typing-v5i7Jn01.js",
+      "_index-DVuDFGbh.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1541,24 +1574,24 @@
     ]
   },
   "dashboard/routes/dashboard/helpcenter/pages/PortalsSettingsIndexPage.vue": {
-    "file": "assets/PortalsSettingsIndexPage-DSfrUJ2W.js",
+    "file": "assets/PortalsSettingsIndexPage-DPKbQ15j.js",
     "name": "PortalsSettingsIndexPage",
     "src": "dashboard/routes/dashboard/helpcenter/pages/PortalsSettingsIndexPage.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_useBranding-DUcslGUa.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "entrypoints/dashboard.js",
       "_index-DCCIZ59i.js",
-      "_DashboardIcon-CaYOsZim.js",
-      "_HelpCenterLayout-CqTNRJkc.js",
-      "_index-D6INv5GD.js",
-      "_index-BHzjGB0I.js",
+      "_DashboardIcon-uvlPGU8h.js",
+      "_HelpCenterLayout-B84h7S90.js",
+      "_index-DVuDFGbh.js",
+      "_index-CVu9MuXj.js",
       "_utils.esm-DY_uR2pP.js",
       "_index-DN3rM4CW.js",
       "__commonjsHelpers-gnU0ypJ3.js",
-      "_typing-CXcijpev.js",
+      "_typing-v5i7Jn01.js",
       "_index-DPTuQ6cd.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
@@ -1575,26 +1608,26 @@
     ]
   },
   "dashboard/routes/dashboard/settings/calculator/Index.vue": {
-    "file": "assets/Index-Byegz3Uk.js",
+    "file": "assets/Index-BZ6TxgSk.js",
     "name": "Index",
     "src": "dashboard/routes/dashboard/settings/calculator/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_useBranding-DUcslGUa.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "_index-DCCIZ59i.js",
       "entrypoints/dashboard.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_utils.esm-DY_uR2pP.js",
       "_js.cookie-Cz0CWeBA.js",
       "_Icon-CyI94jkG.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_index-DN3rM4CW.js",
       "_index-DPTuQ6cd.js",
       "__commonjsHelpers-gnU0ypJ3.js",
-      "_index-BHzjGB0I.js",
-      "_typing-CXcijpev.js",
+      "_index-CVu9MuXj.js",
+      "_typing-v5i7Jn01.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1611,15 +1644,15 @@
     ]
   },
   "dashboard/routes/dashboard/settings/globalAi/GlobalAiAssistant.vue": {
-    "file": "assets/GlobalAiAssistant-BncMzBxt.js",
+    "file": "assets/GlobalAiAssistant-DoMQY_A2.js",
     "name": "GlobalAiAssistant",
     "src": "dashboard/routes/dashboard/settings/globalAi/GlobalAiAssistant.vue",
     "isDynamicEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_useBranding-DUcslGUa.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "_index-DCCIZ59i.js",
       "entrypoints/dashboard.js",
       "_index-DN3rM4CW.js",
@@ -1627,10 +1660,10 @@
       "_utils.esm-DY_uR2pP.js",
       "_js.cookie-Cz0CWeBA.js",
       "_Icon-CyI94jkG.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_index-DPTuQ6cd.js",
-      "_index-BHzjGB0I.js",
-      "_typing-CXcijpev.js",
+      "_index-CVu9MuXj.js",
+      "_typing-v5i7Jn01.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
@@ -1644,7 +1677,7 @@
     ]
   },
   "entrypoints/dashboard.js": {
-    "file": "assets/dashboard-B4bejdJg.js",
+    "file": "assets/dashboard-C5kFdLCu.js",
     "name": "entrypoints\\dashboard.js",
     "src": "entrypoints/dashboard.js",
     "isEntry": true,
@@ -1653,12 +1686,12 @@
       "_useBranding-DUcslGUa.js",
       "_utils.esm-DY_uR2pP.js",
       "__commonjsHelpers-gnU0ypJ3.js",
-      "_index-BHzjGB0I.js",
-      "_Validators-CFClgfk0.js",
-      "_DashboardIcon-CaYOsZim.js",
+      "_index-CVu9MuXj.js",
+      "_Validators-CNb9OZJ-.js",
+      "_DashboardIcon-uvlPGU8h.js",
       "_index-DCCIZ59i.js",
-      "_typing-CXcijpev.js",
-      "_index-D6INv5GD.js",
+      "_typing-v5i7Jn01.js",
+      "_index-DVuDFGbh.js",
       "_useKeyboardNavigableList-D9sp9zFm.js",
       "_helper-BVTgYTlr.js",
       "_index-DN3rM4CW.js",
@@ -1678,6 +1711,7 @@
       "dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue",
       "dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue",
       "dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue",
+      "dashboard/routes/dashboard/conversation/ReviewResumeView.vue",
       "dashboard/routes/dashboard/conversation/ConversationFocusWorkspace.vue",
       "dashboard/routes/dashboard/helpcenter/pages/PortalsArticlesIndexPage.vue",
       "dashboard/routes/dashboard/helpcenter/pages/PortalsArticlesNewPage.vue",
@@ -1691,7 +1725,7 @@
       "dashboard/routes/dashboard/settings/globalAi/GlobalAiAssistant.vue"
     ],
     "css": [
-      "assets/dashboard-DUKtU1IW.css"
+      "assets/dashboard-DZABwwqH.css"
     ],
     "assets": [
       "assets/facebook_login-_skaVloV.png",
@@ -1853,7 +1887,7 @@
     ]
   },
   "entrypoints/portal.js": {
-    "file": "assets/portal-ZjHytZ-Q.js",
+    "file": "assets/portal-B4uX3piA.js",
     "name": "entrypoints\\portal.js",
     "src": "entrypoints/portal.js",
     "isEntry": true,
@@ -1869,10 +1903,10 @@
       "__commonjsHelpers-gnU0ypJ3.js"
     ],
     "dynamicImports": [
-      "../../node_modules/.pnpm/@rails+actioncable@7.2.201/node_modules/@rails/actioncable/src/index.js"
+      "../../../chatwoot-conversation-scroll-selection-20260928/node_modules/.pnpm/@rails+actioncable@7.2.201/node_modules/@rails/actioncable/src/index.js"
     ],
     "css": [
-      "assets/portal-DnW67CBt.css"
+      "assets/portal-BKNj6gif.css"
     ],
     "assets": [
       "assets/InterDisplay-Thin-DMFvXDOM.woff2",
@@ -1902,12 +1936,12 @@
     ]
   },
   "entrypoints/superadmin.js": {
-    "file": "assets/superadmin-De3fz7_f.js",
+    "file": "assets/superadmin-C5b54aw3.js",
     "name": "entrypoints\\superadmin.js",
     "src": "entrypoints/superadmin.js",
     "isEntry": true,
     "css": [
-      "assets/superadmin-Qoc6dKSi.css"
+      "assets/superadmin-BuAoi6OR.css"
     ],
     "assets": [
       "assets/InterVariable-CWi-zmRD.woff2",
@@ -1933,7 +1967,7 @@
     ]
   },
   "entrypoints/survey.js": {
-    "file": "assets/survey-_3-KzOyQ.js",
+    "file": "assets/survey-DN3cOtfR.js",
     "name": "entrypoints\\survey.js",
     "src": "entrypoints/survey.js",
     "isEntry": true,
@@ -1951,7 +1985,7 @@
       "__commonjsHelpers-gnU0ypJ3.js"
     ],
     "css": [
-      "assets/survey-CsRDxbVy.css"
+      "assets/survey-CZ6SWSc8.css"
     ],
     "assets": [
       "assets/Inter-Thin-B4o5siQk.woff2",
@@ -1964,18 +1998,18 @@
     ]
   },
   "entrypoints/v3app.js": {
-    "file": "assets/v3app-CguLhlLa.js",
+    "file": "assets/v3app-CjpL6BXN.js",
     "name": "entrypoints\\v3app.js",
     "src": "entrypoints/v3app.js",
     "isEntry": true,
     "imports": [
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_useBranding-DUcslGUa.js",
-      "_DashboardIcon-CaYOsZim.js",
-      "_Validators-CFClgfk0.js",
+      "_DashboardIcon-uvlPGU8h.js",
+      "_Validators-CNb9OZJ-.js",
       "_utils.esm-DY_uR2pP.js",
       "_index-DCCIZ59i.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_index-DPTuQ6cd.js",
       "_index-DfsDTqrj.js",
       "_js.cookie-Cz0CWeBA.js",
@@ -1984,14 +2018,14 @@
       "_index-DN3rM4CW.js"
     ],
     "css": [
-      "assets/v3app-B1qIIRks.css"
+      "assets/v3app-jBvuOvRU.css"
     ],
     "assets": [
       "assets/signup-bg-DFyqN1ma.jpg"
     ]
   },
   "entrypoints/widget.js": {
-    "file": "assets/widget-Da8RGlj0.js",
+    "file": "assets/widget-CFq_u31e.js",
     "name": "entrypoints\\widget.js",
     "src": "entrypoints/widget.js",
     "isEntry": true,
@@ -2002,8 +2036,8 @@
       "_sharedFrameEvents-0qZ2yOho.js",
       "_utils.esm-DY_uR2pP.js",
       "_constants-lVAyZKq6.js",
-      "_Validators-CFClgfk0.js",
-      "_index-BHzjGB0I.js",
+      "_Validators-CNb9OZJ-.js",
+      "_index-CVu9MuXj.js",
       "_Icon-CyI94jkG.js",
       "_Branding-jIuXjMTb.js",
       "_module-CYHy4Xpg.js",
@@ -2021,7 +2055,7 @@
       "widget/views/ArticleViewer.vue"
     ],
     "css": [
-      "assets/widget-Bge1vI12.css"
+      "assets/widget-CamCo5b9.css"
     ],
     "assets": [
       "assets/Inter-Thin-B4o5siQk.woff2",
@@ -2135,14 +2169,14 @@
     ]
   },
   "widget/views/Campaigns.vue": {
-    "file": "assets/Campaigns-BRqCCTuP.js",
+    "file": "assets/Campaigns-BwvpsYV9.js",
     "name": "Campaigns",
     "src": "widget/views/Campaigns.vue",
     "isDynamicEntry": true,
     "imports": [
       "_useBranding-DUcslGUa.js",
       "entrypoints/widget.js",
-      "_UnreadMessageList-BV7K2DU8.js",
+      "_UnreadMessageList-CeKxYtjv.js",
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_utils.esm-DY_uR2pP.js",
       "_vue-dompurify-html-BxCprq0H.js",
@@ -2150,8 +2184,8 @@
       "_sharedFrameEvents-0qZ2yOho.js",
       "_index-DN3rM4CW.js",
       "_constants-lVAyZKq6.js",
-      "_Validators-CFClgfk0.js",
-      "_index-BHzjGB0I.js",
+      "_Validators-CNb9OZJ-.js",
+      "_index-CVu9MuXj.js",
       "_index-DPTuQ6cd.js",
       "_Icon-CyI94jkG.js",
       "_Branding-jIuXjMTb.js",
@@ -2161,7 +2195,7 @@
     ]
   },
   "widget/views/Home.vue": {
-    "file": "assets/Home-BuqE7a_6.js",
+    "file": "assets/Home-DlozCpwm.js",
     "name": "Home",
     "src": "widget/views/Home.vue",
     "isDynamicEntry": true,
@@ -2170,12 +2204,12 @@
       "entrypoints/widget.js",
       "_sharedFrameEvents-0qZ2yOho.js",
       "_useBranding-DUcslGUa.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_vue-dompurify-html-BxCprq0H.js",
       "__commonjsHelpers-gnU0ypJ3.js",
       "_utils.esm-DY_uR2pP.js",
       "_constants-lVAyZKq6.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "_index-DPTuQ6cd.js",
       "_index-DN3rM4CW.js",
       "_Icon-CyI94jkG.js",
@@ -2185,7 +2219,7 @@
     ]
   },
   "widget/views/Messages.vue": {
-    "file": "assets/Messages-tAsQGnzr.js",
+    "file": "assets/Messages-BRw36Am2.js",
     "name": "Messages",
     "src": "widget/views/Messages.vue",
     "isDynamicEntry": true,
@@ -2196,14 +2230,14 @@
       "_module-CYHy4Xpg.js",
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_Icon-CyI94jkG.js",
-      "_typing-CXcijpev.js",
-      "_Validators-CFClgfk0.js",
+      "_typing-v5i7Jn01.js",
+      "_Validators-CNb9OZJ-.js",
       "entrypoints/widget.js",
       "_sharedFrameEvents-0qZ2yOho.js",
       "_vue-dompurify-html-BxCprq0H.js",
-      "_index-D6INv5GD.js",
+      "_index-DVuDFGbh.js",
       "_StarRating-27u7bPsR.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "_constants-lVAyZKq6.js",
       "_index-DPTuQ6cd.js",
       "_index-DN3rM4CW.js",
@@ -2219,18 +2253,18 @@
     ]
   },
   "widget/views/PreChatForm.vue": {
-    "file": "assets/PreChatForm-Cfgrw2CZ.js",
+    "file": "assets/PreChatForm-BLM1MUmr.js",
     "name": "PreChatForm",
     "src": "widget/views/PreChatForm.vue",
     "isDynamicEntry": true,
     "imports": [
       "_useBranding-DUcslGUa.js",
-      "_Validators-CFClgfk0.js",
+      "_Validators-CNb9OZJ-.js",
       "_Button-Ct_dSE0m.js",
       "_utils.esm-DY_uR2pP.js",
       "entrypoints/widget.js",
       "_vue-dompurify-html-BxCprq0H.js",
-      "_index-BHzjGB0I.js",
+      "_index-CVu9MuXj.js",
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_helper-BVTgYTlr.js",
       "_module-CYHy4Xpg.js",
@@ -2248,14 +2282,14 @@
     ]
   },
   "widget/views/UnreadMessages.vue": {
-    "file": "assets/UnreadMessages-XJ6B1jd0.js",
+    "file": "assets/UnreadMessages-qE01Ax0m.js",
     "name": "UnreadMessages",
     "src": "widget/views/UnreadMessages.vue",
     "isDynamicEntry": true,
     "imports": [
       "_useBranding-DUcslGUa.js",
       "entrypoints/widget.js",
-      "_UnreadMessageList-BV7K2DU8.js",
+      "_UnreadMessageList-CeKxYtjv.js",
       "__plugin-vue_export-helper-C-KZiy6C.js",
       "_utils.esm-DY_uR2pP.js",
       "_vue-dompurify-html-BxCprq0H.js",
@@ -2263,8 +2297,8 @@
       "_sharedFrameEvents-0qZ2yOho.js",
       "_index-DN3rM4CW.js",
       "_constants-lVAyZKq6.js",
-      "_Validators-CFClgfk0.js",
-      "_index-BHzjGB0I.js",
+      "_Validators-CNb9OZJ-.js",
+      "_index-CVu9MuXj.js",
       "_index-DPTuQ6cd.js",
       "_Icon-CyI94jkG.js",
       "_Branding-jIuXjMTb.js",

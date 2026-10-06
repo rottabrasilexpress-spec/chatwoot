@@ -358,6 +358,13 @@ const menuItems = computed(() => {
       icon: 'i-lucide-message-circle',
       children: [
         {
+          name: 'ReviewResume',
+          label: 'Retomar revisão',
+          icon: 'i-lucide-bookmark-check',
+          to: accountScopedRoute('conversation_review_resume'),
+          activeOn: ['conversation_review_resume'],
+        },
+        {
           name: 'All',
           label: 'Todos',
           icon: 'i-lucide-inbox',

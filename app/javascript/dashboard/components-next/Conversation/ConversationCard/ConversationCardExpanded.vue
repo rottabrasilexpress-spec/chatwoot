@@ -27,6 +27,7 @@ const props = defineProps({
   selected: { type: Boolean, default: false },
   selectionModeActive: { type: Boolean, default: false },
   isActiveChat: { type: Boolean, default: false },
+  isReviewNext: { type: Boolean, default: false },
   showAssignee: { type: Boolean, default: false },
   showInboxName: { type: Boolean, default: false },
   isInboxView: { type: Boolean, default: false },
@@ -175,6 +176,11 @@ const selectedModel = computed({
       />
 
       <div class="flex items-center gap-1 min-w-0 w-40 flex-shrink-0">
+        <span
+          v-if="isReviewNext"
+          class="i-lucide-bookmark-check size-4 text-n-brand shrink-0"
+          :title="$t('CONVERSATION.REVIEW_NEXT', 'Próximo da revisão')"
+        />
         <h4
           class="text-heading-3 my-0 capitalize truncate text-n-slate-12 font-medium min-w-0 flex-1"
         >
