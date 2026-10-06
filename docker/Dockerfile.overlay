@@ -16,6 +16,9 @@ COPY config/installation_config.yml /app/config/installation_config.yml
 COPY config/schedule.yml /app/config/schedule.yml
 COPY config/sidekiq-uazapi.yml /app/config/sidekiq-uazapi.yml
 COPY config/routes.rb /app/config/routes.rb
+COPY app/controllers/api/v1/accounts/review_points_controller.rb /app/app/controllers/api/v1/accounts/review_points_controller.rb
+COPY app/models/conversation_review_state.rb /app/app/models/conversation_review_state.rb
+COPY db/migrate/20261006120000_create_conversation_review_states.rb /app/db/migrate/20261006120000_create_conversation_review_states.rb
 COPY db/migrate/20260921120000_create_rotta_automatic_label_logs.rb /app/db/migrate/20260921120000_create_rotta_automatic_label_logs.rb
 COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migrate/20260820000000_set_rotta_brasil_express_branding.rb
 COPY db/migrate/20260821000001_archive_existing_rotta_conversations.rb /app/db/migrate/20260821000001_archive_existing_rotta_conversations.rb
