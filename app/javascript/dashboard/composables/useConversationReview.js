@@ -5,9 +5,13 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import ConversationApi from '../api/inbox/conversation';
 import {
+  reviewWorkspacePath,
+  reviewWorkspaceDestination,
+} from '../helper/reviewWorkspace';
+import {
   createReviewPoint,
   reviewConversationEligible,
-  reviewConversationPath,
+  reviewViewKey,
 } from '../helper/conversationReview';
 
 // One shared request queue, regardless of how many list/sidebar components mount.
@@ -142,13 +146,37 @@ export function useConversationReview() {
         )
           continue;
         await router.push({
-          path: reviewConversationPath(point, resumeAccountId, candidate.id),
-          query: { review: point.id },
+          path: reviewWorkspacePath(conversation, resumeAccountId),
+          query: { review: point.id, review_open: 'workspace' },
         });
         if (session.value !== state) return;
+        const destination = reviewWorkspaceDestination(conversation);
+        const context = {
+          ...point.context,
+          label: destination.label || '',
+          conversationType: destination.conversationType || '',
+          inboxId: 0,
+          teamId: 0,
+          foldersId: 0,
+          status: 'all',
+          assigneeType: 'all',
+          filters: [],
+        };
+        const titles = {
+          finalizados: 'Finalizados',
+          'clientes-fechados': 'Clientes Fechados',
+          'emitir-contrato': 'Emitir Contrato',
+          'caio-atencao': 'Caio Atenção',
+        };
         save(
           {
             ...point,
+            context,
+            view: reviewViewKey(context),
+            title:
+              destination.conversationType === 'archived'
+                ? 'Arquivados'
+                : titles[destination.label] || 'Todos',
             conversation_id: candidate.id,
             name: conversation.meta?.sender?.name || candidate.name,
             remaining: point.remaining.slice(index + 1),

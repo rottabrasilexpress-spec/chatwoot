@@ -48,7 +48,7 @@ describe('review controls', () => {
       .findAll('button')
       .find(button => button.text() === 'Tentar novamente')
       .trigger('click');
-    expect(service.flush).toHaveBeenCalledTimes(2);
+    expect(service.flush).toHaveBeenCalledTimes(3);
     expect(service.load).toHaveBeenLastCalledWith(true);
   });
   it('the compact shortcut opens the saved next contact', async () => {

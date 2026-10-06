@@ -599,6 +599,13 @@ async function restoreReviewContext() {
   );
   if (!point) return false;
   restoredReviewId = id;
+  if (route.query.review_open === 'workspace') {
+    activeStatus.value = 'all';
+    activeAssigneeTab.value = 'all';
+    await store.dispatch('setConversationFilters', []);
+    appliedFilter.value = [];
+    return false;
+  }
   activeStatus.value = point.context.status;
   activeAssigneeTab.value = point.context.assigneeType;
   if (props.foldersId) return false;

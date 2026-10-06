@@ -73,6 +73,9 @@ COPY app/services/action_service.rb /app/app/services/action_service.rb
 COPY app/services/auto_assignment/agent_assignment_service.rb /app/app/services/auto_assignment/agent_assignment_service.rb
 COPY app/services/conversations/assignment_service.rb /app/app/services/conversations/assignment_service.rb
 COPY app/models/conversation.rb /app/app/models/conversation.rb
+COPY app/models/conversation_following.rb /app/app/models/conversation_following.rb
+COPY app/controllers/api/v1/accounts/conversation_followings_controller.rb /app/app/controllers/api/v1/accounts/conversation_followings_controller.rb
+COPY db/migrate/20261006150000_create_conversation_followings.rb /app/db/migrate/20261006150000_create_conversation_followings.rb
 COPY app/models/message.rb /app/app/models/message.rb
 COPY app/models/deleted_message_content.rb /app/app/models/deleted_message_content.rb
 COPY enterprise/app/models/copilot_message.rb /app/enterprise/app/models/copilot_message.rb

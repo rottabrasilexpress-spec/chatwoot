@@ -58,6 +58,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'notification.updated': this.onNotificationUpdated,
       'conversation.read': this.onConversationRead,
       'conversation.updated': this.onConversationUpdated,
+      'conversation.following_changed': this.onConversationFollowingChanged,
       'conversation.caio_attention_added': this.onCaioAttentionAdded,
       'conversation.attention_requested': this.onAttentionRequested,
       'conversation.unread_count_changed':
@@ -88,6 +89,7 @@ class ActionCableConnector extends BaseActionCableConnector {
   };
 
   onMessageUpdated = data => {
+    emitter.emit('rotta:following-message', data);
     this.app.$store.dispatch('updateMessage', data);
   };
 
@@ -131,6 +133,7 @@ class ActionCableConnector extends BaseActionCableConnector {
   onLogout = () => AuthAPI.logout();
 
   onMessageCreated = data => {
+    emitter.emit('rotta:following-message', data);
     const {
       conversation: { last_activity_at: lastActivityAt },
       conversation_id: conversationId,
@@ -206,6 +209,11 @@ class ActionCableConnector extends BaseActionCableConnector {
       this.scheduleLabelCatalogRefresh();
       emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, data);
     }
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  onConversationFollowingChanged = data => {
+    emitter.emit('rotta:following-changed', data);
   };
 
   keepArchivedConversationOutOfActiveList = conversation => {

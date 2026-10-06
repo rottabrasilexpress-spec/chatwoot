@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, watch, onMounted, onUnmounted } from 'vue';
 import { useConversationReview } from 'dashboard/composables/useConversationReview';
 const props = defineProps({
   view: { type: String, default: '' },
@@ -35,17 +35,35 @@ const retry = async () => {
   await load(true);
 };
 watch(session, () => load(), { immediate: true });
+const refreshed = () => {
+  if (!props.compact && document.visibilityState === 'visible') retry();
+};
+onMounted(() => {
+  if (!props.compact) {
+    retry();
+    window.addEventListener('focus', refreshed);
+    document.addEventListener('visibilitychange', refreshed);
+  }
+});
+onUnmounted(() => {
+  window.removeEventListener('focus', refreshed);
+  document.removeEventListener('visibilitychange', refreshed);
+});
+const titleFor = item =>
+  ({
+    '#kelvin': 'Orçamentos',
+    '#caio-atencao': 'Caio Atenção',
+    '#clientes-fechados': 'Clientes Fechados',
+    '#finalizados': 'Finalizados',
+    '#emitir-contrato': 'Emitir Contrato',
+  })[item.title] || item.title;
 </script>
 
 <template>
   <section
     v-if="!compact || point || session.error"
     :aria-label="copy.title"
-    :class="
-      compact
-        ? 'px-3 py-2 border-b border-n-weak'
-        : 'w-full max-w-3xl mx-auto p-4 sm:p-6'
-    "
+    :class="compact ? 'px-3 py-2 border-b border-n-weak' : 'w-full'"
   >
     <template v-if="compact">
       <button
@@ -72,8 +90,14 @@ watch(session, () => load(), { immediate: true });
       </p>
     </template>
     <template v-else>
-      <div class="flex flex-wrap gap-3 justify-between items-center mb-3">
-        <h1 class="text-xl font-semibold text-n-slate-12">{{ copy.title }}</h1>
+      <div
+        class="flex flex-wrap gap-3 justify-between items-center px-5 py-4 bg-n-brand/10 border-b border-n-brand/20"
+      >
+        <h1 class="flex items-center gap-2 text-lg font-semibold text-n-brand">
+          <span class="i-lucide-bookmark-check size-5" aria-hidden="true" />{{
+            copy.title
+          }}
+        </h1>
         <button
           type="button"
           class="px-3 py-2 rounded-lg text-sm text-n-brand hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand disabled:opacity-50"
@@ -82,57 +106,61 @@ watch(session, () => load(), { immediate: true });
         >
           {{ copy.refresh }}
         </button>
+        <p class="w-full text-sm text-n-slate-11">{{ copy.description }}</p>
       </div>
-      <p class="text-sm text-n-slate-11 mb-6">{{ copy.description }}</p>
-      <p v-if="session.loading" role="status" class="text-n-slate-11">
-        {{ copy.loading }}
-      </p>
-      <p v-else-if="!views.length" class="text-n-slate-11">{{ copy.empty }}</p>
-      <template
-        v-for="section in [
-          { title: copy.tabs, points: views },
-          { title: copy.history, points: session.history },
-        ]"
-        :key="section.title"
-      >
-        <h2
-          v-if="section.points.length"
-          class="text-base font-semibold mt-6 mb-2 text-n-slate-12"
+      <div class="px-5 py-4">
+        <p v-if="session.loading" role="status" class="text-sm text-n-slate-11">
+          {{ copy.loading }}
+        </p>
+        <p v-else-if="!views.length" class="text-n-slate-11">
+          {{ copy.empty }}
+        </p>
+        <template
+          v-for="section in [
+            { title: copy.tabs, points: views },
+            { title: copy.history, points: session.history },
+          ]"
+          :key="section.title"
         >
-          {{ section.title }}
-        </h2>
-        <ul class="m-0 list-none divide-y divide-n-weak">
-          <li
-            v-for="item in section.points"
-            :key="item.id"
-            class="py-4 flex flex-wrap gap-3 items-center justify-between"
+          <h2
+            v-if="section.points.length"
+            class="flex items-center gap-2 text-sm font-semibold mt-5 first:mt-0 mb-2 text-n-slate-12"
           >
-            <div class="min-w-0 flex-1 basis-44">
-              <p class="font-semibold text-n-slate-12 break-words">
-                {{ item.title }}
-              </p>
-              <p class="text-sm text-n-slate-11 break-words">
-                {{ copy.stopped }} {{ item.name }}
-              </p>
-              <p class="text-sm text-n-brand break-words">
-                {{
-                  item.remaining.length
-                    ? `${copy.next} ${item.remaining[0].name}`
-                    : copy.finished
-                }}
-              </p>
-            </div>
-            <button
-              type="button"
-              class="px-3 py-2 rounded-lg bg-n-brand text-white text-sm font-medium hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand disabled:opacity-50"
-              :disabled="!item.remaining.length || session.busy"
-              @click="resume(item)"
+            {{ section.title }}
+          </h2>
+          <ul class="m-0 list-none divide-y divide-n-weak">
+            <li
+              v-for="item in section.points"
+              :key="item.id"
+              class="py-4 flex flex-wrap gap-3 items-center justify-between"
             >
-              {{ session.busy ? copy.busy : copy.continue }}
-            </button>
-          </li>
-        </ul>
-      </template>
+              <div class="min-w-0 flex-1 basis-44">
+                <p class="font-semibold text-n-slate-12 break-words">
+                  {{ titleFor(item) }}
+                </p>
+                <p class="text-sm text-n-slate-11 break-words">
+                  {{ copy.stopped }} {{ item.name }}
+                </p>
+                <p class="mt-1 text-sm text-n-brand break-words">
+                  {{
+                    item.remaining.length
+                      ? `${copy.next} ${item.remaining[0].name}`
+                      : copy.finished
+                  }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="px-3 py-2 rounded-lg bg-n-brand text-white text-sm font-medium hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand disabled:opacity-50"
+                :disabled="!item.remaining.length || session.busy"
+                @click="resume(item)"
+              >
+                {{ session.busy ? copy.busy : copy.continue }}
+              </button>
+            </li>
+          </ul>
+        </template>
+      </div>
     </template>
     <div
       v-if="session.error"

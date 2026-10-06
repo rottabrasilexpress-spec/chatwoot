@@ -164,4 +164,25 @@ describe('automatic review persistence', () => {
     expect(ConversationApi.show).toHaveBeenCalledTimes(1);
     expect(push).toHaveBeenCalledTimes(1);
   });
+  it('keeps the next shortcut on Todos after resuming an old budget point', async () => {
+    const budget = {
+      ...context,
+      label: 'kelvin',
+      inboxId: 0,
+      teamId: 0,
+      foldersId: 0,
+    };
+    review.record(chats, chats[0], budget, '#kelvin');
+    ConversationApi.show.mockResolvedValueOnce({
+      data: { ...chats[1], labels: ['kelvin'] },
+    });
+    await review.resume(review.session.value.history[0]);
+    expect(push.mock.calls[0][0].path).toBe('/app/accounts/1/conversations/2');
+    const point = review.session.value.history[0];
+    expect(point.context.label).toBe('');
+    expect(point.title).toBe('Todos');
+    expect(review.session.value.views[point.view].remaining[0].name).toBe(
+      'Graziela'
+    );
+  });
 });

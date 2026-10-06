@@ -10,6 +10,7 @@ import Avatar from 'next/avatar/Avatar.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import ConversationAiStatus from './ConversationAiStatus.vue';
 import ConversationCallButton from './ConversationCallButton.vue';
+import FollowingButton from 'dashboard/components-next/Conversation/Review/FollowingButton.vue';
 import wootConstants from 'dashboard/constants/globals';
 import { conversationListPageURL } from 'dashboard/helper/URLHelper';
 import { snoozedReopenTime } from 'dashboard/helper/snoozeHelpers';
@@ -130,7 +131,7 @@ const copyConversationId = async () => {
 <template>
   <div
     ref="conversationHeader"
-    class="flex flex-col gap-3 items-center justify-between flex-1 w-full min-w-0 xl:flex-row px-3 pt-3 pb-2 h-24 xl:h-12"
+    class="flex flex-col gap-3 items-center justify-between flex-1 w-full min-w-0 xl:flex-row px-3 pt-3 pb-2 min-h-24 xl:min-h-12"
     :class="{ 'rotta-kelvin-header': hasKelvinCaioLabel }"
   >
     <div
@@ -199,7 +200,7 @@ const copyConversationId = async () => {
       </div>
     </div>
     <div
-      class="flex flex-row items-center justify-start xl:justify-end flex-shrink-0 gap-2 w-full xl:w-auto header-actions-wrap"
+      class="flex flex-row flex-wrap items-center justify-start xl:justify-end flex-shrink-0 gap-2 w-full xl:w-auto header-actions-wrap"
     >
       <SLACardLabel
         v-if="hasSlaPolicyId"
@@ -209,6 +210,7 @@ const copyConversationId = async () => {
         class="hidden md:flex"
       />
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
+      <FollowingButton v-if="chat.id" :conversation-id="chat.id" />
       <MoreActions :conversation-id="currentChat.id" />
     </div>
   </div>
