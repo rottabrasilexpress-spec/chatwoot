@@ -76,6 +76,7 @@ COPY app/models/conversation.rb /app/app/models/conversation.rb
 COPY app/models/message.rb /app/app/models/message.rb
 COPY app/models/deleted_message_content.rb /app/app/models/deleted_message_content.rb
 COPY enterprise/app/models/copilot_message.rb /app/enterprise/app/models/copilot_message.rb
+COPY enterprise/app/models/call.rb /app/enterprise/app/models/call.rb
 COPY app/models/message_star.rb /app/app/models/message_star.rb
 COPY app/models/uazapi_webhook_delivery.rb /app/app/models/uazapi_webhook_delivery.rb
 COPY app/models/account.rb /app/app/models/account.rb

@@ -8,7 +8,7 @@ class Api::V1::Accounts::ReviewPointsController < Api::V1::Accounts::BaseControl
 
   def update
     points = params.require(:points).first(5).map { |point| sanitized_point(point) }
-    saved = ConversationReviewState.create_or_find_by!(account: Current.account, user: current_user)
+    saved = ConversationReviewState.find_or_create_by!(account: Current.account, user: current_user)
     saved.with_lock do
       state = saved.data
       points.each do |point|
