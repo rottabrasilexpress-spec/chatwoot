@@ -40,6 +40,9 @@ COPY app/jobs/rotta_deleted_message_content_retention_job.rb /app/app/jobs/rotta
 COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi_contact_avatar_sync_job.rb
 COPY app/jobs/rotta_uazapi_webhook_delivery_retention_job.rb /app/app/jobs/rotta_uazapi_webhook_delivery_retention_job.rb
 COPY app/jobs/rotta_uazapi_history_reconciliation_job.rb /app/app/jobs/rotta_uazapi_history_reconciliation_job.rb
+COPY app/jobs/rotta_follow_up_reconciliation_job.rb /app/app/jobs/rotta_follow_up_reconciliation_job.rb
+COPY script/diagnostics/rotta_latency_sync_check.rb /app/script/diagnostics/rotta_latency_sync_check.rb
+COPY app/controllers/api/v1/accounts/labels_controller.rb /app/app/controllers/api/v1/accounts/labels_controller.rb
 COPY app/controllers/api/v1/accounts/rotta_follow_up_controller.rb /app/app/controllers/api/v1/accounts/rotta_follow_up_controller.rb
 COPY app/controllers/dashboard_controller.rb /app/app/controllers/dashboard_controller.rb
 COPY app/controllers/api/v1/accounts_controller.rb /app/app/controllers/api/v1/accounts_controller.rb
