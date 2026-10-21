@@ -1,4 +1,4 @@
-FROM chatwoot/chatwoot:v4.17.0
+FROM scratch AS rotta_customizations
 
 # The Rails application and dependencies come from the official image. The
 # validated Rotta bundle and the backend rules that power its filters, audit
@@ -122,3 +122,9 @@ COPY enterprise/app/services/conversation_ai/profile_service.rb /app/enterprise/
 COPY enterprise/app/views/api/v1/models/captain/_copilot_thread.json.jbuilder /app/enterprise/app/views/api/v1/models/captain/_copilot_thread.json.jbuilder
 COPY enterprise/app/views/api/v1/accounts/captain/copilot_threads/index.json.jbuilder /app/enterprise/app/views/api/v1/accounts/captain/copilot_threads/index.json.jbuilder
 COPY enterprise/app/views/api/v1/accounts/captain/copilot_messages/index.json.jbuilder /app/enterprise/app/views/api/v1/accounts/captain/copilot_messages/index.json.jbuilder
+
+# Keep the exact explicit overlay above, but ship it as one layer on the
+# official runtime. Adding every file as a runtime layer can exceed the
+# storage driver's maximum depth when EasyPanel recreates the services.
+FROM chatwoot/chatwoot:v4.17.0
+COPY --from=rotta_customizations /app/ /app/
