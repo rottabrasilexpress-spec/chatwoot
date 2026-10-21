@@ -15,6 +15,8 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     allow(Redis::Alfred).to receive(:set).and_return(true)
     allow(Redis::Alfred).to receive(:get).and_return(nil)
     allow(Redis::Alfred).to receive(:delete)
+    allow(Redis::Alfred).to receive(:delete_if_equals)
+    stub_const('RottaUazapiHistoryReconciliationJob::ACCOUNT_ID', create(:account).id)
 
     stub_request(:post, 'https://uazapi.test/chat/find').to_return(
       status: 200,
@@ -44,6 +46,7 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     %w[incoming-1 outgoing-1].each do |message_id|
       expect(
         a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')
+          .with(headers: { 'X-Forwarded-Proto' => 'https' })
           .with { |request| JSON.parse(request.body).dig('data', 'messageid') == message_id }
       ).to have_been_made.once
     end
@@ -55,6 +58,28 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     perform_job
 
     expect(a_request(:post, 'https://uazapi.test/chat/find')).not_to have_been_made
+  end
+
+  it 'does not replay an existing message, but still recovers the missing outgoing message' do
+    conversation = create(:conversation, account_id: described_class::ACCOUNT_ID)
+    create(:message, conversation: conversation, account_id: described_class::ACCOUNT_ID, source_id: 'incoming-1')
+
+    perform_job
+
+    expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')
+      .with { |request| JSON.parse(request.body).dig('data', 'messageid') == 'incoming-1' }).not_to have_been_made
+    expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')
+      .with { |request| JSON.parse(request.body).dig('data', 'messageid') == 'outgoing-1' }).to have_been_made.once
+  end
+
+  it 'only releases the reconciliation lock owned by this run' do
+    allow(SecureRandom).to receive(:uuid).and_return('owned-lock')
+
+    perform_job
+
+    expect(Redis::Alfred).to have_received(:delete_if_equals)
+      .with('rotta:uazapi:history-reconciliation:lock', 'owned-lock')
+    expect(Redis::Alfred).not_to have_received(:delete)
   end
 
   it 'uses an overlap from the last successful reconciliation and advances the cursor' do

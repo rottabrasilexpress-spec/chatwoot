@@ -5,7 +5,8 @@ json.payload do
     json.description label.description
     json.color label.color
     json.show_on_sidebar label.show_on_sidebar
-    json.contacts_count label.contacts_count
-    json.conversations_count label.conversations_count
+    counts = @label_counts.fetch(label.title, [0, 0])
+    json.contacts_count counts[1]
+    json.conversations_count counts[0]
   end
 end

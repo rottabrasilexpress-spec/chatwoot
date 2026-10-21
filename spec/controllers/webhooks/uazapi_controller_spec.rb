@@ -20,6 +20,13 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
   end
 
   describe 'POST /webhooks/uazapi/:token' do
+    it 'reads EventType from the body when the URL has no event suffix' do
+      post_uazapi(EventType: 'contacts', data: [])
+
+      expect(response).to have_http_status(:success)
+      expect(UazapiWebhookDelivery.order(:id).last.event).to eq('contacts')
+    end
+
     it 'queues a profile sync for contacts events matching a Chatwoot contact' do
       contact
       payload = {

@@ -12,6 +12,7 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
   queue_as :uazapi_sync
 
   BASE_URL = ENV.fetch('ROTTABRASIL_UAZAPI_BASE_URL', 'https://transportadoras.uazapi.com').freeze
+  ACCOUNT_ID = ENV.fetch('ROTTABRASIL_CHATWOOT_ACCOUNT_ID', '1').to_i
   CHATWOOT_INTERNAL_URL = ENV.fetch('ROTTABRASIL_CHATWOOT_INTERNAL_URL', 'http://rails:3000').freeze
   LOOKBACK = ENV.fetch('ROTTABRASIL_UAZAPI_RECONCILIATION_HOURS', '72').to_i.clamp(1, 720).hours
   CHAT_PAGE_SIZE = ENV.fetch('ROTTABRASIL_UAZAPI_RECONCILIATION_CHAT_PAGE_SIZE', '50').to_i.clamp(10, 100)
@@ -41,12 +42,13 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
 
   def with_reconciliation_lock
     lock_key = 'rotta:uazapi:history-reconciliation:lock'
-    acquired = Redis::Alfred.set(lock_key, SecureRandom.uuid, nx: true, ex: LOCK_TTL.to_i)
+    lock_token = SecureRandom.uuid
+    acquired = Redis::Alfred.set(lock_key, lock_token, nx: true, ex: LOCK_TTL.to_i)
     return unless acquired
 
     yield
   ensure
-    Redis::Alfred.delete(lock_key) if acquired
+    Redis::Alfred.delete_if_equals(lock_key, lock_token) if acquired
   end
 
   def each_recent_chat(cutoff)
@@ -69,16 +71,31 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
 
     payload = uazapi_post('/message/find', chatid: chat_id, limit: MESSAGE_LIMIT)
     messages = response_records(payload, %w[messages data records])
-    messages.select { |message| recent?(message_timestamp(message), cutoff) }
-            .sort_by { |message| message_timestamp(message) || Time.at(0) }
-            .each { |message| replay_message(message) }
+    recent_messages = messages.select { |message| recent?(message_timestamp(message), cutoff) }
+    provider_ids = recent_messages.filter_map { |message| value_for_keys(message, %w[message_id messageId messageid id])&.to_s&.presence }
+    existing_ids = Message.where(account_id: ACCOUNT_ID, source_id: provider_ids.flat_map { |id| [id, "uazapi:#{id}"] })
+                          .pluck(:source_id).map { |id| id.delete_prefix('uazapi:') }.to_set
+    recent_messages.sort_by { |message| message_timestamp(message) || Time.at(0) }.each do |message|
+      provider_id = value_for_keys(message, %w[message_id messageId messageid id])&.to_s
+      # Recovery is for missing messages. Do not replay the same 72-hour history
+      # into the web server every minute. Explicit edits/deletions still use
+      # the webhook so their existing bubble can be updated.
+      mutation = value_for_keys(message, %w[edited editedMessage edited_message editOf edit_of deleted revoked]).present? ||
+                 value_for_keys(message, %w[type messageType]).to_s.match?(/edit|delet|revok|protocol/i)
+      next if existing_ids.include?(provider_id) && !mutation
+
+      replay_message(message)
+    end
   end
 
   def replay_message(message)
     response = http_request(
       webhook_uri,
       Net::HTTP::Post,
-      { event: 'history', data: message, reconciliation: true }
+      { event: 'history', data: message, reconciliation: true },
+      # Internal service traffic bypasses the TLS proxy. Without its protocol
+      # header Rails redirects POSTs (308), so recovery never reaches the hook.
+      { 'X-Forwarded-Proto' => 'https' }
     )
     return if response.code.to_i.between?(200, 299)
 

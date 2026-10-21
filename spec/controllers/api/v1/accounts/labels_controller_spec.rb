@@ -39,6 +39,23 @@ RSpec.describe 'Label API', type: :request do
 
         expect(returned_label['conversations_count']).to eq(1)
       end
+
+      it 'groups counts without per-label queries, including resolved conversations and distinct contacts' do
+        conversation.update_labels([label.title])
+        resolved = create(:conversation, account: account, contact: conversation.contact, status: :resolved)
+        resolved.update_labels([label.title])
+        other_account = create(:account)
+        other_conversation = create(:conversation, account: other_account)
+        other_conversation.update_labels([label.title])
+        allow_any_instance_of(Label).to receive(:conversations_count).and_raise('per-label query regression')
+        allow_any_instance_of(Label).to receive(:contacts_count).and_raise('per-label query regression')
+
+        get "/api/v1/accounts/#{account.id}/labels", headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        returned_label = response.parsed_body.fetch('payload').find { |item| item['id'] == label.id }
+        expect(returned_label).to include('conversations_count' => 2, 'contacts_count' => 1)
+      end
     end
   end
 

@@ -213,7 +213,7 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def extract_event(payload)
-    route_event = params[:event].to_s.split('/').first
+    route_event = params[:event].to_s.split('/').first.to_s
     known_events = %w[
       connection history message messages messages_update ack message_delete messages_delete
       messages_deleted message_deleted message_revoke messages_revoke message_revoked

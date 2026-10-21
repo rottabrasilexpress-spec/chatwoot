@@ -69,7 +69,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       raise RottaFollowUp::AdminClient::RequestError, admin_response_error(response) unless response.success?
 
       body = scope_list_body(response.body)
-      body = reconcile_missing_follow_up_jobs(body, operational_only: true)
+      body = reconcile_missing_follow_up_jobs(body)
       add_chatwoot_label_fallbacks(body)
     end
     body = RottaFollowUp::ListPage.new(snapshot, options.slice('page', 'per_page', 'search', 'view', 'stage', 'panel', 'panel_page')).call
@@ -196,7 +196,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   # Chatwoot's labels are authoritative for enrollment. If an enrollment
   # webhook was lost, ask the worker to idempotently rebuild the scheduled job
   # for the single active non-instant stage, then fetch the queue again.
-  def reconcile_missing_follow_up_jobs(body, operational_only: false)
+  def reconcile_missing_follow_up_jobs(body)
     jobs = Array(body['jobs'])
     reconcilable_titles = Current.account.labels.pluck(:title).select do |title|
       RECONCILABLE_STAGE_KEYS.include?(follow_up_label_key(title))
@@ -239,7 +239,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       next if has_operational_job
 
       cache_key = reconciliation_cache_key(conversation_id, stage)
-      cached_result = Rails.cache.read(cache_key)
+      cached_result = Redis::Alfred.get(cache_key)
       if cached_result.present?
         errors[conversation_id] = cached_result == 'in_progress' ?
           'Reconciliação em andamento; aguardando confirmação da fila.' : cached_result
@@ -279,62 +279,25 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
 
     return body.merge('reconciliation_errors' => errors) if candidates.empty?
 
-    batch = candidates.first(MAX_RECONCILIATION_BATCH)
-    batch.each { |candidate| Rails.cache.write(candidate[:cache_key], 'in_progress', expires_in: 30.seconds) }
-    reconciliation_error = nil
-    begin
-      reconciliation = RottaFollowUp::AdminClient.request({
-        action: 'reconcile',
-        account_id: Current.account.id,
-        conversations: batch.map { |candidate| candidate[:payload] }
-      })
-      unless reconciliation.success?
-        reconciliation_error = admin_response_error(reconciliation)
-      else
-        rejected = Array(reconciliation.body['rejected']).find do |item|
-          batch.any? { |candidate| candidate[:payload]['conversation_id'] == item['conversation_id'].to_s }
-        end
-        reconciliation_error = rejected['error'].to_s.truncate(240) if rejected
-      end
-    rescue RottaFollowUp::AdminClient::Error => e
-      reconciliation_error = e.message
-    rescue StandardError => e
-      Rails.logger.error("[RottaFollowUp] reconciliation #{e.class}: #{e.message}")
-      reconciliation_error = 'Falha inesperada ao reconciliar a etiqueta com a fila.'
+    # The n8n reconciliation calls back into Rails for authoritative labels.
+    # Waiting here ties up a web thread and can starve those callbacks (and chat
+    # messages). Reserve each stage atomically, then reconcile off the web path.
+    batch = candidates.first(MAX_RECONCILIATION_BATCH).select do |candidate|
+      Redis::Alfred.set(candidate[:cache_key], 'in_progress', nx: true, ex: 120)
     end
-
-    refreshed_body = body
-    begin
-      refreshed = RottaFollowUp::AdminClient.request({ action: 'list', account_id: Current.account.id, operational_only: operational_only })
-      if refreshed.success? && refreshed.body.is_a?(Hash)
-        refreshed_body = scope_list_body(refreshed.body)
-      else
-        reconciliation_error ||= "A fila não confirmou a atualização (HTTP #{refreshed.status})."
+    if batch.any?
+      begin
+        RottaFollowUpReconciliationJob.perform_later(Current.account.id, batch.map { |candidate| candidate[:payload] })
+      rescue StandardError
+        batch.each { |candidate| Redis::Alfred.delete_if_equals(candidate[:cache_key], 'in_progress') }
+        raise
       end
-    rescue RottaFollowUp::AdminClient::Error => e
-      reconciliation_error ||= "Não foi possível confirmar a reconciliação: #{e.message}"
-    end
-
-    refreshed_jobs = Array(refreshed_body['jobs'])
-    batch.each do |candidate|
-      conversation_id = candidate[:payload]['conversation_id']
-      recovered = refreshed_jobs.any? do |job|
-        job['conversation_id'].to_s == conversation_id &&
-          follow_up_label_key(job['current_label'].presence || job['source_label']) == candidate[:payload]['stage_label'] &&
-          RECOVERY_ACTIVE_STATUSES.include?(job['status'].to_s)
-      end
-      if recovered
-        Rails.cache.delete(candidate[:cache_key])
-        errors.delete(conversation_id)
-      else
-        message = reconciliation_error ||
-                  'A fila recebeu a verificação, mas não confirmou a inscrição desta etapa. Confira possíveis jobs anteriores ou conflito de telefone.'
-        errors[conversation_id] = message
-        Rails.cache.write(candidate[:cache_key], message, expires_in: 20.seconds)
+      batch.each do |candidate|
+        errors[candidate[:payload]['conversation_id']] = 'Reconciliação em andamento; aguardando confirmação da fila.'
       end
     end
 
-    refreshed_body.merge('reconciliation_errors' => errors)
+    body.merge('reconciliation_errors' => errors)
   end
 
   def reconciliation_cache_key(conversation_id, stage)

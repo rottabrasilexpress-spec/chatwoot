@@ -6,6 +6,12 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
   let!(:conversation) { create(:conversation, account: account) }
   let(:endpoint) { "/api/v1/accounts/#{account.id}/rotta_follow_up" }
 
+  before do
+    allow(Redis::Alfred).to receive(:get).and_return(nil)
+    allow(Redis::Alfred).to receive(:set).and_return(true)
+    allow(Redis::Alfred).to receive(:delete_if_equals)
+  end
+
   describe 'POST list' do
     it 'returns the conversation labels as active_labels for reconciliation' do
       upstream_body = {
@@ -119,20 +125,19 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
            as: :json
 
       expect(response).to have_http_status(:success), response.body
-      expect(requests.size).to eq(3)
+      expect(requests.size).to eq(1)
       expect(JSON.parse(requests[0].last[:body])).to include('action' => 'list')
-      expect(JSON.parse(requests[1].last[:body])).to include(
-        'action' => 'reconcile',
-        'conversations' => contain_exactly(hash_including(
+      expect(RottaFollowUpReconciliationJob).to have_been_enqueued.with(
+        account.id, contain_exactly(hash_including(
           'conversation_id' => conversation.display_id.to_s,
           'stage_label' => 'primeiro-contato',
           'active_labels' => ['primeiro-contato']
         ))
       )
       expect(response.parsed_body['jobs'].sole).to include(
-        'job_id' => 'recovered-first-contact',
+        'pending_enrollment' => true,
         'current_label' => 'primeiro-contato',
-        'status' => 'pending'
+        'status' => 'sync_failed'
       )
       expect(response.parsed_body['total']).to eq(1)
     end
@@ -174,18 +179,18 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
            as: :json
 
       expect(response).to have_http_status(:success), response.body
-      expect(JSON.parse(requests[1].last[:body])).to include(
-        'action' => 'reconcile',
-        'conversations' => contain_exactly(hash_including(
+      expect(requests.size).to eq(1)
+      expect(RottaFollowUpReconciliationJob).to have_been_enqueued.with(
+        account.id, contain_exactly(hash_including(
           'conversation_id' => conversation.display_id.to_s,
           'stage_label' => 'orcamento-tentativa-3',
           'active_labels' => ['orcamento-tentativa-3']
         ))
       )
       expect(response.parsed_body['jobs'].sole).to include(
-        'job_id' => 'recovered-budget-stage',
+        'pending_enrollment' => true,
         'current_label' => 'orcamento-tentativa-3',
-        'status' => 'pending'
+        'status' => 'sync_failed'
       )
       expect(response.parsed_body['total']).to eq(1)
     end
@@ -231,7 +236,7 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
       expect(fallbacks.map { |job| job['error_message'] }).to all(include('mesmo telefone'))
     end
 
-    it 'shows the exact reconciliation failure while keeping the active label visible' do
+    it 'keeps the active label visible while reconciliation runs outside the read request' do
       create(:label, account: account, title: 'primeiro-contato')
       conversation.contact.update!(phone_number: '+5511991262866', name: 'Cliente teste')
       conversation.update_labels(['primeiro-contato'])
@@ -249,10 +254,10 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
       post endpoint, headers: user.create_new_auth_token, params: { action: 'list' }, as: :json
 
       expect(response).to have_http_status(:success)
-      expect(requests.size).to eq(3)
+      expect(requests.size).to eq(1)
       fallback = response.parsed_body['jobs'].sole
       expect(fallback).to include('status' => 'sync_failed', 'pending_enrollment' => true)
-      expect(fallback['error_message']).to include('Falha de conexão com o banco de follow-up')
+      expect(fallback['error_message']).to include('Reconciliação em andamento')
     end
 
     it 'does not auto-enroll when multiple follow-up stages are simultaneously active' do

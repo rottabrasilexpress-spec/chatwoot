@@ -4,6 +4,13 @@ class Api::V1::Accounts::LabelsController < Api::V1::Accounts::BaseController
 
   def index
     @labels = policy_scope(Current.account.labels)
+    # Count all visible labels in one account-scoped query, not two queries per
+    # label on every sidebar refresh. Keep resolved conversations included.
+    @label_counts = Current.account.conversations.joins(taggings: :tag)
+                           .where(tags: { name: @labels.map(&:title) }).group('tags.name')
+                           .pluck('tags.name', Arel.sql('COUNT(DISTINCT conversations.id)'),
+                                  Arel.sql('COUNT(DISTINCT conversations.contact_id)'))
+                           .to_h { |title, conversations, contacts| [title, [conversations, contacts]] }
   end
 
   def show; end
