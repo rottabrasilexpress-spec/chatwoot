@@ -14,10 +14,15 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   MAX_RECONCILIATION_BATCH = 50
 
   def proxy
-    payload = JSON.parse(request.raw_post.presence || '{}').slice(
+    submitted_payload = JSON.parse(request.raw_post.presence || '{}')
+    payload = submitted_payload.slice(
       'action', 'job_id', 'hours', 'conversation_id', 'label', 'config'
     )
     action = payload['action'].to_s
+
+    if action == 'list' && submitted_payload.key?('page')
+      return paginated_list(submitted_payload)
+    end
 
     unless ALLOWED_ACTIONS.include?(action)
       return render json: { ok: false, error: 'Ação de follow-up inválida.' }, status: :unprocessable_entity
@@ -36,6 +41,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     response = RottaFollowUp::AdminClient.request(
       payload.slice('action', 'job_id', 'hours', 'conversation_id', 'account_id', 'config')
     )
+    Rails.cache.delete(list_snapshot_cache_key) if action != 'list' && response.success?
     body = response.body
     body = scope_list_body(body) if action == 'list' && body.is_a?(Hash)
     body = reconcile_missing_follow_up_jobs(body) if action == 'list' && body.is_a?(Hash)
@@ -51,6 +57,29 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   end
 
   private
+
+  def list_snapshot_cache_key
+    "rotta_follow_up:operational_snapshot:v1:#{Current.account.id}"
+  end
+
+  def paginated_list(options)
+    Rails.cache.delete(list_snapshot_cache_key) if options['force_refresh'] == true
+    snapshot = Rails.cache.fetch(list_snapshot_cache_key, expires_in: 3.seconds, race_condition_ttl: 1.second) do
+      response = RottaFollowUp::AdminClient.request(action: 'list', account_id: Current.account.id, operational_only: true)
+      raise RottaFollowUp::AdminClient::RequestError, admin_response_error(response) unless response.success?
+
+      body = scope_list_body(response.body)
+      body = reconcile_missing_follow_up_jobs(body, operational_only: true)
+      add_chatwoot_label_fallbacks(body)
+    end
+    body = RottaFollowUp::ListPage.new(snapshot, options.slice('page', 'per_page', 'search', 'view', 'stage', 'panel', 'panel_page')).call
+    body = add_delivery_evidence(body)
+    if body['panel_jobs'].present?
+      panel = add_delivery_evidence(body.merge('jobs' => body['panel_jobs']))
+      body['panel_jobs'] = panel['jobs']
+    end
+    render json: body
+  end
 
   def remove_label(payload)
     conversation_id = payload['conversation_id'].presence
@@ -75,6 +104,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     end
     removed = updated_labels.length != current_labels.length
     conversation.update_labels(updated_labels) if removed
+    Rails.cache.delete(list_snapshot_cache_key)
 
     render json: {
       ok: true,
@@ -99,7 +129,9 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
 
     response = RottaFollowUp::AdminClient.request({
       action: 'list',
-      account_id: Current.account.id
+      account_id: Current.account.id,
+      operational_only: true,
+      job_id: job_id
     })
     remote_job = Array(response.body['jobs']).find do |job|
       job['job_id'].to_s == job_id &&
@@ -159,7 +191,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
   # Chatwoot's labels are authoritative for enrollment. If an enrollment
   # webhook was lost, ask the worker to idempotently rebuild the scheduled job
   # for the single active non-instant stage, then fetch the queue again.
-  def reconcile_missing_follow_up_jobs(body)
+  def reconcile_missing_follow_up_jobs(body, operational_only: false)
     jobs = Array(body['jobs'])
     reconcilable_titles = Current.account.labels.pluck(:title).select do |title|
       RECONCILABLE_STAGE_KEYS.include?(follow_up_label_key(title))
@@ -167,6 +199,8 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     return body if reconcilable_titles.empty?
 
     active_jobs = jobs.select { |job| RECOVERY_ACTIVE_STATUSES.include?(job['status'].to_s) }
+    active_conversations = active_jobs.map { |job| job['conversation_id'].to_s }.to_set
+    active_phones = active_jobs.filter_map { |job| phone_key(job['phone'] || job['phone_number'] || job['contact_phone']) }.to_set
     errors = body['reconciliation_errors'].is_a?(Hash) ? body['reconciliation_errors'].dup : {}
     candidates = Current.account.conversations
                         .tagged_with(reconcilable_titles, any: true)
@@ -193,9 +227,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
         next
       end
 
-      has_operational_job = active_jobs.any? do |job|
-        job['conversation_id'].to_s == conversation_id || phone_key(job['phone'] || job['phone_number'] || job['contact_phone']) == normalized_phone
-      end
+      has_operational_job = active_conversations.include?(conversation_id) || active_phones.include?(normalized_phone)
       next if has_operational_job
 
       cache_key = reconciliation_cache_key(conversation_id, stage)
@@ -265,7 +297,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
 
     refreshed_body = body
     begin
-      refreshed = RottaFollowUp::AdminClient.request({ action: 'list', account_id: Current.account.id })
+      refreshed = RottaFollowUp::AdminClient.request({ action: 'list', account_id: Current.account.id, operational_only: operational_only })
       if refreshed.success? && refreshed.body.is_a?(Hash)
         refreshed_body = scope_list_body(refreshed.body)
       else
@@ -327,14 +359,14 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     return body unless jobs.is_a?(Array)
 
     conversation_ids = jobs.filter_map { |job| job['conversation_id'].presence }.uniq
-    conversations = Current.account.conversations.where(display_id: conversation_ids).index_by do |conversation|
+    conversations = Current.account.conversations.where(display_id: conversation_ids).includes(taggings: :tag).index_by do |conversation|
       conversation.display_id.to_s
     end
 
     body['jobs'] = jobs.map do |job|
       conversation = conversations[job['conversation_id'].to_s]
       evidence = find_delivery_evidence(conversation, job) if conversation
-      active_labels = conversation ? conversation.label_list : []
+      active_labels = conversation ? conversation.labels_for_display : []
       enriched_job = job.merge('active_labels' => active_labels)
       evidence ? enriched_job.merge('delivery_evidence' => evidence) : enriched_job
     end

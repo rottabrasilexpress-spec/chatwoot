@@ -41,6 +41,7 @@ import {
   nextFollowUpStageFor,
 } from './followUpHelpers';
 import { createFollowUpRefreshScheduler } from './followUpRefreshScheduler';
+import FollowUpPagination from './FollowUpPagination.vue';
 
 const TIMEZONE = 'America/Sao_Paulo';
 const router = useRouter();
@@ -93,6 +94,15 @@ const customHours = ref({});
 const dispatchDialogRef = ref(null);
 const pendingDispatchJob = ref(null);
 const summaryPanel = ref(null);
+const page = ref(1);
+const panelPage = ref(1);
+const pagination = ref(null);
+const panelPagination = ref(null);
+const remoteSummary = ref(null);
+const panelJobs = ref([]);
+const loadError = ref('');
+let nextLoadAt = 0;
+let consecutiveLoadFailures = 0;
 let refreshTimer;
 let clockTimer;
 let refreshRequested = false;
@@ -280,6 +290,7 @@ const reconciledJobs = computed(() =>
 );
 
 const queueJobs = computed(() => {
+  if (pagination.value) return reconciledJobs.value;
   const returnedKeys = new Set(
     reconciledJobs.value.map(
       job => `${job.conversation_id}:${currentStage(job)}`
@@ -300,14 +311,16 @@ const operationalJobs = computed(() =>
   operationalFollowUpJobs(queueJobs.value)
 );
 
-const counts = computed(() =>
-  operationalJobs.value.reduce((result, job) => {
-    const stage = displayStageFor(job);
-    if (stage && !isArchivedStage(stage)) {
-      result[stage] = (result[stage] || 0) + 1;
-    }
-    return result;
-  }, {})
+const counts = computed(
+  () =>
+    remoteSummary.value?.counts ??
+    operationalJobs.value.reduce((result, job) => {
+      const stage = displayStageFor(job);
+      if (stage && !isArchivedStage(stage)) {
+        result[stage] = (result[stage] || 0) + 1;
+      }
+      return result;
+    }, {})
 );
 
 const trailViews = [
@@ -404,6 +417,7 @@ const activeJobs = computed(() =>
 );
 
 const viewCount = view => {
+  if (remoteSummary.value?.views) return remoteSummary.value.views[view] || 0;
   return operationalJobs.value.filter(job =>
     jobBelongsToFollowUpView(job, view)
   ).length;
@@ -421,6 +435,7 @@ const visibleColumns = computed(() => {
 });
 
 const filteredJobs = computed(() => {
+  if (pagination.value) return operationalJobs.value;
   const query = searchQuery.value.trim().toLowerCase();
   return operationalJobs.value.filter(job => {
     const matchesView = jobBelongsToFollowUpView(job, selectedView.value);
@@ -511,8 +526,15 @@ const jobsForColumn = columnKey => {
   });
 };
 
+const columnCount = column =>
+  column.stageKeys.reduce(
+    (total, stage) => total + (counts.value[stage] || 0),
+    0
+  );
+
 const todayCount = computed(
   () =>
+    remoteSummary.value?.today ??
     activeJobs.value.filter(job =>
       isFollowUpForToday(job, now.value, responseMeta.value)
     ).length
@@ -524,9 +546,13 @@ const overdueJobs = computed(() =>
   )
 );
 
-const overdueCount = computed(() => overdueJobs.value.length);
+const overdueCount = computed(
+  () => remoteSummary.value?.overdue ?? overdueJobs.value.length
+);
 
-const allCount = computed(() => activeJobs.value.length);
+const allCount = computed(
+  () => remoteSummary.value?.all ?? activeJobs.value.length
+);
 
 const formatDate = value => {
   if (!value) return 'Sem data';
@@ -708,9 +734,10 @@ const failureJobs = computed(() =>
 );
 
 const summaryPanelJobs = computed(() => {
-  const panelJobs =
+  if (pagination.value) return panelJobs.value;
+  const legacyPanelJobs =
     summaryPanel.value === 'overdue' ? overdueJobs.value : failureJobs.value;
-  return [...panelJobs].sort((left, right) => {
+  return [...legacyPanelJobs].sort((left, right) => {
     const targetDifference =
       nextFollowUpTimestamp(left) - nextFollowUpTimestamp(right);
     if (targetDifference !== 0) return targetDifference;
@@ -720,6 +747,10 @@ const summaryPanelJobs = computed(() => {
     );
   });
 });
+
+const failureCount = computed(
+  () => remoteSummary.value?.failures ?? failureJobs.value.length
+);
 
 const summaryPanelTitle = computed(() =>
   summaryPanel.value === 'overdue'
@@ -772,6 +803,7 @@ const request = async payload => {
 };
 
 const registerPendingEnrollment = data => {
+  if (pagination.value) return;
   const conversation = data?.conversation || {};
   const conversationId = data?.conversation_id || data?.id || conversation.id;
   if (!conversationId) return;
@@ -848,15 +880,47 @@ function scheduleRealtimeRefresh(data) {
   refreshScheduler.schedule();
 }
 
-loadQueue = async () => {
+const queueQuery = () => ({
+  action: 'list',
+  page: page.value,
+  per_page: 25,
+  search: searchQuery.value,
+  view: selectedView.value,
+  stage: selectedStage.value,
+  panel: summaryPanel.value,
+  panel_page: panelPage.value,
+});
+
+loadQueue = async (force = false) => {
+  if (
+    !isMounted ||
+    (force !== true && (document.hidden || Date.now() < nextLoadAt))
+  )
+    return;
   if (isLoading.value) {
     refreshRequested = true;
     return;
   }
   isLoading.value = true;
+  const query = queueQuery();
   try {
-    const body = await request({ action: 'list' });
+    const body = await request({ ...query, force_refresh: force === true });
+    if (!isMounted) return;
+    if (JSON.stringify(query) !== JSON.stringify(queueQuery())) {
+      refreshRequested = true;
+      return;
+    }
     jobs.value = Array.isArray(body.jobs) ? body.jobs : [];
+    pagination.value = body.pagination || null;
+    panelPagination.value = body.panel_pagination || null;
+    remoteSummary.value = body.summary || null;
+    panelJobs.value = body.panel_jobs || [];
+    if (body.pagination) page.value = body.pagination.page;
+    if (body.panel_pagination && summaryPanel.value)
+      panelPage.value = body.panel_pagination.page;
+    loadError.value = '';
+    consecutiveLoadFailures = 0;
+    nextLoadAt = 0;
     const availableJobIds = new Set(jobs.value.map(job => job.job_id));
     expandedJobs.value = new Set(
       [...expandedJobs.value].filter(jobId => availableJobIds.has(jobId))
@@ -866,16 +930,28 @@ loadQueue = async () => {
     responseMeta.value = {
       ...(body.meta || {}),
       ...(body.config || {}),
+      dispatch_window:
+        body.dispatch_window ||
+        body.meta?.dispatch_window ||
+        body.config?.dispatch_window,
       timezone: body.timezone || body.meta?.timezone || TIMEZONE,
     };
-    pendingEnrollments.value = reconcilePendingEnrollments(
-      pendingEnrollments.value,
-      reconciledJobs.value,
-      now.value
-    );
+    pendingEnrollments.value = body.pagination
+      ? []
+      : reconcilePendingEnrollments(
+          pendingEnrollments.value,
+          reconciledJobs.value,
+          now.value
+        );
     lastSyncedAt.value = Date.now();
   } catch (error) {
-    useAlert(error.message || 'Não foi possível carregar a fila de follow-up.');
+    loadError.value =
+      error.response?.data?.error ||
+      error.message ||
+      'Não foi possível carregar os follow-ups.';
+    consecutiveLoadFailures += 1;
+    nextLoadAt =
+      Date.now() + Math.min(30000, 5000 * 2 ** consecutiveLoadFailures);
   } finally {
     isLoading.value = false;
     if (refreshRequested && isMounted) {
@@ -907,7 +983,7 @@ const runAction = async (job, action, hours = undefined) => {
         pendingJobKey(item) !==
         `${job.conversation_id}:${canonicalFollowUpStage(currentStage(job))}`
     );
-    await loadQueue();
+    await loadQueue(true);
   } catch (error) {
     useAlert(error.message || 'Não foi possível atualizar este follow-up.');
   } finally {
@@ -962,6 +1038,10 @@ const openConversation = job => {
     });
 };
 
+const handleVisibilityChange = () => {
+  if (!document.hidden) loadQueue();
+};
+
 onMounted(async () => {
   isMounted = true;
   refreshScheduler = createFollowUpRefreshScheduler({
@@ -971,13 +1051,29 @@ onMounted(async () => {
   emitter.on(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, scheduleRealtimeRefresh);
   emitter.on(BUS_EVENTS.WEBSOCKET_RECONNECT, scheduleRealtimeRefresh);
   await loadQueue();
+  if (!isMounted) return;
   clockTimer = window.setInterval(() => {
     now.value = Date.now();
   }, 1000);
   refreshTimer = window.setInterval(
-    loadQueue,
+    () => loadQueue(),
     QUEUE_RECONCILIATION_INTERVAL_MS
   );
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+});
+
+watch([selectedView, selectedStage, searchQuery], () => {
+  page.value = 1;
+  expandedJobs.value = new Set();
+  refreshScheduler?.schedule();
+});
+watch(summaryPanel, () => {
+  panelPage.value = 1;
+  refreshScheduler?.schedule();
+});
+watch([page, panelPage], () => {
+  expandedJobs.value = new Set();
+  refreshScheduler?.schedule();
 });
 
 onUnmounted(() => {
@@ -987,6 +1083,7 @@ onUnmounted(() => {
   window.clearInterval(clockTimer);
   window.clearInterval(refreshTimer);
   refreshScheduler?.dispose();
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
 
@@ -1006,7 +1103,7 @@ onUnmounted(() => {
             icon="i-lucide-refresh-cw"
             size="sm"
             :is-loading="isLoading"
-            @click="loadQueue"
+            @click="loadQueue(true)"
           />
         </template>
       </BaseSettingsHeader>
@@ -1062,12 +1159,10 @@ onUnmounted(() => {
             @click="toggleSummaryPanel('failures')"
           >
             <span>Falhas</span>
-            <strong>{{ failureJobs.length }}</strong>
+            <strong>{{ failureCount }}</strong>
             <small>
               {{
-                failureJobs.length
-                  ? 'ver clientes e motivos'
-                  : 'nenhuma ocorrência'
+                failureCount ? 'ver clientes e motivos' : 'nenhuma ocorrência'
               }}
             </small>
           </button>
@@ -1098,6 +1193,14 @@ onUnmounted(() => {
               @click="closeSummaryPanel"
             />
           </header>
+
+          <FollowUpPagination
+            v-if="panelPagination"
+            :pagination="panelPagination"
+            :loading="isLoading"
+            label="Páginas das ocorrências de follow-up"
+            @page="panelPage = $event"
+          />
 
           <div v-if="summaryPanelJobs.length" class="rotta-failures__list">
             <article
@@ -1263,12 +1366,44 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <div
+          v-if="loadError"
+          role="alert"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-n-weak bg-n-alpha-2 p-3 text-sm text-n-slate-12"
+        >
+          <div>
+            <strong>Não foi possível atualizar os follow-ups.</strong>
+            <p>{{ loadError }}</p>
+            <p v-if="lastSyncedAt">
+              Os últimos dados carregados foram mantidos.
+            </p>
+          </div>
+          <Button
+            label="Tentar novamente"
+            icon="i-lucide-refresh-cw"
+            size="sm"
+            :disabled="isLoading"
+            @click="loadQueue(true)"
+          />
+        </div>
+
+        <FollowUpPagination
+          v-if="pagination"
+          :pagination="pagination"
+          :loading="isLoading"
+          label="Páginas do quadro de follow-ups"
+          @page="page = $event"
+        />
+
         <div v-if="isLoading && !queueJobs.length" class="rotta-empty-state">
           <Icon icon="i-lucide-loader-circle" class="size-5 animate-spin" />
           <span>Carregando a fila…</span>
         </div>
 
-        <div v-else-if="!filteredJobs.length" class="rotta-empty-state">
+        <div
+          v-else-if="!loadError && !filteredJobs.length"
+          class="rotta-empty-state"
+        >
           <Icon icon="i-lucide-inbox" class="size-6" />
           <div>
             <strong>Nenhum follow-up nesta visão</strong>
@@ -1294,7 +1429,12 @@ onUnmounted(() => {
                 <div class="rotta-board-column__title">
                   <Icon :icon="column.icon" class="size-4" />
                   <h3>{{ column.title }}</h3>
-                  <span>{{ jobsForColumn(column.key).length }}</span>
+                  <span
+                    >{{ jobsForColumn(column.key).length
+                    }}<template v-if="pagination">
+                      / {{ columnCount(column) }}</template
+                    ></span
+                  >
                 </div>
                 <p>{{ column.description }}</p>
                 <div
@@ -1615,7 +1755,11 @@ onUnmounted(() => {
               </div>
               <div v-else class="rotta-board-column__empty">
                 <Icon icon="i-lucide-check-circle-2" class="size-5" />
-                <span>Sem clientes nesta etapa</span>
+                <span>{{
+                  pagination
+                    ? 'Nenhum cliente nesta página'
+                    : 'Sem clientes nesta etapa'
+                }}</span>
               </div>
             </article>
           </div>
