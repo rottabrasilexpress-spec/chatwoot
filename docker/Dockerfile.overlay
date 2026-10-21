@@ -109,6 +109,7 @@ COPY app/views/api/v1/conversations/partials/_conversation.json.jbuilder /app/ap
 COPY enterprise/app/services/llm/speech_to_text_service.rb /app/enterprise/app/services/llm/speech_to_text_service.rb
 COPY enterprise/app/services/messages/dictation_transcription_service.rb /app/enterprise/app/services/messages/dictation_transcription_service.rb
 COPY lib/events/types.rb /app/lib/events/types.rb
+COPY lib/redis/alfred.rb /app/lib/redis/alfred.rb
 COPY enterprise/app/models/enterprise/audit/conversation.rb /app/enterprise/app/models/enterprise/audit/conversation.rb
 COPY enterprise/app/models/copilot_thread.rb /app/enterprise/app/models/copilot_thread.rb
 COPY enterprise/app/controllers/api/v1/accounts/captain/copilot_threads_controller.rb /app/enterprise/app/controllers/api/v1/accounts/captain/copilot_threads_controller.rb
