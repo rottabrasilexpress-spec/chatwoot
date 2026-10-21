@@ -26,6 +26,7 @@ const end = computed(() =>
 <template>
   <nav
     :aria-label="label"
+    :aria-busy="loading"
     class="flex flex-wrap items-center justify-between gap-3 border-y border-n-weak py-3 my-3"
   >
     <span
@@ -44,7 +45,7 @@ const end = computed(() =>
         size="sm"
         slate
         ghost
-        :disabled="loading || pagination.page <= 1"
+        :disabled="pagination.page <= 1"
         @click="emit('page', pagination.page - 1)"
       />
       <span class="text-sm text-n-slate-12 tabular-nums"
@@ -56,7 +57,7 @@ const end = computed(() =>
         size="sm"
         slate
         ghost
-        :disabled="loading || pagination.page >= pagination.total_pages"
+        :disabled="pagination.page >= pagination.total_pages"
         @click="emit('page', pagination.page + 1)"
       />
     </div>
