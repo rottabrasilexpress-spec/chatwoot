@@ -211,6 +211,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     errors = body['reconciliation_errors'].is_a?(Hash) ? body['reconciliation_errors'].dup : {}
     candidates = Current.account.conversations
                         .tagged_with(reconcilable_titles, any: true)
+                        .where.not(display_id: active_conversations.to_a + manually_cancelled_ids.to_a)
                         .includes(:contact, taggings: :tag)
                         .distinct
                         .filter_map do |conversation|
@@ -376,6 +377,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
 
     fallback_jobs = Current.account.conversations
                                   .tagged_with(label_titles, any: true)
+                                  .where.not(display_id: operational_conversation_ids.to_a)
                                   .includes(:contact, taggings: :tag)
                                   .distinct
                                   .flat_map do |conversation|

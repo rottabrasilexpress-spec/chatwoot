@@ -8,6 +8,8 @@ scope_class = Class.new(Array) do
   def tagged_with(*) = self
   def includes(*) = self
   def distinct = self
+  def where = self
+  def not(display_id:) = self.class.new(reject { |c| Array(display_id).map(&:to_s).include?(c.display_id.to_s) })
   def find_by(display_id:) = find { |c| c.display_id.to_s == display_id.to_s }
 end
 contact = OpenStruct.new(phone_number: '+5511991262866', name: 'Synthetic local-only test')
