@@ -185,6 +185,11 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     jobs = Array(body['jobs']).select do |job|
       job['account_id'].to_s == Current.account.id.to_s
     end
+    cancelled_ids = jobs.select { |job| job['status'] == 'cancelled' }.map { |job| job['conversation_id'].to_s }
+    if cancelled_ids.any?
+      existing_ids = Current.account.conversations.where(display_id: cancelled_ids).pluck(:display_id).map(&:to_s).to_set
+      jobs.reject! { |job| job['status'] == 'cancelled' && !existing_ids.include?(job['conversation_id'].to_s) }
+    end
     body.merge('jobs' => jobs, 'total' => jobs.length)
   end
 
