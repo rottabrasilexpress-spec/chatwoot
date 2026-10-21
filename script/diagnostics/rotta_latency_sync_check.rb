@@ -79,6 +79,7 @@ memory.clear
 history = RottaUazapiHistoryReconciliationJob.new
 records = [
   { 'id' => '5511000000000:existing', 'messageid' => 'existing', 'timestamp' => Time.current.to_i },
+  { 'id' => '5511000000000:legacy', 'messageid' => 'legacy', 'timestamp' => Time.current.to_i },
   { 'messageid' => 'missing', 'timestamp' => Time.current.to_i },
   { 'messageid' => 'existing', 'edited' => 'existing', 'timestamp' => Time.current.to_i }
 ]
@@ -87,7 +88,7 @@ replayed = []
 history.define_singleton_method(:replay_message) { |message| replayed << message }
 Message.define_singleton_method(:where) do |**options|
   raise 'Unscoped history query' unless options[:account_id] == RottaUazapiHistoryReconciliationJob::ACCOUNT_ID
-  Object.new.tap { |relation| relation.define_singleton_method(:pluck) { |*| ['uazapi:existing'] } }
+  Object.new.tap { |relation| relation.define_singleton_method(:pluck) { |*| ['uazapi:existing', '5511000000000:legacy'] } }
 end
 history.send(:replay_missing_messages, { 'chatid' => 'synthetic@s.whatsapp.net' }, 1.hour.ago)
 check.call('history_skips_persisted_but_preserves_edits', replayed.map { |m| m['messageid'] } == %w[missing existing])

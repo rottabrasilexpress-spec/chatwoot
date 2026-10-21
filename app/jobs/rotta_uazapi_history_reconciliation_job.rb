@@ -72,17 +72,16 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     payload = uazapi_post('/message/find', chatid: chat_id, limit: MESSAGE_LIMIT)
     messages = response_records(payload, %w[messages data records])
     recent_messages = messages.select { |message| recent?(message_timestamp(message), cutoff) }
-    provider_ids = recent_messages.filter_map { |message| message_provider_id(message) }
+    provider_ids = recent_messages.flat_map { |message| message_source_ids(message) }.uniq
     existing_ids = Message.where(account_id: ACCOUNT_ID, source_id: provider_ids.flat_map { |id| [id, "uazapi:#{id}"] })
                           .pluck(:source_id).map { |id| id.delete_prefix('uazapi:') }.to_set
     recent_messages.sort_by { |message| message_timestamp(message) || Time.at(0) }.each do |message|
-      provider_id = message_provider_id(message)
       # Recovery is for missing messages. Do not replay the same 72-hour history
       # into the web server every minute. Explicit edits/deletions still use
       # the webhook so their existing bubble can be updated.
       mutation = value_for_keys(message, %w[edited editedMessage edited_message editOf edit_of deleted revoked]).present? ||
                  value_for_keys(message, %w[type messageType]).to_s.match?(/edit|delet|revok|protocol/i)
-      next if existing_ids.include?(provider_id) && !mutation
+      next if message_source_ids(message).any? { |id| existing_ids.include?(id) } && !mutation
 
       replay_message(message)
     end
@@ -108,6 +107,12 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
       return value.to_s if value.present?
     end
     nil
+  end
+
+  def message_source_ids(message)
+    # Older deliveries used UAZAPI's owner:messageid storage ID. Recognize
+    # both forms so a canonical-ID fix never replays already saved history.
+    [message_provider_id(message), value_for_keys(message, %w[id])].compact_blank.map(&:to_s).uniq
   end
 
   def uazapi_post(path, body)

@@ -82,6 +82,16 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     expect(Redis::Alfred).not_to have_received(:delete)
   end
 
+  it 'also recognizes the legacy storage ID without replaying existing history' do
+    conversation = create(:conversation, account_id: described_class::ACCOUNT_ID)
+    create(:message, conversation: conversation, account_id: described_class::ACCOUNT_ID, source_id: '5511000000000:incoming-1')
+
+    perform_job
+
+    expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')
+      .with { |request| JSON.parse(request.body).dig('data', 'messageid') == 'incoming-1' }).not_to have_been_made
+  end
+
   it 'uses an overlap from the last successful reconciliation and advances the cursor' do
     last_success_at = 2.minutes.ago
     allow(Redis::Alfred).to receive(:get)
