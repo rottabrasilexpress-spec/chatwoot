@@ -101,6 +101,8 @@ const panelPagination = ref(null);
 const remoteSummary = ref(null);
 const panelJobs = ref([]);
 const loadError = ref('');
+const cancelledJobs = ref([]);
+const cancelledCount = ref(0);
 let nextLoadAt = 0;
 let consecutiveLoadFailures = 0;
 let refreshTimer;
@@ -915,6 +917,8 @@ loadQueue = async (force = false) => {
     panelPagination.value = body.panel_pagination || null;
     remoteSummary.value = body.summary || null;
     panelJobs.value = body.panel_jobs || [];
+    cancelledJobs.value = body.cancelled_jobs || [];
+    cancelledCount.value = body.cancelled_count || 0;
     if (body.pagination) page.value = body.pagination.page;
     if (body.panel_pagination && summaryPanel.value)
       panelPage.value = body.panel_pagination.page;
@@ -1365,6 +1369,30 @@ onUnmounted(() => {
             </button>
           </div>
         </div>
+
+        <details
+          v-if="cancelledCount"
+          class="rounded-xl border border-n-weak p-3 text-sm text-n-slate-11 my-3"
+        >
+          <summary class="cursor-pointer text-n-slate-12">
+            {{ cancelledCount }} acompanhamento(s) cancelado(s) manualmente
+          </summary>
+          <p class="my-2">
+            O cancelamento foi preservado e não é uma falha. Para retomar,
+            remova e aplique novamente a etiqueta de follow-up.
+          </p>
+          <ul class="space-y-1">
+            <li v-for="job in cancelledJobs" :key="job.job_id">
+              <button
+                type="button"
+                class="text-n-brand underline"
+                @click="openConversation(job)"
+              >
+                {{ job.customer_name || job.phone }} — Cancelado manualmente
+              </button>
+            </li>
+          </ul>
+        </details>
 
         <div
           v-if="loadError"

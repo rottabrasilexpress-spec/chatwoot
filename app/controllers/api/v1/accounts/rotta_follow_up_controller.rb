@@ -199,6 +199,8 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     return body if reconcilable_titles.empty?
 
     active_jobs = jobs.select { |job| RECOVERY_ACTIVE_STATUSES.include?(job['status'].to_s) }
+    manually_cancelled_ids = jobs.select { |job| job['status'] == 'cancelled' && job['error_message'] == 'cancelado pelo painel' }
+                                .map { |job| job['conversation_id'].to_s }.to_set
     active_conversations = active_jobs.map { |job| job['conversation_id'].to_s }.to_set
     active_phones = active_jobs.filter_map { |job| phone_key(job['phone'] || job['phone_number'] || job['contact_phone']) }.to_set
     errors = body['reconciliation_errors'].is_a?(Hash) ? body['reconciliation_errors'].dup : {}
@@ -216,6 +218,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       next unless stage
 
       conversation_id = conversation.display_id.to_s
+      next if manually_cancelled_ids.include?(conversation_id)
       phone = conversation.contact&.phone_number
       normalized_phone = phone_key(phone)
       if active_stages.length != 1

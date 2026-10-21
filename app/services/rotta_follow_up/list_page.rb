@@ -22,8 +22,9 @@ class RottaFollowUp::ListPage
 
   def call
     seen = Set.new
+    cancelled = Array(@body['jobs']).select { |job| job['status'] == 'cancelled' && job['error_message'] == 'cancelado pelo painel' }
     rows = Array(@body['jobs']).filter_map do |job|
-      next if %w[sent_history history_only].include?(job['status'])
+      next if %w[sent_history history_only cancelled].include?(job['status'])
 
       stage = canonical(job['current_label'].presence || job['source_label'])
       key = [job['conversation_id'].presence || job['job_id'], stage]
@@ -66,7 +67,8 @@ class RottaFollowUp::ListPage
     panel_rows = @options['panel'] == 'overdue' ? overdue : failures
     panel = page(panel_rows, @options['panel_page'])
     @body.merge('jobs' => main[:jobs], 'pagination' => main[:pagination], 'summary' => summary,
-                'panel_jobs' => @options['panel'].present? ? panel[:jobs] : [], 'panel_pagination' => panel[:pagination])
+                'panel_jobs' => @options['panel'].present? ? panel[:jobs] : [], 'panel_pagination' => panel[:pagination],
+                'cancelled_count' => cancelled.length, 'cancelled_jobs' => cancelled.first(25))
   end
 
   private

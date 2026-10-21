@@ -42,6 +42,14 @@ RSpec.describe RottaFollowUp::ListPage do
     expect(result.dig('pagination', 'page')).to eq(22)
   end
 
+  it 'preserves an operator cancellation without counting it as active or failed' do
+    body['jobs'] << jobs.first.merge('job_id' => 'cancelled', 'status' => 'cancelled', 'error_message' => 'cancelado pelo painel')
+    result = described_class.new(body, { 'page' => 1 }, now: now).call
+    expect(result.dig('summary', 'all')).to eq(1088)
+    expect(result.dig('summary', 'failures')).to eq(6)
+    expect(result['cancelled_count']).to eq(1)
+  end
+
   it 'classifies overdue outside the real sending window in Sao Paulo' do
     closed = Time.iso8601('2026-10-21T01:00:00Z')
     result = described_class.new(body, { 'page' => 1, 'panel' => 'overdue' }, now: closed).call
