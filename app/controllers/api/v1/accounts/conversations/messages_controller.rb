@@ -12,8 +12,12 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def create
     user = Current.user || @resource
-    mb = Messages::MessageBuilder.new(user, @conversation, params)
-    @message = mb.perform
+    source_ids = uazapi_incoming_source_ids
+    @message = if source_ids
+                 build_uazapi_incoming_message(user, source_ids)
+               else
+                 Messages::MessageBuilder.new(user, @conversation, params).perform
+               end
   rescue StandardError => e
     render_could_not_create_error(e.message)
   end
@@ -163,6 +167,28 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   end
 
   private
+
+  def uazapi_incoming_source_ids
+    return unless params[:message_type].to_s == 'incoming' && @conversation.inbox.api?
+    return if ActiveModel::Type::Boolean.new.cast(params[:private])
+
+    storage_id = params[:source_id].to_s
+    match = storage_id.match(/\A\d{10,15}:([a-f0-9]{12,64})\z/i)
+    [match[1], storage_id] if match
+  end
+
+  def build_uazapi_incoming_message(user, source_ids)
+    provider_id = source_ids.first
+    ApplicationRecord.transaction do
+      # Same account/provider lock as the direct webhook: both ingestion
+      # paths must agree before either builds the incoming message.
+      lock_key = "rotta-uazapi-incoming:#{@conversation.account_id}:#{provider_id}"
+      sql = ApplicationRecord.sanitize_sql_array(['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key])
+      ApplicationRecord.connection.execute(sql)
+      existing = @conversation.messages.find_by(source_id: source_ids.flat_map { |id| [id, "uazapi:#{id}"] })
+      existing || Messages::MessageBuilder.new(user, @conversation, params.merge(source_id: provider_id)).perform
+    end
+  end
 
   def message
     @message ||= @conversation.messages.find(permitted_params[:id])

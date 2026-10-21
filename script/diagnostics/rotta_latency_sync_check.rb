@@ -104,4 +104,28 @@ check.call('internal_recovery_bypasses_ssl_redirect_without_disabling_ssl', http
 lock_key = 'rotta:uazapi:history-reconciliation:lock'
 history.send(:with_reconciliation_lock) { memory[lock_key] = 'replacement-owner' }
 check.call('expired_lock_does_not_delete_new_owner', memory[lock_key] == 'replacement-owner')
+
+# The native UAZAPI integration posts the owner:messageid form to the API,
+# independently of the direct webhook. Never build a second incoming bubble.
+incoming = OpenStruct.new(id: 999, source_id: 'ABC123ABC123')
+incoming_scope = Object.new
+incoming_scope.define_singleton_method(:find_by) { |**| incoming }
+api = Api::V1::Accounts::Conversations::MessagesController.new
+api.instance_variable_set(:@conversation, OpenStruct.new(account_id: account.id, messages: incoming_scope, inbox: OpenStruct.new(api?: true)))
+api_params = ActionController::Parameters.new(message_type: 'incoming', source_id: '5511000000000:ABC123ABC123', content: 'Synthetic text')
+api.define_singleton_method(:params) { api_params }
+builds = 0
+build_params = []
+Messages::MessageBuilder.define_singleton_method(:new) do |*args|
+  build_params << args.last
+  Object.new.tap { |builder| builder.define_singleton_method(:perform) { builds += 1; incoming } }
+end
+api.create
+check.call('native_api_reuses_direct_webhook_message', builds.zero? && api.instance_variable_get(:@message) == incoming)
+incoming_scope.define_singleton_method(:find_by) { |**| nil }
+api.create
+check.call('first_native_delivery_uses_canonical_id', builds == 1 && build_params.last[:source_id] == 'ABC123ABC123')
+api_params[:message_type] = 'outgoing'
+api.create
+check.call('human_outgoing_path_is_unchanged', builds == 2)
 puts({ diag: 'ROTTA-ISOLATED-REGRESSION', checks: checks, writes_to_database: 0, messages_sent: 0 }.to_json)

@@ -103,6 +103,32 @@ RSpec.describe 'Conversation Messages API', type: :request do
         let(:api_inbox) { create(:inbox, channel: api_channel, account: account) }
         let(:conversation) { create(:conversation, inbox: api_inbox, account: account) }
 
+        it 'reuses the direct UAZAPI message when the native integration sends its prefixed storage ID' do
+          original = create(:message, conversation: conversation, account: account, message_type: :incoming,
+                                      source_id: 'ABC123ABC123', content: 'Texto recebido')
+          params = { content: 'Texto recebido', message_type: 'incoming', source_id: '5511000000000:ABC123ABC123' }
+
+          expect do
+            post api_v1_account_conversation_messages_url(account_id: account.id, conversation_id: conversation.display_id),
+                 params: params, headers: agent.create_new_auth_token, as: :json
+          end.not_to change { conversation.messages.count }
+
+          expect(response).to have_http_status(:success)
+          expect(response.parsed_body['id']).to eq(original.id)
+        end
+
+        it 'normalizes a first native delivery and reuses it on retries' do
+          params = { content: 'Texto recebido', message_type: 'incoming', source_id: '5511000000000:ABC123ABC123' }
+          2.times do
+            post api_v1_account_conversation_messages_url(account_id: account.id, conversation_id: conversation.display_id),
+                 params: params, headers: agent.create_new_auth_token, as: :json
+            expect(response).to have_http_status(:success)
+          end
+
+          expect(conversation.messages.where(source_id: 'ABC123ABC123').count).to eq(1)
+          expect(conversation.messages.where(source_id: '5511000000000:ABC123ABC123')).to be_empty
+        end
+
         it 'reopens the conversation with new incoming message' do
           create(:message, conversation: conversation, account: account)
           conversation.resolved!
