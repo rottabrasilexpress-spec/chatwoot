@@ -31,6 +31,10 @@ RottaFollowUpReconciliationJob.define_singleton_method(:perform_later) { |*args|
 calls = []
 RottaFollowUp::AdminClient.define_singleton_method(:request) { |payload| calls << payload; raise 'REMOTE_CALL_ON_WEB_PATH' }
 controller = Webhooks::UazapiController.new
+provider_message = { 'buttonOrListid' => '', 'id' => '5511000000000:ABC123',
+                     'messageType' => 'Conversation', 'messageid' => 'ABC123', 'text' => 'Synthetic text' }
+check.call('blank_interaction_id_does_not_hide_text', controller.send(:incoming_message_content, provider_message) == 'Synthetic text')
+check.call('provider_message_id_precedes_storage_id', controller.send(:message_provider_id, provider_message) == 'ABC123')
 controller.define_singleton_method(:params) { {} }
 %w[messages contacts messages_update].each do |event|
   check.call("body_event_#{event}", controller.send(:extract_event, { 'EventType' => event }) == event)
@@ -74,7 +78,7 @@ check.call('real_error_is_preserved', memory.values.include?('synthetic upstream
 memory.clear
 history = RottaUazapiHistoryReconciliationJob.new
 records = [
-  { 'messageid' => 'existing', 'timestamp' => Time.current.to_i },
+  { 'id' => '5511000000000:existing', 'messageid' => 'existing', 'timestamp' => Time.current.to_i },
   { 'messageid' => 'missing', 'timestamp' => Time.current.to_i },
   { 'messageid' => 'existing', 'edited' => 'existing', 'timestamp' => Time.current.to_i }
 ]

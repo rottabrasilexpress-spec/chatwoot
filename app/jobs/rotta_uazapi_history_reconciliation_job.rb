@@ -72,11 +72,11 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     payload = uazapi_post('/message/find', chatid: chat_id, limit: MESSAGE_LIMIT)
     messages = response_records(payload, %w[messages data records])
     recent_messages = messages.select { |message| recent?(message_timestamp(message), cutoff) }
-    provider_ids = recent_messages.filter_map { |message| value_for_keys(message, %w[message_id messageId messageid id])&.to_s&.presence }
+    provider_ids = recent_messages.filter_map { |message| message_provider_id(message) }
     existing_ids = Message.where(account_id: ACCOUNT_ID, source_id: provider_ids.flat_map { |id| [id, "uazapi:#{id}"] })
                           .pluck(:source_id).map { |id| id.delete_prefix('uazapi:') }.to_set
     recent_messages.sort_by { |message| message_timestamp(message) || Time.at(0) }.each do |message|
-      provider_id = value_for_keys(message, %w[message_id messageId messageid id])&.to_s
+      provider_id = message_provider_id(message)
       # Recovery is for missing messages. Do not replay the same 72-hour history
       # into the web server every minute. Explicit edits/deletions still use
       # the webhook so their existing bubble can be updated.
@@ -100,6 +100,14 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     return if response.code.to_i.between?(200, 299)
 
     raise "webhook replay failed with HTTP #{response.code}"
+  end
+
+  def message_provider_id(message)
+    %w[message_id messageid id].each do |key|
+      value = value_for_keys(message, [key])
+      return value.to_s if value.present?
+    end
+    nil
   end
 
   def uazapi_post(path, body)

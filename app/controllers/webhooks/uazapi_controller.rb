@@ -508,7 +508,13 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def message_provider_id(message)
-    value_for_keys(message, %w[message_id messageId messageid id])&.to_s&.presence
+    # UAZAPI's storage id may be owner:messageid. Use the WhatsApp ID shared
+    # by the direct webhook and n8n, independent of JSON field ordering.
+    %w[message_id messageid id].each do |key|
+      value = values_for_keys(message, [key]).find(&:present?)
+      return value.to_s if value.present?
+    end
+    nil
   end
 
   def edited_message_provider_id(message)
@@ -546,7 +552,9 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def incoming_message_content(message)
-    text = value_for_keys(message, %w[text caption body content button_or_listid buttonOrListId selected_id selectedId])
+    # Empty interaction fields commonly precede text in real UAZAPI events.
+    text = values_for_keys(message, %w[text caption body content]).find(&:present?)
+    text ||= values_for_keys(message, %w[button_or_listid buttonOrListId selected_id selectedId]).find(&:present?)
     return text.to_s.strip if text.present?
 
     type = value_for_keys(message, %w[type messageType]).to_s.strip

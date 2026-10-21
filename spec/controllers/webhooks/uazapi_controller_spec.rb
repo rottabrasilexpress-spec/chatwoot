@@ -20,6 +20,22 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
   end
 
   describe 'POST /webhooks/uazapi/:token' do
+    it 'uses real text and the WhatsApp ID when empty interaction fields and a storage ID come first' do
+      api_channel = create(:channel_api, account: account)
+      api_inbox = create(:inbox, channel: api_channel, account: account)
+      contact_inbox = create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net')
+      conversation = create(:conversation, account: account, inbox: api_inbox, contact: contact, contact_inbox: contact_inbox)
+      payload = { EventType: 'messages', message: {
+        buttonOrListid: '', id: '5511000000000:ABC123', chatid: '5511999999999@s.whatsapp.net',
+        fromMe: false, messageType: 'Conversation', messageid: 'ABC123', text: 'Texto real 😊'
+      } }
+
+      expect { post_uazapi(payload) }.to change { conversation.messages.where(source_id: 'ABC123').count }.by(1)
+      expect(conversation.messages.find_by!(source_id: 'ABC123').content).to eq('Texto real 😊')
+      expect { post_uazapi(payload) }.not_to change { conversation.messages.count }
+      expect(response).to have_http_status(:success)
+    end
+
     it 'reads EventType from the body when the URL has no event suffix' do
       post_uazapi(EventType: 'contacts', data: [])
 

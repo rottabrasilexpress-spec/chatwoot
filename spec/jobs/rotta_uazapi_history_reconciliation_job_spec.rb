@@ -27,7 +27,7 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
       status: 200,
       body: {
         messages: [
-          { messageid: 'incoming-1', chatid: '5511999999999@s.whatsapp.net', fromMe: false, text: 'Olá', timestamp: Time.current.to_i },
+          { id: '5511000000000:incoming-1', messageid: 'incoming-1', chatid: '5511999999999@s.whatsapp.net', fromMe: false, text: 'Olá', timestamp: Time.current.to_i },
           { messageid: 'outgoing-1', chatid: '5511999999999@s.whatsapp.net', fromMe: true, text: 'Resposta', timestamp: Time.current.to_i }
         ]
       }.to_json,
