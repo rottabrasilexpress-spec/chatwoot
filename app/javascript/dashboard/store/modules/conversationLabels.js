@@ -4,11 +4,15 @@ import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { emitter } from 'shared/helpers/mitt';
 import {
   beginConversationLabelMutation,
+  getConversationLabelMutationVersion,
+  isConversationLabelMutationCurrent,
   isLatestConversationLabelMutation,
+  waitForConversationLabelMutations,
   withConversationLabelMutationLock,
 } from 'dashboard/helper/conversationLabelMutationQueue';
 
 let pendingLabelUpdates = 0;
+const labelReads = new Map();
 
 const labelTitles = value => {
   let labels = [];
@@ -84,11 +88,23 @@ export const getters = {
 
 export const actions = {
   get: async ({ commit, dispatch, rootGetters }, conversationId) => {
+    const key = String(conversationId);
+    const read = Symbol();
+    labelReads.set(key, read);
+    const version = getConversationLabelMutationVersion(conversationId);
+    const isCurrent = () =>
+      labelReads.get(key) === read &&
+      isConversationLabelMutationCurrent(conversationId, version);
     commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
       isFetching: true,
     });
     try {
+      // Do not read the server's pre-save labels while a local write is pending.
+      // Reads do not take the write lock: a slow GET must never delay a click.
+      await waitForConversationLabelMutations(conversationId);
+      if (!isCurrent()) return;
       const response = await ConversationAPI.getLabels(conversationId);
+      if (!isCurrent()) return;
       commit(types.default.SET_CONVERSATION_LABELS, {
         id: conversationId,
         data: response.data.payload,
@@ -99,10 +115,10 @@ export const actions = {
         conversationId,
         response.data.payload
       );
-      commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
-        isFetching: false,
-      });
     } catch (error) {
+      // Keep the last known labels when the read fails.
+    } finally {
+      if (labelReads.get(key) === read) labelReads.delete(key);
       commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
         isFetching: false,
       });
@@ -167,6 +183,9 @@ export const actions = {
       if (isLatestConversationLabelMutation(conversationId, version)) {
         try {
           const response = await ConversationAPI.getLabels(conversationId);
+          if (!isLatestConversationLabelMutation(conversationId, version)) {
+            return mutationResult(conversationId, version, false);
+          }
           commit(types.default.SET_CONVERSATION_LABELS, {
             id: conversationId,
             data: response.data.payload,
@@ -178,6 +197,9 @@ export const actions = {
             response.data.payload
           );
         } catch {
+          if (!isLatestConversationLabelMutation(conversationId, version)) {
+            return mutationResult(conversationId, version, false);
+          }
           commit(types.default.SET_CONVERSATION_LABELS, {
             id: conversationId,
             data: previousLabels || [],
@@ -267,6 +289,9 @@ export const actions = {
       if (isLatestConversationLabelMutation(conversationId, version)) {
         try {
           const response = await ConversationAPI.getLabels(conversationId);
+          if (!isLatestConversationLabelMutation(conversationId, version)) {
+            return mutationResult(conversationId, version, false);
+          }
           commit(types.default.SET_CONVERSATION_LABELS, {
             id: conversationId,
             data: response.data.payload,
@@ -278,6 +303,9 @@ export const actions = {
             response.data.payload
           );
         } catch {
+          if (!isLatestConversationLabelMutation(conversationId, version)) {
+            return mutationResult(conversationId, version, false);
+          }
           commit(types.default.SET_CONVERSATION_LABELS, {
             id: conversationId,
             data: labelTitles(previousLabels),

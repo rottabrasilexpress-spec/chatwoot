@@ -23,6 +23,12 @@ export const isLatestConversationLabelMutation = (id, versions) =>
 export const isConversationLabelMutationCurrent = (id, version) =>
   version === conversationVersions.get(String(id));
 
+export const getConversationLabelMutationVersion = id =>
+  conversationVersions.get(String(id));
+
+export const waitForConversationLabelMutations = id =>
+  conversationQueues.get(String(id)) || Promise.resolve();
+
 export const withConversationLabelMutationLock = (ids, operation) => {
   const keys = normalizeIds(ids);
   if (!keys.length) return Promise.resolve().then(operation);
@@ -63,10 +69,9 @@ export const withIdempotentConversationLabelMutation = (
   } catch (error) {
     request = Promise.reject(error);
   }
-  request = request
-    .finally(() => {
-      if (inFlightIntents.get(key) === request) inFlightIntents.delete(key);
-    });
+  request = request.finally(() => {
+    if (inFlightIntents.get(key) === request) inFlightIntents.delete(key);
+  });
   inFlightIntents.set(key, request);
   return request;
 };
