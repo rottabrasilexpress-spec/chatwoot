@@ -35,3 +35,18 @@ referenced assets and the manifest are packaged, not unrelated source-map churn.
 
 Deployment and live UI validation must be recorded separately after completion;
 local test success alone is not evidence that production was updated.
+
+## Additional production finding during controlled validation
+
+After deploying the frontend fix, internal conversation #2143 reproduced a second
+independent issue. POST remove kelvin returned HTTP 200 with payload [kelvin].
+POST remove orcamento-feito likewise returned the old label, while a subsequent
+GET after full reload returned []. Writes were persisted; their response reused
+pre-save loaded taggings. This was not evidence of n8n reapplying the label.
+
+The write endpoint now reloads only its taggings association under the existing
+conversation lock before building the response. No mutation rules or automatic
+processes change. Added a Rails request regression that explicitly loads the
+association before the real write, then checks removal and the empty-label case.
+Ruby/Bundler are unavailable locally, so that Rails spec was not executed locally;
+the exact HTTP contract must be rechecked on the authorized internal contact.

@@ -17,6 +17,9 @@ class Api::V1::Accounts::Conversations::LabelsController < Api::V1::Accounts::Co
         @conversation.update_labels(permitted_params[:labels])
       end
 
+      # Callbacks can load taggings before the new label list is persisted.
+      # Return the saved association, not that pre-save in-memory snapshot.
+      @conversation.taggings.reload
       @labels = @conversation.labels_for_display
     end
   end

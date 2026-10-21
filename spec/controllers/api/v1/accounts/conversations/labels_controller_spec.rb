@@ -99,6 +99,31 @@ RSpec.describe 'Conversation Label API', type: :request do
         expect(response).to have_http_status(:success)
         expect(conversation.reload.label_list).to match_array(['label2'])
       end
+
+      it 'returns saved labels even when callbacks loaded taggings before the write' do
+        allow_any_instance_of(Conversation).to receive(:update_labels).and_wrap_original do |original, *args|
+          original.receiver.taggings.load
+          original.call(*args)
+        end
+
+        post api_v1_account_conversation_labels_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { add: [], remove: ['label1'] },
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['payload']).to match_array(['label2'])
+        expect(conversation.reload.label_list).to match_array(['label2'])
+
+        post api_v1_account_conversation_labels_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { add: [], remove: ['label2'] },
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['payload']).to be_empty
+        expect(conversation.reload.label_list).to be_empty
+      end
     end
   end
 end
