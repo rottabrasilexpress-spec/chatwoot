@@ -51,6 +51,21 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
       expect(controller.send(:find_messages, { 'event' => 'messages_update', 'data' => { 'id' => storage, 'status' => 'Read' } }).map(&:id))
         .to include(message.id)
     end
+
+    it 'reuses legacy storage-ID rows for both incoming messages and outgoing echoes' do
+      %i[incoming outgoing].each_with_index do |direction, index|
+        canonical = "ABCDEF1234567890ABCDEF123456789#{index}"
+        storage = "5511000000000:#{canonical}"
+        original = create(:message, account: account, inbox: api_inbox, conversation: conversation,
+                                    message_type: direction, source_id: storage, content: "Legacy #{direction}")
+        payload = { event: 'messages', message: { id: storage, fromMe: direction == :outgoing,
+                    chatid: contact_inbox.source_id, text: original.content, type: 'text' } }
+
+        expect { post_uazapi(payload) }.not_to change { conversation.messages.count }
+        expect(response).to have_http_status(:success)
+        expect(original.reload.source_id).to eq(storage)
+      end
+    end
   end
 
   describe 'POST /webhooks/uazapi/:token' do

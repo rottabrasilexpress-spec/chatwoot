@@ -298,14 +298,15 @@ class Webhooks::UazapiController < ActionController::API
     attributes['in_reply_to_external_id'] = quoted_id if quoted_id.present?
 
     message = with_uazapi_provider_lock(provider_id) do
-      existing_message = conversation.messages.incoming.find_by(source_id: provider_id) if provider_id.present?
+      source_ids = provider_source_ids(provider_id, incoming)
+      existing_message = conversation.messages.incoming.find_by(source_id: source_ids) if provider_id.present?
       if existing_message && edited_provider_id.present?
         updated_attributes = existing_message.content_attributes.to_h.stringify_keys.merge(
           incoming_edit_attributes(incoming)
         )
         existing_message.update!(content: content, content_attributes: updated_attributes)
         existing_message
-      elsif existing_message || (provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: provider_id).exists?)
+      elsif existing_message || (provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: source_ids).exists?)
         :duplicate
       else
         Messages::MessageBuilder.new(
@@ -432,12 +433,21 @@ class Webhooks::UazapiController < ActionController::API
       return tracked if tracked
     end
 
-    source_ids = [provider_id, "uazapi:#{provider_id}"].uniq
+    source_ids = provider_source_ids(provider_id, payload)
     existing = Message.where(account_id: ACCOUNT_ID, message_type: %i[outgoing template], source_id: source_ids)
                       .order(created_at: :desc).first
     return existing if existing
 
     pending_echo_candidate(conversation, content)
+  end
+
+  def provider_source_ids(provider_id, payload)
+    # Preserve an existing owner:messageid row without matching quoted or
+    # unrelated IDs. Only aliases of this exact WhatsApp message may join it.
+    aliases = values_for_keys(payload, %w[id source_id sourceId]).filter_map do |value|
+      value.to_s if Messages::SendOnApiService.canonical_provider_id(value) == provider_id
+    end
+    ([provider_id] + aliases).compact_blank.flat_map { |id| [id, "uazapi:#{id}"] }.uniq
   end
 
   def pending_echo_candidate(conversation, content)
