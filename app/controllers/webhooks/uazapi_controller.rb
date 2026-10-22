@@ -342,6 +342,10 @@ class Webhooks::UazapiController < ActionController::API
     provider_id = message_provider_id(incoming)
     return render json: { ok: true, ignored: 'id da mensagem ausente' } if provider_id.blank?
 
+    with_uazapi_provider_lock(provider_id) { persist_outgoing_echo(payload, incoming, provider_id) }
+  end
+
+  def persist_outgoing_echo(payload, incoming, provider_id)
     existing_message = find_existing_echo_message(payload, provider_id)
     conversation = find_conversation(incoming) unless existing_message
     content = incoming_message_content(incoming) unless existing_message

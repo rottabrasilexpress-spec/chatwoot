@@ -126,6 +126,30 @@ incoming_scope.define_singleton_method(:find_by) { |**| nil }
 api.create
 check.call('first_native_delivery_uses_canonical_id', builds == 1 && build_params.last[:source_id] == 'ABC123ABC123')
 api_params[:message_type] = 'outgoing'
+api_params[:source_id] = nil
 api.create
 check.call('human_outgoing_path_is_unchanged', builds == 2)
+api_params[:source_id] = '5511000000000:ABC123ABC123'
+incoming_scope.define_singleton_method(:find_by) { |**| incoming }
+api.create
+check.call('native_outgoing_reuses_provider_echo', builds == 2 && api.instance_variable_get(:@message) == incoming)
+original = OpenStruct.new(id: 11, source_id: 'ABC123ABC123', message_type: 'outgoing', content: 'Synthetic response',
+                          content_attributes: { 'rotta_uazapi' => true }, attachments: [], private?: false)
+duplicate = OpenStruct.new(id: 12, source_id: '5511000000000:ABC123ABC123', message_type: 'outgoing',
+                           content: original.content, attachments: [], private?: false)
+legitimate = OpenStruct.new(id: 13, source_id: 'DEF456DEF456', message_type: 'outgoing',
+                            content: original.content, attachments: [], private?: false)
+incoming_scope.define_singleton_method(:where) { |**| scope_class.new([original]) }
+visible = api.send(:without_duplicate_uazapi_imports, [original, duplicate, legitimate])
+check.call('historical_twin_hidden_but_distinct_same_text_preserved', visible.map(&:id) == [11, 13])
+duplicate.content = 'Different or edited text'
+check.call('different_text_is_not_hidden', api.send(:without_duplicate_uazapi_imports, [original, duplicate]).size == 2)
+duplicate.content = original.content
+duplicate.attachments = [Object.new]
+check.call('attachment_import_is_not_hidden', api.send(:without_duplicate_uazapi_imports, [original, duplicate]).size == 2)
+echo_locks = []
+controller.define_singleton_method(:with_uazapi_provider_lock) { |id, &block| echo_locks << id; block.call }
+controller.define_singleton_method(:persist_outgoing_echo) { |*| true }
+controller.send(:process_outgoing_echo, {}, { 'messageid' => 'ABC123ABC123' })
+check.call('outgoing_echo_shares_import_provider_lock', echo_locks == ['ABC123ABC123'])
 puts({ diag: 'ROTTA-ISOLATED-REGRESSION', checks: checks, writes_to_database: 0, messages_sent: 0 }.to_json)

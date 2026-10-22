@@ -3,7 +3,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   before_action :ensure_user_can_star, only: :star
 
   def index
-    @messages = message_finder.perform
+    @messages = without_duplicate_uazapi_imports(message_finder.perform)
     if Current.user.is_a?(User)
       message_ids = @messages.map(&:id)
       @starred_message_ids = MessageStar.where(user_id: Current.user.id, message_id: message_ids).pluck(:message_id)
@@ -12,9 +12,9 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def create
     user = Current.user || @resource
-    source_ids = uazapi_incoming_source_ids
+    source_ids = uazapi_import_source_ids
     @message = if source_ids
-                 build_uazapi_incoming_message(user, source_ids)
+                 build_uazapi_import_message(user, source_ids)
                else
                  Messages::MessageBuilder.new(user, @conversation, params).perform
                end
@@ -168,8 +168,8 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   private
 
-  def uazapi_incoming_source_ids
-    return unless params[:message_type].to_s == 'incoming' && @conversation.inbox.api?
+  def uazapi_import_source_ids
+    return unless %w[incoming outgoing].include?(params[:message_type].to_s) && @conversation.inbox.api?
     return if ActiveModel::Type::Boolean.new.cast(params[:private])
 
     storage_id = params[:source_id].to_s
@@ -177,16 +177,38 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     [match[1], storage_id] if match
   end
 
-  def build_uazapi_incoming_message(user, source_ids)
+  def build_uazapi_import_message(user, source_ids)
     provider_id = source_ids.first
     ApplicationRecord.transaction do
       # Same account/provider lock as the direct webhook: both ingestion
-      # paths must agree before either builds the incoming message.
+      # paths must agree before either builds an imported message.
       lock_key = "rotta-uazapi-incoming:#{@conversation.account_id}:#{provider_id}"
       sql = ApplicationRecord.sanitize_sql_array(['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key])
       ApplicationRecord.connection.execute(sql)
       existing = @conversation.messages.find_by(source_id: source_ids.flat_map { |id| [id, "uazapi:#{id}"] })
       existing || Messages::MessageBuilder.new(user, @conversation, params.merge(source_id: provider_id)).perform
+    end
+  end
+
+  def without_duplicate_uazapi_imports(messages)
+    return messages unless @conversation.inbox.api?
+
+    records = messages.to_a
+    legacy_ids = records.filter_map do |message|
+      next if message.private? || message.attachments.any?
+
+      match = message.source_id.to_s.match(/\A(?:uazapi:)?\d{10,15}:([a-f0-9]{12,64})\z/i)
+      [message.id, match[1]] if match
+    end.to_h
+    return records if legacy_ids.empty?
+
+    # One indexed lookup for this page, never a scan of the full history.
+    originals = @conversation.messages.where(source_id: legacy_ids.values.flat_map { |id| [id, "uazapi:#{id}"] })
+                             .includes(:attachments).index_by { |message| message.source_id.delete_prefix('uazapi:') }
+    records.reject do |message|
+      original = originals[legacy_ids[message.id]]
+      original && !original.private? && original.content_attributes.to_h['rotta_uazapi'] &&
+        original.message_type == message.message_type && original.content == message.content && original.attachments.empty?
     end
   end
 

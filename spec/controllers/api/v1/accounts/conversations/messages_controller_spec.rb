@@ -103,6 +103,37 @@ RSpec.describe 'Conversation Messages API', type: :request do
         let(:api_inbox) { create(:inbox, channel: api_channel, account: account) }
         let(:conversation) { create(:conversation, inbox: api_inbox, account: account) }
 
+        it 'reuses an outgoing provider echo instead of importing another bubble' do
+          original = create(:message, conversation: conversation, account: account, message_type: :outgoing,
+                                      source_id: 'ABC123ABC123', content: 'Resposta confirmada', content_attributes: { rotta_uazapi: true })
+
+          expect do
+            post api_v1_account_conversation_messages_url(account_id: account.id, conversation_id: conversation.display_id),
+                 params: { content: original.content, message_type: 'outgoing', source_id: '5511000000000:ABC123ABC123' },
+                 headers: agent.create_new_auth_token, as: :json
+          end.not_to change { conversation.messages.count }
+
+          expect(response).to have_http_status(:success)
+          expect(response.parsed_body['id']).to eq(original.id)
+        end
+
+        it 'displays one verified historical text bubble without deleting either stored record' do
+          original = create(:message, conversation: conversation, account: account, message_type: :outgoing,
+                                      source_id: 'ABC123ABC123', content: 'Resposta confirmada', content_attributes: { rotta_uazapi: true })
+          duplicate = create(:message, conversation: conversation, account: account, message_type: :outgoing,
+                                       source_id: '5511000000000:ABC123ABC123', content: original.content)
+          legitimate = create(:message, conversation: conversation, account: account, message_type: :outgoing,
+                                        source_id: 'DEF456DEF456', content: original.content)
+
+          get api_v1_account_conversation_messages_url(account_id: account.id, conversation_id: conversation.display_id),
+              headers: agent.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(response.parsed_body['payload'].pluck('id')).to include(original.id, legitimate.id)
+          expect(response.parsed_body['payload'].pluck('id')).not_to include(duplicate.id)
+          expect(conversation.messages.where(id: [original.id, duplicate.id]).count).to eq(2)
+        end
+
         it 'reuses the direct UAZAPI message when the native integration sends its prefixed storage ID' do
           original = create(:message, conversation: conversation, account: account, message_type: :incoming,
                                       source_id: 'ABC123ABC123', content: 'Texto recebido')
