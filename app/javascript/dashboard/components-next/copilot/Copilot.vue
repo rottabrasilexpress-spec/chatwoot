@@ -39,9 +39,16 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  responsePending: { type: Boolean, default: false },
+  responseError: { type: String, default: '' },
 });
 
-const emit = defineEmits(['sendMessage', 'reset', 'setAssistant']);
+const emit = defineEmits([
+  'sendMessage',
+  'reset',
+  'setAssistant',
+  'refreshResponse',
+]);
 
 const { t } = useI18n();
 
@@ -179,7 +186,28 @@ watch(
           />
         </template>
 
-        <CopilotLoader v-if="!isLastMessageFromAssistant" />
+        <CopilotLoader
+          v-if="
+            conversationAiMode ? responsePending : !isLastMessageFromAssistant
+          "
+        />
+        <div
+          v-if="
+            conversationAiMode && responseError && !isLastMessageFromAssistant
+          "
+          role="alert"
+          class="rounded-lg border border-n-weak bg-n-alpha-2 p-3 text-n-slate-12"
+        >
+          <p>{{ responseError }}</p>
+          <button
+            type="button"
+            data-conversation-ai-refresh
+            class="mt-2 text-n-blue-11 underline"
+            @click="emit('refreshResponse')"
+          >
+            {{ $t('CONVERSATION.COPILOT.CHECK_RESPONSE') }}
+          </button>
+        </div>
       </div>
       <CopilotEmptyState
         v-else
@@ -202,6 +230,7 @@ watch(
       <CopilotInput
         v-if="canUseConversationAiInput"
         class="mb-1 w-full"
+        :disabled="conversationAiMode && responsePending"
         @send="sendMessage"
       />
     </div>

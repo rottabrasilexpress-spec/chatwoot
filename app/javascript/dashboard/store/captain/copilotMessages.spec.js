@@ -111,4 +111,38 @@ describe('copilotMessages store', () => {
       )
     ).toEqual([makeMessage(3, 303, 'resposta mais nova')]);
   });
+
+  it('fetches only the active request and preserves a response arriving through the socket during the fetch', async () => {
+    let resolveFetch;
+    CopilotMessagesAPI.get.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveFetch = resolve;
+        })
+    );
+    const store = makeStore();
+    await store.dispatch(
+      'copilotMessages/upsert',
+      makeMessage(10, 404, 'anterior')
+    );
+    const request = store.dispatch('copilotMessages/get', {
+      threadId: 404,
+      afterId: 20,
+    });
+    await store.dispatch(
+      'copilotMessages/upsert',
+      makeMessage(21, 404, 'resposta em tempo real')
+    );
+    resolveFetch({
+      data: { payload: [makeMessage(20, 404, 'pergunta atual')], meta: {} },
+    });
+    await request;
+
+    expect(CopilotMessagesAPI.get).toHaveBeenCalledWith(404, { afterId: 20 });
+    expect(
+      store.getters['copilotMessages/getMessagesByThreadId'](404).map(
+        record => record.id
+      )
+    ).toEqual([10, 20, 21]);
+  });
 });

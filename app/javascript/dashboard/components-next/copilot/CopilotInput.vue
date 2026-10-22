@@ -1,6 +1,7 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue';
 
+const props = defineProps({ disabled: { type: Boolean, default: false } });
 const emit = defineEmits(['send']);
 const message = ref('');
 const textareaRef = ref(null);
@@ -15,7 +16,7 @@ const adjustHeight = () => {
 };
 
 const sendMessage = () => {
-  if (message.value.trim()) {
+  if (!props.disabled && message.value.trim()) {
     emit('send', message.value);
     message.value = '';
     // Reset textarea height after sending
@@ -54,6 +55,8 @@ onMounted(() => {
     <button
       class="absolute ltr:right-1 rtl:left-1 top-1/2 -translate-y-1/2 h-9 w-10 flex items-center justify-center text-n-slate-11 hover:text-n-blue-11"
       type="submit"
+      :disabled="disabled"
+      :aria-label="$t('CAPTAIN.COPILOT.SEND_MESSAGE')"
     >
       <i class="i-ph-arrow-up" />
     </button>

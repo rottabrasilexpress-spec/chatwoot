@@ -315,7 +315,9 @@
     },
     "COPILOT": {
       "CONVERSATION_AI_TITLE": "Pergunte para IA",
-      "CONVERSATION_AI_DESCRIPTION": "Assistente interno compartilhado para consultar a cronologia da conversa e executar comandos autorizados."
+      "CONVERSATION_AI_DESCRIPTION": "Assistente interno compartilhado para consultar a cronologia da conversa e executar comandos autorizados.",
+      "RESPONSE_DELAYED": "A resposta demorou mais que o esperado. Você pode consultar novamente sem reenviar a pergunta.",
+      "CHECK_RESPONSE": "Verificar resposta"
     },
     "REPLYBOX": {
       "REPLY": "Reply",

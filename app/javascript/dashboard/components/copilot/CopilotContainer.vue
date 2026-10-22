@@ -1,5 +1,13 @@
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  watch,
+} from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
 import Copilot from 'dashboard/components-next/copilot/Copilot.vue';
@@ -20,6 +28,7 @@ defineProps({
 });
 
 const store = useStore();
+const { t } = useI18n();
 const { uiSettings, updateUISettings } = useUISettings();
 const { isEnterprise } = useConfig();
 const { width: windowWidth } = useWindowSize();
@@ -57,6 +66,17 @@ const isSmallScreen = computed(
 const selectedCopilotThreadId = ref(null);
 const conversationAiRefreshPromises = new Map();
 const conversationAiMessageVisibilityFloor = reactive(new Map());
+const conversationAiRequests = reactive(new Map());
+const isSending = ref(false);
+let disposed = false;
+const responsePending = computed(
+  () =>
+    isSending.value ||
+    conversationAiRequests.get(selectedCopilotThreadId.value)?.pending === true
+);
+const responseError = computed(
+  () => conversationAiRequests.get(selectedCopilotThreadId.value)?.error || ''
+);
 
 const getMessagesForThread = threadId => {
   const allMessages =
@@ -220,33 +240,65 @@ const CONVERSATION_AI_MAX_POLL_ATTEMPTS = 90;
 const refreshConversationAiMessages = async (
   threadId,
   assistantCountBeforeRequest,
-  requestMessage
+  requestMessage,
+  requestMessageId,
+  conversationId = currentConversationId.value
 ) => {
-  const existingPromise = conversationAiRefreshPromises.get(threadId);
+  const promiseKey = `${threadId}:${requestMessageId || requestMessage}`;
+  const existingPromise = conversationAiRefreshPromises.get(promiseKey);
   if (existingPromise) return existingPromise;
 
+  const request = reactive({
+    pending: true,
+    error: '',
+    assistantCountBeforeRequest,
+    requestMessage,
+    requestMessageId,
+    conversationId,
+  });
+  conversationAiRequests.set(threadId, request);
+  const hasAnswer = () => {
+    const replies = getMessagesForThread(threadId).filter(
+      message => message.message_type === 'assistant'
+    );
+    if (!requestMessageId) return replies.length > assistantCountBeforeRequest;
+    return replies.some(message =>
+      message.message?.in_reply_to
+        ? Number(message.message.in_reply_to) === Number(requestMessageId)
+        : Number(message.id) > Number(requestMessageId)
+    );
+  };
+
   const refreshPromise = (async () => {
+    const deadline = Date.now() + 180000;
     for (
       let attempt = 0;
-      attempt < CONVERSATION_AI_MAX_POLL_ATTEMPTS;
+      !disposed &&
+      attempt < CONVERSATION_AI_MAX_POLL_ATTEMPTS &&
+      Date.now() < deadline;
       attempt += 1
     ) {
       // This bounded polling is the fallback when ActionCable is disconnected.
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        await store.dispatch('copilotMessages/get', threadId);
-      } catch (error) {
-        useAlert(error.message);
-        return;
-      }
+      if (!hasAnswer())
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await store.dispatch(
+            'copilotMessages/get',
+            requestMessageId
+              ? { threadId, afterId: requestMessageId }
+              : threadId
+          );
+        } catch (error) {
+          // A transient fetch failure must not strand an otherwise running answer.
+        }
       ensureConversationAiMessageVisibilityFloor(threadId, requestMessage);
-      const assistantCount = getMessagesForThread(threadId).filter(
-        message => message.message_type === 'assistant'
-      ).length;
 
-      if (assistantCount > assistantCountBeforeRequest) {
-        if (isConversationAiMode.value && currentConversationId.value) {
-          store.dispatch('getConversation', currentConversationId.value);
+      if (hasAnswer()) {
+        if (
+          isConversationAiMode.value &&
+          currentConversationId.value === conversationId
+        ) {
+          store.dispatch('getConversation', conversationId).catch(() => {});
         }
         return;
       }
@@ -255,55 +307,77 @@ const refreshConversationAiMessages = async (
         await wait(CONVERSATION_AI_POLL_INTERVAL);
       }
     }
+    if (!disposed) request.error = t('CONVERSATION.COPILOT.RESPONSE_DELAYED');
   })();
 
-  conversationAiRefreshPromises.set(threadId, refreshPromise);
+  conversationAiRefreshPromises.set(promiseKey, refreshPromise);
   refreshPromise.finally(() => {
-    if (conversationAiRefreshPromises.get(threadId) === refreshPromise) {
-      conversationAiRefreshPromises.delete(threadId);
+    request.pending = false;
+    if (conversationAiRefreshPromises.get(promiseKey) === refreshPromise) {
+      conversationAiRefreshPromises.delete(promiseKey);
     }
   });
 
   return refreshPromise;
 };
 
+const refreshResponse = () => {
+  const threadId = selectedCopilotThreadId.value;
+  const request = conversationAiRequests.get(threadId);
+  if (!request) return;
+  refreshConversationAiMessages(
+    threadId,
+    request.assistantCountBeforeRequest,
+    request.requestMessage,
+    request.requestMessageId,
+    request.conversationId
+  );
+};
+
+onBeforeUnmount(() => {
+  disposed = true;
+});
+
 const sendMessage = async payload => {
+  if (isConversationAiMode.value && responsePending.value) return;
+  isSending.value = true;
   const message = typeof payload === 'string' ? payload : payload.message;
   const requestType =
     typeof payload === 'string' ? undefined : payload.requestType;
   const assistantId = activeAssistant.value?.id;
+  const conversationId = currentConversationId.value;
+  const threadId = selectedCopilotThreadId.value;
   const assistantCountBeforeRequest = messages.value.filter(
     item => item.message_type === 'assistant'
   ).length;
 
   try {
-    if (selectedCopilotThreadId.value) {
+    if (threadId) {
       const response = await store.dispatch('copilotMessages/create', {
         ...(assistantId && { assistant_id: assistantId }),
-        conversation_id: currentConversationId.value,
-        threadId: selectedCopilotThreadId.value,
+        conversation_id: conversationId,
+        threadId,
         message,
       });
       if (isConversationAiMode.value) {
         if (
           response?.id &&
-          !conversationAiMessageVisibilityFloor.has(
-            Number(selectedCopilotThreadId.value)
-          )
+          !conversationAiMessageVisibilityFloor.has(Number(threadId))
         ) {
           conversationAiMessageVisibilityFloor.set(
-            Number(selectedCopilotThreadId.value),
+            Number(threadId),
             response.id
           );
         }
         refreshConversationAiMessages(
-          selectedCopilotThreadId.value,
+          threadId,
           assistantCountBeforeRequest,
-          message
+          message,
+          response?.id,
+          conversationId
         );
       }
     } else {
-      const conversationId = currentConversationId.value;
       const response = await store.dispatch('copilotThreads/create', {
         ...(assistantId && { assistant_id: assistantId }),
         conversation_id: conversationId,
@@ -323,13 +397,17 @@ const sendMessage = async payload => {
           refreshConversationAiMessages(
             response.id,
             assistantCountBeforeRequest,
-            message
+            message,
+            response.copilot_message_id,
+            conversationId
           );
         }
       }
     }
   } catch (error) {
     useAlert(error.message);
+  } finally {
+    isSending.value = false;
   }
 };
 
@@ -363,9 +441,12 @@ onMounted(() => {
       :active-assistant="activeAssistant"
       :can-suggest-reply="canSuggestReply"
       :conversation-ai-mode="isConversationAiMode"
+      :response-pending="responsePending"
+      :response-error="responseError"
       @set-assistant="setAssistant"
       @send-message="sendMessage"
       @reset="handleReset"
+      @refresh-response="refreshResponse"
     />
   </div>
   <template v-else />

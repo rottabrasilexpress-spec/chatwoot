@@ -4,8 +4,10 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
   before_action :set_copilot_thread
 
   def index
-    @copilot_messages = @copilot_thread
-                        .copilot_messages
+    scope = @copilot_thread.copilot_messages
+    after_id = permitted_params[:after_id].to_i
+    scope = scope.where('id >= ?', after_id) if after_id.positive?
+    @copilot_messages = scope
                         .includes(:copilot_thread)
                         .order(created_at: :asc)
                         .page(permitted_params[:page] || 1)
@@ -27,6 +29,7 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
       ConversationAi::ResponseJob.perform_later(
         copilot_thread_id: @copilot_thread.id,
         user_id: Current.user.id,
+        request_message_id: @copilot_message.id,
         message: @copilot_message.message['content']
       )
     else
@@ -57,6 +60,6 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
   end
 
   def permitted_params
-    params.permit(:page)
+    params.permit(:page, :after_id)
   end
 end

@@ -1,7 +1,9 @@
 class ConversationAi::ResponseJob < ApplicationJob
   queue_as :default
+  self.enqueue_after_transaction_commit = :always
 
-  def perform(copilot_thread_id:, user_id:, message:, conversation_id: nil)
+  def perform(copilot_thread_id:, user_id:, message:, conversation_id: nil, request_message_id: nil)
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     thread = CopilotThread.includes(:account, :conversation).find(copilot_thread_id)
     conversation = thread.conversation
     raise ActiveRecord::RecordNotFound,
@@ -14,10 +16,13 @@ class ConversationAi::ResponseJob < ApplicationJob
       user: user,
       question: message,
       request_id: request_id,
-      copilot_thread_id: thread.id
+      copilot_thread_id: thread.id,
+      request_message_id: request_message_id
     ).payload
 
     request_body = payload.to_json
+    context_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round
+    webhook_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     response = HTTParty.post(
       webhook_url,
       headers: webhook_headers,
@@ -42,14 +47,22 @@ class ConversationAi::ResponseJob < ApplicationJob
       message: {
         content: answer,
         assistant: 'Pergunte para IA',
-        model: 'deepseek/deepseek-v4-flash-0731'
-      }
+        model: 'deepseek/deepseek-v4-flash-0731',
+        in_reply_to: request_message_id
+      }.compact
+    )
+    Rails.logger.info(
+      "[ConversationAi::Timing] request_id=#{request_id} thread_id=#{thread.id} " \
+      "context_ms=#{context_ms} prompt_chars=#{payload[:prompt].to_s.length} " \
+      "webhook_ms=#{((Process.clock_gettime(Process::CLOCK_MONOTONIC) - webhook_started_at) * 1000).round}"
     )
   rescue StandardError => e
+    raise if thread.nil?
+
     Rails.logger.error("[ConversationAi] #{e.class}: #{e.message}")
     thread&.copilot_messages&.create!(
       message_type: :assistant,
-      message: { content: I18n.t('captain.conversation_ai.failed') }
+      message: { content: I18n.t('captain.conversation_ai.failed'), in_reply_to: request_message_id }.compact
     )
   end
 

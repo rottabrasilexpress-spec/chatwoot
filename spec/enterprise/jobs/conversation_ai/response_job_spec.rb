@@ -65,7 +65,8 @@ RSpec.describe ConversationAi::ResponseJob, type: :job do
       user: user,
       question: 'teste',
       request_id: 'req-123',
-      copilot_thread_id: 44
+      copilot_thread_id: 44,
+      request_message_id: nil
     ).and_return(
       instance_double(ConversationAi::ContextBuilder, payload: { request_id: 'req-123' })
     )

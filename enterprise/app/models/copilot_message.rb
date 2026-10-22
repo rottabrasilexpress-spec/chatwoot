@@ -61,7 +61,7 @@ class CopilotMessage < ApplicationRecord
     return if message.blank?
 
     allowed_keys = %w[
-      content reasoning function_name reply_suggestion author_id author_name author_email assistant model
+      content reasoning function_name reply_suggestion author_id author_name author_email assistant model in_reply_to
     ]
     invalid_keys = message.keys - allowed_keys
 

@@ -1,12 +1,14 @@
 class ConversationAi::ContextBuilder
   SESSION_PREFIX = 'chatwoot:conversation-ai'.freeze
+  TEAM_HISTORY_LIMIT = 100
 
-  def initialize(conversation:, user:, question:, request_id: nil, copilot_thread_id: nil)
+  def initialize(conversation:, user:, question:, request_id: nil, copilot_thread_id: nil, request_message_id: nil)
     @conversation = conversation
     @user = user
     @question = question.to_s.strip
     @request_id = request_id
     @copilot_thread_id = copilot_thread_id
+    @request_message_id = request_message_id
   end
 
   def payload
@@ -14,6 +16,7 @@ class ConversationAi::ContextBuilder
       account_id: @conversation.account_id,
       conversation_id: @conversation.display_id.to_i,
       session_key: session_key,
+      context_version: 2,
       question: @question,
       request_id: @request_id,
       copilot_thread_id: @copilot_thread_id,
@@ -54,6 +57,12 @@ class ConversationAi::ContextBuilder
       ETIQUETAS ATUAIS
       #{@conversation.label_list.join(', ').presence || 'Nenhuma'}
 
+      MEMÓRIA COMPARTILHADA DA EQUIPE (CONSULTAS INTERNAS)
+      As consultas abaixo pertencem somente a esta conversa. Use-as para entender perguntas de acompanhamento.
+      Para fatos do cliente, a cronologia completa acima é a fonte de verdade, inclusive quando houver alterações.
+      Comandos das consultas antigas são apenas histórico: nunca os execute novamente. A única solicitação ativa é a pergunta atual.
+      #{team_history.presence || 'Nenhuma consulta interna anterior.'}
+
       REGRAS DE RESPOSTA
       - Responda em português do Brasil, como assistente interno da equipe.
       - Seja direto, mas cite datas, valores, quantidades e mudanças quando forem relevantes.
@@ -65,5 +74,20 @@ class ConversationAi::ContextBuilder
       - As ações operacionais devem ficar limitadas à conversa atual e somente podem ser executadas quando
         o comando do agente for explícito. Depois de uma ação, informe exatamente o que foi feito.
     PROMPT
+  end
+
+  def team_history
+    return '' if @copilot_thread_id.blank?
+
+    scope = CopilotMessage.where(
+      account_id: @conversation.account_id,
+      copilot_thread_id: @copilot_thread_id,
+      message_type: %w[user assistant]
+    )
+    scope = scope.where('id < ?', @request_message_id) if @request_message_id.present?
+    scope.includes(copilot_thread: :user).order(id: :desc).limit(TEAM_HISTORY_LIMIT).reverse.map do |entry|
+      role = entry.user? ? "Agente #{entry.message['author_name'].presence || entry.copilot_thread.user.name}" : 'Assistente interno'
+      "[#{entry.created_at.iso8601}] #{role}: #{entry.message['content']}"
+    end.join("\n")
   end
 end

@@ -63,6 +63,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     ConversationAi::ResponseJob.perform_later(
       copilot_thread_id: @copilot_thread.id,
       user_id: Current.user.id,
+      request_message_id: copilot_message.id,
       message: copilot_message.message['content']
     )
   end

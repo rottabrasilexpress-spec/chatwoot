@@ -15,7 +15,9 @@ export default createStore({
     },
   },
   actions: mutationTypes => ({
-    async get({ commit, state }, threadId) {
+    async get({ commit, state }, request) {
+      const { threadId, afterId } =
+        typeof request === 'object' ? request : { threadId: request };
       commit(mutationTypes.SET_UI_FLAG, { fetchingList: true });
       const normalizedThreadId = Number(threadId);
       const requestId =
@@ -23,15 +25,22 @@ export default createStore({
       latestRequestByThread.set(normalizedThreadId, requestId);
 
       try {
-        const response = await CopilotMessagesAPI.get(threadId);
+        const response = await CopilotMessagesAPI.get(threadId, { afterId });
         const payload = response.data?.payload || [];
 
         // A slower response from the same thread must not overwrite a newer one.
         if (latestRequestByThread.get(normalizedThreadId) === requestId) {
-          const recordsFromOtherThreads = state.records.filter(
-            record => Number(record.copilot_thread?.id) !== normalizedThreadId
+          const retainedRecords = afterId
+            ? state.records
+            : state.records.filter(
+                record =>
+                  Number(record.copilot_thread?.id) !== normalizedThreadId
+              );
+          const records = new Map(
+            retainedRecords.map(record => [record.id, record])
           );
-          commit(mutationTypes.SET, [...recordsFromOtherThreads, ...payload]);
+          payload.forEach(record => records.set(record.id, record));
+          commit(mutationTypes.SET, [...records.values()]);
           commit(mutationTypes.SET_META, response.data?.meta);
         }
 

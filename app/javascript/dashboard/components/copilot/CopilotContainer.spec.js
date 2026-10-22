@@ -39,10 +39,12 @@ vi.mock('dashboard/composables/store', async () => {
     getLastEmailInSelectedChat: createRef({ message_type: 0 }),
     getCurrentAccountId: createRef(1),
     'accounts/isFeatureEnabledonAccount': createRef(() => true),
+    messageRevision: createRef(0),
   };
   testState.refs = refs;
 
   const getMessagesForThreadId = threadId => {
+    Reflect.get(refs.messageRevision, 'value');
     if (!threadId) return [];
     if (
       Object.prototype.hasOwnProperty.call(testState.messageRecords, threadId)
@@ -81,7 +83,7 @@ const mountComponent = () =>
       stubs: {
         Copilot: {
           name: 'Copilot',
-          props: ['messages'],
+          props: ['messages', 'responsePending', 'responseError'],
           template: '<div />',
         },
       },
@@ -128,7 +130,7 @@ describe('CopilotContainer', () => {
         return Promise.resolve([{ id: 55 }]);
       }
       if (action === 'copilotMessages/get') {
-        testState.messageCounts[Number(payload)] = 1;
+        testState.messageCounts[Number(payload?.threadId ?? payload)] = 1;
       }
       return Promise.resolve();
     });
@@ -162,10 +164,10 @@ describe('CopilotContainer', () => {
         return Promise.resolve({ id: 55, copilot_message_id: 90 });
       }
       if (action === 'copilotMessages/get') {
-        testState.messageCounts[Number(payload)] = 1;
+        testState.messageCounts[Number(payload?.threadId ?? payload)] = 1;
         testState.messageRecords = {
           ...testState.messageRecords,
-          [Number(payload)]: [
+          [Number(payload?.threadId ?? payload)]: [
             { id: 12, message_type: 'assistant' },
             { id: 90, message_type: 'user' },
             { id: 91, message_type: 'assistant' },
@@ -200,9 +202,9 @@ describe('CopilotContainer', () => {
         return Promise.resolve({ id: 56 });
       }
       if (action === 'copilotMessages/get') {
-        testState.messageCounts[Number(payload)] = 1;
+        testState.messageCounts[Number(payload?.threadId ?? payload)] = 1;
         testState.messageRecords = {
-          [Number(payload)]: [
+          [Number(payload?.threadId ?? payload)]: [
             { id: 12, message_type: 'assistant' },
             {
               id: 90,
@@ -245,7 +247,7 @@ describe('CopilotContainer', () => {
       }
       if (action === 'copilotMessages/get') {
         testState.messageRecords = {
-          [Number(payload)]: [
+          [Number(payload?.threadId ?? payload)]: [
             { id: 90, message_type: 'user', message: 'Pergunta' },
             {
               id: 91,
@@ -356,6 +358,73 @@ describe('CopilotContainer', () => {
     expect(messageGetCalls.get(100)).toBeGreaterThanOrEqual(2);
     expect(messageGetCalls.get(101)).toBeGreaterThanOrEqual(1);
 
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it('recovers from a transient response fetch failure without resending the question', async () => {
+    vi.useFakeTimers();
+    testState.uiSettings.value = {
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    };
+    let fetches = 0;
+    testState.dispatch.mockImplementation(action => {
+      if (action === 'copilotThreads/create') {
+        return Promise.resolve({ id: 60, copilot_message_id: 90 });
+      }
+      if (action === 'copilotMessages/get') {
+        fetches += 1;
+        if (fetches === 1) return Promise.reject(new Error('Network error'));
+        testState.messageRecords[60] = [
+          { id: 90, message_type: 'user' },
+          { id: 91, message_type: 'assistant', message: { in_reply_to: 90 } },
+        ];
+        testState.refs.messageRevision.value += 1;
+      }
+      return Promise.resolve();
+    });
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+    copilot.vm.$emit('sendMessage', 'Resumo interno');
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(2200);
+    await flushPromises();
+
+    expect(fetches).toBe(2);
+    expect(copilot.props('responsePending')).toBe(false);
+    expect(copilot.props('responseError')).toBe('');
+    expect(
+      testState.dispatch.mock.calls.filter(
+        ([action]) => action === 'copilotThreads/create'
+      )
+    ).toHaveLength(1);
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it('ends the waiting state when no answer arrives within the response deadline', async () => {
+    vi.useFakeTimers();
+    testState.uiSettings.value = {
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    };
+    testState.dispatch.mockImplementation(action =>
+      Promise.resolve(
+        action === 'copilotThreads/create'
+          ? { id: 61, copilot_message_id: 90 }
+          : undefined
+      )
+    );
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+    copilot.vm.$emit('sendMessage', 'Resumo interno');
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(182000);
+    await flushPromises();
+
+    expect(copilot.props('responsePending')).toBe(false);
+    expect(copilot.props('responseError')).toBeTruthy();
     wrapper.unmount();
     vi.useRealTimers();
   });
