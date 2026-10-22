@@ -336,6 +336,34 @@ RSpec.describe Messages::SendOnApiService do
     expect(message.external_error).to include('HTTP 422')
   end
 
+  it 'does not replace a provider receipt with a late request failure' do
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text').to_return do
+      Message.find(message.id).update!(source_id: '3EBRECEIPT123', status: :read)
+      { status: 502, body: { error: 'late gateway response' }.to_json,
+        headers: { 'content-type' => 'application/json' } }
+    end
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.status).to eq('read')
+    expect(message.source_id).to eq('3EBRECEIPT123')
+    expect(message.external_error).to be_blank
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
+  end
+
+  it 'keeps a receipt that arrived on another record instance before a timeout' do
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text').to_return do
+      Message.find(message.id).update!(source_id: '3EBREADTIMEOUT123', status: :read)
+      raise Net::ReadTimeout, 'late timeout'
+    end
+
+    described_class.new(message: message).perform
+
+    expect(message.reload.status).to eq('read')
+    expect(message.external_error).to be_blank
+    expect(message.additional_attributes).not_to have_key('rotta_uazapi_confirmation_pending')
+  end
+
   it 'sends a recorded audio attachment as a WhatsApp voice message' do
     attachment = message.attachments.build(account_id: message.account_id, file_type: :audio)
     attachment.file.attach(

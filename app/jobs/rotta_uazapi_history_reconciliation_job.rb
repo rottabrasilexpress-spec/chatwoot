@@ -73,18 +73,39 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     messages = response_records(payload, %w[messages data records])
     recent_messages = messages.select { |message| recent?(message_timestamp(message), cutoff) }
     provider_ids = recent_messages.flat_map { |message| message_source_ids(message) }.uniq
-    existing_ids = Message.where(account_id: ACCOUNT_ID, source_id: provider_ids.flat_map { |id| [id, "uazapi:#{id}"] })
-                          .pluck(:source_id).map { |id| id.delete_prefix('uazapi:') }.to_set
+    existing = Message.where(account_id: ACCOUNT_ID, source_id: provider_ids.flat_map { |id| [id, "uazapi:#{id}"] })
+                      .select(:id, :source_id, :status, :message_type)
+                      .index_by { |message| message.source_id.delete_prefix('uazapi:') }
     recent_messages.sort_by { |message| message_timestamp(message) || Time.at(0) }.each do |message|
       # Recovery is for missing messages. Do not replay the same 72-hour history
       # into the web server every minute. Explicit edits/deletions still use
       # the webhook so their existing bubble can be updated.
       mutation = value_for_keys(message, %w[edited editedMessage edited_message editOf edit_of deleted revoked]).present? ||
                  value_for_keys(message, %w[type messageType]).to_s.match?(/edit|delet|revok|protocol/i)
-      next if message_source_ids(message).any? { |id| existing_ids.include?(id) } && !mutation
+      saved = message_source_ids(message).filter_map { |id| existing[id] }.first
+      if saved && !mutation
+        reconcile_failed_status(message) if saved.outgoing? && saved.failed?
+        next
+      end
 
       replay_message(message)
     end
+  end
+
+  def reconcile_failed_status(message)
+    status = value_for_keys(message, %w[status ack]).to_s
+    # Queued/unknown is not proof of sending. Never retry the send endpoint.
+    return unless %w[sent delivered read played 2 3 4 5].include?(status.downcase)
+
+    response = http_request(
+      URI.parse("#{CHATWOOT_INTERNAL_URL.chomp('/')}/webhooks/uazapi/#{URI.encode_www_form_component(webhook_token)}/messages_update"),
+      Net::HTTP::Post,
+      { event: 'messages_update', data: message },
+      { 'X-Forwarded-Proto' => 'https' }
+    )
+    return if response.code.to_i.between?(200, 299)
+
+    raise "status reconciliation failed with HTTP #{response.code}"
   end
 
   def replay_message(message)

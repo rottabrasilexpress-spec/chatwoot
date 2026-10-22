@@ -237,32 +237,44 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   end
 
   def persist_provider_id(provider_id)
-    attributes = message.content_attributes.to_h.stringify_keys
-    attributes.delete('rotta_uazapi_pending_echo')
-    message.update!(source_id: provider_id, content_attributes: attributes)
+    message.with_lock do
+      attributes = message.content_attributes.to_h.stringify_keys
+      attributes.delete('rotta_uazapi_pending_echo')
+      attributes.delete('external_error')
+      message.update!(
+        source_id: message.source_id.presence || provider_id,
+        status: message.failed? ? :sent : message.status,
+        content_attributes: attributes
+      )
+    end
   end
 
   def fail_message(error)
-    attributes = message.content_attributes.to_h.stringify_keys
-    attributes.delete('rotta_uazapi_pending_echo')
-    message.update!(
-      status: :failed,
-      external_error: error.to_s.truncate(500),
-      content_attributes: attributes
-    )
+    message.with_lock do
+      # An echo/receipt may arrive before the HTTP request finishes. A late
+      # request failure cannot invalidate the provider's confirmed message.
+      return if message.source_id.present? || message.status.in?(%w[delivered read])
+
+      attributes = message.content_attributes.to_h.stringify_keys
+      attributes.delete('rotta_uazapi_pending_echo')
+      attributes['external_error'] = error.to_s.truncate(500)
+      message.update!(status: :failed, content_attributes: attributes)
+    end
     Rails.logger.error("[ROTTABRASIL_API] message=#{message.id} failed #{error}")
   end
 
   def mark_delivery_confirmation_pending(error)
-    status = message.status.in?(%w[delivered read]) ? message.status : :sent
-    attributes = message.additional_attributes.to_h
-    if %w[delivered read].include?(status.to_s)
-      attributes.delete('rotta_uazapi_confirmation_pending')
-    else
-      attributes['rotta_uazapi_confirmation_pending'] = true
-    end
+    message.with_lock do
+      status = message.status.in?(%w[delivered read]) ? message.status : :sent
+      attributes = message.additional_attributes.to_h
+      if message.source_id.present? || %w[delivered read].include?(status.to_s)
+        attributes.delete('rotta_uazapi_confirmation_pending')
+      else
+        attributes['rotta_uazapi_confirmation_pending'] = true
+      end
 
-    message.update!(status: status, external_error: nil, additional_attributes: attributes)
+      message.update!(status: status, external_error: nil, additional_attributes: attributes)
+    end
     Rails.logger.warn("[ROTTABRASIL_API] message=#{message.id} confirmation_pending error=#{error.class.name}")
   end
 end

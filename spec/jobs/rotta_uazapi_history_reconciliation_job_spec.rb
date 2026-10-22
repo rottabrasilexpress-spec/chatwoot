@@ -82,6 +82,42 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     expect(Redis::Alfred).not_to have_received(:delete)
   end
 
+  it 'reconciles a failed legacy message with a confirmed provider read without replaying its content' do
+    conversation = create(:conversation, account_id: described_class::ACCOUNT_ID)
+    create(:message, conversation: conversation, account_id: described_class::ACCOUNT_ID,
+                     message_type: :outgoing, status: :failed, source_id: '5511000000000:outgoing-1')
+    stub_request(:post, 'https://uazapi.test/message/find').to_return(
+      status: 200,
+      body: { messages: [{ id: '5511000000000:outgoing-1', messageid: 'outgoing-1', fromMe: true,
+                           status: 'Read', timestamp: Time.current.to_i }] }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/messages_update')
+      .to_return(status: 200, body: { ok: true }.to_json)
+
+    perform_job
+
+    expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/messages_update')
+      .with { |request| JSON.parse(request.body).dig('data', 'status') == 'Read' }).to have_been_made.once
+    expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')).not_to have_been_made
+  end
+
+  it 'does not convert a queued provider message into a successful send' do
+    conversation = create(:conversation, account_id: described_class::ACCOUNT_ID)
+    create(:message, conversation: conversation, account_id: described_class::ACCOUNT_ID,
+                     message_type: :outgoing, status: :failed, source_id: 'outgoing-1')
+    stub_request(:post, 'https://uazapi.test/message/find').to_return(
+      status: 200,
+      body: { messages: [{ messageid: 'outgoing-1', fromMe: true, status: 'Queued', timestamp: Time.current.to_i }] }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+
+    perform_job
+
+    expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/messages_update')).not_to have_been_made
+    expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')).not_to have_been_made
+  end
+
   it 'also recognizes the legacy storage ID without replaying existing history' do
     conversation = create(:conversation, account_id: described_class::ACCOUNT_ID)
     create(:message, conversation: conversation, account_id: described_class::ACCOUNT_ID, source_id: '5511000000000:incoming-1')
