@@ -89,7 +89,8 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     stub_request(:post, 'https://uazapi.test/message/find').to_return(
       status: 200,
       body: { messages: [{ id: '5511000000000:outgoing-1', messageid: 'outgoing-1', fromMe: true,
-                           status: 'Read', timestamp: Time.current.to_i }] }.to_json,
+                           status: 'Read', timestamp: Time.current.to_i,
+                           text: 'Do not copy message text into receipt', quoted: { messageid: 'unrelated-quoted-id' } }] }.to_json,
       headers: { 'Content-Type' => 'application/json' }
     )
     stub_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/messages_update')
@@ -98,7 +99,9 @@ RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
     perform_job
 
     expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/messages_update')
-      .with { |request| JSON.parse(request.body).dig('data', 'status') == 'Read' }).to have_been_made.once
+      .with { |request| JSON.parse(request.body).fetch('data') == {
+        'messageids' => ['outgoing-1', '5511000000000:outgoing-1'], 'status' => 'Read'
+      } }).to have_been_made.once
     expect(a_request(:post, 'http://rails:3000/webhooks/uazapi/webhook-token/history')).not_to have_been_made
   end
 

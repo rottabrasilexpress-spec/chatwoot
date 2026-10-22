@@ -100,7 +100,7 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     response = http_request(
       URI.parse("#{CHATWOOT_INTERNAL_URL.chomp('/')}/webhooks/uazapi/#{URI.encode_www_form_component(webhook_token)}/messages_update"),
       Net::HTTP::Post,
-      { event: 'messages_update', data: message },
+      { event: 'messages_update', data: { messageids: message_source_ids(message), status: status } },
       { 'X-Forwarded-Proto' => 'https' }
     )
     return if response.code.to_i.between?(200, 299)
