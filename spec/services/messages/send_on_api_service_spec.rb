@@ -82,6 +82,65 @@ RSpec.describe Messages::SendOnApiService do
       .with(body: hash_including('track_source' => 'chatwoot-human'))).not_to have_been_made
   end
 
+  it 'reuses the claimed message when native import and webhook echo arrive before the send response' do
+    original = message
+    original.update!(created_at: 20.minutes.ago)
+    canonical = 'ABCDEF1234567890ABCDEF1234567890'
+    storage = "5511000000000:#{canonical}"
+    stub_const('Webhooks::UazapiController::ACCOUNT_ID', conversation.account_id)
+    controller = Api::V1::Accounts::Conversations::MessagesController.new
+    controller.instance_variable_set(:@conversation, conversation)
+    controller.params = ActionController::Parameters.new(content: original.content, message_type: 'outgoing', source_id: storage)
+    webhook = Webhooks::UazapiController.new
+    allow(webhook).to receive(:render)
+
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text').to_return do
+      imported = controller.send(:build_uazapi_import_message, agent, [canonical, storage])
+      expect(imported.id).to eq(original.id)
+      incoming = { 'id' => storage, 'messageid' => canonical, 'text' => original.content,
+                   'fromMe' => true, 'track_id' => "message-#{original.id}", 'track_source' => 'chatwoot-human' }
+      webhook.send(:persist_outgoing_echo, { 'message' => incoming }, incoming, canonical)
+      { status: 200, body: { id: storage, messageid: canonical }.to_json, headers: { 'content-type' => 'application/json' } }
+    end
+
+    expect { described_class.new(message: original).perform }.not_to change { conversation.messages.count }
+    expect(original.reload.source_id).to eq(canonical)
+    expect(original.content_attributes['uazapi_track_id']).to eq("message-#{original.id}")
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
+  end
+
+  it 'waits for Retry-After on a 429 and keeps duplicate delivery jobs from sending early' do
+    original = message
+    delayed_job = double(perform_later: true)
+    expect(SendReplyJob).to receive(:set).with(wait_until: be >= 120.seconds.from_now).once.and_return(delayed_job)
+    expect(delayed_job).to receive(:perform_later).with(original.id).once
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(status: 429, body: { error: 'rate limit exceeded' }.to_json,
+                 headers: { 'content-type' => 'application/json', 'retry-after' => '120' })
+
+    2.times { described_class.new(message: Message.find(original.id)).perform }
+
+    expect(original.reload).not_to be_failed
+    expect(original.external_error).to be_blank
+    expect(original.content_attributes['rotta_uazapi_retry_count']).to eq(1)
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
+  end
+
+  it 'keeps a real 429 failure after the bounded automatic retries are exhausted' do
+    message.update!(content_attributes: { rotta_uazapi_retry_count: 3 })
+    expect(SendReplyJob).not_to receive(:set)
+    stub_request(:post, 'https://transportadoras.uazapi.com/send/text')
+      .to_return(status: 429, body: { error: 'rate limit exceeded' }.to_json, headers: { 'content-type' => 'application/json' })
+
+    described_class.new(message: message).perform
+    described_class.new(message: Message.find(message.id)).perform
+
+    expect(message.reload).to be_failed
+    expect(message.external_error).to include('HTTP 429', 'rate limit exceeded')
+    expect(message.content_attributes).not_to have_key('rotta_uazapi_pending_echo')
+    expect(a_request(:post, 'https://transportadoras.uazapi.com/send/text')).to have_been_made.once
+  end
+
   it 'preserves WhatsApp formatting, emojis, blank lines and separators verbatim' do
     formatted_content = "ORÇAMENTO FINAL - ROTTA BRASIL EXPRESS\r\n\r\n💰 *OPÇÕES DE INVESTIMENTO*\r\n\r\n*Valor:* ✅ R$ 7.993,73\r\n\r\n---\r\n\r\n🌐 SITE: www.rottabrasilexpress.com.br"
     message.update!(content: formatted_content)

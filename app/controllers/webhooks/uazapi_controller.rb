@@ -422,11 +422,6 @@ class Webhooks::UazapiController < ActionController::API
   end
 
   def find_existing_echo_message(payload, provider_id, conversation: nil, content: nil)
-    source_ids = [provider_id, "uazapi:#{provider_id}"].uniq
-    existing = Message.where(account_id: ACCOUNT_ID, message_type: %i[outgoing template], source_id: source_ids)
-                      .order(created_at: :desc).first
-    return existing if existing
-
     track_id = value_for_keys(payload, %w[track_id trackId])&.to_s
     if track_id&.match?(/\Amessage-\d+\z/)
       tracked = Message.where(
@@ -437,7 +432,12 @@ class Webhooks::UazapiController < ActionController::API
       return tracked if tracked
     end
 
-   pending_echo_candidate(conversation, content)
+    source_ids = [provider_id, "uazapi:#{provider_id}"].uniq
+    existing = Message.where(account_id: ACCOUNT_ID, message_type: %i[outgoing template], source_id: source_ids)
+                      .order(created_at: :desc).first
+    return existing if existing
+
+    pending_echo_candidate(conversation, content)
   end
 
   def pending_echo_candidate(conversation, content)
@@ -450,14 +450,15 @@ class Webhooks::UazapiController < ActionController::API
                   private: false,
                   source_id: nil
                 )
-                .where('created_at >= ?', 5.minutes.ago)
-                .order(:created_at, :id)
+                .where('updated_at >= ?', 5.minutes.ago)
+                .order(:updated_at, :id)
                 .limit(100)
                 .find do |candidate|
       attributes = candidate.content_attributes
       pending = attributes.is_a?(Hash) &&
         ActiveModel::Type::Boolean.new.cast(attributes['rotta_uazapi_pending_echo'])
-      pending && Messages::SendOnApiService.whatsapp_text(candidate.content).strip ==
+      pending && attributes['rotta_uazapi_retry_at'].blank? && Messages::SendOnApiService.recent_echo_claim?(candidate) &&
+        Messages::SendOnApiService.whatsapp_text(candidate.content).strip ==
         Messages::SendOnApiService.whatsapp_text(content).strip
     end
   end
@@ -516,7 +517,7 @@ class Webhooks::UazapiController < ActionController::API
     # by the direct webhook and n8n, independent of JSON field ordering.
     %w[message_id messageid id].each do |key|
       value = values_for_keys(message, [key]).find(&:present?)
-      return value.to_s if value.present?
+      return Messages::SendOnApiService.canonical_provider_id(value) if value.present?
     end
     nil
   end
@@ -767,7 +768,8 @@ class Webhooks::UazapiController < ActionController::API
 
     status_event_ids = status_event?(payload) ? extract_status_event_provider_ids(payload) : []
 
-    (explicit_values + message_id_values + contextual_ids.flatten + status_event_ids).compact_blank.map(&:to_s).uniq
+    values = (explicit_values + message_id_values + contextual_ids.flatten + status_event_ids).compact_blank.map(&:to_s)
+    (values + values.filter_map { |value| Messages::SendOnApiService.canonical_provider_id(value) }).uniq
   end
 
   def status_event?(payload)

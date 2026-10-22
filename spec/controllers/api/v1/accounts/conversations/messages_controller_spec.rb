@@ -134,6 +134,20 @@ RSpec.describe 'Conversation Messages API', type: :request do
           expect(conversation.messages.where(id: [original.id, duplicate.id]).count).to eq(2)
         end
 
+        it 'does not merge a new provider message into a previously confirmed message with identical text' do
+          original = create(:message, conversation: conversation, account: account, message_type: :outgoing,
+                                      source_id: 'ABC123ABC123', content: 'Resposta repetida', content_attributes: { rotta_uazapi: true })
+
+          expect do
+            post api_v1_account_conversation_messages_url(account_id: account.id, conversation_id: conversation.display_id),
+                 params: { content: original.content, message_type: 'outgoing', source_id: '5511000000000:DEF456DEF456' },
+                 headers: agent.create_new_auth_token, as: :json
+          end.to change { conversation.messages.count }.by(1)
+
+          expect(response).to have_http_status(:success)
+          expect(response.parsed_body['id']).not_to eq(original.id)
+        end
+
         it 'reuses the direct UAZAPI message when the native integration sends its prefixed storage ID' do
           original = create(:message, conversation: conversation, account: account, message_type: :incoming,
                                       source_id: 'ABC123ABC123', content: 'Texto recebido')

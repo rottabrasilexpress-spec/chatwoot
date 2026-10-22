@@ -5,6 +5,14 @@ require 'rails_helper'
 RSpec.describe RottaUazapiHistoryReconciliationJob, type: :job do
   subject(:perform_job) { described_class.perform_now }
 
+  it 'recognizes canonical and storage-only identifiers in recovered history' do
+    canonical = 'ABCDEF1234567890ABCDEF1234567890'
+    storage = "5511000000000:#{canonical}"
+
+    expect(described_class.new.send(:message_provider_id, { 'id' => storage })).to eq(canonical)
+    expect(described_class.new.send(:message_source_ids, { 'id' => storage })).to contain_exactly(canonical, storage)
+  end
+
   before do
     stub_const('RottaUazapiHistoryReconciliationJob::BASE_URL', 'https://uazapi.test')
     stub_const('RottaUazapiHistoryReconciliationJob::CHATWOOT_INTERNAL_URL', 'http://rails:3000')

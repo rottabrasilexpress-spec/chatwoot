@@ -1,6 +1,7 @@
 class Messages::SendOnApiService < Base::SendOnChannelService
   UAZAPI_PATH = '/send/text'.freeze
   UAZAPI_MEDIA_PATH = '/send/media'.freeze
+  MAX_RATE_LIMIT_RETRIES = 3
   UAZAPI_AMBIGUOUS_ERRORS = [
     Net::OpenTimeout,
     Net::ReadTimeout,
@@ -21,6 +22,34 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       slashes = Regexp.last_match(1)
       "#{slashes.length.odd? ? slashes[0...-1] : slashes}\n"
     end
+  end
+
+  def self.pending_text_echo(conversation, content)
+    return if conversation.blank? || content.blank?
+
+    candidates = conversation.messages.where(message_type: :outgoing, private: false, source_id: nil)
+                             .where('updated_at >= ?', 5.minutes.ago).order(:updated_at, :id).limit(100)
+                             .includes(:attachments).select do |candidate|
+      attributes = candidate.content_attributes.to_h
+      attributes['rotta_uazapi_pending_echo'] == true &&
+        attributes['uazapi_track_id'] == "message-#{candidate.id}" &&
+        attributes['rotta_uazapi_retry_at'].blank? && recent_echo_claim?(candidate) && candidate.attachments.empty? &&
+        whatsapp_text(candidate.content).strip == whatsapp_text(content).strip
+    end
+    # Text is only a fallback for an explicitly claimed send. Never guess
+    # which of two identical in-flight messages an untracked import belongs to.
+    candidates.one? ? candidates.first : nil
+  end
+
+  def self.recent_echo_claim?(candidate)
+    claimed_at = candidate.content_attributes.to_h['rotta_uazapi_claimed_at']
+    (claimed_at.present? ? Time.iso8601(claimed_at) : candidate.created_at) >= 5.minutes.ago
+  rescue ArgumentError
+    false
+  end
+
+  def self.canonical_provider_id(value)
+    value.to_s.sub(/\A(?:uazapi:)?\d{10,15}:([a-f0-9]{12,64})\z/i, '\1').presence
   end
 
   private
@@ -129,6 +158,10 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       timeout: 30
     )
     @uazapi_request_accepted = response.success?
+    if response.code == 429
+      schedule_rate_limit_retry(response)
+      return nil
+    end
     response
   rescue *UAZAPI_AMBIGUOUS_ERRORS => e
     mark_delivery_confirmation_pending(e)
@@ -175,12 +208,49 @@ class Messages::SendOnApiService < Base::SendOnChannelService
   def provider_message_id(response)
     body = response.parsed_response
     candidates = [
-      body['id'], body['messageId'], body['messageid'], body['message_id'],
+      body['messageId'], body['messageid'], body['message_id'],
       body.dig('key', 'id'), body.dig('message', 'key', 'id'), body.dig('data', 'key', 'id'),
-      body.dig('data', 'id'), body.dig('response', 'id')
+      body['id'], body.dig('data', 'id'), body.dig('response', 'id')
     ]
 
-    candidates.find { |value| value.present? }.to_s.presence
+    self.class.canonical_provider_id(candidates.find { |value| value.present? })
+  end
+
+  def schedule_rate_limit_retry(response)
+    retry_at = nil
+    exhausted = false
+    message.with_lock do
+      next if message.source_id.present? || message.status.in?(%w[delivered read])
+
+      attributes = message.content_attributes.to_h.stringify_keys
+      count = attributes['rotta_uazapi_retry_count'].to_i
+      if count >= MAX_RATE_LIMIT_RETRIES
+        exhausted = true
+        next
+      end
+
+      backoff = Time.current + (60 * (2**count) + message.id % 15).seconds
+      header = response.headers['retry-after'].to_s
+      provider_retry_at = if header.match?(/\A\d+\z/)
+                            Time.current + header.to_i.seconds
+                          elsif header.present?
+                            begin
+                              Time.httpdate(header)
+                            rescue ArgumentError
+                              nil
+                            end
+                          end
+      retry_at = [backoff, provider_retry_at].compact.max
+      attributes.delete('external_error')
+      attributes['rotta_uazapi_retry_count'] = count + 1
+      attributes['rotta_uazapi_retry_at'] = retry_at.iso8601(6)
+      message.update!(status: :sent, content_attributes: attributes)
+    end
+    return fail_message(provider_error(response)) if exhausted
+    return unless retry_at
+
+    SendReplyJob.set(wait_until: retry_at).perform_later(message.id)
+    Rails.logger.warn("[ROTTABRASIL_API] message=#{message.id} rate_limited retry_at=#{retry_at.iso8601}")
   end
 
   def provider_error(response)
@@ -210,8 +280,14 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
       message.reload
       attributes = message.content_attributes.to_h.with_indifferent_access
+      next if message.failed? && attributes[:rotta_uazapi_retry_count].to_i >= MAX_RATE_LIMIT_RETRIES
+
+      retry_at = attributes[:rotta_uazapi_retry_at]
+      retry_due = retry_at.present? && Time.iso8601(retry_at) <= Time.current
+      next if retry_at.present? && !retry_due
+
       pending_for_this_message = attributes[:rotta_uazapi_pending_echo] &&
-        attributes[:uazapi_track_id].to_s == "message-#{message.id}"
+        attributes[:uazapi_track_id].to_s == "message-#{message.id}" && !retry_due
 
       unless message.source_id.present? || pending_for_this_message
         mark_pending_uazapi_echo
@@ -224,6 +300,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
   def mark_pending_uazapi_echo
     attributes = message.content_attributes.to_h.stringify_keys
+    attributes.delete('rotta_uazapi_retry_at')
     message.update!(
       content_attributes: attributes.merge(
         'rotta_uazapi' => true,
@@ -241,6 +318,8 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       attributes = message.content_attributes.to_h.stringify_keys
       attributes.delete('rotta_uazapi_pending_echo')
       attributes.delete('external_error')
+      attributes.delete('rotta_uazapi_retry_at')
+      attributes.delete('rotta_uazapi_retry_count')
       message.update!(
         source_id: message.source_id.presence || provider_id,
         status: message.failed? ? :sent : message.status,
@@ -257,6 +336,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
       attributes = message.content_attributes.to_h.stringify_keys
       attributes.delete('rotta_uazapi_pending_echo')
+      attributes.delete('rotta_uazapi_retry_at')
       attributes['external_error'] = error.to_s.truncate(500)
       message.update!(status: :failed, content_attributes: attributes)
     end

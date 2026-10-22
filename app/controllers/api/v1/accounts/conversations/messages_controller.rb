@@ -186,7 +186,33 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
       sql = ApplicationRecord.sanitize_sql_array(['SELECT pg_advisory_xact_lock(hashtext(?))', lock_key])
       ApplicationRecord.connection.execute(sql)
       existing = @conversation.messages.find_by(source_id: source_ids.flat_map { |id| [id, "uazapi:#{id}"] })
+      existing ||= pending_uazapi_import_message(provider_id, source_ids)
       existing || Messages::MessageBuilder.new(user, @conversation, params.merge(source_id: provider_id)).perform
+    end
+  end
+
+  def pending_uazapi_import_message(provider_id, source_ids)
+    return unless params[:message_type].to_s == 'outgoing' && params[:attachments].blank?
+
+    pending = Messages::SendOnApiService.pending_text_echo(@conversation, params[:content])
+    return unless pending
+
+    pending.with_lock do
+      # The HTTP response may have completed while this import waited for the
+      # row lock. Reuse only this provider ID or the still-unconfirmed claim.
+      if pending.source_id.present?
+        next source_ids.include?(pending.source_id.delete_prefix('uazapi:')) ? pending : nil
+      end
+
+      attributes = pending.content_attributes.to_h.stringify_keys
+      next unless attributes['rotta_uazapi_pending_echo'] == true && attributes['rotta_uazapi_retry_at'].blank?
+
+      attributes.delete('rotta_uazapi_pending_echo')
+      attributes.delete('external_error')
+      additional = pending.additional_attributes.to_h.except('rotta_uazapi_confirmation_pending')
+      pending.update!(source_id: provider_id, status: pending.failed? ? :sent : pending.status,
+                      content_attributes: attributes, additional_attributes: additional)
+      pending
     end
   end
 

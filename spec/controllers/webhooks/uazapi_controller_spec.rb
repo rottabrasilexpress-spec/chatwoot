@@ -19,6 +19,40 @@ RSpec.describe 'Webhooks::UazapiController', type: :request do
          headers: { 'CONTENT_TYPE' => 'application/json' }
   end
 
+  describe 'correlation fallbacks' do
+    let(:api_channel) { create(:channel_api, account: account) }
+    let(:api_inbox) { create(:inbox, channel: api_channel, account: account) }
+    let(:contact_inbox) { create(:contact_inbox, inbox: api_inbox, contact: contact, source_id: '5511999999999@s.whatsapp.net') }
+    let(:conversation) { create(:conversation, account: account, inbox: api_inbox, contact: contact, contact_inbox: contact_inbox) }
+    let(:message) { create(:message, conversation: conversation, account: account, message_type: :outgoing, source_id: nil) }
+    let(:controller) { Webhooks::UazapiController.new.tap { |instance| instance.params = ActionController::Parameters.new } }
+
+    it 'excludes a rejected send waiting for a rate-limit retry from untracked text echoes' do
+      message.update!(content_attributes: { rotta_uazapi_pending_echo: true,
+                                           rotta_uazapi_claimed_at: Time.current.iso8601,
+                                           rotta_uazapi_retry_at: 120.seconds.from_now.iso8601 })
+
+      expect(controller.send(:pending_echo_candidate, conversation, message.content)).to be_nil
+    end
+
+    it 'uses a current claim even when the original message is older than five minutes' do
+      message.update!(created_at: 20.minutes.ago,
+                      content_attributes: { rotta_uazapi_pending_echo: true, rotta_uazapi_claimed_at: Time.current.iso8601 })
+
+      expect(controller.send(:pending_echo_candidate, conversation, message.content)&.id).to eq(message.id)
+    end
+
+    it 'normalizes storage-only echo IDs and finds their receipts using the same canonical ID' do
+      canonical = 'ABCDEF1234567890ABCDEF1234567890'
+      storage = "5511000000000:#{canonical}"
+      message.update!(source_id: canonical)
+
+      expect(controller.send(:message_provider_id, { 'id' => storage })).to eq(canonical)
+      expect(controller.send(:find_messages, { 'event' => 'messages_update', 'data' => { 'id' => storage, 'status' => 'Read' } }).map(&:id))
+        .to include(message.id)
+    end
+  end
+
   describe 'POST /webhooks/uazapi/:token' do
     it 'uses real text and the WhatsApp ID when empty interaction fields and a storage ID come first' do
       api_channel = create(:channel_api, account: account)

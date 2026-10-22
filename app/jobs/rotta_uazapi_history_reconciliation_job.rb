@@ -125,7 +125,7 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
   def message_provider_id(message)
     %w[message_id messageid id].each do |key|
       value = value_for_keys(message, [key])
-      return value.to_s if value.present?
+      return Messages::SendOnApiService.canonical_provider_id(value) if value.present?
     end
     nil
   end
