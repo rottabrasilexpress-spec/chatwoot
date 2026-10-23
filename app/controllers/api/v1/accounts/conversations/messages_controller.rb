@@ -221,7 +221,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
     records = messages.to_a
     legacy_ids = records.filter_map do |message|
-      next if message.private? || message.attachments.any?
+      next if message.private?
 
       match = message.source_id.to_s.match(/\A(?:uazapi:)?\d{10,15}:([a-f0-9]{12,64})\z/i)
       [message.id, match[1]] if match
@@ -233,8 +233,14 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
                              .includes(:attachments).index_by { |message| message.source_id.delete_prefix('uazapi:') }
     records.reject do |message|
       original = originals[legacy_ids[message.id]]
+      legacy_placeholder = message.content.blank? || message.content.to_s.match?(RottaUazapiMessageMediaSyncJob::MEDIA_PLACEHOLDER)
       original && !original.private? && original.content_attributes.to_h['rotta_uazapi'] &&
-        original.message_type == message.message_type && original.content == message.content && original.attachments.empty?
+        original.message_type == message.message_type && (
+          (original.content == message.content && original.attachments.empty? && message.attachments.empty?) ||
+          (original.attachments.any? && message.attachments.any? &&
+            original.attachments.map(&:file_type) == message.attachments.map(&:file_type) &&
+            (legacy_placeholder || original.content == message.content))
+        )
     end
   end
 

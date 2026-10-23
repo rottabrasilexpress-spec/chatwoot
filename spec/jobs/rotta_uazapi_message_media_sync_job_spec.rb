@@ -55,6 +55,21 @@ RSpec.describe RottaUazapiMessageMediaSyncJob, type: :job do
     expect(message.reload.attachments.pluck(:id)).to eq([attachment.id])
   end
 
+  it 'reuses the stored attachment of an exact historical owner-prefixed alias' do
+    message.update!(source_id: 'AABBCCDDEEFF1234', content: '[AudioMessage]')
+    legacy = create(:message, account: account, conversation: conversation, message_type: :incoming,
+                              source_id: '5511999999999:AABBCCDDEEFF1234', content: '[audio]')
+    attachment = legacy.attachments.build(account: account, file_type: :audio)
+    attachment.file.attach(io: StringIO.new('OggS-test'), filename: 'voice.ogg', content_type: 'audio/ogg')
+    attachment.save!
+    expect(SafeFetch).not_to receive(:fetch)
+
+    described_class.perform_now(account.id, message.id, message.source_id, nil, 'AudioMessage')
+
+    expect(message.reload.attachments.first.file.blob_id).to eq(attachment.file.blob_id)
+    expect(message.content).to be_nil
+  end
+
   it 'downloads and stores provider media returned by message download' do
     provider_id = 'uazapi-media-download-1'
     media_url = 'https://example.com/uazapi-document.pdf'

@@ -14,6 +14,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
   MAX_DOWNLOAD_BYTES = 40.megabytes
   REQUEST_TIMEOUT = 15
   ACCEPTABLE_CONTENT_TYPES = (Attachment::ACCEPTABLE_FILE_TYPES + Attachment::GENERIC_FILE_CONTENT_TYPES).freeze
+  MEDIA_PLACEHOLDER = /\A\[(?:audio|image|video|document|sticker|arquivo)(?:message)?\]\z/i
 
   # The direct hook, native import and history recovery can see the same media.
   # Reserve a short enqueue window on the existing row, never create a message.
@@ -34,6 +35,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
     message = find_message(account_id, message_id)
     return unless message
     return if attachment_already_synced?(message, provider_message_id, media_url)
+    return if reuse_legacy_media(message, provider_message_id)
 
     synchronize_media(message, provider_message_id, media_url, media_type)
   rescue StandardError => e
@@ -69,6 +71,36 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
         persist_attachment(message, provider_message_id, file_url, media, downloaded_file)
       end
     end
+  end
+
+  def reuse_legacy_media(message, provider_message_id)
+    return false if provider_message_id.blank?
+
+    # Historical native imports used owner:messageid. Reuse their stored file
+    # only for this exact message, direction, account and conversation.
+    source_ids = [provider_message_id, "uazapi:#{provider_message_id}"]
+    suffix = "%:#{Message.sanitize_sql_like(provider_message_id)}"
+    aliases = Message.where(account_id: message.account_id, conversation_id: message.conversation_id,
+                            message_type: message.message_type, private: false)
+                     .where.not(id: message.id)
+                     .where('source_id IN (?) OR source_id LIKE ?', source_ids, suffix)
+                     .includes(attachments: { file_attachment: :blob })
+    existing = aliases.flat_map(&:attachments).find { |attachment| attachment.file.attached? }
+    return false unless existing
+
+    message.with_lock do
+      next if message.attachments.exists?
+
+      attachment = message.attachments.build(account_id: message.account_id, file_type: existing.file_type,
+        meta: existing.meta.to_h.merge('uazapi_message_id' => provider_message_id.to_s))
+      attachment.file.attach(existing.file.blob)
+      attachment.save!
+      if message.content.to_s.match?(MEDIA_PLACEHOLDER) && existing.message.content.present?
+        message.update_columns(content: existing.message.content)
+      end
+      publish_media_update(message)
+    end
+    true
   end
 
   def attachment_already_synced?(message, provider_message_id, media_url)
@@ -126,11 +158,14 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
       content_type: content_type
     )
     attachment.save!
+    publish_media_update(message)
+  end
+
+  def publish_media_update(message)
     # Preserve real captions. These tokens are transport placeholders, not text.
-    if message.content.to_s.match?(/\A\[(?:AudioMessage|ImageMessage|VideoMessage|DocumentMessage|StickerMessage|audio|image|video|document|sticker|arquivo)\]\z/i)
-      message.update_columns(content: nil)
-    end
-    message.reload.send_update_event
+    message.update_columns(content: nil) if message.content.to_s.match?(MEDIA_PLACEHOLDER)
+    # Notify only after the file's after-commit upload is complete.
+    ActiveRecord.after_all_transactions_commit { message.reload.send_update_event }
   end
 
   def attachment_file_type(content_type, provider_type)
