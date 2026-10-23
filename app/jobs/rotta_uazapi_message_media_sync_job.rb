@@ -8,11 +8,27 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
   class MediaSyncError < StandardError; end
 
   queue_as :uazapi_sync
+  self.enqueue_after_transaction_commit = :always
 
   BASE_URL = ENV.fetch('ROTTABRASIL_UAZAPI_BASE_URL', 'https://transportadoras.uazapi.com').freeze
   MAX_DOWNLOAD_BYTES = 40.megabytes
   REQUEST_TIMEOUT = 15
   ACCEPTABLE_CONTENT_TYPES = (Attachment::ACCEPTABLE_FILE_TYPES + Attachment::GENERIC_FILE_CONTENT_TYPES).freeze
+
+  # The direct hook, native import and history recovery can see the same media.
+  # Reserve a short enqueue window on the existing row, never create a message.
+  def self.enqueue(message, provider_message_id, media_url = nil, media_type = nil)
+    message.with_lock do
+      next if message.attachments.exists?
+
+      attributes = message.content_attributes.to_h
+      queued_at = attributes['rotta_uazapi_media_enqueued_at']
+      next if queued_at.present? && Time.iso8601(queued_at) > 5.minutes.ago
+
+      perform_later(message.account_id, message.id, provider_message_id, media_url, media_type)
+      message.update_columns(content_attributes: attributes.merge('rotta_uazapi_media_enqueued_at' => Time.current.iso8601))
+    end
+  end
 
   def perform(account_id, message_id, provider_message_id, media_url = nil, media_type = nil)
     message = find_message(account_id, message_id)
@@ -23,7 +39,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
   rescue StandardError => e
     Rails.logger.warn(
       "[RottaMediaSync] message=#{message_id} account=#{account_id} " \
-      "class=#{e.class.name} error=#{e.message.to_s.first(200)}"
+      "class=#{e.class.name} error=media_sync_failed"
     )
     raise
   end
@@ -31,11 +47,11 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
   private
 
   def find_message(account_id, message_id)
-    Message.where(account_id: account_id, id: message_id, message_type: :incoming).first
+    Message.where(account_id: account_id, id: message_id, message_type: %i[incoming outgoing], private: false).first
   end
 
   def synchronize_media(message, provider_message_id, media_url, media_type)
-    media = { 'fileURL' => media_url, 'mimetype' => media_type }
+    media = { 'fileURL' => media_url, 'type' => media_type }
     media = fetch_provider_media(provider_message_id) if media['fileURL'].blank?
     file_url = media_value(media, %w[fileURL file_url url mediaUrl media_url])
     raise MediaSyncError, 'provider did not return a media URL' if file_url.blank?
@@ -56,6 +72,9 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
   end
 
   def attachment_already_synced?(message, provider_message_id, media_url)
+    # Native imports may already have attached the file without UAZAPI metadata.
+    return true if message.attachments.exists?
+
     return true if provider_message_id.present? && attachment_matches_provider_id?(message, provider_message_id)
 
     return false if media_url.blank?
@@ -84,7 +103,7 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
       body: { id: provider_message_id, return_link: true, return_base64: false }.to_json,
       timeout: REQUEST_TIMEOUT
     )
-    return {} unless response.success?
+    raise MediaSyncError, "provider download returned HTTP #{response.code}" unless response.success?
 
     payload = response.parsed_response
     payload.is_a?(Hash) ? payload.stringify_keys : {}
@@ -107,6 +126,10 @@ class RottaUazapiMessageMediaSyncJob < ApplicationJob
       content_type: content_type
     )
     attachment.save!
+    # Preserve real captions. These tokens are transport placeholders, not text.
+    if message.content.to_s.match?(/\A\[(?:AudioMessage|ImageMessage|VideoMessage|DocumentMessage|StickerMessage|audio|image|video|document|sticker|arquivo)\]\z/i)
+      message.update_columns(content: nil)
+    end
     message.reload.send_update_event
   end
 

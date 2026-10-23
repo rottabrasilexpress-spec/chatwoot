@@ -21,6 +21,40 @@ RSpec.describe RottaUazapiMessageMediaSyncJob, type: :job do
     expect(described_class.queue_name).to eq('uazapi_sync')
   end
 
+  it 'ships the media job in the production overlay' do
+    expect(Rails.root.join('docker/Dockerfile.overlay').read).to include(
+      'COPY app/jobs/rotta_uazapi_message_media_sync_job.rb /app/app/jobs/rotta_uazapi_message_media_sync_job.rb'
+    )
+  end
+
+  it 'reserves one media download when two ingestion paths see the same message' do
+    expect(described_class).to receive(:perform_later).once.with(account.id, message.id, 'media-1', nil, 'AudioMessage')
+    2.times { described_class.enqueue(message, 'media-1', nil, 'AudioMessage') }
+  end
+
+  it 'downloads outgoing phone audio without sending another message' do
+    message.update!(message_type: :outgoing, content: '[AudioMessage]')
+    stub_request(:get, 'https://example.com/phone.ogg').to_return(
+      status: 200, body: 'OggS-audio', headers: { 'Content-Type' => 'audio/ogg' }
+    )
+
+    expect(SendReplyJob).not_to receive(:perform_later)
+    2.times { described_class.perform_now(account.id, message.id, 'phone-audio', 'https://example.com/phone.ogg', 'AudioMessage') }
+
+    expect(message.reload.content).to be_nil
+    expect(message.attachments.count).to eq(1)
+    expect(message.attachments.first).to be_audio
+  end
+
+  it 'does not duplicate an attachment created by the native import' do
+    attachment = message.attachments.create!(account: account, file_type: :image)
+    expect(SafeFetch).not_to receive(:fetch)
+
+    described_class.perform_now(account.id, message.id, 'native-image', 'https://example.com/image.png', 'ImageMessage')
+
+    expect(message.reload.attachments.pluck(:id)).to eq([attachment.id])
+  end
+
   it 'downloads and stores provider media returned by message download' do
     provider_id = 'uazapi-media-download-1'
     media_url = 'https://example.com/uazapi-document.pdf'

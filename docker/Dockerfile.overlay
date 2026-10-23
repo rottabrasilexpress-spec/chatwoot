@@ -38,6 +38,7 @@ COPY app/jobs/rotta/automatic_labels_job.rb /app/app/jobs/rotta/automatic_labels
 COPY app/jobs/rotta_archived_conversation_retention_job.rb /app/app/jobs/rotta_archived_conversation_retention_job.rb
 COPY app/jobs/rotta_deleted_message_content_retention_job.rb /app/app/jobs/rotta_deleted_message_content_retention_job.rb
 COPY app/jobs/rotta_uazapi_contact_avatar_sync_job.rb /app/app/jobs/rotta_uazapi_contact_avatar_sync_job.rb
+COPY app/jobs/rotta_uazapi_message_media_sync_job.rb /app/app/jobs/rotta_uazapi_message_media_sync_job.rb
 COPY app/jobs/rotta_uazapi_webhook_delivery_retention_job.rb /app/app/jobs/rotta_uazapi_webhook_delivery_retention_job.rb
 COPY app/jobs/rotta_uazapi_history_reconciliation_job.rb /app/app/jobs/rotta_uazapi_history_reconciliation_job.rb
 COPY app/jobs/rotta_follow_up_reconciliation_job.rb /app/app/jobs/rotta_follow_up_reconciliation_job.rb

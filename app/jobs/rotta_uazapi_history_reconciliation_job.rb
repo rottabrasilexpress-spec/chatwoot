@@ -74,7 +74,6 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
     recent_messages = messages.select { |message| recent?(message_timestamp(message), cutoff) }
     provider_ids = recent_messages.flat_map { |message| message_source_ids(message) }.uniq
     existing = Message.where(account_id: ACCOUNT_ID, source_id: provider_ids.flat_map { |id| [id, "uazapi:#{id}"] })
-                      .select(:id, :source_id, :status, :message_type)
                       .index_by { |message| message.source_id.delete_prefix('uazapi:') }
     recent_messages.sort_by { |message| message_timestamp(message) || Time.at(0) }.each do |message|
       # Recovery is for missing messages. Do not replay the same 72-hour history
@@ -85,6 +84,10 @@ class RottaUazapiHistoryReconciliationJob < ApplicationJob
       saved = message_source_ids(message).filter_map { |id| existing[id] }.first
       if saved && !mutation
         reconcile_failed_status(message) if saved.outgoing? && saved.failed?
+        media_type = value_for_keys(message, %w[type messageType]).to_s
+        if media_type.match?(/image|video|audio|document|sticker/i)
+          RottaUazapiMessageMediaSyncJob.enqueue(saved, message_provider_id(message), nil, media_type)
+        end
         next
       end
 

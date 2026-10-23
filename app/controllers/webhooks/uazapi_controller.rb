@@ -306,6 +306,8 @@ class Webhooks::UazapiController < ActionController::API
         )
         existing_message.update!(content: content, content_attributes: updated_attributes)
         existing_message
+      elsif existing_message && incoming_media?(incoming, provider_id)
+        existing_message
       elsif existing_message || (provider_id.present? && Message.where(account_id: ACCOUNT_ID, source_id: source_ids).exists?)
         :duplicate
       else
@@ -325,15 +327,7 @@ class Webhooks::UazapiController < ActionController::API
 
     return render json: { ok: true, ignored: 'mensagem duplicada', source_id: provider_id } if message == :duplicate
 
-    if incoming_media?(incoming, provider_id)
-      RottaUazapiMessageMediaSyncJob.perform_later(
-        conversation.account_id,
-        message.id,
-        provider_id,
-        incoming_media_url(incoming),
-        incoming_media_type(incoming)
-      )
-    end
+    enqueue_message_media(message, incoming, provider_id)
 
     RottaUazapiContactAvatarSyncJob.perform_later(conversation.account_id, conversation.contact_id)
     render json: { ok: true, message_ids: [message.id], source_id: provider_id }
@@ -374,6 +368,7 @@ class Webhooks::UazapiController < ActionController::API
       content_attributes.delete('rotta_uazapi_pending_echo')
       updates[:content_attributes] = content_attributes
       existing_message.update!(updates) if updates.present?
+      enqueue_message_media(existing_message, incoming, provider_id)
       return render json: { ok: true, message_ids: [existing_message.id], source_id: provider_id }
     end
 
@@ -406,7 +401,14 @@ class Webhooks::UazapiController < ActionController::API
       )
     end
 
+    enqueue_message_media(message, incoming, provider_id)
     render json: { ok: true, message_ids: [message.id], source_id: provider_id }
+  end
+
+  def enqueue_message_media(message, incoming, provider_id)
+    return unless incoming_media?(incoming, provider_id)
+
+    RottaUazapiMessageMediaSyncJob.enqueue(message, provider_id, incoming_media_url(incoming), incoming_media_type(incoming))
   end
 
   def with_uazapi_provider_lock(provider_id)
