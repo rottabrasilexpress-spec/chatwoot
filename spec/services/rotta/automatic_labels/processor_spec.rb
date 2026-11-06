@@ -7,9 +7,36 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
   let(:settings) { { first_contact: true, kelvin: true, caio_attention: true } }
 
   before do
-    %w[primeiro-contato kelvin caio-atencao orcamento-feito].each do |title|
+    %w[primeiro-contato kelvin caio-atencao orcamento-feito orcamento-15-dias].each do |title|
       create(:label, account: account, title: title)
     end
+  end
+
+  it 'routes a requested revision from Orçamento 15 dias to both labels without changing the stage' do
+    conversation.update_labels(['orcamento-15-dias'])
+    message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
+                               message_type: :incoming, content_type: :text,
+                               content: 'Retifica esse orçamento por favor, com equipe de ajudantes na carga e descarga.')
+    expect(Rotta::AutomaticLabels::HumanNeedClassifier).not_to receive(:new)
+
+    Rotta::AutomaticLabelsJob.new.perform(message.id)
+
+    expect(conversation.reload.label_list).to match_array(%w[orcamento-15-dias kelvin caio-atencao])
+    expect(account.rotta_automatic_label_logs.find_by(event_key: "#{message.id}:budget_revision")).to have_attributes(status: 'applied')
+
+    conversation.update_labels(['orcamento-15-dias'])
+    Rotta::AutomaticLabelsJob.new.perform(message.id)
+    expect(conversation.reload.label_list).to match_array(['orcamento-15-dias'])
+  end
+
+  it 'does not treat an initial pricing question as a revision' do
+    conversation.update_labels(['primeiro-contato'])
+    message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
+                               message_type: :incoming, content_type: :text, content: 'Quanto fica com dois ajudantes?')
+
+    Rotta::AutomaticLabelsJob.new.perform(message.id)
+
+    expect(conversation.reload.label_list).to match_array(['primeiro-contato'])
   end
 
   def create_prior_inbound_message

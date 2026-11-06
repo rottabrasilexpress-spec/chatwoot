@@ -1,13 +1,22 @@
 class Rotta::AutomaticLabels::Processor
   CONTACT_STAGES = %w[primeiro-contato segundo-contato terceiro-contato ultimo-contato contato-instantaneo].freeze
   BUDGET_STAGES = %w[kelvin orcamento-feito orcamento-tentativa-2 orcamento-tentativa-3 orcamento-tentativa-4
-                     orcamento-5-dias orcamento-10-dias orcamento-instantaneo].freeze
+                     orcamento-5-dias orcamento-10-dias orcamento-15-dias orcamento-instantaneo].freeze
   HUMAN_NEED = /\b(valor|pre[cç]o|quanto|or[cç]amento final|c[aá]lculo final|proposta final|pagamento|pix|boleto|cart[aã]o|parcel|contrat|fechar|fechamento|reserv|agend|disponibil|data|coleta|entrega|reclam|problema|urgent|desconto|caro|barato|humano|atendente|setor)\b/i
   CLEAR_HUMAN_NEED = /\b(atendente|humano|caio|contrat|fechar|fechamento|reserv|pagamento|pix|boleto|cart[aã]o|reclam|problema|urgent|desconto|negoci|setor financeiro)\b/i
   AMBIGUOUS_HUMAN_NEED = /\b(valor|pre[cç]o|quanto|or[cç]amento final|c[aá]lculo final|proposta final|parcel|agend|disponibil|data|coleta|entrega|caro|barato|setor|caminh[aã]o|ve[ií]culo|tamanho|dimens(?:ão|ões)|capacidade|porte)\b/i
   CAIO_MIN_CONFIDENCE = 0.80
   POST_BUDGET_INTEREST_TOPIC = /\b(valor(?:es)?|pre[cç]os?|desconto|pagamento|[aà] vista|parcel\w*|prazo|entrega|coleta|datas?|disponibil\w*|ajudantes?|servi[cç]os?|montagem|desmontagem|inclu\w*|contrat\w*|reserv\w*)\b/i
   POST_BUDGET_INTEREST_REQUEST = /\?|\b(qual|quais|quanto|quando|como|pode|posso|consigo|tem|h[aá]|queria|gostaria|quero|preciso|d[uú]vida|saber|confirma\w*)\b/i
+  REVISION_ACTION = /\b(?:(?:atualiz|recalcul|retific|revis|reajust|alter|ajust|renov|melhor)(?:a|ar|e|em|aria|asse|ao)|refaz(?:er|a)?|refaca|corrig(?:ir|e)|corrija)\b/
+  QUOTE_TOPIC = /\b(?:orcamentos?|cotacao|proposta|precos?|valor(?:es)?|frete|custos?|taxas?)\b/
+  PRICE_REQUEST = /\b(?:quanto (?:fica|sai|custa)|(?:qual|saber|passar|mandar|informar|dizer) (?:seria |tambem )?(?:o |a )?#{QUOTE_TOPIC})/
+  EXTRA_PRICE = /\b(?:adiciona\w*|inclu\w*|acrescenta\w*|junto|a mais|com mais|se (?:eu |a gente )?(?:colocar|tirar|levar|trocar))\b/
+  SCOPE_TOPIC = /\b(?:ajudantes?|montagem|desmontagem|embalagem|inventario|itens?|moveis|caixas?|moto|data|origem|destino|endereco|rota)\b/
+  SCOPE_CHANGE = /\b(?:(?:inclu|adicion|acrescent|retir|remov|troc|mud)(?:a|ar|e|er|ir|ua)|tirar|colocar|(?:agora|tambem) (?:vou precisar|preciso|quero))\b/
+  NEW_QUOTE = /\b(?:novo orcamento|nova cotacao|nova proposta|recalcular|recalcula|recalcule)\b/
+  DECLINED_REVISION = /\bnao (?:(?:precis[ao]|quero|gostaria|vamos|pode|e necessario|e para) (?:de (?:um |uma )?)?)?(?:#{REVISION_ACTION}|#{NEW_QUOTE})/
+  REVISION_LABELS = { 'kelvin' => 'kelvin', 'caio_attention' => 'caio-atencao' }.freeze
 
   def initialize(message)
     @message = message
@@ -18,6 +27,7 @@ class Rotta::AutomaticLabels::Processor
 
   def perform
     return unless @conversation && @account
+    return if incoming? && !@message.private? && apply_budget_revision
 
     apply_first_contact if @settings['first_contact'] && incoming?
     apply_kelvin if @settings['kelvin'] && outgoing? && pre_budget?(@message.content)
@@ -45,6 +55,41 @@ class Rotta::AutomaticLabels::Processor
 
   def apply_kelvin
     mutate_labels('kelvin', add: 'kelvin', remove: 'primeiro-contato')
+  end
+
+  def apply_budget_revision
+    additions = REVISION_LABELS.filter_map { |key, label| label if @settings[key] }
+    return false if additions.empty? || !budget_revision_requested?
+
+    @conversation.with_lock do
+      labels = canonical_labels
+      final_quote = @conversation.messages.outgoing.where(private: false, content_type: :text).where.not(status: :failed)
+                                 .where('content ~* ?', 'or[çc]amento final[[:space:]]*[-—][[:space:]]*rotta')
+                                 .reorder(created_at: :desc, id: :desc).pick(:created_at, :id)
+      next false if (labels & BUDGET_STAGES).empty? && final_quote.nil?
+      # A delayed or replayed event must not reopen a revision already superseded by a final quote.
+      next true if final_quote && (final_quote <=> [@message.created_at, @message.id]).positive?
+      next true if @account.rotta_automatic_label_logs.exists?(event_key: "#{@message.id}:budget_revision")
+
+      mutate_labels_locked('budget_revision', add: additions)
+      true
+    end
+  end
+
+  def budget_revision_requested?
+    text = I18n.transliterate(@message.content.to_s).downcase
+    text.scan(/[^.!;?\n]+\??/).any? do |part|
+      next false if part.match?(DECLINED_REVISION)
+
+      price = part.match?(QUOTE_TOPIC)
+      scope = part.match?(SCOPE_TOPIC)
+      request = part.match?(POST_BUDGET_INTEREST_REQUEST)
+      revision = part.match?(REVISION_ACTION) && (price || scope)
+      updated_quote = price && part.match?(/\b(?:mande|envie|quero|preciso|gostaria|consegue|pode)\b.*\b(?:atualizad|revisad|recalculad)[oa]\b/)
+      extra_cost = part.match?(PRICE_REQUEST) && (part.match?(EXTRA_PRICE) || (scope && part.match?(/\b(?:com|sem|se)\b/)))
+      scope_change = request && scope && part.match?(SCOPE_CHANGE)
+      revision || updated_quote || part.match?(NEW_QUOTE) || extra_cost || scope_change
+    end
   end
 
   def apply_caio_attention
@@ -105,10 +150,11 @@ class Rotta::AutomaticLabels::Processor
 
   def mutate_labels_locked(key, add:, remove: nil)
     current = @conversation.label_list.to_a
-    add_title = account_label_title(add)
-    raise "Etiqueta #{add} não foi encontrada nesta conta." unless add_title
+    add_titles = Array(add).map do |slug|
+      account_label_title(slug) || raise("Etiqueta #{slug} não foi encontrada nesta conta.")
+    end
 
-    updated = (current + [add_title]).uniq
+    updated = (current + add_titles).uniq
     if remove
       remove_title = account_label_title(remove)
       updated -= [remove_title] if remove_title
@@ -117,7 +163,7 @@ class Rotta::AutomaticLabels::Processor
 
     @conversation.update_labels(updated)
     @conversation.reload
-    unless @conversation.label_list.include?(add_title) && (!remove || remove_title.nil? || !@conversation.label_list.include?(remove_title))
+    unless (add_titles - @conversation.label_list).empty? && (!remove_title || !@conversation.label_list.include?(remove_title))
       raise 'A confirmação autoritativa das etiquetas falhou.'
     end
 
