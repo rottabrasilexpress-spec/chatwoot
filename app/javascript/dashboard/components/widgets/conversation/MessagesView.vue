@@ -629,6 +629,8 @@ export default {
     },
 
     makeMessagesRead() {
+      // A background tab receiving an AI reply is not a human reading it.
+      if (document.hidden || !document.hasFocus()) return;
       this.$store.dispatch('markMessagesRead', { id: this.currentChat.id });
     },
     async handleMessageRetry(message) {

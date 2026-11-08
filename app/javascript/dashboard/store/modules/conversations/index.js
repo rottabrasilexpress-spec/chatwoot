@@ -248,8 +248,10 @@ export const mutations = {
       const isActivityMessage =
         message.message_type === 2 || message.message_type === 'activity';
       if (!isActivityMessage) chat.timestamp = message.created_at;
-      const { conversation: { unread_count: unreadCount = 0 } = {} } = message;
-      chat.unread_count = unreadCount;
+      // Partial echoes/pending sends do not carry the shared read state.
+      // Only an explicit server count may clear unread customer messages.
+      chat.unread_count =
+        message.conversation?.unread_count ?? chat.unread_count ?? 0;
       if (selectedChatId === conversationId) {
         emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE);
       }

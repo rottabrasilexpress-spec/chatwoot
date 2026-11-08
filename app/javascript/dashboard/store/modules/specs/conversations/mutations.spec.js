@@ -110,6 +110,35 @@ describe('#mutations', () => {
   });
 
   describe('#ADD_MESSAGE', () => {
+    it.each([undefined, {}, { unread_count: 2 }])(
+      'preserves unread customer messages for an outgoing payload %j',
+      conversation => {
+        const state = {
+          allConversations: [{ id: 1, unread_count: 2, messages: [] }],
+        };
+        mutations[types.ADD_MESSAGE](state, {
+          id: 2,
+          conversation_id: 1,
+          message_type: 1,
+          conversation,
+        });
+        expect(state.allConversations[0].unread_count).toBe(2);
+      }
+    );
+
+    it('accepts a confirmed read count of zero from the server', () => {
+      const state = {
+        allConversations: [{ id: 1, unread_count: 2, messages: [] }],
+      };
+      mutations[types.ADD_MESSAGE](state, {
+        id: 2,
+        conversation_id: 1,
+        message_type: 1,
+        conversation: { unread_count: 0 },
+      });
+      expect(state.allConversations[0].unread_count).toBe(0);
+    });
+
     it('does not add message to the store if conversation does not exist', () => {
       const state = { allConversations: [] };
       mutations[types.ADD_MESSAGE](state, { conversationId: 1 });

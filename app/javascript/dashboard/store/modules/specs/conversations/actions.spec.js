@@ -307,7 +307,7 @@ describe('#actions', () => {
       };
       actions.addMessage({ commit, dispatch }, message);
       expect(commit.mock.calls).toEqual([[types.ADD_MESSAGE, message]]);
-      expect(dispatch).toHaveBeenCalledWith('markMessagesRead', { id: 1 });
+      expect(dispatch).not.toHaveBeenCalled();
     });
   });
 
@@ -763,6 +763,34 @@ describe('#addMentions', () => {
       ],
     ]);
   });
+
+  it.each([
+    { focused: true, hidden: false, reads: 1 },
+    { focused: false, hidden: false, reads: 0 },
+    { focused: true, hidden: true, reads: 0 },
+  ])(
+    'only confirms human reading during visible reconciliation: %j',
+    async ({ focused, hidden, reads }) => {
+      vi.spyOn(document, 'hasFocus').mockReturnValue(focused);
+      vi.spyOn(document, 'hidden', 'get').mockReturnValue(hidden);
+      axios.get.mockResolvedValue({ data: { payload: [], meta: {} } });
+
+      await actions.syncActiveConversationMessages(
+        {
+          commit,
+          dispatch,
+          state: {
+            allConversations: [{ id: 1, messages: [] }],
+            syncConversationsMessages: { 1: 1 },
+          },
+        },
+        { conversationId: 1 }
+      );
+
+      expect(dispatch).toHaveBeenCalledTimes(reads);
+      vi.restoreAllMocks();
+    }
+  );
 
   it('#syncActiveConversationMessages preserves the cursor for live reconciliation', async () => {
     const conversations = [

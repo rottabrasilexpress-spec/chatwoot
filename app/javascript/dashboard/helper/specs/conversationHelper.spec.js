@@ -120,12 +120,21 @@ describe('conversationHelper', () => {
       ).toBe(true);
     });
 
-    it('hides a stale badge after an outgoing response', () => {
+    it('keeps unread customer messages visible after an AI or agent response', () => {
       expect(
         hasUnreadIncomingMessage({
           unread_count: 2,
           messages: [{ message_type: 1, created_at: 2 }],
           last_non_activity_message: null,
+        })
+      ).toBe(true);
+    });
+
+    it('clears the badge only when the shared unread count is cleared', () => {
+      expect(
+        hasUnreadIncomingMessage({
+          unread_count: 0,
+          messages: [{ message_type: 0, created_at: 2 }],
         })
       ).toBe(false);
     });

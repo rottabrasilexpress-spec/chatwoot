@@ -216,6 +216,9 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     @conversation.update_columns(updates)
     # rubocop:enable Rails/SkipsModelValidations
 
+    # Share the agent's read state with the other open dashboards, using the
+    # existing read event rather than polling or waiting for another message.
+    Rails.configuration.dispatcher.dispatch(CONVERSATION_READ, Time.current, conversation: @conversation)
     ::Conversations::UnreadCounts::Notifier.new(@conversation).perform
     ::Conversations::UnreadCounts::FilteredCountInvalidator.new(Current.account).conversation_changed!
   end

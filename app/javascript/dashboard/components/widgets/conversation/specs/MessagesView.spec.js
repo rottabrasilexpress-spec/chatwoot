@@ -1,6 +1,38 @@
 import MessagesView from '../MessagesView.vue';
 
 describe('MessagesView', () => {
+  it.each([true, false])(
+    'only marks an open conversation read when the agent is viewing the tab (focused: %s)',
+    focused => {
+      vi.spyOn(document, 'hasFocus').mockReturnValue(focused);
+      vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+      const dispatch = vi.fn();
+
+      MessagesView.methods.makeMessagesRead.call({
+        currentChat: { id: 42 },
+        $store: { dispatch },
+      });
+
+      expect(dispatch).toHaveBeenCalledTimes(focused ? 1 : 0);
+      if (focused) {
+        expect(dispatch).toHaveBeenCalledWith('markMessagesRead', { id: 42 });
+      }
+      vi.restoreAllMocks();
+    }
+  );
+
+  it('keeps messages unread when an open conversation is in a hidden tab', () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    const dispatch = vi.fn();
+    MessagesView.methods.makeMessagesRead.call({
+      currentChat: { id: 42 },
+      $store: { dispatch },
+    });
+    expect(dispatch).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
   it('starts at the latest message when opening a conversation', () => {
     const panel = { addEventListener: vi.fn() };
     const context = {

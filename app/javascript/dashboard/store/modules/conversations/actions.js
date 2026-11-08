@@ -179,7 +179,9 @@ const actions = {
           ? sortedMessages[sortedMessages.length - 1]?.id || null
           : null,
       });
-      dispatch('markMessagesRead', { id: conversationId }, { root: true });
+      if (!document.hidden && document.hasFocus()) {
+        dispatch('markMessagesRead', { id: conversationId }, { root: true });
+      }
     } catch (error) {
       // Handle error
     }
@@ -340,7 +342,7 @@ const actions = {
     }
   },
 
-  addMessage({ commit, dispatch, rootGetters }, message) {
+  addMessage({ commit, rootGetters }, message) {
     commit(types.ADD_MESSAGE, message);
     if (message.message_type === MESSAGE_TYPE.INCOMING) {
       commit(types.SET_CONVERSATION_CAN_REPLY, {
@@ -348,16 +350,6 @@ const actions = {
         canReply: true,
       });
       commit(types.ADD_CONVERSATION_ATTACHMENTS, message);
-    }
-    // Clear Chatwoot's unread marker when an AI/agent response arrives. This
-    // does not invent WhatsApp ticks; provider delivery/read states still
-    // come from the real Uazapi status data.
-    if (
-      message.message_type === MESSAGE_TYPE.OUTGOING &&
-      !message.private &&
-      message.conversation_id
-    ) {
-      dispatch('markMessagesRead', { id: message.conversation_id });
     }
     handleVoiceCallCreated(
       message,

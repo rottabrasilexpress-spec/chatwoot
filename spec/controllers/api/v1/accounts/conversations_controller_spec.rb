@@ -885,6 +885,24 @@ RSpec.describe 'Conversations API', type: :request do
         expect(conversation.reload.agent_last_seen_at).not_to be_nil
       end
 
+      it 'shares a human read with other agents even after a bot reply' do
+        conversation.update!(agent_last_seen_at: 10.minutes.ago)
+        create(:message, conversation: conversation, message_type: :incoming, created_at: 5.minutes.ago)
+        create(:message, conversation: conversation, message_type: :outgoing)
+        allow(Rails.configuration.dispatcher).to receive(:dispatch)
+
+        expect(conversation.reload.unread_incoming_messages).not_to be_empty
+
+        post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(conversation.reload.unread_incoming_messages).to be_empty
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch)
+          .with(Events::Types::CONVERSATION_READ, anything, conversation: conversation)
+      end
+
       it 'updates assignee last seen' do
         conversation.update!(assignee_id: agent.id, agent_last_seen_at: nil)
 

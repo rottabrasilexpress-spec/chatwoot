@@ -108,7 +108,8 @@ export const hasUnreadIncomingMessage = conversation => {
   if (!conversation) return false;
 
   const unreadCount = Number(conversation?.unread_count || 0);
-  return unreadCount > 0 && isIncomingMessage(getLastMessage(conversation));
+  // A reply does not mean an agent has opened the customer's messages.
+  return unreadCount > 0;
 };
 
 /**
