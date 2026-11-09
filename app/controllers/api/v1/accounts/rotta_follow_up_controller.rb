@@ -20,9 +20,13 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     )
     action = payload['action'].to_s
 
+    if action == 'list' && submitted_payload.key?('conversation_id')
+      return conversation_list(submitted_payload)
+    end
     if action == 'list' && submitted_payload.key?('page')
       return paginated_list(submitted_payload)
     end
+    return legacy_list if action == 'list'
 
     unless ALLOWED_ACTIONS.include?(action)
       return render json: { ok: false, error: 'Ação de follow-up inválida.' }, status: :unprocessable_entity
@@ -41,7 +45,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     response = RottaFollowUp::AdminClient.request(
       payload.slice('action', 'job_id', 'hours', 'conversation_id', 'account_id', 'config')
     )
-    Rails.cache.delete(list_snapshot_cache_key) if action != 'list' && response.success?
+    invalidate_list_snapshots if action != 'list' && response.success?
     body = response.body
     body = scope_list_body(body) if action == 'list' && body.is_a?(Hash)
     body = reconcile_missing_follow_up_jobs(body) if action == 'list' && body.is_a?(Hash)
@@ -62,9 +66,32 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     "rotta_follow_up:operational_snapshot:v1:#{Current.account.id}"
   end
 
-  def paginated_list(options)
+  def legacy_list_snapshot_cache_key
+    "rotta_follow_up:legacy_snapshot:v1:#{Current.account.id}"
+  end
+
+  def invalidate_list_snapshots
+    Rails.cache.delete(list_snapshot_cache_key)
+    Rails.cache.delete(legacy_list_snapshot_cache_key)
+  end
+
+  # Older open tabs still ask for the complete list. Preserve that contract,
+  # but do not let each profile independently rebuild and enrich the queue.
+  def legacy_list
+    body = Rails.cache.fetch(legacy_list_snapshot_cache_key, expires_in: 10.seconds, race_condition_ttl: 10.seconds) do
+      response = RottaFollowUp::AdminClient.request(action: 'list', account_id: Current.account.id)
+      return render json: response.body, status: response.status unless response.success?
+
+      scoped = scope_list_body(response.body)
+      reconciled = reconcile_missing_follow_up_jobs(scoped)
+      add_chatwoot_label_fallbacks(add_delivery_evidence(reconciled))
+    end
+    render json: body
+  end
+
+  def operational_snapshot(options = {})
     Rails.cache.delete(list_snapshot_cache_key) if options['force_refresh'] == true
-    snapshot = Rails.cache.fetch(list_snapshot_cache_key, expires_in: 10.seconds, race_condition_ttl: 10.seconds) do
+    Rails.cache.fetch(list_snapshot_cache_key, expires_in: 10.seconds, race_condition_ttl: 10.seconds) do
       response = RottaFollowUp::AdminClient.request(action: 'list', account_id: Current.account.id, operational_only: true)
       raise RottaFollowUp::AdminClient::RequestError, admin_response_error(response) unless response.success?
 
@@ -72,6 +99,25 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
       body = reconcile_missing_follow_up_jobs(body)
       add_chatwoot_label_fallbacks(body)
     end
+  end
+
+  def conversation_list(options)
+    id = options['conversation_id'].to_s
+    unless id.match?(/\A\d{1,20}\z/)
+      return render json: { ok: false, error: 'Conversa inválida.' }, status: :unprocessable_entity
+    end
+    conversation = Current.account.conversations.find_by(display_id: id)
+    return render json: { ok: false, error: 'Conversa não encontrada.' }, status: :not_found unless conversation
+
+    authorize conversation, :show?
+    snapshot = operational_snapshot
+    jobs = Array(snapshot['jobs']).select { |job| job['conversation_id'].to_s == id }
+    body = snapshot.merge('jobs' => jobs, 'total' => jobs.length)
+    render json: add_delivery_evidence(body)
+  end
+
+  def paginated_list(options)
+    snapshot = operational_snapshot(options)
     body = RottaFollowUp::ListPage.new(snapshot, options.slice('page', 'per_page', 'search', 'view', 'stage', 'panel', 'panel_page')).call
     body = add_delivery_evidence(body)
     if body['panel_jobs'].present?
@@ -104,7 +150,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     end
     removed = updated_labels.length != current_labels.length
     conversation.update_labels(updated_labels) if removed
-    Rails.cache.delete(list_snapshot_cache_key)
+    invalidate_list_snapshots
 
     render json: {
       ok: true,

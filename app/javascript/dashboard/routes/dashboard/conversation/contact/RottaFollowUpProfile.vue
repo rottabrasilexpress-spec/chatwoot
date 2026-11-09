@@ -28,7 +28,10 @@ const busyJobId = ref('');
 const dispatchDialogRef = ref(null);
 const pendingDispatchJob = ref(null);
 let refreshTimer;
+let scheduledRefresh;
 let requestSequence = 0;
+let refreshPending = false;
+let disposed = false;
 
 const activeJobs = computed(() =>
   jobs.value.filter(job => {
@@ -64,18 +67,39 @@ const request = async payload => {
 };
 
 const loadJobs = async () => {
+  if (disposed || document.hidden) return;
+  if (isLoading.value) {
+    refreshPending = true;
+    return;
+  }
   requestSequence += 1;
   const sequence = requestSequence;
+  const conversationId = props.conversationId;
   isLoading.value = true;
   try {
-    const body = await request({ action: 'list' });
-    if (sequence === requestSequence) jobs.value = body.jobs || [];
+    const body = await request({
+      action: 'list',
+      conversation_id: conversationId,
+    });
+    if (
+      sequence === requestSequence &&
+      conversationId === props.conversationId
+    ) {
+      jobs.value = body.jobs || [];
+    }
   } catch (error) {
-    if (sequence === requestSequence) {
+    if (
+      sequence === requestSequence &&
+      conversationId === props.conversationId
+    ) {
       useAlert(error.message || 'Não foi possível consultar o follow-up.');
     }
   } finally {
     if (sequence === requestSequence) isLoading.value = false;
+    if (refreshPending && !disposed) {
+      refreshPending = false;
+      loadJobs();
+    }
   }
 };
 
@@ -114,20 +138,33 @@ const confirmDispatchNow = async () => {
   pendingDispatchJob.value = null;
 };
 
-const scheduleRefresh = () => window.setTimeout(loadJobs, 400);
+const scheduleRefresh = () => {
+  window.clearTimeout(scheduledRefresh);
+  scheduledRefresh = window.setTimeout(loadJobs, 400);
+};
 
-watch(() => props.conversationId, loadJobs);
+watch(
+  () => props.conversationId,
+  () => {
+    jobs.value = [];
+    loadJobs();
+  }
+);
 onMounted(() => {
   loadJobs();
+  document.addEventListener('visibilitychange', loadJobs);
   emitter.on(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, scheduleRefresh);
   emitter.on(BUS_EVENTS.WEBSOCKET_RECONNECT, scheduleRefresh);
   refreshTimer = window.setInterval(loadJobs, 5000);
 });
 onUnmounted(() => {
+  disposed = true;
   requestSequence += 1;
+  document.removeEventListener('visibilitychange', loadJobs);
   emitter.off(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, scheduleRefresh);
   emitter.off(BUS_EVENTS.WEBSOCKET_RECONNECT, scheduleRefresh);
   window.clearInterval(refreshTimer);
+  window.clearTimeout(scheduledRefresh);
 });
 </script>
 
@@ -152,9 +189,9 @@ onUnmounted(() => {
     <article v-for="job in activeJobs" :key="job.job_id">
       <div class="rotta-profile-follow-up__stage">
         <strong>{{ stageTitle(currentStageFor(job)) }}</strong>
-        <span v-if="nextFollowUpStageFor(job)"
-          >Próxima: {{ stageTitle(nextFollowUpStageFor(job)) }}</span
-        >
+        <span v-if="nextFollowUpStageFor(job)">
+          Próxima: {{ stageTitle(nextFollowUpStageFor(job)) }}
+        </span>
       </div>
       <div class="rotta-profile-follow-up__schedule">
         <Icon icon="i-lucide-clock-3" class="size-4" />

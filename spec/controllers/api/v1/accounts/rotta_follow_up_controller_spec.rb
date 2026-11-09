@@ -13,6 +13,41 @@ RSpec.describe 'Rotta Follow-up API', type: :request do
   end
 
   describe 'POST list' do
+    context 'bounded profile reads' do
+      before { allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new) }
+
+      it 'shares the operational snapshot but returns only the requested conversation' do
+        upstream = { ok: true, jobs: [
+          { 'job_id' => 'mine', 'account_id' => account.id.to_s, 'conversation_id' => conversation.display_id.to_s, 'status' => 'pending' },
+          { 'job_id' => 'other', 'account_id' => account.id.to_s, 'conversation_id' => '999999', 'status' => 'pending' },
+          { 'job_id' => 'foreign', 'account_id' => (account.id + 1).to_s, 'conversation_id' => conversation.display_id.to_s, 'status' => 'pending' }
+        ] }
+        allow(HTTParty).to receive(:post).and_return(instance_double(HTTParty::Response, body: upstream.to_json, code: 200))
+
+        2.times do
+          post endpoint, headers: user.create_new_auth_token,
+                         params: { action: 'list', conversation_id: conversation.display_id }, as: :json
+          expect(response).to have_http_status(:success)
+          expect(response.parsed_body['jobs'].map { |job| job['job_id'] }).to eq(['mine'])
+        end
+        expect(HTTParty).to have_received(:post).once
+      end
+
+      it 'rejects malformed conversation IDs without consulting the queue' do
+        allow(HTTParty).to receive(:post)
+        post endpoint, headers: user.create_new_auth_token, params: { action: 'list', conversation_id: 'invalid' }, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(HTTParty).not_to have_received(:post)
+      end
+
+      it 'does not rebuild the full legacy list for every open-tab poll' do
+        allow(HTTParty).to receive(:post).and_return(instance_double(HTTParty::Response, body: { ok: true, jobs: [] }.to_json, code: 200))
+        2.times { post endpoint, headers: user.create_new_auth_token, params: { action: 'list' }, as: :json }
+        expect(response).to have_http_status(:success)
+        expect(HTTParty).to have_received(:post).once
+      end
+    end
+
     it 'returns the conversation labels as active_labels for reconciliation' do
       upstream_body = {
         jobs: [
