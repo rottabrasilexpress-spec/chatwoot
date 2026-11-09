@@ -1,5 +1,6 @@
 /* global axios */
 import ApiClient from './ApiClient';
+import { coalescedGet } from './coalescedGet';
 
 class ConversationApi extends ApiClient {
   constructor() {
@@ -19,7 +20,7 @@ class ConversationApi extends ApiClient {
   }
 
   getUnreadCounts() {
-    return axios.get(`${this.url}/unread_counts`);
+    return coalescedGet(`${this.url}/unread_counts`);
   }
 
   getAiStatuses(conversationIds) {

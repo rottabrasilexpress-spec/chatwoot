@@ -22,6 +22,13 @@ RSpec.describe RottaFollowUp::ListPage do
     expect(first['jobs'] & last['jobs']).to be_empty
   end
 
+  it 'normalizes repeated stages once per response rather than once per customer', :aggregate_failures do
+    allow(I18n).to receive(:transliterate).and_call_original
+    result = described_class.new(body, { 'page' => 1, 'per_page' => 25 }, now: now).call
+    expect(result.dig('summary', 'all')).to eq(1088)
+    expect(I18n).to have_received(:transliterate).with('primeiro-contato').once
+  end
+
   it 'searches the whole queue, not just the current page' do
     result = described_class.new(body, { 'page' => 1, 'search' => 'Cliente 1087' }, now: now).call
     expect(result['jobs'].map { |job| job['job_id'] }).to eq(['job-1087'])

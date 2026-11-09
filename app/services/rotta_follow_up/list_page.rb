@@ -16,6 +16,7 @@ class RottaFollowUp::ListPage
     @body = body
     @options = options
     @now = now
+    @canonical_stages = {}
     @per_page = [[options['per_page'].to_i, 1].max, 50].min
     @per_page = 25 unless options.key?('per_page')
   end
@@ -87,8 +88,10 @@ class RottaFollowUp::ListPage
   end
 
   def canonical(value)
-    stage = normalized(value.to_s.gsub(/[✅❌🫶💰🤝]/, '')).sub(/\A\[\d+\]\s*/, '').strip.gsub(/\s+/, '-')
-    ALIASES.fetch(stage, stage)
+    @canonical_stages[value] ||= begin
+      stage = normalized(value.to_s.gsub(/[✅❌🫶💰🤝]/, '')).sub(/\A\[\d+\]\s*/, '').strip.gsub(/\s+/, '-')
+      ALIASES.fetch(stage, stage)
+    end
   end
 
   def trail_for(job, stage)

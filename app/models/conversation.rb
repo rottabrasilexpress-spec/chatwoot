@@ -223,6 +223,12 @@ class Conversation < ApplicationRecord
     unread_messages.where(account_id: account_id).incoming.last(10)
   end
 
+  # Preserve the card's existing cap without loading message text/media just
+  # to count rows. Each message/event serializer also uses this count.
+  def unread_incoming_message_count
+    unread_messages.where(account_id: account_id).incoming.reorder(nil).limit(10).count
+  end
+
   def cached_label_list_array
     (cached_label_list || '').split(',').map(&:strip)
   end

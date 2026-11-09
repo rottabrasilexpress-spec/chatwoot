@@ -27,16 +27,10 @@ json.meta do
 end
 
 json.id conversation.display_id
-if conversation.messages.where(account_id: conversation.account_id).non_activity_messages.first.blank?
-  json.messages []
-else
-  json.messages [
-    conversation.messages.where(account_id: conversation.account_id)
-                .non_activity_messages.includes([{ attachments: [{ file_attachment: [:blob] }] }]).first.then do |message|
-      Current.user.is_a?(User) ? message.agent_push_event_data : message.push_event_data
-    end
-  ]
-end
+latest_message = conversation.messages.where(account_id: conversation.account_id)
+                             .non_activity_messages.includes(attachments: { file_attachment: :blob }).first
+latest_message_data = latest_message && (Current.user.is_a?(User) ? latest_message.agent_push_event_data : latest_message.push_event_data)
+json.messages latest_message_data ? [latest_message_data] : []
 
 json.account_id conversation.account_id
 json.uuid conversation.uuid
@@ -55,11 +49,7 @@ json.created_at conversation.created_at.to_i
 json.updated_at conversation.updated_at.to_f
 json.timestamp conversation.last_activity_at.to_i
 json.first_reply_created_at conversation.first_reply_created_at.to_i
-json.unread_count conversation.unread_incoming_messages.count
-json.last_non_activity_message do
-  message = conversation.messages.where(account_id: conversation.account_id).non_activity_messages.first
-  message && (Current.user.is_a?(User) ? message.agent_push_event_data : message.push_event_data)
-end
+json.unread_count conversation.unread_incoming_message_count
 json.last_activity_at conversation.last_activity_at.to_i
 json.priority conversation.priority
 json.waiting_since conversation.waiting_since.to_i.to_i

@@ -64,7 +64,7 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
 
   def paginated_list(options)
     Rails.cache.delete(list_snapshot_cache_key) if options['force_refresh'] == true
-    snapshot = Rails.cache.fetch(list_snapshot_cache_key, expires_in: 3.seconds, race_condition_ttl: 1.second) do
+    snapshot = Rails.cache.fetch(list_snapshot_cache_key, expires_in: 10.seconds, race_condition_ttl: 10.seconds) do
       response = RottaFollowUp::AdminClient.request(action: 'list', account_id: Current.account.id, operational_only: true)
       raise RottaFollowUp::AdminClient::RequestError, admin_response_error(response) unless response.success?
 
@@ -334,10 +334,11 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     conversations = Current.account.conversations.where(display_id: conversation_ids).includes(taggings: :tag).index_by do |conversation|
       conversation.display_id.to_s
     end
+    evidence_by_job = delivery_evidence_by_job(jobs, conversations)
 
     body['jobs'] = jobs.map do |job|
       conversation = conversations[job['conversation_id'].to_s]
-      evidence = find_delivery_evidence(conversation, job) if conversation
+      evidence = evidence_by_job[job['job_id'].to_s]
       active_labels = conversation ? conversation.labels_for_display : []
       enriched_job = job.merge('active_labels' => active_labels)
       evidence ? enriched_job.merge('delivery_evidence' => evidence) : enriched_job
@@ -425,19 +426,24 @@ class Api::V1::Accounts::RottaFollowUpController < Api::V1::Accounts::BaseContro
     fallback
   end
 
-  def find_delivery_evidence(conversation, job)
-    scheduled_at = parse_time(job['scheduled_at'])
-    return unless scheduled_at
+  def delivery_evidence_by_job(jobs, conversations)
+    # One bounded query per page, each branch taking only the first eligible
+    # message. Legacy unpaginated callers are split into the same small batches.
+    queries = jobs.filter_map do |job|
+      conversation = conversations[job['conversation_id'].to_s]
+      scheduled_at = parse_time(job['scheduled_at'])
+      next unless conversation && scheduled_at
 
-    # A small recent window is enough to correlate a worker dispatch while
-    # avoiding a full historical-message load for every row in the queue.
-    message = conversation.messages
-                           .where(message_type: Message.message_types[:outgoing], private: false)
-                           .where('created_at >= ?', scheduled_at - 5.minutes)
-                           .order(created_at: :desc)
-                           .limit(20)
-                           .find { |candidate| candidate.created_at >= scheduled_at }
-    delivery_evidence_for(message) if message
+      recent = conversation.messages.where(message_type: :outgoing, private: false)
+                           .where('created_at >= ?', scheduled_at - 5.minutes).order(created_at: :desc).limit(20)
+                           .select('messages.*', "#{Message.connection.quote(job['job_id'].to_s)} AS rotta_job_id")
+      Message.from("(#{recent.to_sql}) AS messages").where('messages.created_at >= ?', scheduled_at).limit(1).to_sql
+    end
+    queries.each_slice(50).flat_map do |batch|
+      Message.find_by_sql(batch.map { |sql| "(#{sql})" }.join(' UNION ALL '))
+    end.to_h do |message|
+      [message['rotta_job_id'], delivery_evidence_for(message)]
+    end
   end
 
   def delivery_evidence_for(message)
