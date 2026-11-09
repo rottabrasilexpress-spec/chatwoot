@@ -221,8 +221,7 @@ const actions = {
     if (
       state?.selectedChatId === data.id &&
       !document.hidden &&
-      document.hasFocus() &&
-      Number(data.unread_count) > 0
+      document.hasFocus()
     ) {
       dispatch('markMessagesRead', { id: data.id, readSource: 'agent' });
     }

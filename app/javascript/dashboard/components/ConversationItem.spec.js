@@ -372,6 +372,21 @@ describe('ConversationItem finalize confirmation', () => {
 });
 
 describe('explicit read on conversation clicks', () => {
+  it('confirms a new click even if the cached unread count is stale', async () => {
+    const { wrapper, dispatch } = mountConversationItem({
+      active: true,
+      source: { unread_count: 0 },
+    });
+    wrapper
+      .findComponent(ConversationCard)
+      .vm.$emit('click', { ctrlKey: false, metaKey: false });
+    await flushPromises();
+    expect(dispatch).toHaveBeenCalledWith('markMessagesRead', {
+      id: 2441,
+      readSource: 'agent',
+    });
+  });
+
   it('confirms reading when the agent clicks an already open unread conversation', async () => {
     const { wrapper, dispatch } = mountConversationItem({
       active: true,

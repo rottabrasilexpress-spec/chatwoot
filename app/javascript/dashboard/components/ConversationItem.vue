@@ -192,7 +192,7 @@ const onCardClick = e => {
   }
 
   recordConversationReview?.(props.source);
-  if (isActiveChat.value && Number(props.source.unread_count) > 0) {
+  if (isActiveChat.value) {
     store.dispatch('markMessagesRead', {
       id: props.source.id,
       readSource: 'agent',

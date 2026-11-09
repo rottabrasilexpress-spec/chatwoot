@@ -930,15 +930,23 @@ describe('#addMentions', () => {
       { focused: true, hidden: false, reads: 1 },
       { focused: false, hidden: false, reads: 0 },
       { focused: true, hidden: true, reads: 0 },
+      { focused: true, hidden: false, reads: 1, unreadCount: 0 },
     ])(
       'confirms reading only on a visible human conversation opening: %j',
-      async ({ focused, hidden, reads }) => {
+      async ({ focused, hidden, reads, unreadCount = 2 }) => {
         vi.spyOn(document, 'hasFocus').mockReturnValue(focused);
         vi.spyOn(document, 'hidden', 'get').mockReturnValue(hidden);
         const localDispatch = vi.fn();
         await actions.setActiveChat(
           { commit, dispatch: localDispatch, state: { selectedChatId: 42 } },
-          { data: { id: 42, unread_count: 2, dataFetched: true, messages: [] } }
+          {
+            data: {
+              id: 42,
+              unread_count: unreadCount,
+              dataFetched: true,
+              messages: [],
+            },
+          }
         );
         expect(localDispatch).toHaveBeenCalledTimes(reads);
         if (reads)
