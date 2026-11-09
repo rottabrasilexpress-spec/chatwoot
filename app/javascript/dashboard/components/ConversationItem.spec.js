@@ -28,7 +28,7 @@ vi.mock('dashboard/helper/conversationHelper', () => ({
 
 const ConversationCardStub = {
   props: ['selected', 'selectionModeActive'],
-  emits: ['contextmenu'],
+  emits: ['contextmenu', 'click'],
   template: '<div @contextmenu="$emit(\'contextmenu\', $event)"></div>',
 };
 
@@ -37,10 +37,11 @@ const mountConversationItem = ({
   labels = [],
   routeLabel = '',
   selected = false,
+  active = false,
 } = {}) => {
   const store = createStore({
     getters: {
-      getSelectedChat: () => ({ id: null }),
+      getSelectedChat: () => ({ id: active ? 2441 : null }),
       getCurrentAccountId: () => 1,
       getCurrentUser: () => ({ id: 1 }),
       getCurrentRole: () => 'agent',
@@ -367,5 +368,42 @@ describe('ConversationItem finalize confirmation', () => {
     );
     expect(dependencies.updateConversationStatus).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
+  });
+});
+
+describe('explicit read on conversation clicks', () => {
+  it('confirms reading when the agent clicks an already open unread conversation', async () => {
+    const { wrapper, dispatch } = mountConversationItem({
+      active: true,
+      source: { unread_count: 2 },
+    });
+    wrapper
+      .findComponent(ConversationCard)
+      .vm.$emit('click', { ctrlKey: false, metaKey: false });
+    await flushPromises();
+    expect(dispatch).toHaveBeenCalledWith('markMessagesRead', {
+      id: 2441,
+      readSource: 'agent',
+    });
+  });
+
+  it('does not confirm reading while the card is merely mounted', () => {
+    const { dispatch } = mountConversationItem({ source: { unread_count: 2 } });
+    expect(dispatch).not.toHaveBeenCalledWith(
+      'markMessagesRead',
+      expect.anything()
+    );
+  });
+
+  it('does not confirm reading when opening the context menu', async () => {
+    const { wrapper, dispatch } = mountConversationItem({
+      active: true,
+      source: { unread_count: 2 },
+    });
+    await openContextMenu(wrapper);
+    expect(dispatch).not.toHaveBeenCalledWith(
+      'markMessagesRead',
+      expect.anything()
+    );
   });
 });

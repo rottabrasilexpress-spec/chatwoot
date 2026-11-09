@@ -4,11 +4,20 @@ import mutationTypes from '../../../mutation-types';
 
 export default {
   markMessagesRead: async ({ commit }, data) => {
+    if (data.readSource !== 'agent') return;
     try {
       const {
-        data: { id, agent_last_seen_at: lastSeen },
+        data: {
+          id,
+          agent_last_seen_at: lastSeen,
+          unread_count: unreadCount = 0,
+        },
       } = await ConversationApi.markMessageRead(data);
-      commit(mutationTypes.UPDATE_MESSAGE_UNREAD_COUNT, { id, lastSeen });
+      commit(mutationTypes.UPDATE_MESSAGE_UNREAD_COUNT, {
+        id,
+        lastSeen,
+        unreadCount,
+      });
     } catch (error) {
       // Handle error
     }

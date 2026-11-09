@@ -192,6 +192,12 @@ const onCardClick = e => {
   }
 
   recordConversationReview?.(props.source);
+  if (isActiveChat.value && Number(props.source.unread_count) > 0) {
+    store.dispatch('markMessagesRead', {
+      id: props.source.id,
+      readSource: 'agent',
+    });
+  }
   if (isActiveChat.value && !props.searchMode) return;
   router.push({ path });
 };

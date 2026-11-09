@@ -118,9 +118,10 @@ describe('#ConversationAPI', () => {
     });
 
     it('#markMessageRead', () => {
-      conversationAPI.markMessageRead({ id: 12 });
+      conversationAPI.markMessageRead({ id: 12, readSource: 'agent' });
       expect(axiosMock.post).toHaveBeenCalledWith(
-        `/api/v1/conversations/12/update_last_seen`
+        `/api/v1/conversations/12/update_last_seen`,
+        { read_source: 'agent' }
       );
     });
 

@@ -321,17 +321,47 @@ describe('#actions', () => {
       axios.post.mockResolvedValue({
         data: { id: 1, agent_last_seen_at: lastSeen },
       });
-      await actions.markMessagesRead({ commit }, { id: 1 });
+      await actions.markMessagesRead(
+        { commit },
+        { id: 1, readSource: 'agent' }
+      );
       vi.runAllTimers();
       expect(commit).toHaveBeenCalledTimes(1);
       expect(commit.mock.calls).toEqual([
-        [types.UPDATE_MESSAGE_UNREAD_COUNT, { id: 1, lastSeen }],
+        [
+          types.UPDATE_MESSAGE_UNREAD_COUNT,
+          { id: 1, lastSeen, unreadCount: 0 },
+        ],
       ]);
     });
     it('sends correct mutations if api is unsuccessful', async () => {
       axios.post.mockRejectedValue({ message: 'Incorrect header' });
-      await actions.markMessagesRead({ commit }, { id: 1 });
+      await actions.markMessagesRead(
+        { commit },
+        { id: 1, readSource: 'agent' }
+      );
       expect(commit.mock.calls).toEqual([]);
+    });
+
+    it('ignores calls without explicit agent intent', async () => {
+      await actions.markMessagesRead({ commit }, { id: 1 });
+      expect(axios.post).not.toHaveBeenCalled();
+      expect(commit).not.toHaveBeenCalled();
+    });
+
+    it('preserves new incoming messages reported by the server during a read', async () => {
+      axios.post.mockResolvedValue({
+        data: { id: 1, agent_last_seen_at: 123, unread_count: 1 },
+      });
+      await actions.markMessagesRead(
+        { commit },
+        { id: 1, readSource: 'agent' }
+      );
+      expect(commit).toHaveBeenCalledWith(types.UPDATE_MESSAGE_UNREAD_COUNT, {
+        id: 1,
+        lastSeen: 123,
+        unreadCount: 1,
+      });
     });
   });
 
@@ -765,11 +795,11 @@ describe('#addMentions', () => {
   });
 
   it.each([
-    { focused: true, hidden: false, reads: 1 },
+    { focused: true, hidden: false, reads: 0 },
     { focused: false, hidden: false, reads: 0 },
     { focused: true, hidden: true, reads: 0 },
   ])(
-    'only confirms human reading during visible reconciliation: %j',
+    'never confirms reading during automatic reconciliation: %j',
     async ({ focused, hidden, reads }) => {
       vi.spyOn(document, 'hasFocus').mockReturnValue(focused);
       vi.spyOn(document, 'hidden', 'get').mockReturnValue(hidden);
@@ -896,6 +926,30 @@ describe('#addMentions', () => {
   });
 
   describe('#setActiveChat', () => {
+    it.each([
+      { focused: true, hidden: false, reads: 1 },
+      { focused: false, hidden: false, reads: 0 },
+      { focused: true, hidden: true, reads: 0 },
+    ])(
+      'confirms reading only on a visible human conversation opening: %j',
+      async ({ focused, hidden, reads }) => {
+        vi.spyOn(document, 'hasFocus').mockReturnValue(focused);
+        vi.spyOn(document, 'hidden', 'get').mockReturnValue(hidden);
+        const localDispatch = vi.fn();
+        await actions.setActiveChat(
+          { commit, dispatch: localDispatch, state: { selectedChatId: 42 } },
+          { data: { id: 42, unread_count: 2, dataFetched: true, messages: [] } }
+        );
+        expect(localDispatch).toHaveBeenCalledTimes(reads);
+        if (reads)
+          expect(localDispatch).toHaveBeenCalledWith('markMessagesRead', {
+            id: 42,
+            readSource: 'agent',
+          });
+        vi.restoreAllMocks();
+      }
+    );
+
     it('should commit SET_CHAT_DATA_FETCHED with conversation ID after fetch', async () => {
       const localCommit = vi.fn();
       const localDispatch = vi.fn().mockResolvedValue();

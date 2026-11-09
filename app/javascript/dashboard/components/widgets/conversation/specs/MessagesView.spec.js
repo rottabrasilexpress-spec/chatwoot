@@ -1,36 +1,16 @@
 import MessagesView from '../MessagesView.vue';
 
 describe('MessagesView', () => {
-  it.each([true, false])(
-    'only marks an open conversation read when the agent is viewing the tab (focused: %s)',
-    focused => {
-      vi.spyOn(document, 'hasFocus').mockReturnValue(focused);
-      vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
-      const dispatch = vi.fn();
-
-      MessagesView.methods.makeMessagesRead.call({
-        currentChat: { id: 42 },
-        $store: { dispatch },
-      });
-
-      expect(dispatch).toHaveBeenCalledTimes(focused ? 1 : 0);
-      if (focused) {
-        expect(dispatch).toHaveBeenCalledWith('markMessagesRead', { id: 42 });
-      }
-      vi.restoreAllMocks();
-    }
-  );
-
-  it('keeps messages unread when an open conversation is in a hidden tab', () => {
-    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
-    vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+  it('does not mark messages read on automatic scroll or AI reply updates', () => {
     const dispatch = vi.fn();
-    MessagesView.methods.makeMessagesRead.call({
-      currentChat: { id: 42 },
-      $store: { dispatch },
-    });
+    const context = {
+      $nextTick: callback => callback(),
+      scrollToBottom: vi.fn(),
+      makeMessagesRead: () => dispatch('markMessagesRead', { id: 42 }),
+    };
+    MessagesView.methods.onScrollToMessage.call(context);
+    expect(context.scrollToBottom).toHaveBeenCalledOnce();
     expect(dispatch).not.toHaveBeenCalled();
-    vi.restoreAllMocks();
   });
 
   it('starts at the latest message when opening a conversation', () => {

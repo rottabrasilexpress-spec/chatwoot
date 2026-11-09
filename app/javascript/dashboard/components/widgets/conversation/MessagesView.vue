@@ -394,7 +394,6 @@ export default {
           this.scrollToBottom();
         }
       });
-      this.makeMessagesRead();
     },
     addScrollListener() {
       this.conversationPanel = this.$el.querySelector('.conversation-panel');
@@ -628,11 +627,6 @@ export default {
       });
     },
 
-    makeMessagesRead() {
-      // A background tab receiving an AI reply is not a human reading it.
-      if (document.hidden || !document.hasFocus()) return;
-      this.$store.dispatch('markMessagesRead', { id: this.currentChat.id });
-    },
     async handleMessageRetry(message) {
       if (!message) return;
       const payload = useSnakeCase(message);

@@ -963,6 +963,7 @@ async function markAsRead(conversationId) {
   try {
     await store.dispatch('markMessagesRead', {
       id: conversationId,
+      readSource: 'agent',
     });
   } catch (error) {
     // Ignore error

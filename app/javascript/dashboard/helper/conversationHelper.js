@@ -95,11 +95,7 @@ export const getLastMessage = m => {
 };
 
 /**
- * Returns true when the latest customer-facing message came from the contact.
- *
- * The API can briefly retain an unread_count after an automated reply arrives.
- * Conversation badges must follow the latest message direction, not that stale
- * counter, otherwise an answered conversation still looks like it needs work.
+ * Returns true when a message came from the customer.
  */
 export const isIncomingMessage = message =>
   message?.message_type === 0 || message?.message_type === 'incoming';

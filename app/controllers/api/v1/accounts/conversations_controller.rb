@@ -151,6 +151,10 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   def update_last_seen
+    # Older dashboards call this endpoint automatically for every AI reply.
+    # An unmarked call must not clear shared unread state or notifications.
+    return head :no_content unless params[:read_source] == 'agent'
+
     # High-traffic accounts generate excessive DB writes when agents frequently switch between conversations.
     # Throttle last_seen updates to once per hour when there are no unread messages to reduce DB load.
     # Always update immediately if there are unread messages to maintain accurate read/unread state.

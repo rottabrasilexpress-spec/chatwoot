@@ -138,7 +138,7 @@ const actions = {
   },
 
   syncActiveConversationMessages: async (
-    { commit, state, dispatch },
+    { commit, state },
     { conversationId, preserveLastMessageId = false }
   ) => {
     const { allConversations, syncConversationsMessages } = state;
@@ -179,9 +179,6 @@ const actions = {
           ? sortedMessages[sortedMessages.length - 1]?.id || null
           : null,
       });
-      if (!document.hidden && document.hasFocus()) {
-        dispatch('markMessagesRead', { id: conversationId }, { root: true });
-      }
     } catch (error) {
       // Handle error
     }
@@ -205,7 +202,7 @@ const actions = {
     });
   },
 
-  async setActiveChat({ commit, dispatch }, { data, after }) {
+  async setActiveChat({ commit, dispatch, state }, { data, after }) {
     commit(types.SET_CURRENT_CHAT_WINDOW, data);
     commit(types.CLEAR_ALL_MESSAGES_LOADED, data.id);
     if (data.dataFetched === undefined) {
@@ -217,8 +214,17 @@ const actions = {
         });
         commit(types.SET_CHAT_DATA_FETCHED, data.id);
       } catch (error) {
-        // Ignore error
+        // A conversation that failed to open has not been read.
+        return;
       }
+    }
+    if (
+      state?.selectedChatId === data.id &&
+      !document.hidden &&
+      document.hasFocus() &&
+      Number(data.unread_count) > 0
+    ) {
+      dispatch('markMessagesRead', { id: data.id, readSource: 'agent' });
     }
   },
 

@@ -874,10 +874,37 @@ RSpec.describe 'Conversations API', type: :request do
         create(:inbox_member, user: agent, inbox: conversation.inbox)
       end
 
+      it 'ignores old automatic requests without marking messages or notifications read' do
+        conversation.update!(agent_last_seen_at: 10.minutes.ago)
+        incoming = create(:message, conversation: conversation, message_type: :incoming, created_at: 5.minutes.ago)
+        notification = create(:notification, account: account, user: agent, primary_actor: conversation, read_at: nil)
+        previous_seen = conversation.reload.agent_last_seen_at
+
+        post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:no_content)
+        expect(conversation.reload.agent_last_seen_at).to eq(previous_seen)
+        expect(conversation.unread_incoming_messages.map(&:id)).to include(incoming.id)
+        expect(notification.reload.read_at).to be_nil
+      end
+
+      it 'ignores non-human read sources' do
+        conversation.update!(agent_last_seen_at: 10.minutes.ago)
+        previous_seen = conversation.reload.agent_last_seen_at
+
+        post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'automatic_reply' }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:no_content)
+        expect(conversation.reload.agent_last_seen_at).to eq(previous_seen)
+      end
+
       it 'updates last seen' do
         conversation.update!(agent_last_seen_at: nil)
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -894,6 +921,7 @@ RSpec.describe 'Conversations API', type: :request do
         expect(conversation.reload.unread_incoming_messages).not_to be_empty
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -909,6 +937,7 @@ RSpec.describe 'Conversations API', type: :request do
         expect(conversation.reload.assignee_last_seen_at).to be_nil
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -921,6 +950,7 @@ RSpec.describe 'Conversations API', type: :request do
         notification = create(:notification, account: account, user: agent, primary_actor: conversation, read_at: nil)
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -942,6 +972,7 @@ RSpec.describe 'Conversations API', type: :request do
         initial_last_seen = conversation.agent_last_seen_at
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -956,6 +987,7 @@ RSpec.describe 'Conversations API', type: :request do
         initial_last_seen = conversation.agent_last_seen_at
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -971,6 +1003,7 @@ RSpec.describe 'Conversations API', type: :request do
         Conversations::UnreadCounts::Builder.new(account).build_base!
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -994,6 +1027,7 @@ RSpec.describe 'Conversations API', type: :request do
         expect(invalidator).to receive(:conversation_changed!).ordered.and_return(true)
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -1007,6 +1041,7 @@ RSpec.describe 'Conversations API', type: :request do
 
         expect do
           post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+               params: { read_source: 'agent' },
                headers: agent.create_new_auth_token,
                as: :json
         end.to change { Conversations::UnreadCounts::FilteredCountStore.conversation_version(account.id) }.by(1)
@@ -1023,6 +1058,7 @@ RSpec.describe 'Conversations API', type: :request do
         allow(Rails.configuration.dispatcher).to receive(:dispatch)
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -1044,6 +1080,7 @@ RSpec.describe 'Conversations API', type: :request do
         initial_agent_last_seen = conversation.agent_last_seen_at
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
@@ -1064,6 +1101,7 @@ RSpec.describe 'Conversations API', type: :request do
         initial_assignee_last_seen = conversation.assignee_last_seen_at
 
         post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             params: { read_source: 'agent' },
              headers: agent.create_new_auth_token,
              as: :json
 
