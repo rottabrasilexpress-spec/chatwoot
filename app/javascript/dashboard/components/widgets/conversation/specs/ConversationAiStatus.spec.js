@@ -18,6 +18,8 @@ const mountStatus = status => {
         },
         actions: {
           ensure: vi.fn(),
+          subscribe: vi.fn(),
+          unsubscribe: vi.fn(),
         },
       },
     },
@@ -30,6 +32,30 @@ const mountStatus = status => {
 };
 
 describe('ConversationAiStatus', () => {
+  it('refreshes on return to the tab and removes the visibility listener on unmount', async () => {
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    const wrapper = mountStatus({ state: 'unknown' });
+    const dispatch = vi.spyOn(wrapper.vm.$store, 'dispatch');
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(dispatch).toHaveBeenCalledWith('conversationAiStatus/ensure', 42);
+    await wrapper.setProps({ conversationId: 43 });
+    expect(dispatch).toHaveBeenCalledWith(
+      'conversationAiStatus/unsubscribe',
+      42
+    );
+    expect(dispatch).toHaveBeenCalledWith('conversationAiStatus/subscribe', 43);
+    wrapper.unmount();
+    expect(dispatch).toHaveBeenCalledWith(
+      'conversationAiStatus/unsubscribe',
+      43
+    );
+    dispatch.mockClear();
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(dispatch).not.toHaveBeenCalled();
+    hidden.mockRestore();
+    dispatch.mockRestore();
+  });
   it('shows a red OFF badge when the AI is blocked', () => {
     const wrapper = mountStatus({ state: 'blocked' });
 

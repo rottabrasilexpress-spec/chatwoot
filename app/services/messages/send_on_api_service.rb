@@ -99,15 +99,16 @@ class Messages::SendOnApiService < Base::SendOnChannelService
     return fail_message('A UAZAPI aceita uma mídia por mensagem neste canal') if message.attachments.size != 1
 
     attachment = message.attachments.first
-    return fail_message('Somente áudio gravado é suportado neste canal') unless attachment.audio?
+    media_type = { 'audio' => 'ptt', 'image' => 'image', 'video' => 'video', 'file' => 'document' }[attachment.file_type]
+    return fail_message('Tipo de anexo não suportado neste canal') unless media_type
 
     file_url = attachment.download_url.to_s
-    return fail_message('Áudio sem URL pública para a UAZAPI') unless file_url.match?(%r{\Ahttps?://}i)
+    return fail_message('Anexo sem URL pública para a UAZAPI') unless file_url.match?(%r{\Ahttps?://}i)
 
     content_attributes = message.content_attributes.to_h.with_indifferent_access
     body = {
       number: recipient_number,
-      type: 'ptt',
+      type: media_type,
       file: file_url,
       text: outgoing_text,
       delay: 2,
@@ -116,6 +117,7 @@ class Messages::SendOnApiService < Base::SendOnChannelService
       track_id: "message-#{message.id}"
     }
     body[:replyid] = content_attributes[:in_reply_to_external_id] if content_attributes[:in_reply_to_external_id].present?
+    body[:docName] = attachment.file.filename.to_s if media_type == 'document'
 
     response = post_to_uazapi(UAZAPI_MEDIA_PATH, body)
     return if response.nil?
@@ -124,12 +126,12 @@ class Messages::SendOnApiService < Base::SendOnChannelService
 
     provider_id = provider_message_id(response)
     persist_provider_id(provider_id) if provider_id.present?
-    Rails.logger.info("[ROTTABRASIL_API] voice message=#{message.id} sent provider_id_present=#{provider_id.present?}")
+    Rails.logger.info("[ROTTABRASIL_API] media_type=#{media_type} message=#{message.id} sent provider_id_present=#{provider_id.present?}")
   rescue StandardError => e
     if @uazapi_request_accepted
       mark_delivery_confirmation_pending(e)
     else
-      fail_message("Falha ao enviar áudio pela Uazapi: #{e.message}")
+      fail_message("Falha ao enviar mídia pela Uazapi: #{e.message}")
     end
   end
 

@@ -8,9 +8,28 @@ const MESSAGE_REFRESH_DELAY_MS = 1000;
 
 const state = {
   records: {},
+  subscribers: {},
 };
 
 export const mutations = {
+  ADD_SUBSCRIBER(currentState, conversationId) {
+    const id = String(conversationId);
+    currentState.subscribers[id] = (currentState.subscribers[id] || 0) + 1;
+  },
+  REMOVE_SUBSCRIBER(currentState, conversationId) {
+    const id = String(conversationId);
+    const remaining = (currentState.subscribers[id] || 0) - 1;
+    if (remaining > 0) currentState.subscribers[id] = remaining;
+    else delete currentState.subscribers[id];
+  },
+  INVALIDATE_STATUS(currentState, conversationId) {
+    const record = currentState.records[conversationId];
+    if (!record) return;
+    record.state = 'unknown';
+    record.fetchedAt = 0;
+    record.isFetching = false;
+    record.requestId += 1;
+  },
   SET_LOADING(currentState, { conversationIds, clear }) {
     conversationIds.forEach(id => {
       const previous = currentState.records[id];
@@ -83,6 +102,16 @@ const queueConversation = (
 };
 
 export const actions = {
+  subscribe({ commit }, conversationId) {
+    commit('ADD_SUBSCRIBER', conversationId);
+  },
+  unsubscribe({ commit, state: currentState }, conversationId) {
+    commit('REMOVE_SUBSCRIBER', conversationId);
+    const id = String(conversationId);
+    if (!currentState.subscribers[id] && queuedConversationIds.delete(id)) {
+      commit('INVALIDATE_STATUS', id);
+    }
+  },
   ensure({ state: currentState, commit, dispatch }, conversationId) {
     queueConversation(
       { state: currentState, commit, dispatch },
@@ -146,14 +175,24 @@ export const conversationAiStatusPlugin = store => {
     }
 
     if (!conversationId) return;
-
     const id = String(conversationId);
+    if (document.hidden || !store.state.conversationAiStatus.subscribers[id]) {
+      store.commit('conversationAiStatus/INVALIDATE_STATUS', id);
+      return;
+    }
     clearTimeout(refreshTimers.get(id));
     refreshTimers.set(
       id,
       setTimeout(() => {
         refreshTimers.delete(id);
-        store.dispatch('conversationAiStatus/refresh', id);
+        if (
+          !document.hidden &&
+          store.state.conversationAiStatus.subscribers[id]
+        ) {
+          store.dispatch('conversationAiStatus/refresh', id);
+        } else {
+          store.commit('conversationAiStatus/INVALIDATE_STATUS', id);
+        }
       }, MESSAGE_REFRESH_DELAY_MS)
     );
   });

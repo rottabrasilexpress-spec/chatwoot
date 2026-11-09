@@ -51,7 +51,7 @@ describe('conversationAiStatus store module', () => {
       modules: { conversationAiStatus },
       plugins: [conversationAiStatusPlugin],
     });
-
+    store.dispatch('conversationAiStatus/subscribe', 21);
     store.commit(types.ADD_MESSAGE, { conversation_id: 21 });
     await vi.advanceTimersByTimeAsync(1050);
 
@@ -59,6 +59,7 @@ describe('conversationAiStatus store module', () => {
     expect(store.getters['conversationAiStatus/getStatus'](21).state).toBe(
       'unknown'
     );
+    store.dispatch('conversationAiStatus/unsubscribe', 21);
   });
 
   it('fails closed when the status service rejects', async () => {
@@ -71,6 +72,139 @@ describe('conversationAiStatus store module', () => {
     expect(store.getters['conversationAiStatus/getStatus'](22).state).toBe(
       'unknown'
     );
+  });
+
+  it('does not request AI status for a message outside the displayed cards', async () => {
+    ConversationApi.getAiStatuses.mockResolvedValue({ data: { statuses: [] } });
+    const store = createStore({
+      mutations: { [types.ADD_MESSAGE]: () => {} },
+      modules: { conversationAiStatus },
+      plugins: [conversationAiStatusPlugin],
+    });
+    store.commit(types.ADD_MESSAGE, { conversation_id: 99 });
+    await vi.advanceTimersByTimeAsync(1050);
+    expect(ConversationApi.getAiStatuses).not.toHaveBeenCalled();
+  });
+
+  it('keeps a displayed header subscribed until the last badge unmounts', async () => {
+    ConversationApi.getAiStatuses.mockResolvedValue({ data: { statuses: [] } });
+    const store = createStore({
+      mutations: { [types.ADD_MESSAGE]: () => {} },
+      modules: { conversationAiStatus },
+      plugins: [conversationAiStatusPlugin],
+    });
+    store.dispatch('conversationAiStatus/subscribe', 98);
+    store.dispatch('conversationAiStatus/subscribe', 98);
+    store.dispatch('conversationAiStatus/unsubscribe', 98);
+    store.commit(types.ADD_MESSAGE, { conversation_id: 98 });
+    await vi.advanceTimersByTimeAsync(1050);
+    expect(ConversationApi.getAiStatuses).toHaveBeenCalledTimes(1);
+    store.dispatch('conversationAiStatus/unsubscribe', 98);
+    ConversationApi.getAiStatuses.mockClear();
+    store.commit(types.ADD_MESSAGE, { conversation_id: 98 });
+    await vi.advanceTimersByTimeAsync(1050);
+    expect(ConversationApi.getAiStatuses).not.toHaveBeenCalled();
+  });
+
+  it('drops a pending visual refresh when the conversation leaves the screen', async () => {
+    ConversationApi.getAiStatuses.mockResolvedValue({ data: { statuses: [] } });
+    const store = createStore({
+      mutations: { [types.ADD_MESSAGE]: () => {} },
+      modules: { conversationAiStatus },
+      plugins: [conversationAiStatusPlugin],
+    });
+    store.dispatch('conversationAiStatus/subscribe', 97);
+    store.commit(types.ADD_MESSAGE, { conversation_id: 97 });
+    store.dispatch('conversationAiStatus/unsubscribe', 97);
+    await vi.advanceTimersByTimeAsync(1050);
+    expect(ConversationApi.getAiStatuses).not.toHaveBeenCalled();
+  });
+
+  it('rechecks a hidden cached status when its conversation is opened again', async () => {
+    ConversationApi.getAiStatuses.mockResolvedValue({
+      data: { statuses: [{ conversation_id: '96', state: 'active' }] },
+    });
+    const store = createStore({
+      mutations: { [types.ADD_MESSAGE]: () => {} },
+      modules: { conversationAiStatus },
+      plugins: [conversationAiStatusPlugin],
+    });
+    store.dispatch('conversationAiStatus/ensure', 96);
+    await vi.advanceTimersByTimeAsync(50);
+    ConversationApi.getAiStatuses.mockClear();
+    store.commit(types.ADD_MESSAGE, { conversation_id: 96 });
+    await vi.advanceTimersByTimeAsync(1050);
+    expect(ConversationApi.getAiStatuses).not.toHaveBeenCalled();
+    expect(store.getters['conversationAiStatus/getStatus'](96).state).toBe(
+      'unknown'
+    );
+    ConversationApi.getAiStatuses.mockResolvedValue({
+      data: { statuses: [{ conversation_id: '96', state: 'blocked' }] },
+    });
+    store.dispatch('conversationAiStatus/subscribe', 96);
+    store.dispatch('conversationAiStatus/ensure', 96);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(store.getters['conversationAiStatus/getStatus'](96).state).toBe(
+      'blocked'
+    );
+    store.dispatch('conversationAiStatus/unsubscribe', 96);
+  });
+
+  it('cancels an unsent badge read on unmount and can reopen it normally', async () => {
+    ConversationApi.getAiStatuses.mockResolvedValue({ data: { statuses: [] } });
+    const store = createStore({ modules: { conversationAiStatus } });
+    store.dispatch('conversationAiStatus/subscribe', 95);
+    store.dispatch('conversationAiStatus/ensure', 95);
+    store.dispatch('conversationAiStatus/unsubscribe', 95);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(ConversationApi.getAiStatuses).not.toHaveBeenCalled();
+    store.dispatch('conversationAiStatus/subscribe', 95);
+    store.dispatch('conversationAiStatus/ensure', 95);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(ConversationApi.getAiStatuses).toHaveBeenCalledTimes(1);
+    store.dispatch('conversationAiStatus/unsubscribe', 95);
+  });
+
+  it('does not query n8n for messages received in a hidden tab', async () => {
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    ConversationApi.getAiStatuses.mockResolvedValue({ data: { statuses: [] } });
+    const store = createStore({
+      mutations: { [types.ADD_MESSAGE]: () => {} },
+      modules: { conversationAiStatus },
+      plugins: [conversationAiStatusPlugin],
+    });
+    store.dispatch('conversationAiStatus/subscribe', 94);
+    store.commit(types.ADD_MESSAGE, { conversation_id: 94 });
+    await vi.advanceTimersByTimeAsync(1050);
+    const calls = ConversationApi.getAiStatuses.mock.calls.length;
+    store.dispatch('conversationAiStatus/unsubscribe', 94);
+    hidden.mockRestore();
+    expect(calls).toBe(0);
+  });
+
+  it('invalidates a scheduled refresh if the agent hides the tab before it runs', async () => {
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    ConversationApi.getAiStatuses.mockResolvedValue({
+      data: { statuses: [{ conversation_id: '93', state: 'active' }] },
+    });
+    const store = createStore({
+      mutations: { [types.ADD_MESSAGE]: () => {} },
+      modules: { conversationAiStatus },
+      plugins: [conversationAiStatusPlugin],
+    });
+    store.dispatch('conversationAiStatus/subscribe', 93);
+    store.dispatch('conversationAiStatus/ensure', 93);
+    await vi.advanceTimersByTimeAsync(50);
+    ConversationApi.getAiStatuses.mockClear();
+    store.commit(types.ADD_MESSAGE, { conversation_id: 93 });
+    hidden.mockReturnValue(true);
+    await vi.advanceTimersByTimeAsync(1050);
+    expect(ConversationApi.getAiStatuses).not.toHaveBeenCalled();
+    expect(store.getters['conversationAiStatus/getStatus'](93).fetchedAt).toBe(
+      0
+    );
+    store.dispatch('conversationAiStatus/unsubscribe', 93);
+    hidden.mockRestore();
   });
 
   it('ignores an older in-flight response after a fresh refresh', async () => {

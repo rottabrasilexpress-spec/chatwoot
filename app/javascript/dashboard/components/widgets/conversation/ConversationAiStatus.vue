@@ -47,16 +47,30 @@ const iconClass = computed(() =>
 );
 
 const requestStatus = () => {
+  if (document.hidden) return;
   store.dispatch('conversationAiStatus/ensure', props.conversationId);
 };
 
 let refreshInterval;
 onMounted(() => {
+  store.dispatch('conversationAiStatus/subscribe', props.conversationId);
   requestStatus();
+  document.addEventListener('visibilitychange', requestStatus);
   refreshInterval = setInterval(requestStatus, 20000);
 });
-onUnmounted(() => clearInterval(refreshInterval));
-watch(() => props.conversationId, requestStatus);
+onUnmounted(() => {
+  clearInterval(refreshInterval);
+  document.removeEventListener('visibilitychange', requestStatus);
+  store.dispatch('conversationAiStatus/unsubscribe', props.conversationId);
+});
+watch(
+  () => props.conversationId,
+  (id, previousId) => {
+    store.dispatch('conversationAiStatus/unsubscribe', previousId);
+    store.dispatch('conversationAiStatus/subscribe', id);
+    requestStatus();
+  }
+);
 </script>
 
 <template>

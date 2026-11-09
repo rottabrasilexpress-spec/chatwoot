@@ -454,4 +454,27 @@ RSpec.describe Messages::SendOnApiService do
     expect(message.reload.source_id).to eq('3EBVOICE123')
     expect(message.status).to eq('sent')
   end
+
+  { 'image' => 'image', 'video' => 'video', 'file' => 'document' }.each do |file_type, provider_type|
+    it "sends a #{file_type} attachment through the media endpoint with the human tracking ID" do
+      attachment = instance_double(Attachment, file_type: file_type, audio?: false,
+                                                download_url: 'https://chatwoot.example/attachment',
+                                                file: double(filename: 'arquivo.pdf'))
+      allow(message).to receive(:attachments).and_return([attachment])
+      expected_body = { 'number' => '5511965927865', 'type' => provider_type,
+                        'file' => 'https://chatwoot.example/attachment', 'track_source' => 'chatwoot-human',
+                        'track_id' => "message-#{message.id}" }
+      expected_body['docName'] = 'arquivo.pdf' if provider_type == 'document'
+      stub_request(:post, 'https://transportadoras.uazapi.com/send/media')
+        .with(body: hash_including(expected_body))
+        .to_return(status: 200, body: { key: { id: '3EBMEDIA123' } }.to_json,
+                   headers: { 'content-type' => 'application/json' })
+
+      described_class.new(message: message).perform
+
+      expect(message.reload.source_id).to eq('3EBMEDIA123')
+      expect(message.status).to eq('sent')
+      expect(a_request(:post, 'https://transportadoras.uazapi.com/send/media')).to have_been_made.once
+    end
+  end
 end
