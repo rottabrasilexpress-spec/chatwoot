@@ -51,6 +51,10 @@ import countries from 'shared/constants/countries';
 import { generateValuesForEditCustomViews } from 'dashboard/helper/customViewsHelper';
 import { getLabelFilterOptions } from 'dashboard/helper/rottaLabelPresentation';
 import { getConversationSearchResults } from 'dashboard/helper/conversationSearch';
+import {
+  applyConversationReadState,
+  subscribeToConversationReadState,
+} from 'dashboard/helper/conversationReadState';
 import { conversationListPageURL } from '../helper/URLHelper';
 import ConversationApi from 'dashboard/api/inbox/conversation';
 import {
@@ -122,6 +126,15 @@ const retrySearchLabel = 'Tentar novamente';
 const conversationSearchQuery = ref('');
 const isMarkingAllAsRead = ref(false);
 const remoteSearchResults = ref(null);
+const unsubscribeSearchReadState = subscribeToConversationReadState(
+  store,
+  readState => {
+    remoteSearchResults.value = applyConversationReadState(
+      remoteSearchResults.value,
+      readState
+    );
+  }
+);
 const isSearchingConversations = ref(false);
 const conversationSearchError = ref(false);
 const searchHasMore = ref(false);
@@ -1125,6 +1138,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  unsubscribeSearchReadState();
   isChatListUnmounted = true;
   stopResizingConversationList();
   clearTimeout(conversationSearchTimer);
