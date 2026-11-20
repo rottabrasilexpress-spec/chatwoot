@@ -4,11 +4,11 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import api from 'dashboard/api/rottaPickups';
+import { pickupDateLabel, splitPickupName } from 'dashboard/helper/rottaPickup';
 import {
   pickupRequest,
   pickupRevision,
 } from 'dashboard/composables/useRottaPickupDialog';
-import PickupContactName from './PickupContactName.vue';
 
 const { t } = useI18n();
 
@@ -84,9 +84,11 @@ const acknowledge = async () => {
   }
 };
 
-const timing = days =>
+const timing = ({ days_until: days, reminder_kind: kind }) =>
   [
-    t('ROTTA_PICKUP.TODAY'),
+    kind === 'delivery'
+      ? t('ROTTA_PICKUP.DELIVERY_TODAY')
+      : t('ROTTA_PICKUP.TODAY'),
     t('ROTTA_PICKUP.ONE_DAY'),
     t('ROTTA_PICKUP.TWO_DAYS'),
   ][days];
@@ -119,17 +121,49 @@ const timing = days =>
         <ul class="max-h-[45vh] space-y-2 overflow-auto">
           <li
             v-for="item in reminders"
-            :key="item.id"
-            class="rounded-xl border border-n-amber-5 bg-n-amber-2 px-3 py-2"
+            :key="item.id + '-' + (item.reminder_kind || 'pickup')"
+            class="rounded-xl border px-3 py-2.5"
+            :class="
+              item.reminder_kind === 'delivery'
+                ? 'border-n-blue-5 bg-n-blue-2'
+                : 'border-n-amber-5 bg-n-amber-2'
+            "
           >
-            <div class="text-xs font-semibold text-n-amber-11">
-              {{ timing(item.days_until) }}
+            <div
+              class="flex flex-wrap items-center justify-between gap-1 text-xs font-semibold"
+              :class="
+                item.reminder_kind === 'delivery'
+                  ? 'text-n-blue-11'
+                  : 'text-n-amber-11'
+              "
+            >
+              <span class="flex items-center gap-1.5">
+                <Icon
+                  :icon="
+                    item.reminder_kind === 'delivery'
+                      ? 'i-lucide-package-check'
+                      : 'i-lucide-calendar-days'
+                  "
+                  class="size-4"
+                />
+                {{
+                  item.reminder_kind === 'delivery'
+                    ? $t('ROTTA_PICKUP.DELIVERY_DATE')
+                    : $t('ROTTA_PICKUP.DATE')
+                }}
+              </span>
+              <span>{{ timing(item) }}</span>
             </div>
-            <PickupContactName
-              :name="item.name"
-              :suffix="item.date_label"
-              class="break-words text-sm font-medium"
-            />
+            <p class="mt-1 break-words text-sm font-semibold">
+              {{ splitPickupName(item.name, item.date_label)[0] }}
+            </p>
+            <p class="text-xs tabular-nums text-n-slate-11">
+              {{
+                item.reminder_kind === 'delivery'
+                  ? pickupDateLabel(item.reminder_on)
+                  : pickupDateLabel(item.starts_on, item.ends_on)
+              }}
+            </p>
             <p
               v-if="item.note"
               class="mt-1 break-words text-xs text-n-slate-11"

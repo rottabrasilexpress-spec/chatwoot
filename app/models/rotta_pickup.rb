@@ -51,10 +51,6 @@ class RottaPickup < ApplicationRecord
     "#{label} até #{ends_on.strftime(finish_format)}"
   end
 
-  def reminder_due?(date)
-    (date..(date + 2)).cover?(starts_on)
-  end
-
   def self.save_for!(conversation, submitted)
     start = parse_date(submitted[:starts_on])
     finish = parse_date(submitted[:ends_on])
@@ -64,7 +60,13 @@ class RottaPickup < ApplicationRecord
     end
 
     pickup = find_or_initialize_by(conversation: conversation)
-    pickup.update!(starts_on: start, ends_on: finish, note: submitted[:note].to_s.strip.first(240).presence)
+    delivery = submitted.key?(:delivery_on) ? parse_date(submitted[:delivery_on]) : pickup.delivery_on
+    if (submitted[:delivery_on].present? && delivery.nil?) || (delivery && delivery < start)
+      conversation.errors.add(:base, 'Informe uma data de entrega válida, igual ou posterior à coleta.')
+      raise ActiveRecord::RecordInvalid, conversation
+    end
+
+    pickup.update!(starts_on: start, ends_on: finish, delivery_on: delivery, note: submitted[:note].to_s.strip.first(240).presence)
     contact = conversation.contact
     contact.with_lock do
       attrs = contact.custom_attributes || {}
@@ -83,5 +85,6 @@ class RottaPickup < ApplicationRecord
 
   def ordered_dates
     errors.add(:ends_on, :invalid) if starts_on && ends_on && ends_on < starts_on
+    errors.add(:delivery_on, :invalid) if starts_on && delivery_on && delivery_on < starts_on
   end
 end

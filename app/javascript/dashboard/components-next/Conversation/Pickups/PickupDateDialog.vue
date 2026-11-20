@@ -4,6 +4,8 @@ import { computed, nextTick, ref, watch } from 'vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import api from 'dashboard/api/rottaPickups';
 import {
+  isFlexiblePickup,
+  isPickupDateInWindow,
   isValidPickupDate,
   pickupDateLabel,
 } from 'dashboard/helper/rottaPickup';
@@ -18,17 +20,32 @@ const dialog = ref(null);
 const name = ref('');
 const startsOn = ref('');
 const endsOn = ref('');
+const deliveryOn = ref('');
 const flexible = ref(false);
+const snapshot = ref(null);
+const lookupFailed = ref(false);
 const note = ref('');
 const loading = ref(false);
 const saving = ref(false);
 const error = ref('');
 
+const confirmingWindow = computed(
+  () => pickupRequest.value?.mode === 'confirm'
+);
 const valid = computed(
   () =>
     isValidPickupDate(startsOn.value) &&
+    (!confirmingWindow.value ||
+      isPickupDateInWindow(
+        startsOn.value,
+        snapshot.value?.starts_on,
+        snapshot.value?.ends_on
+      )) &&
     (!flexible.value ||
-      (isValidPickupDate(endsOn.value) && endsOn.value >= startsOn.value))
+      (isValidPickupDate(endsOn.value) && endsOn.value >= startsOn.value)) &&
+    (!deliveryOn.value ||
+      (isValidPickupDate(deliveryOn.value) &&
+        deliveryOn.value >= startsOn.value))
 );
 const preview = computed(() =>
   pickupDateLabel(startsOn.value, flexible.value ? endsOn.value : '')
@@ -41,6 +58,9 @@ watch(
     name.value = '';
     startsOn.value = '';
     endsOn.value = '';
+    deliveryOn.value = '';
+    snapshot.value = null;
+    lookupFailed.value = false;
     note.value = '';
     flexible.value = false;
     error.value = '';
@@ -52,13 +72,23 @@ watch(
       const { data } = await api.show(request.conversationId);
       if (request !== pickupRequest.value) return;
       name.value = data.name;
-      startsOn.value = data.pickup?.starts_on || '';
+      snapshot.value = data.pickup || null;
+      startsOn.value =
+        request.mode === 'confirm' ? '' : data.pickup?.starts_on || '';
       endsOn.value = data.pickup?.ends_on || '';
-      flexible.value = Boolean(endsOn.value);
+      deliveryOn.value = data.pickup?.delivery_on || '';
+      flexible.value =
+        request.mode !== 'confirm' && isFlexiblePickup(data.pickup);
       note.value = data.pickup?.note || '';
+      if (request.mode === 'confirm' && !isFlexiblePickup(data.pickup)) {
+        lookupFailed.value = true;
+        error.value = t('ROTTA_PICKUP.WINDOW_CHANGED');
+      }
     } catch {
-      if (request === pickupRequest.value)
+      if (request === pickupRequest.value) {
+        lookupFailed.value = request.mode !== 'schedule';
         error.value = t('ROTTA_PICKUP.LOOKUP_ERROR');
+      }
     } finally {
       if (request === pickupRequest.value) loading.value = false;
     }
@@ -73,16 +103,26 @@ const close = () => {
 };
 
 const save = async () => {
-  if (!valid.value || loading.value || saving.value || !pickupRequest.value)
+  if (
+    !valid.value ||
+    loading.value ||
+    saving.value ||
+    lookupFailed.value ||
+    !pickupRequest.value
+  )
     return;
   saving.value = true;
   error.value = '';
   try {
-    const result = await pickupRequest.value.save({
-      starts_on: startsOn.value,
-      ends_on: flexible.value ? endsOn.value : null,
-      note: note.value,
-    });
+    const result = await pickupRequest.value.save(
+      {
+        starts_on: startsOn.value,
+        ends_on: flexible.value ? endsOn.value : null,
+        delivery_on: deliveryOn.value || null,
+        note: note.value,
+      },
+      snapshot.value
+    );
     if (result?.status !== 'success' && result !== true) {
       error.value = result?.error || t('ROTTA_PICKUP.FORM_ERROR');
       return;
@@ -90,7 +130,10 @@ const save = async () => {
     dialog.value?.close();
     finishPickupDialog(result);
   } catch (err) {
-    error.value = err.response?.data?.message || t('ROTTA_PICKUP.SAVE_ERROR');
+    const details = err.response?.data;
+    lookupFailed.value = err.response?.status === 409;
+    error.value =
+      details?.error || details?.message || t('ROTTA_PICKUP.SAVE_ERROR');
   } finally {
     saving.value = false;
   }
@@ -102,7 +145,7 @@ const save = async () => {
     <dialog
       ref="dialog"
       aria-labelledby="pickup-date-title"
-      class="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-n-weak bg-n-surface-1 text-n-slate-12 shadow-2xl backdrop:bg-black/50"
+      class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl border border-n-weak bg-n-surface-1 text-n-slate-12 shadow-2xl backdrop:bg-black/50"
       @cancel.prevent="close"
     >
       <form class="flex flex-col gap-4 p-5 sm:p-6" @submit.prevent="save">
@@ -114,7 +157,11 @@ const save = async () => {
           </span>
           <div class="min-w-0">
             <h2 id="pickup-date-title" class="text-lg font-semibold">
-              {{ $t('ROTTA_PICKUP.DATE') }}
+              {{
+                confirmingWindow
+                  ? $t('ROTTA_PICKUP.CONFIRM_DATE')
+                  : $t('ROTTA_PICKUP.DATE')
+              }}
             </h2>
             <p class="text-sm text-n-slate-11">
               {{ name || $t('ROTTA_PICKUP.CLOSED') }}
@@ -122,19 +169,32 @@ const save = async () => {
           </div>
         </header>
         <p class="text-sm text-n-slate-11">
-          {{ $t('ROTTA_PICKUP.INSTRUCTIONS') }}
+          {{
+            confirmingWindow
+              ? $t('ROTTA_PICKUP.CONFIRM_INSTRUCTIONS', {
+                  window: pickupDateLabel(
+                    snapshot?.starts_on,
+                    snapshot?.ends_on
+                  ),
+                })
+              : $t('ROTTA_PICKUP.INSTRUCTIONS')
+          }}
         </p>
         <fieldset
-          :disabled="loading || saving"
+          :disabled="loading || saving || lookupFailed"
           class="flex min-w-0 flex-col gap-3"
         >
-          <label class="flex items-center gap-2 text-sm">
+          <label
+            v-if="!confirmingWindow"
+            class="flex items-center gap-2 text-sm"
+          >
             <input
               v-model="flexible"
               type="checkbox"
               class="!m-0 accent-n-brand"
-            />{{ $t('ROTTA_PICKUP.FLEX_PROMPT') }}</label
-          >
+            />
+            {{ $t('ROTTA_PICKUP.FLEX_PROMPT') }}
+          </label>
           <div class="grid min-w-0 gap-3 sm:grid-cols-2">
             <label
               class="min-w-0 text-sm"
@@ -146,6 +206,8 @@ const save = async () => {
               <input
                 v-model="startsOn"
                 type="date"
+                :min="confirmingWindow ? snapshot?.starts_on : undefined"
+                :max="confirmingWindow ? snapshot?.ends_on : undefined"
                 required
                 class="mt-1 !mb-0 w-full"
               />
@@ -161,9 +223,24 @@ const save = async () => {
               />
             </label>
           </div>
-          <label class="text-sm"
-            >{{ $t('ROTTA_PICKUP.NOTE')
-            }}<span class="text-n-slate-11">{{
+          <label
+            class="rounded-lg border border-n-blue-5 bg-n-blue-2 px-3 py-2.5 text-sm"
+          >
+            <span class="flex items-center gap-1.5 font-medium text-n-blue-11">
+              <Icon icon="i-lucide-package-check" class="size-4" />
+              {{ $t('ROTTA_PICKUP.DELIVERY_DATE') }}
+              <span class="font-normal">{{ $t('ROTTA_PICKUP.OPTIONAL') }}</span>
+            </span>
+            <input
+              v-model="deliveryOn"
+              type="date"
+              :min="startsOn"
+              class="mt-1 !mb-0 w-full"
+            />
+          </label>
+          <label class="text-sm">
+            {{ $t('ROTTA_PICKUP.NOTE') }}
+            <span class="text-n-slate-11">{{
               $t('ROTTA_PICKUP.OPTIONAL')
             }}</span>
             <input
@@ -198,10 +275,16 @@ const save = async () => {
           </button>
           <button
             type="submit"
-            :disabled="!valid || loading || saving"
+            :disabled="!valid || loading || saving || lookupFailed"
             class="rounded-lg bg-n-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {{ saving ? $t('ROTTA_PICKUP.SAVING') : $t('ROTTA_PICKUP.SAVE') }}
+            {{
+              saving
+                ? $t('ROTTA_PICKUP.SAVING')
+                : confirmingWindow
+                  ? $t('ROTTA_PICKUP.CONFIRM_DATE')
+                  : $t('ROTTA_PICKUP.SAVE')
+            }}
           </button>
         </footer>
       </form>

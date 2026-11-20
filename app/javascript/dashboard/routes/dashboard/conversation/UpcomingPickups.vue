@@ -3,15 +3,19 @@ import { useI18n } from 'vue-i18n';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
-import PickupContactName from 'dashboard/components-next/Conversation/Pickups/PickupContactName.vue';
 import { useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import {
   pickupRevision,
-  confirmPickupDate,
+  editPickupDates,
   announcePickupChange,
 } from 'dashboard/composables/useRottaPickupDialog';
 import api from 'dashboard/api/rottaPickups';
+import {
+  isFlexiblePickup,
+  pickupDateLabel,
+  splitPickupName,
+} from 'dashboard/helper/rottaPickup';
 
 const { t } = useI18n();
 
@@ -24,7 +28,35 @@ const hasMore = ref(false);
 const loading = ref(true);
 const error = ref(false);
 const completing = ref(null);
+const layoutOptions = [
+  {
+    id: 'cards',
+    title: () => t('ROTTA_PICKUP.LAYOUT_CARDS'),
+    icon: 'i-lucide-layout-grid',
+  },
+  {
+    id: 'list',
+    title: () => t('ROTTA_PICKUP.LAYOUT_LIST'),
+    icon: 'i-lucide-list',
+  },
+  {
+    id: 'large',
+    title: () => t('ROTTA_PICKUP.LAYOUT_LARGE'),
+    icon: 'i-lucide-panels-top-left',
+  },
+];
+const layoutKey = 'rotta-upcoming-moves-layout';
+const layout = ref('cards');
 let request = 0;
+
+const chooseLayout = selected => {
+  layout.value = selected;
+  try {
+    localStorage.setItem(layoutKey, selected);
+  } catch {
+    // Layout switching remains available if storage is blocked.
+  }
+};
 
 const load = async (nextPage = page.value) => {
   request += 1;
@@ -66,14 +98,6 @@ const complete = async item => {
   }
 };
 
-const edit = item =>
-  confirmPickupDate(item.id, pickup =>
-    store.dispatch('conversationLabels/mutate', {
-      conversationId: item.id,
-      pickup,
-    })
-  );
-
 const openConversation = id => ({
   name: 'conversations_through_label',
   params: {
@@ -84,15 +108,16 @@ const openConversation = id => ({
 });
 
 const timing = item => {
+  if (item.pickup_overdue) return t('ROTTA_PICKUP.PAST');
   if (item.days_until === 0)
-    return item.ends_on
+    return isFlexiblePickup(item)
       ? t('ROTTA_PICKUP.WINDOW_TODAY')
       : t('ROTTA_PICKUP.TODAY');
   if (item.days_until > 0)
     return item.days_until === 1
       ? t('ROTTA_PICKUP.TOMORROW')
       : t('ROTTA_PICKUP.IN_DAYS', { days: item.days_until });
-  return item.ends_on
+  return isFlexiblePickup(item)
     ? t('ROTTA_PICKUP.WINDOW_STARTED')
     : t('ROTTA_PICKUP.PAST');
 };
@@ -102,6 +127,14 @@ const refresh = () => {
 };
 
 onMounted(() => {
+  try {
+    const savedLayout = localStorage.getItem(layoutKey);
+    if (layoutOptions.some(option => option.id === savedLayout)) {
+      layout.value = savedLayout;
+    }
+  } catch {
+    // Keep the default layout if storage is blocked.
+  }
   load();
   window.addEventListener('focus', refresh);
 });
@@ -118,9 +151,9 @@ watch(
 
 <template>
   <section class="h-full min-w-0 flex-1 overflow-y-auto bg-n-background">
-    <div class="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-10">
+    <div class="w-full px-4 py-5 sm:px-7 sm:py-7 2xl:px-10">
       <header
-        class="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-n-weak pb-5"
+        class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-n-amber-5 bg-n-amber-2 p-4 sm:p-5"
       >
         <div class="flex min-w-0 items-center gap-3">
           <span
@@ -137,14 +170,39 @@ watch(
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          :disabled="loading"
-          class="rounded-lg border border-n-weak px-3 py-2 text-sm hover:bg-n-alpha-2 disabled:opacity-50"
-          @click="load()"
-        >
-          {{ $t('ROTTA_PICKUP.REFRESH') }}
-        </button>
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <div
+            role="group"
+            :aria-label="$t('ROTTA_PICKUP.LAYOUT')"
+            class="flex min-w-0 flex-wrap gap-1 rounded-xl border border-n-weak bg-n-surface-1 p-1"
+          >
+            <button
+              v-for="option in layoutOptions"
+              :key="option.id"
+              type="button"
+              :aria-pressed="layout === option.id"
+              class="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium"
+              :class="
+                layout === option.id
+                  ? 'bg-n-amber-4 text-n-amber-11'
+                  : 'text-n-slate-11 hover:bg-n-alpha-2'
+              "
+              @click="chooseLayout(option.id)"
+            >
+              <Icon :icon="option.icon" class="size-4" />
+              {{ option.title() }}
+            </button>
+          </div>
+          <button
+            type="button"
+            :disabled="loading"
+            class="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-n-weak bg-n-surface-1 px-3 text-sm hover:bg-n-alpha-2 disabled:opacity-50"
+            @click="load()"
+          >
+            <Icon icon="i-lucide-refresh-cw" class="size-4" />
+            {{ $t('ROTTA_PICKUP.REFRESH') }}
+          </button>
+        </div>
       </header>
       <p v-if="error" role="alert" class="mb-3 text-sm text-n-ruby-11">
         {{ $t('ROTTA_PICKUP.LOAD_ERROR') }}
@@ -165,29 +223,94 @@ watch(
       <p v-if="items.length" class="mb-3 text-sm text-n-slate-11">
         {{ $t('ROTTA_PICKUP.COUNT', total) }}
       </p>
-      <ul class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <ul
+        class="grid grid-cols-1 gap-3"
+        :class="{
+          'md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4': layout === 'cards',
+          'xl:grid-cols-2': layout === 'large',
+        }"
+      >
         <li
           v-for="item in items"
           :key="item.id"
-          class="flex min-w-0 flex-col gap-3 rounded-xl border border-n-weak bg-n-surface-1 p-4"
+          class="flex min-w-0 flex-col gap-3 rounded-2xl border border-n-weak bg-n-surface-1 shadow-sm"
+          :class="layout === 'large' ? 'p-5 sm:p-6' : 'p-4'"
         >
-          <div class="flex flex-wrap items-center gap-2">
-            <span
-              class="rounded-full bg-n-amber-3 px-2.5 py-1 text-xs font-semibold text-n-amber-11"
-              >{{ timing(item) }}</span
-            >
-            <span class="text-xs text-n-slate-11">{{
-              item.ends_on && item.ends_on !== item.starts_on
-                ? $t('ROTTA_PICKUP.FLEX')
-                : $t('ROTTA_PICKUP.FIXED')
-            }}</span>
-          </div>
-          <RouterLink
-            :to="openConversation(item.id)"
-            class="min-w-0 break-words font-semibold text-n-slate-12 hover:underline"
+          <div
+            class="grid min-w-0 gap-3"
+            :class="{
+              'lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center':
+                layout === 'list',
+            }"
           >
-            <PickupContactName :name="item.name" :suffix="item.date_label" />
-          </RouterLink>
+            <RouterLink
+              :to="openConversation(item.id)"
+              :title="$t('ROTTA_PICKUP.OPEN_CHAT')"
+              class="group flex min-w-0 items-center gap-3 rounded-lg text-n-slate-12"
+            >
+              <span
+                class="grid size-10 shrink-0 place-items-center rounded-xl bg-n-teal-3 text-n-teal-11 group-hover:bg-n-teal-4"
+              >
+                <Icon icon="i-ri-whatsapp-fill" class="size-5" />
+              </span>
+              <span class="min-w-0">
+                <span
+                  class="block break-words font-semibold group-hover:underline"
+                  :class="{ 'text-lg': layout === 'large' }"
+                >
+                  {{ splitPickupName(item.name, item.date_label)[0] }}
+                </span>
+                <span
+                  v-if="item.phone"
+                  class="block break-words text-xs tabular-nums text-n-slate-11"
+                >
+                  {{ item.phone }}
+                </span>
+              </span>
+            </RouterLink>
+            <div class="grid min-w-0 gap-2 sm:grid-cols-2">
+              <div
+                class="min-w-0 rounded-xl border border-n-amber-5 bg-n-amber-2 px-3 py-2.5"
+              >
+                <p
+                  class="flex items-center gap-1.5 text-xs font-medium text-n-amber-11"
+                >
+                  <Icon icon="i-lucide-calendar-days" class="size-4 shrink-0" />
+                  {{ $t('ROTTA_PICKUP.DATE') }}
+                </p>
+                <p
+                  class="mt-1 break-words text-sm font-semibold tabular-nums text-n-slate-12"
+                >
+                  {{ pickupDateLabel(item.starts_on, item.ends_on) }}
+                </p>
+                <p class="mt-0.5 text-xs text-n-amber-11">{{ timing(item) }}</p>
+              </div>
+              <div
+                class="min-w-0 rounded-xl border border-n-blue-5 bg-n-blue-2 px-3 py-2.5"
+              >
+                <p
+                  class="flex items-center gap-1.5 text-xs font-medium text-n-blue-11"
+                >
+                  <Icon icon="i-lucide-package-check" class="size-4 shrink-0" />
+                  {{ $t('ROTTA_PICKUP.DELIVERY_DATE') }}
+                </p>
+                <p
+                  v-if="item.delivery_on"
+                  class="mt-1 break-words text-sm font-semibold tabular-nums text-n-slate-12"
+                >
+                  {{ pickupDateLabel(item.delivery_on) }}
+                </p>
+                <button
+                  v-else
+                  type="button"
+                  class="mt-1 text-sm text-n-blue-11 underline"
+                  @click="editPickupDates(item.id, store)"
+                >
+                  {{ $t('ROTTA_PICKUP.ADD_DELIVERY') }}
+                </button>
+              </div>
+            </div>
+          </div>
           <p v-if="item.note" class="break-words text-sm text-n-slate-11">
             {{ item.note }}
           </p>
@@ -195,11 +318,19 @@ watch(
             class="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-n-weak pt-3"
           >
             <button
+              v-if="isFlexiblePickup(item)"
+              type="button"
+              class="rounded-lg bg-n-amber-3 px-3 py-2 text-sm font-medium text-n-amber-11 hover:bg-n-amber-4"
+              @click="editPickupDates(item.id, store, true)"
+            >
+              {{ $t('ROTTA_PICKUP.CONFIRM_DATE') }}
+            </button>
+            <button
               type="button"
               class="rounded-lg px-3 py-2 text-sm hover:bg-n-alpha-2"
-              @click="edit(item)"
+              @click="editPickupDates(item.id, store)"
             >
-              {{ $t('ROTTA_PICKUP.CHANGE') }}
+              {{ $t('ROTTA_PICKUP.EDIT_DATES') }}
             </button>
             <button
               type="button"

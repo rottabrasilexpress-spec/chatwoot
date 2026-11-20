@@ -3,6 +3,7 @@ import {
   isValidPickupDate,
   pickupDateLabel,
   splitPickupName,
+  isPickupDateInWindow,
 } from '../rottaPickup';
 
 describe('pickup date display', () => {
@@ -11,6 +12,21 @@ describe('pickup date display', () => {
     expect(isValidPickupDate('2026-02-29')).toBe(false);
     expect(isValidPickupDate('2028-02-29')).toBe(true);
     expect(isValidPickupDate('')).toBe(false);
+  });
+
+  it('validates a confirmation against both inclusive edges of the saved window', () => {
+    expect(isPickupDateInWindow('2026-11-23', '2026-11-23', '2026-11-25')).toBe(
+      true
+    );
+    expect(isPickupDateInWindow('2026-11-25', '2026-11-23', '2026-11-25')).toBe(
+      true
+    );
+    expect(isPickupDateInWindow('2026-11-26', '2026-11-23', '2026-11-25')).toBe(
+      false
+    );
+    expect(isPickupDateInWindow('2026-02-29', '2026-02-28', '2026-03-01')).toBe(
+      false
+    );
   });
 
   it('retains the year across a flexible range that crosses into a new year', () => {

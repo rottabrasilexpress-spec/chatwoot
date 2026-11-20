@@ -12,22 +12,27 @@ class RottaPickupsAPI extends ApiClient {
   }
 
   reminders() {
-    return coalescedGet(this.url + '/reminders');
+    return coalescedGet(this.url + '/reminders?include_delivery=true');
   }
 
   acknowledge(day, items) {
-    const dates = items.map(({ id, starts_on, ends_on }) => ({
-      id,
-      starts_on,
-      ends_on,
-    }));
+    const dates = items.map(
+      ({ id, starts_on, ends_on, reminder_kind, reminder_on }) => ({
+        id,
+        starts_on,
+        ends_on,
+        reminder_kind,
+        reminder_on,
+      })
+    );
     return axios.post(this.url + '/acknowledge', { day, items: dates });
   }
 
-  complete(id, { starts_on, ends_on }) {
+  complete(id, { starts_on, ends_on, delivery_on }) {
     return axios.post(this.url + '/' + id + '/complete', {
       starts_on,
       ends_on,
+      delivery_on,
     });
   }
 }

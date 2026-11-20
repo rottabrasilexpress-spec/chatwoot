@@ -18,6 +18,17 @@ const dateParts = value => {
   };
 };
 
+export const isPickupDateInWindow = (date, start, end) =>
+  isValidPickupDate(date) &&
+  isValidPickupDate(start) &&
+  isValidPickupDate(end) &&
+  start < end &&
+  date >= start &&
+  date <= end;
+
+export const isFlexiblePickup = pickup =>
+  Boolean(pickup?.ends_on && pickup.ends_on > pickup.starts_on);
+
 export const pickupDateLabel = (start, end) => {
   if (!isValidPickupDate(start)) return '';
   const first = dateParts(start);

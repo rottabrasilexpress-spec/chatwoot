@@ -48,6 +48,6 @@ class Api::V1::Accounts::Conversations::LabelsController < Api::V1::Accounts::Co
   end
 
   def permitted_params
-    params.permit(:conversation_id, labels: [], add: [], remove: [], pickup: [:starts_on, :ends_on, :note])
+    params.permit(:conversation_id, labels: [], add: [], remove: [], pickup: [:starts_on, :ends_on, :delivery_on, :note])
   end
 end

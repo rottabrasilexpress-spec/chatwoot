@@ -19,6 +19,7 @@ import VoiceCallButton from 'dashboard/components-next/Contacts/VoiceCallButton.
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 import ConversationAiStatus from 'dashboard/components/widgets/conversation/ConversationAiStatus.vue';
 import PickupContactName from 'dashboard/components-next/Conversation/Pickups/PickupContactName.vue';
+import PickupContactActions from 'dashboard/components-next/Conversation/Pickups/PickupContactActions.vue';
 import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 
 export default {
@@ -35,6 +36,7 @@ export default {
     InlineInput,
     ConversationAiStatus,
     PickupContactName,
+    PickupContactActions,
   },
   props: {
     contact: {
@@ -288,6 +290,14 @@ export default {
           </div>
         </div>
 
+        <PickupContactActions
+          v-if="
+            currentChat?.id &&
+            currentChat?.labels?.includes('clientes-fechados')
+          "
+          :key="currentChat.id"
+          :conversation-id="currentChat.id"
+        />
         <p v-if="additionalAttributes.description" class="break-words mb-0.5">
           {{ additionalAttributes.description }}
         </p>

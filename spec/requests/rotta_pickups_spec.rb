@@ -37,4 +37,39 @@ RSpec.describe 'Rotta pickup dates' do
     get "#{base}/rotta_pickups", headers: headers
     expect(response.parsed_body['items']).to be_empty
   end
+
+  it 'confirms a day inside the existing window and keeps an independent delivery date' do
+    post label_url, params: { add: %w[clientes-fechados kelvin],
+                              pickup: { starts_on: '2026-11-23', ends_on: '2026-11-25', delivery_on: '2026-11-28' } },
+                    headers: headers, as: :json
+    expect(response).to have_http_status(:ok)
+    url = "#{base}/rotta_pickups/#{conversation.display_id}"
+    original = { starts_on: '2026-11-23', ends_on: '2026-11-25', delivery_on: '2026-11-28', note: nil }
+    patch url, params: { expected: original, confirm_window: true, pickup: { starts_on: '2026-11-26' } }, headers: headers, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+    patch url, params: { expected: original, confirm_window: true, pickup: { starts_on: '2026-11-24' } }, headers: headers, as: :json
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['pickup']).to include('starts_on' => '2026-11-24', 'ends_on' => nil, 'delivery_on' => '2026-11-28')
+    expect(conversation.reload.label_list).to contain_exactly('clientes-fechados', 'kelvin')
+    expect(contact.reload.name).to eq('Cliente de teste 24/11/2026')
+    patch url, params: { expected: original, pickup: { starts_on: '2026-11-23' } }, headers: headers, as: :json
+    expect(response).to have_http_status(:conflict)
+  end
+
+  it 'acknowledges delivery and pickup separately when both reminders are due' do
+    travel_to(Time.utc(2026, 11, 20, 15)) do
+      post label_url, params: { add: ['clientes-fechados'],
+                                pickup: { starts_on: '2026-11-21', delivery_on: '2026-11-22' } },
+                      headers: headers, as: :json
+      get "#{base}/rotta_pickups/reminders?include_delivery=true", headers: headers
+      expect(response).to have_http_status(:ok)
+      reminders = response.parsed_body['items']
+      expect(reminders.pluck('reminder_kind')).to contain_exactly('pickup', 'delivery')
+      post "#{base}/rotta_pickups/acknowledge",
+           params: { day: '2026-11-20', items: reminders.select { |item| item['reminder_kind'] == 'delivery' } },
+           headers: headers, as: :json
+      get "#{base}/rotta_pickups/reminders?include_delivery=true", headers: headers
+      expect(response.parsed_body['items'].pluck('reminder_kind')).to eq(['pickup'])
+    end
+  end
 end

@@ -1,7 +1,8 @@
 class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseController
   PAGE_SIZE = 30
+  DATE_FIELDS = [:starts_on, :ends_on, :delivery_on, :note].freeze
 
-  before_action :set_conversation, only: [:show, :complete]
+  before_action :set_conversation, only: [:show, :update, :complete]
 
   def index
     today = RottaPickup.today
@@ -15,32 +16,60 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
   end
 
   def show
-    pickup = @conversation.rotta_pickup || RottaPickup.from_name(@conversation)
-    render json: { name: @conversation.contact.name, pickup: pickup && date_fields(pickup) }
+    render json: { name: @conversation.contact.name, pickup: current_pickup && date_fields(current_pickup) }
+  end
+
+  def update
+    input = params.permit(:confirm_window, pickup: DATE_FIELDS, expected: DATE_FIELDS)
+    @conversation.with_lock do
+      original = current_pickup
+      if !@conversation.label_list.include?(RottaPickup::CLOSED_LABEL) || !same_snapshot?(original, input[:expected])
+        return render json: { error: 'O agendamento mudou. Abra o editor novamente para conferir as datas.' }, status: :conflict
+      end
+
+      submitted = input.fetch(:pickup, ActionController::Parameters.new).to_h.symbolize_keys
+      if ActiveModel::Type::Boolean.new.cast(input[:confirm_window])
+        chosen = RottaPickup.parse_date(submitted[:starts_on])
+        unless original&.ends_on && original.ends_on > original.starts_on && chosen &&
+               (original.starts_on..original.ends_on).cover?(chosen)
+          return render json: { error: 'Selecione um dia dentro do intervalo de coleta.' }, status: :unprocessable_entity
+        end
+
+        submitted = date_fields(original).merge(submitted).merge(ends_on: nil)
+      end
+
+      pickup = RottaPickup.save_for!(@conversation, submitted)
+      render json: { pickup: date_fields(pickup), contact: @conversation.contact.push_event_data }
+    end
   end
 
   def reminders
     today = RottaPickup.today
-    due = schedules.select { |pickup| pickup.reminder_due?(today) }
+    due = reminder_candidates(today)
+    due.reject! { |_, kind, _| kind == 'delivery' } unless params[:include_delivery] == 'true'
     unless due.empty?
-      read = Redis::Alfred.with { |redis| redis.mget(*due.map { |pickup| reminder_key(pickup, today) }) }
-      due = due.zip(read).filter_map { |pickup, confirmed| pickup unless confirmed }
+      read = Redis::Alfred.with { |redis| redis.mget(*due.map { |pickup, kind, _| reminder_key(pickup, today, kind) }) }
+      due = due.zip(read).filter_map { |reminder, confirmed| reminder unless confirmed }
     end
-    items = due.sort_by(&:starts_on).first(250)
-    render json: { day: today, items: items.map { |pickup| card(pickup, today) } }
+    items = due.sort_by { |_, kind, scheduled_on| [scheduled_on, kind == 'pickup' ? 0 : 1] }.first(250)
+    render json: { day: today, items: items.map { |pickup, kind, scheduled_on| reminder_card(pickup, today, kind, scheduled_on) } }
   end
 
   def acknowledge
     today = RottaPickup.today
     if params[:day] == today.iso8601
-      items = params.permit(items: [:id, :starts_on, :ends_on])[:items] || []
-      shown = items.first(250).map { |item| [item[:id].to_s, item[:starts_on], item[:ends_on].presence] }.to_set
-      due = schedules.select do |pickup|
-        pickup.reminder_due?(today) &&
-          shown.include?([pickup.conversation.display_id.to_s, pickup.starts_on.iso8601, pickup.ends_on&.iso8601])
+      items = params.permit(items: [:id, :starts_on, :ends_on, :reminder_kind, :reminder_on])[:items] || []
+      shown = items.first(250).map do |item|
+        kind = item[:reminder_kind].presence || 'pickup'
+        kind == 'delivery' ? [item[:id].to_s, kind, item[:reminder_on]] : [item[:id].to_s, kind, item[:starts_on], item[:ends_on].presence]
+      end.to_set
+      due = reminder_candidates(today).select do |pickup, kind, scheduled_on|
+        id = pickup.conversation.display_id.to_s
+        key = kind == 'delivery' ? [id, kind, scheduled_on.iso8601] : [id, kind, pickup.starts_on.iso8601, pickup.ends_on&.iso8601]
+        shown.include?(key)
       end
       Redis::Alfred.pipelined do |pipeline|
-        due.each { |pickup| pipeline.set(reminder_key(pickup, today), '1', ex: 4.days.to_i) }
+        due.each { |pickup, kind, _| pipeline.set(reminder_key(pickup, today, kind), '1', ex: 4.days.to_i) }
       end if due.any?
     end
     head :no_content
@@ -53,7 +82,7 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
         return render json: { labels: labels }
       end
 
-      pickup = @conversation.rotta_pickup || RottaPickup.from_name(@conversation)
+      pickup = current_pickup
       unless labels.include?(RottaPickup::CLOSED_LABEL) && same_dates?(pickup)
         return render json: { error: 'O agendamento mudou. Atualize a lista e confira a data antes de concluir.' }, status: :conflict
       end
@@ -90,21 +119,51 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
   end
 
   def same_dates?(pickup)
-    pickup && pickup.starts_on.iso8601 == params[:starts_on] && pickup.ends_on&.iso8601 == params[:ends_on].presence
+    pickup && pickup.starts_on.iso8601 == params[:starts_on] && pickup.ends_on&.iso8601 == params[:ends_on].presence &&
+      (!params.key?(:delivery_on) || pickup.delivery_on&.iso8601 == params[:delivery_on].presence)
+  end
+
+  def current_pickup
+    @conversation.rotta_pickup || RottaPickup.from_name(@conversation)
+  end
+
+  def same_snapshot?(pickup, expected)
+    return expected.blank? unless pickup
+    return false unless expected
+
+    date_fields(pickup).all? { |field, value| value.to_s == expected[field].to_s }
   end
 
   def date_fields(pickup)
-    { starts_on: pickup.starts_on, ends_on: pickup.ends_on, note: pickup.note }
+    { starts_on: pickup.starts_on, ends_on: pickup.ends_on, delivery_on: pickup.delivery_on, note: pickup.note }
   end
 
   def card(pickup, today)
     conversation = pickup.conversation
     name = conversation.contact.name
     suffix = name.to_s.match(RottaPickup::LEGACY_SUFFIX)&.[](:suffix)
-    date_fields(pickup).merge(id: conversation.display_id, name: name, date_label: suffix, days_until: (pickup.starts_on - today).to_i)
+    date_fields(pickup).merge(id: conversation.display_id, name: name, phone: conversation.contact.phone_number,
+                             date_label: suffix, days_until: (pickup.starts_on - today).to_i,
+                             pickup_overdue: (pickup.ends_on || pickup.starts_on) < today)
   end
 
-  def reminder_key(pickup, today)
-    "rotta_pickups:read:#{Current.account.id}:#{current_user.id}:#{pickup.conversation.id}:#{today}:#{pickup.starts_on}:#{pickup.ends_on}"
+  def reminder_candidates(today)
+    window = today..(today + 2)
+    schedules.flat_map do |pickup|
+      { 'pickup' => pickup.starts_on, 'delivery' => pickup.delivery_on }.filter_map do |kind, scheduled_on|
+        [pickup, kind, scheduled_on] if scheduled_on && window.cover?(scheduled_on)
+      end
+    end
+  end
+
+  def reminder_card(pickup, today, kind, scheduled_on)
+    card(pickup, today).merge(reminder_kind: kind, reminder_on: scheduled_on, days_until: (scheduled_on - today).to_i)
+  end
+
+  def reminder_key(pickup, today, kind)
+    prefix = "rotta_pickups:read:#{Current.account.id}:#{current_user.id}:#{pickup.conversation.id}:#{today}"
+    return "#{prefix}:delivery:#{pickup.delivery_on}" if kind == 'delivery'
+
+    "#{prefix}:#{pickup.starts_on}:#{pickup.ends_on}"
   end
 end
