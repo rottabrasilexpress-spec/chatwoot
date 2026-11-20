@@ -14,6 +14,7 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
 
   it 'routes a requested revision from Orçamento 15 dias to both labels without changing the stage' do
     conversation.update_labels(['orcamento-15-dias'])
+    create_received_quote
     message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
                                message_type: :incoming, content_type: :text,
                                content: 'Retifica esse orçamento por favor, com equipe de ajudantes na carga e descarga.')
@@ -42,6 +43,11 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
   def create_prior_inbound_message
     create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
                      message_type: :incoming, content_type: :text, content: 'Mensagem anterior')
+  end
+
+  def create_received_quote(status: :delivered, created_at: 10.minutes.ago, content: "ORÇAMENTO FINAL - ROTTA\nValor: R$ 3.000,00")
+    create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :outgoing,
+                     content_type: :text, status: status, content: content, created_at: created_at)
   end
 
   it 'applies Primeiro contato only on the first inbound message' do
@@ -100,6 +106,7 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
   it 'only applies Caio Atenção inside the budget trail and never removes it automatically' do
     conversation.update_labels(['orcamento-feito'])
     create_prior_inbound_message
+    create_received_quote
     message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
                                message_type: :incoming, content_type: :text,
                                content: 'Quero fechar, preciso falar com um atendente')
@@ -125,6 +132,7 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
   it 'keeps Caio Atenção off when the LLM is uncertain or returns false' do
     conversation.update_labels(['orcamento-feito'])
     create_prior_inbound_message
+    create_received_quote
     message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
                                message_type: :incoming, content_type: :text,
                                content: 'O caminhão é grande?')
@@ -146,6 +154,7 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
   it 'calls the LLM only for an ambiguous human-need signal' do
     conversation.update_labels(['orcamento-feito'])
     create_prior_inbound_message
+    create_received_quote
     message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
                                message_type: :incoming, content_type: :text,
                                content: 'O caminhão é grande?')
@@ -163,6 +172,7 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
   it 'uses conversation context for an interested customer asking for a vehicle detail that needs human confirmation' do
     conversation.update_labels(['orcamento-feito'])
     conversation_context_time = Time.current.change(usec: 0)
+    create_received_quote(created_at: conversation_context_time - 7.minutes)
     create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
                      message_type: :incoming, content_type: :text,
                      content: 'Escolhi a opção 1, transporte mais serviços', created_at: conversation_context_time - 6.minutes)
@@ -212,6 +222,7 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
     it "flags post-budget interest without requiring KELVIN or the LLM: #{question}" do
       conversation.update_labels(['orcamento-feito'])
       create_prior_inbound_message
+      create_received_quote
       message = create(:message, account: account, inbox: inbox, conversation: conversation,
                                  sender: conversation.contact, message_type: :incoming,
                                  content_type: :text, content: question)
@@ -223,6 +234,49 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
       expect(conversation.label_list.count('caio-atencao')).to eq(1)
       expect(conversation.label_list).not_to include('kelvin')
     end
+  end
+
+  it 'keeps Caio Atenção off for a sent-only quote and a delivered pre-budget' do
+    conversation.update_labels(['kelvin'])
+    create_prior_inbound_message
+    create_received_quote(status: :sent)
+    create_received_quote(content: "PRÉ-ORÇAMENTO\nORÇAMENTO FINAL será informado oportunamente. Exemplo: R$ 100,00.")
+    message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
+                               message_type: :incoming, content_type: :text, content: 'Quero fechar, pode mandar o contrato?')
+    expect(Rotta::AutomaticLabels::HumanNeedClassifier).not_to receive(:new)
+
+    described_class.new(message).perform
+
+    expect(conversation.reload.label_list).to contain_exactly('kelvin')
+    expect(account.rotta_automatic_label_logs.find_by(event_key: "#{message.id}:caio_attention").metadata['reason'])
+      .to eq('budget_delivery_unconfirmed')
+  end
+
+  it 'preserves KELVIN when a revision is requested without confirmed delivery' do
+    conversation.update_labels(['orcamento-feito'])
+    create_prior_inbound_message
+    create_received_quote(status: :failed)
+    message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
+                               message_type: :incoming, content_type: :text, content: 'Quero atualizar o orçamento.')
+
+    described_class.new(message).perform
+
+    expect(conversation.reload.label_list).to match_array(%w[orcamento-feito kelvin])
+  end
+
+  it 'ignores a later quote and a quote from a different conversation' do
+    conversation.update_labels(['orcamento-feito'])
+    create_prior_inbound_message
+    other_conversation = create(:conversation, account: account, inbox: inbox)
+    create(:message, account: account, inbox: inbox, conversation: other_conversation, message_type: :outgoing,
+                     status: :read, content: "ORÇAMENTO FINAL - ROTTA\nValor: R$ 3.000,00")
+    message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
+                               message_type: :incoming, content_type: :text, content: 'Tem desconto no PIX?')
+    create_received_quote(created_at: message.created_at + 1.second)
+
+    described_class.new(message).perform
+
+    expect(conversation.reload.label_list).to contain_exactly('orcamento-feito')
   end
 
   it 'checks Caio Atenção trail eligibility while holding the conversation lock' do

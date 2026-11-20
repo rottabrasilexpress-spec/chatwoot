@@ -2,9 +2,6 @@ class Rotta::AutomaticLabels::Processor
   CONTACT_STAGES = %w[primeiro-contato segundo-contato terceiro-contato ultimo-contato contato-instantaneo].freeze
   BUDGET_STAGES = %w[kelvin orcamento-feito orcamento-tentativa-2 orcamento-tentativa-3 orcamento-tentativa-4
                      orcamento-5-dias orcamento-10-dias orcamento-15-dias orcamento-instantaneo].freeze
-  HUMAN_NEED = /\b(valor|pre[cç]o|quanto|or[cç]amento final|c[aá]lculo final|proposta final|pagamento|pix|boleto|cart[aã]o|parcel|contrat|fechar|fechamento|reserv|agend|disponibil|data|coleta|entrega|reclam|problema|urgent|desconto|caro|barato|humano|atendente|setor)\b/i
-  CLEAR_HUMAN_NEED = /\b(atendente|humano|caio|contrat|fechar|fechamento|reserv|pagamento|pix|boleto|cart[aã]o|reclam|problema|urgent|desconto|negoci|setor financeiro)\b/i
-  AMBIGUOUS_HUMAN_NEED = /\b(valor|pre[cç]o|quanto|or[cç]amento final|c[aá]lculo final|proposta final|parcel|agend|disponibil|data|coleta|entrega|caro|barato|setor|caminh[aã]o|ve[ií]culo|tamanho|dimens(?:ão|ões)|capacidade|porte)\b/i
   CAIO_MIN_CONFIDENCE = 0.80
   POST_BUDGET_INTEREST_TOPIC = /\b(valor(?:es)?|pre[cç]os?|desconto|pagamento|[aà] vista|parcel\w*|prazo|entrega|coleta|datas?|disponibil\w*|ajudantes?|servi[cç]os?|montagem|desmontagem|inclu\w*|contrat\w*|reserv\w*)\b/i
   POST_BUDGET_INTEREST_REQUEST = /\?|\b(qual|quais|quanto|quando|como|pode|posso|consigo|tem|h[aá]|queria|gostaria|quero|preciso|d[uú]vida|saber|confirma\w*)\b/i
@@ -17,6 +14,8 @@ class Rotta::AutomaticLabels::Processor
   NEW_QUOTE = /\b(?:novo orcamento|nova cotacao|nova proposta|recalcular|recalcula|recalcule)\b/
   DECLINED_REVISION = /\bnao (?:(?:precis[ao]|quero|gostaria|vamos|pode|e necessario|e para) (?:de (?:um |uma )?)?)?(?:#{REVISION_ACTION}|#{NEW_QUOTE})/
   REVISION_LABELS = { 'kelvin' => 'kelvin', 'caio_attention' => 'caio-atencao' }.freeze
+  QUOTE_HEADING = '(^|\n)[[:space:][:punct:]]*(or[çc]amento[[:space:]]+final|proposta[[:space:]]+(comercial|final))([[:space:][:punct:]]|$)'
+  QUOTE_DIRECT = '(^|\n)[[:space:][:punct:]]*((o|seu)[[:space:]]+)?(valor( total)? (do|da) (frete|transporte|mudan[çc]a)[[:space:]]*(:|[ée] |fica |sai )|(frete|transporte|mudan[çc]a) (fica|sai) )'
 
   def initialize(message)
     @message = message
@@ -31,7 +30,7 @@ class Rotta::AutomaticLabels::Processor
 
     apply_first_contact if @settings['first_contact'] && incoming?
     apply_kelvin if @settings['kelvin'] && outgoing? && pre_budget?(@message.content)
-    apply_caio_attention if @settings['caio_attention'] && incoming?
+    apply_caio_attention if @settings['caio_attention'] && incoming? && !@message.private?
   rescue StandardError => e
     record('processor', 'failed', e.message, error_class: e.class.name)
     raise
@@ -71,6 +70,12 @@ class Rotta::AutomaticLabels::Processor
       next true if final_quote && (final_quote <=> [@message.created_at, @message.id]).positive?
       next true if @account.rotta_automatic_label_logs.exists?(event_key: "#{@message.id}:budget_revision")
 
+      if additions.include?('caio-atencao') &&
+         ((labels & CONTACT_STAGES).any? || (labels & BUDGET_STAGES).empty? || !quote_received_before_message?)
+        additions.delete('caio-atencao')
+      end
+      next false if additions.empty?
+
       mutate_labels_locked('budget_revision', add: additions)
       true
     end
@@ -102,19 +107,14 @@ class Rotta::AutomaticLabels::Processor
       return record('caio_attention', 'blocked', nil, reason: 'contact_trail') if (labels & CONTACT_STAGES).any?
       return record('caio_attention', 'blocked', nil, reason: 'outside_budget_trail') if (labels & BUDGET_STAGES).empty?
       return record('caio_attention', 'no_op', nil, reason: 'already_applied') if labels.include?('caio-atencao')
+      return record('caio_attention', 'blocked', nil, reason: 'budget_delivery_unconfirmed') unless quote_received_before_message?
 
       reservation = reserve_caio_event
     end
 
     return unless reservation
 
-    decision = if decision_kind == :clear
-                 Rotta::AutomaticLabels::HumanNeedClassifier::Decision.new(
-                   needs_human: true, confidence: 1.0, reason: 'regra_deterministica'
-                 )
-               else
-                 Rotta::AutomaticLabels::HumanNeedClassifier.new.call(llm_context)
-               end
+    decision = caio_decision(decision_kind)
     unless decision.needs_human? && decision.confidence >= CAIO_MIN_CONFIDENCE
       finalize_caio_event(reservation, 'skipped', confidence: decision.confidence, reason: decision.reason)
       return
@@ -126,6 +126,8 @@ class Rotta::AutomaticLabels::Processor
         finalize_caio_event(reservation, 'blocked', reason: 'contact_trail_after_classification')
       elsif (labels & BUDGET_STAGES).empty?
         finalize_caio_event(reservation, 'blocked', reason: 'outside_budget_trail_after_classification')
+      elsif !quote_received_before_message?
+        finalize_caio_event(reservation, 'blocked', reason: 'budget_delivery_unconfirmed_after_classification')
       else
         mutate_labels_locked('caio_attention', add: 'caio-atencao')
         finalize_caio_event(reservation, 'applied', confidence: decision.confidence, reason: decision.reason)
@@ -190,8 +192,9 @@ class Rotta::AutomaticLabels::Processor
 
   def llm_context
     {
-      last_message: @message.content.to_s,
-      recent_messages: @conversation.messages.where.not(id: @message.id).reorder(created_at: :desc, id: :desc).limit(6).to_a.reverse.map do |message|
+      last_message: @message.content.presence || 'O cliente enviou um anexo sem legenda.',
+      recent_messages: prior_messages.where(private: false, message_type: [:incoming, :outgoing]).where.not(status: :failed)
+                                     .reorder(created_at: :desc, id: :desc).limit(6).to_a.reverse.map do |message|
         {
           role: message.message_type == 'incoming' ? 'cliente' : 'empresa',
           content: message.content.to_s
@@ -201,12 +204,35 @@ class Rotta::AutomaticLabels::Processor
   end
 
   def caio_decision_kind
-    content = @message.content.to_s
-    return :clear if content.match?(POST_BUDGET_INTEREST_TOPIC) && content.match?(POST_BUDGET_INTEREST_REQUEST)
-    return :clear if content.match?(CLEAR_HUMAN_NEED)
-    return :ambiguous if content.match?(AMBIGUOUS_HUMAN_NEED)
+    return :ambiguous if @message.content.blank? && @message.attachments.where(file_type: [:file, :image]).exists?
 
-    :none
+    Rotta::AutomaticLabels::CommercialIntent.classify(@message.content)
+  end
+
+  def caio_decision(kind)
+    if kind == :ambiguous
+      context = llm_context
+      unless Rotta::AutomaticLabels::CommercialIntent.confirmed_by_context?(context)
+        return Rotta::AutomaticLabels::HumanNeedClassifier.new.call(context)
+      end
+    end
+
+    Rotta::AutomaticLabels::HumanNeedClassifier::Decision.new(needs_human: true, confidence: 1.0, reason: 'regra_deterministica')
+  end
+
+  def prior_messages
+    @conversation.messages.where('(messages.created_at, messages.id) < (?, ?)', @message.created_at, @message.id)
+  end
+
+  def quote_received_before_message?
+    quotes = prior_messages.outgoing.where(private: false)
+                           .where('(content ~* ? OR content ~* ?)', QUOTE_HEADING, QUOTE_DIRECT)
+                           .where('content ~* ?', 'R[$][[:space:]]*[0-9]')
+                           .where('left(content, 150) !~* ?', 'pr[ée][[:space:]‐‑–—-]*or[çc]amento')
+    received = quotes.where(status: [:delivered, :read])
+    reply_id = @message.in_reply_to_external_id.to_s.presence
+    received = received.or(quotes.where(status: :sent, source_id: reply_id)) if reply_id
+    received.exists?
   end
 
   def account_label_title(slug)

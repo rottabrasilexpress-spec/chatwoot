@@ -69,6 +69,10 @@ class Rotta::AutomaticLabels::HumanNeedClassifier
       Na etapa de orçamento, dúvidas sobre valores, desconto, pagamento, datas, prazo de entrega ou serviços incluídos
       demonstram interesse comercial e devem marcar verdadeiro, mesmo quando a IA consegue responder com segurança.
       A etiqueta sinaliza atenção comercial; não obriga a transferir a conversa nem impede a IA de responder.
+      Marque se a dúvida atual sobre esta contratação continuou sem resposta, recebeu resposta superficial ou só promessa vaga de retorno.
+      Aceite curto, como "pode seguir" ou "fechado", só vale se responder a uma opção, contratação ou reserva concreta no contexto.
+      Documento só indica sinal comercial quando foi solicitado para o contrato. Pedido inicial, autorização de pré-orçamento, coleta, pergunta
+      genérica sem vínculo com a contratação, recusa sem contraproposta ou menção de algo dito por outra pessoa não justificam a etiqueta.
       Considere falso para saudações, confirmação de recebimento e mensagens neutras sem dúvida ou intenção comercial.
       Use somente o contexto recebido. Não crie fatos, não altere etiquetas e não responda ao cliente.
       Retorne SOMENTE JSON válido neste formato: {"needs_human":true,"confidence":0.0,"reason":"motivo curto"}.
