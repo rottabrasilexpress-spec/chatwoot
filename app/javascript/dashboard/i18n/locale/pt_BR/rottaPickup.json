@@ -43,11 +43,11 @@
     "NEXT": "Próxima",
     "COMPLETE_OK": "Mudança concluída. A conversa foi para Finalizados.",
     "COMPLETE_ERROR": "Não foi possível concluir a mudança.",
-    "WINDOW_TODAY": "Início da janela hoje",
+    "WINDOW_TODAY": "Janela começa hoje",
     "TOMORROW": "Amanhã",
     "IN_DAYS": "Em {days} dias",
-    "WINDOW_STARTED": "Janela iniciada",
-    "PAST": "Data passada",
+    "WINDOW_STARTED": "Na janela de coleta",
+    "PAST": "Prazo da coleta passou",
     "CONFIRM_DATE": "Confirmar data de coleta",
     "CONFIRM_INSTRUCTIONS": "Escolha um dia dentro da janela agendada de {window}.",
     "WINDOW_CHANGED": "Esta coleta já não tem uma janela flexível. Abra Alterar datas para conferir.",
@@ -59,6 +59,14 @@
     "LAYOUT_CARDS": "Cards",
     "LAYOUT_LIST": "Lista",
     "LAYOUT_LARGE": "Cards maiores",
-    "OPEN_CHAT": "Abrir conversa do cliente"
+    "OPEN_CHAT": "Abrir conversa do cliente",
+    "LAYOUT_COMPACT": "Cards menores",
+    "LAYOUT_MINI": "Mini cards",
+    "COLLECTION_COUNTDOWN": "Faltam {days} dias",
+    "COLLECTION_SHORT": "Coleta",
+    "DELIVERY_SHORT": "Entrega",
+    "CONFIRM_SHORT": "Confirmar",
+    "EDIT_SHORT": "Alterar",
+    "COMPLETE_SHORT": "Concluir"
   }
 }

@@ -43,11 +43,11 @@
     "NEXT": "Next",
     "COMPLETE_OK": "Move completed. The conversation moved to Finalized.",
     "COMPLETE_ERROR": "Could not complete the move.",
-    "WINDOW_TODAY": "Window starts today",
+    "WINDOW_TODAY": "Pickup window opens today",
     "TOMORROW": "Tomorrow",
     "IN_DAYS": "In {days} days",
-    "WINDOW_STARTED": "Window started",
-    "PAST": "Past date",
+    "WINDOW_STARTED": "In pickup window",
+    "PAST": "Pickup date passed",
     "CONFIRM_DATE": "Confirm pickup date",
     "CONFIRM_INSTRUCTIONS": "Choose a day within the scheduled window {window}.",
     "WINDOW_CHANGED": "This pickup no longer has a flexible window. Open Edit dates to review it.",
@@ -59,6 +59,14 @@
     "LAYOUT_CARDS": "Cards",
     "LAYOUT_LIST": "List",
     "LAYOUT_LARGE": "Large cards",
-    "OPEN_CHAT": "Open the conversation"
+    "OPEN_CHAT": "Open the conversation",
+    "LAYOUT_COMPACT": "Small cards",
+    "LAYOUT_MINI": "Mini cards",
+    "COLLECTION_COUNTDOWN": "{days} days until pickup",
+    "COLLECTION_SHORT": "Pickup",
+    "DELIVERY_SHORT": "Delivery",
+    "CONFIRM_SHORT": "Confirm",
+    "EDIT_SHORT": "Edit",
+    "COMPLETE_SHORT": "Complete"
   }
 }
