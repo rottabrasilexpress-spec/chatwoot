@@ -358,6 +358,13 @@ const menuItems = computed(() => {
       icon: 'i-lucide-message-circle',
       children: [
         {
+          name: 'UpcomingPickups',
+          label: 'Próximas Mudanças',
+          icon: 'i-lucide-truck',
+          to: accountScopedRoute('rotta_upcoming_pickups'),
+          activeOn: ['rotta_upcoming_pickups'],
+        },
+        {
           name: 'ReviewResume',
           label: 'Retomar revisão',
           icon: 'i-lucide-bookmark-check',

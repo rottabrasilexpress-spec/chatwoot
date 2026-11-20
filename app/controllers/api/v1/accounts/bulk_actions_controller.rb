@@ -2,6 +2,10 @@ class Api::V1::Accounts::BulkActionsController < Api::V1::Accounts::BaseControll
   def create
     case normalized_type
     when 'Conversation'
+      if Array(conversation_params.dig(:labels, :add)).include?(RottaPickup::CLOSED_LABEL)
+        return render json: { error: 'Salve uma data de coleta para cada conversa antes de aplicar Clientes Fechados.' }, status: :unprocessable_entity
+      end
+
       enqueue_conversation_job
       head :ok
     when 'Contact'

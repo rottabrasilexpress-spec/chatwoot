@@ -18,6 +18,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import VoiceCallButton from 'dashboard/components-next/Contacts/VoiceCallButton.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 import ConversationAiStatus from 'dashboard/components/widgets/conversation/ConversationAiStatus.vue';
+import PickupContactName from 'dashboard/components-next/Conversation/Pickups/PickupContactName.vue';
 import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 
 export default {
@@ -33,6 +34,7 @@ export default {
     VoiceCallButton,
     InlineInput,
     ConversationAiStatus,
+    PickupContactName,
   },
   props: {
     contact: {
@@ -237,7 +239,13 @@ export default {
               :title="$t('CONTACT_PANEL.CLICK_TO_EDIT')"
               @click="startEditingName"
             >
-              {{ contact.name }}
+              <PickupContactName
+                :name="contact.name"
+                :suffix="contact.custom_attributes?.rotta_pickup_name_suffix"
+                :allow-legacy="
+                  currentChat?.labels?.includes('clientes-fechados')
+                "
+              />
             </h3>
             <ConversationAiStatus
               v-if="currentChat?.id"

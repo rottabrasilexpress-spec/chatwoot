@@ -46,7 +46,10 @@ import whatsappTemplates from './whatsappTemplates.json';
 import whatsappTemplateMgmt from './whatsappTemplateMgmt.json';
 import yearInReview from './yearInReview.json';
 
+import rottaPickup from './rottaPickup.json';
+
 export default {
+  ...rottaPickup,
   ...advancedFilters,
   ...agentBots,
   ...agentMgmt,

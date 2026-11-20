@@ -53,6 +53,13 @@ Rails.application.routes.draw do
         scope module: :accounts do
           resource :review_points, only: [:show, :update]
           resources :conversation_followings, only: [:index, :show, :update, :destroy]
+          resources :rotta_pickups, only: [:index, :show] do
+            post :complete, on: :member
+            collection do
+              get :reminders
+              post :acknowledge
+            end
+          end
           resource :calculator, only: [], controller: :calculator do
             post :calculate
           end

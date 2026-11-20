@@ -9,6 +9,12 @@ import MoreActions from './MoreActions.vue';
 import Avatar from 'next/avatar/Avatar.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import ConversationAiStatus from './ConversationAiStatus.vue';
+import PickupContactName from 'dashboard/components-next/Conversation/Pickups/PickupContactName.vue';
+import {
+  CLOSED_PICKUP_LABEL,
+  PICKUP_SUFFIX_KEY,
+} from 'dashboard/helper/rottaPickup';
+import { confirmPickupDate } from 'dashboard/composables/useRottaPickupDialog';
 import ConversationCallButton from './ConversationCallButton.vue';
 import FollowingButton from 'dashboard/components-next/Conversation/Review/FollowingButton.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -41,6 +47,15 @@ const { isAWebWidgetInbox } = useInbox();
 const { updateUISettings } = useUISettings();
 
 const currentChat = computed(() => store.getters.getSelectedChat);
+const closedPickup = computed(
+  () => currentChat.value?.labels?.includes(CLOSED_PICKUP_LABEL) === true
+);
+const editPickupDate = () => {
+  const conversationId = currentChat.value.id;
+  return confirmPickupDate(conversationId, pickup =>
+    store.dispatch('conversationLabels/mutate', { conversationId, pickup })
+  );
+};
 const accountId = computed(() => store.getters.getCurrentAccountId);
 
 const chatMetadata = computed(() => props.chat.meta);
@@ -164,13 +179,27 @@ const copyConversationId = async () => {
           <span
             class="text-sm font-medium truncate leading-tight text-n-slate-12"
           >
-            {{ currentContact.name }}
+            <PickupContactName
+              :name="currentContact.name"
+              :suffix="currentContact.custom_attributes?.[PICKUP_SUFFIX_KEY]"
+              :allow-legacy="closedPickup"
+            />
           </span>
           <ConversationAiStatus
             v-if="currentChat?.id"
             :conversation-id="currentChat.id"
             density="header"
           />
+          <button
+            v-if="closedPickup"
+            type="button"
+            :aria-label="$t('ROTTA_PICKUP.EDIT')"
+            :title="$t('ROTTA_PICKUP.EDIT')"
+            class="grid size-7 shrink-0 place-items-center rounded-md text-n-amber-11 hover:bg-n-amber-3"
+            @click="editPickupDate"
+          >
+            <span class="i-lucide-calendar-days size-4" aria-hidden="true" />
+          </button>
           <fluent-icon
             v-if="!isHMACVerified"
             v-tooltip="$t('CONVERSATION.UNVERIFIED_SESSION')"

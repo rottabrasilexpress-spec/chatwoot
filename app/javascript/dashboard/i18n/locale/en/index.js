@@ -45,7 +45,10 @@ import onboarding from './onboarding.json';
 import sessionLimit from './sessionLimit.json';
 import yearInReview from './yearInReview.json';
 
+import rottaPickup from './rottaPickup.json';
+
 export default {
+  ...rottaPickup,
   ...advancedFilters,
   ...agentBots,
   ...agentMgmt,

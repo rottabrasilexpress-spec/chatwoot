@@ -9,6 +9,11 @@ import {
 } from 'dashboard/helper/conversationHelper';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import PickupContactName from 'dashboard/components-next/Conversation/Pickups/PickupContactName.vue';
+import {
+  CLOSED_PICKUP_LABEL,
+  PICKUP_SUFFIX_KEY,
+} from 'dashboard/helper/rottaPickup';
 import MessagePreview from './MessagePreview.vue';
 import InboxName from '../InboxName.vue';
 import TimeAgo from 'dashboard/components/ui/TimeAgo.vue';
@@ -270,7 +275,11 @@ const selectedModel = computed({
               class="conversation--user text-sm my-0 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap min-w-0 flex-1 text-n-slate-12"
               :class="hasUnread ? 'font-semibold' : 'font-medium'"
             >
-              {{ currentContactDisplayName }}
+              <PickupContactName
+                :name="currentContactDisplayName"
+                :suffix="currentContact?.custom_attributes?.[PICKUP_SUFFIX_KEY]"
+                :allow-legacy="chat.labels?.includes(CLOSED_PICKUP_LABEL)"
+              />
             </h4>
             <ConversationAiStatus :conversation-id="chat.id" density="card" />
           </div>

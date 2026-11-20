@@ -26,6 +26,18 @@ import CopilotContainer from 'dashboard/components/copilot/CopilotContainer.vue'
 
 import MobileSidebarLauncher from 'dashboard/components-next/sidebar/MobileSidebarLauncher.vue';
 import { useCallsStore } from 'dashboard/stores/calls';
+import { pickupRequest } from 'dashboard/composables/useRottaPickupDialog';
+
+const PickupDateDialog = defineAsyncComponent(
+  () =>
+    import(
+      'dashboard/components-next/Conversation/Pickups/PickupDateDialog.vue'
+    )
+);
+const PickupReminders = defineAsyncComponent(
+  () =>
+    import('dashboard/components-next/Conversation/Pickups/PickupReminders.vue')
+);
 
 export default {
   components: {
@@ -38,6 +50,8 @@ export default {
     CopilotContainer,
     FloatingCallWidget,
     MobileSidebarLauncher,
+    PickupDateDialog,
+    PickupReminders,
   },
   setup() {
     const upgradePageRef = ref(null);
@@ -50,6 +64,7 @@ export default {
       uiSettings,
       updateUISettings,
       accountId,
+      pickupRequest,
       upgradePageRef,
       windowWidth,
       hasActiveCall: computed(() => callsStore.hasActiveCall),
@@ -162,6 +177,8 @@ export default {
       </UpgradePage>
       <template v-if="!showUpgradePage">
         <router-view />
+        <PickupDateDialog v-if="pickupRequest" />
+        <PickupReminders />
         <CopilotLauncher />
         <MobileSidebarLauncher
           v-if="!isConversationFocusMode"

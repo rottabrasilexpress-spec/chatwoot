@@ -55,6 +55,8 @@
 
 class Conversation < ApplicationRecord
   include Labelable
+
+  has_one :rotta_pickup
   include LlmFormattable
   include AssignmentHandler
   include AutoAssignmentHandler
@@ -83,6 +85,17 @@ class Conversation < ApplicationRecord
   validates :custom_attributes, jsonb_attributes_length: true
   validates :uuid, uniqueness: true
   validate :validate_referer_url
+  validate :require_rotta_pickup_for_closed_label, if: :will_save_change_to_label_list?
+
+  attr_accessor :rotta_pickup_confirmed
+
+  def require_rotta_pickup_for_closed_label
+    previous, proposed = changes_to_save['label_list'] || changes_to_save[:label_list]
+    return unless Array(proposed).include?(RottaPickup::CLOSED_LABEL) && !Array(previous).include?(RottaPickup::CLOSED_LABEL)
+    return if rotta_pickup_confirmed
+
+    errors.add(:base, 'Informe e salve a data de coleta antes de aplicar Clientes Fechados.')
+  end
 
   enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }

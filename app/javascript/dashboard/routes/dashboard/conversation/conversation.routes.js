@@ -45,6 +45,12 @@ const redirectFolderConversationIfUnavailable = async (to, _from, next) => {
 export default {
   routes: [
     {
+      path: frontendURL('accounts/:accountId/proximas-mudancas'),
+      name: 'rotta_upcoming_pickups',
+      meta: { permissions: CONVERSATION_PERMISSIONS },
+      component: () => import('./UpcomingPickups.vue'),
+    },
+    {
       path: frontendURL('accounts/:accountId/review-resume'),
       name: 'conversation_review_resume',
       meta: { permissions: CONVERSATION_PERMISSIONS },

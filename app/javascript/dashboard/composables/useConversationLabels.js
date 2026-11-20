@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
+import { CLOSED_PICKUP_LABEL } from 'dashboard/helper/rottaPickup';
 import {
   isConversationLabelMutationCurrent,
   withIdempotentConversationLabelMutation,
@@ -130,7 +131,10 @@ export function useConversationLabels() {
     const normalizedSelectedLabels = normalizeLabels(
       archivedLabel ? [archivedLabel] : labels
     );
-    setPendingLabels(id, normalizedSelectedLabels);
+    const awaitingPickup =
+      normalizedSelectedLabels.includes(CLOSED_PICKUP_LABEL) &&
+      !previousLabels.includes(CLOSED_PICKUP_LABEL);
+    if (!awaitingPickup) setPendingLabels(id, normalizedSelectedLabels);
     const intent = normalizedSelectedLabels
       .map(normalizedLabelKey)
       .sort()
@@ -146,6 +150,7 @@ export function useConversationLabels() {
           });
 
           if (result?.status === 'superseded') return result;
+          if (result?.status === 'cancelled') return result;
           if (result?.status !== 'success' && result !== true) return false;
 
           await store.dispatch('labels/get', { forceNetwork: true });

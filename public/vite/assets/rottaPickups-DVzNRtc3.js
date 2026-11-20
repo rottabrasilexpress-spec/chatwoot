@@ -1,0 +1,2 @@
+import{A as p,c1 as r}from"./DashboardIcon-D9ON9vqa.js";class i extends p{constructor(){super("rotta_pickups",{accountScoped:!0})}page(e){return r(this.url+"?page="+e)}reminders(){return r(this.url+"/reminders")}acknowledge(e,t){const s=t.map(({id:o,starts_on:a,ends_on:c})=>({id:o,starts_on:a,ends_on:c}));return axios.post(this.url+"/acknowledge",{day:e,items:s})}complete(e,{starts_on:t,ends_on:s}){return axios.post(this.url+"/"+e+"/complete",{starts_on:t,ends_on:s})}}const l=new i;export{l as a};
+//# sourceMappingURL=rottaPickups-DVzNRtc3.js.map

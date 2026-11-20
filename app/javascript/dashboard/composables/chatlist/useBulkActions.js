@@ -2,6 +2,7 @@ import { ref, unref } from 'vue';
 import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
+import { CLOSED_PICKUP_LABEL } from 'dashboard/helper/rottaPickup';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
 import ConversationAPI from 'dashboard/api/conversations';
@@ -189,6 +190,18 @@ export function useBulkActions() {
   // Same method used in context menu, conversationId being passed from there.
   async function onAssignLabels(newLabels, conversationId = null) {
     const labelsToAssign = Array.isArray(newLabels) ? newLabels : [newLabels];
+    if (!conversationId && labelsToAssign.includes(CLOSED_PICKUP_LABEL)) {
+      const ids = [...selectedConversations.value];
+      // Each conversation requires its own confirmed pickup date.
+      const completed = await ids.reduce(
+        async (previous, id) =>
+          (await previous) && onAssignLabels(labelsToAssign, id),
+        Promise.resolve(true)
+      );
+      if (!completed) return false;
+      store.dispatch('bulkActions/clearSelectedConversationIds');
+      return true;
+    }
     if (conversationId) {
       try {
         const updated = await store.dispatch('conversationLabels/mutate', {
@@ -196,6 +209,7 @@ export function useBulkActions() {
           add: labelsToAssign,
         });
         if (updated?.status === 'superseded') return true;
+        if (updated?.status === 'cancelled') return false;
         if (updated?.status !== 'success' && updated !== true) {
           throw new Error('Conversation labels were not updated');
         }

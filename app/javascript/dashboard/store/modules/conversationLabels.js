@@ -2,6 +2,11 @@ import * as types from '../mutation-types';
 import ConversationAPI from '../../api/conversations';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { emitter } from 'shared/helpers/mitt';
+import { CLOSED_PICKUP_LABEL } from 'dashboard/helper/rottaPickup';
+import {
+  announcePickupChange,
+  confirmPickupDate,
+} from 'dashboard/composables/useRottaPickupDialog';
 import {
   beginConversationLabelMutation,
   getConversationLabelMutationVersion,
@@ -128,7 +133,6 @@ export const actions = {
     { commit, dispatch, rootGetters },
     { conversationId, labels = [] }
   ) => {
-    const version = beginConversationLabelMutation([conversationId]);
     const previousLabels =
       state.records[Number(conversationId)] ||
       rootGetters?.getConversationById?.(Number(conversationId))?.labels ||
@@ -141,6 +145,21 @@ export const actions = {
     const labelsToRemove = currentLabelTitles.filter(
       label => !nextLabelTitles.includes(label)
     );
+    if (labelsToAdd.includes(CLOSED_PICKUP_LABEL)) {
+      return confirmPickupDate(conversationId, pickup =>
+        dispatch(
+          'conversationLabels/mutate',
+          {
+            conversationId,
+            add: labelsToAdd,
+            remove: labelsToRemove,
+            pickup,
+          },
+          { root: true }
+        )
+      );
+    }
+    const version = beginConversationLabelMutation([conversationId]);
     pendingLabelUpdates += 1;
     commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {
       isUpdating: true,
@@ -159,6 +178,7 @@ export const actions = {
             remove: labelsToRemove,
           })
       );
+      if (labelsToRemove.includes(CLOSED_PICKUP_LABEL)) announcePickupChange();
       if (isLatestConversationLabelMutation(conversationId, version)) {
         commit(types.default.SET_CONVERSATION_LABELS, {
           id: conversationId,
@@ -225,8 +245,22 @@ export const actions = {
   },
   mutate: async (
     { commit, dispatch, rootGetters },
-    { conversationId, add = [], remove = [] }
+    { conversationId, add = [], remove = [], pickup }
   ) => {
+    if (!pickup && labelTitles(add).includes(CLOSED_PICKUP_LABEL)) {
+      return confirmPickupDate(conversationId, dates =>
+        dispatch(
+          'conversationLabels/mutate',
+          {
+            conversationId,
+            add,
+            remove,
+            pickup: dates,
+          },
+          { root: true }
+        )
+      );
+    }
     const version = beginConversationLabelMutation([conversationId]);
     const previousLabels =
       state.records[Number(conversationId)] ||
@@ -246,7 +280,10 @@ export const actions = {
           const currentLabels = labelTitles(currentResponse.data.payload);
           const nextLabels = mergeLabels(currentLabels, { add, remove });
 
-          if (isLatestConversationLabelMutation(conversationId, version)) {
+          if (
+            !pickup &&
+            isLatestConversationLabelMutation(conversationId, version)
+          ) {
             commit(types.default.SET_CONVERSATION_LABELS, {
               id: conversationId,
               data: nextLabels,
@@ -262,7 +299,15 @@ export const actions = {
           const response = await ConversationAPI.mutateLabels(conversationId, {
             add,
             remove,
+            ...(pickup ? { pickup } : {}),
           });
+          if (response.data.contact) {
+            dispatch('contacts/updateContact', response.data.contact, {
+              root: true,
+            });
+          }
+          if (pickup || labelTitles(remove).includes(CLOSED_PICKUP_LABEL))
+            announcePickupChange();
           if (isLatestConversationLabelMutation(conversationId, version)) {
             commit(types.default.SET_CONVERSATION_LABELS, {
               id: conversationId,
@@ -321,7 +366,15 @@ export const actions = {
           isError: true,
         });
       }
-      return mutationResult(conversationId, version, false);
+      return {
+        ...mutationResult(conversationId, version, false),
+        ...(pickup
+          ? {
+              error:
+                error.response?.data?.message || error.response?.data?.error,
+            }
+          : {}),
+      };
     } finally {
       pendingLabelUpdates -= 1;
       commit(types.default.SET_CONVERSATION_LABELS_UI_FLAG, {

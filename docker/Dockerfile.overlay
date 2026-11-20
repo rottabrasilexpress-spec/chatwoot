@@ -80,6 +80,11 @@ COPY app/models/conversation.rb /app/app/models/conversation.rb
 COPY app/presenters/conversations/event_data_presenter.rb /app/app/presenters/conversations/event_data_presenter.rb
 COPY app/models/conversation_following.rb /app/app/models/conversation_following.rb
 COPY app/controllers/api/v1/accounts/conversation_followings_controller.rb /app/app/controllers/api/v1/accounts/conversation_followings_controller.rb
+COPY app/controllers/api/v1/accounts/rotta_pickups_controller.rb /app/app/controllers/api/v1/accounts/rotta_pickups_controller.rb
+COPY app/controllers/api/v1/accounts/bulk_actions_controller.rb /app/app/controllers/api/v1/accounts/bulk_actions_controller.rb
+COPY app/views/api/v1/accounts/conversations/labels/create.json.jbuilder /app/app/views/api/v1/accounts/conversations/labels/create.json.jbuilder
+COPY app/models/rotta_pickup.rb /app/app/models/rotta_pickup.rb
+COPY db/migrate/20261120130000_create_rotta_pickups.rb /app/db/migrate/20261120130000_create_rotta_pickups.rb
 COPY db/migrate/20261006150000_create_conversation_followings.rb /app/db/migrate/20261006150000_create_conversation_followings.rb
 COPY app/models/message.rb /app/app/models/message.rb
 COPY app/models/deleted_message_content.rb /app/app/models/deleted_message_content.rb
