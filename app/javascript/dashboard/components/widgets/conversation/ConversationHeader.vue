@@ -10,11 +10,12 @@ import Avatar from 'next/avatar/Avatar.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import ConversationAiStatus from './ConversationAiStatus.vue';
 import PickupContactName from 'dashboard/components-next/Conversation/Pickups/PickupContactName.vue';
+import PickupScheduleDates from 'dashboard/components-next/Conversation/Pickups/PickupScheduleDates.vue';
 import {
   CLOSED_PICKUP_LABEL,
   PICKUP_SUFFIX_KEY,
 } from 'dashboard/helper/rottaPickup';
-import { confirmPickupDate } from 'dashboard/composables/useRottaPickupDialog';
+import { editPickupDates } from 'dashboard/composables/useRottaPickupDialog';
 import ConversationCallButton from './ConversationCallButton.vue';
 import FollowingButton from 'dashboard/components-next/Conversation/Review/FollowingButton.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -50,12 +51,7 @@ const currentChat = computed(() => store.getters.getSelectedChat);
 const closedPickup = computed(
   () => currentChat.value?.labels?.includes(CLOSED_PICKUP_LABEL) === true
 );
-const editPickupDate = () => {
-  const conversationId = currentChat.value.id;
-  return confirmPickupDate(conversationId, pickup =>
-    store.dispatch('conversationLabels/mutate', { conversationId, pickup })
-  );
-};
+const editPickupDate = () => editPickupDates(currentChat.value.id, store);
 const accountId = computed(() => store.getters.getCurrentAccountId);
 
 const chatMetadata = computed(() => props.chat.meta);
@@ -183,6 +179,7 @@ const copyConversationId = async () => {
               :name="currentContact.name"
               :suffix="currentContact.custom_attributes?.[PICKUP_SUFFIX_KEY]"
               :allow-legacy="closedPickup"
+              :show-date="!closedPickup"
             />
           </span>
           <ConversationAiStatus
@@ -193,8 +190,8 @@ const copyConversationId = async () => {
           <button
             v-if="closedPickup"
             type="button"
-            :aria-label="$t('ROTTA_PICKUP.EDIT')"
-            :title="$t('ROTTA_PICKUP.EDIT')"
+            :aria-label="$t('ROTTA_PICKUP.EDIT_DATES')"
+            :title="$t('ROTTA_PICKUP.EDIT_DATES')"
             class="grid size-7 shrink-0 place-items-center rounded-md text-n-amber-11 hover:bg-n-amber-3"
             @click="editPickupDate"
           >
@@ -219,13 +216,22 @@ const copyConversationId = async () => {
           >
             {{ `#${chat.id}` }}
           </button>
-          <span v-if="hasMultipleInboxes">•</span>
+          <span v-if="hasMultipleInboxes" aria-hidden="true">{{
+            '\u2022'
+          }}</span>
           <InboxName v-if="hasMultipleInboxes" :inbox="inbox" class="!mx-0" />
           <span v-if="isSnoozed">•</span>
           <span v-if="isSnoozed" class="font-medium text-n-amber-10">
             {{ snoozedDisplayText }}
           </span>
         </div>
+        <PickupScheduleDates
+          v-if="closedPickup"
+          :name="currentContact.name"
+          :suffix="currentContact.custom_attributes?.[PICKUP_SUFFIX_KEY]"
+          :schedule="currentChat.rotta_pickup"
+          class="mt-1"
+        />
       </div>
     </div>
     <div

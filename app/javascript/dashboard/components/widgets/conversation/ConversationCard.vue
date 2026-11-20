@@ -10,6 +10,7 @@ import {
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import PickupContactName from 'dashboard/components-next/Conversation/Pickups/PickupContactName.vue';
+import PickupScheduleDates from 'dashboard/components-next/Conversation/Pickups/PickupScheduleDates.vue';
 import {
   CLOSED_PICKUP_LABEL,
   PICKUP_SUFFIX_KEY,
@@ -74,6 +75,9 @@ const currentContactDisplayName = computed(() => {
 
   return displayName?.trim() || `#${props.chat?.display_id || props.chat?.id}`;
 });
+const closedPickup = computed(() =>
+  props.chat.labels?.includes(CLOSED_PICKUP_LABEL)
+);
 const unreadCount = computed(() =>
   hasUnread.value ? Number(props.chat.unread_count || 0) : 0
 );
@@ -278,7 +282,8 @@ const selectedModel = computed({
               <PickupContactName
                 :name="currentContactDisplayName"
                 :suffix="currentContact?.custom_attributes?.[PICKUP_SUFFIX_KEY]"
-                :allow-legacy="chat.labels?.includes(CLOSED_PICKUP_LABEL)"
+                :allow-legacy="closedPickup"
+                :show-date="!closedPickup"
               />
             </h4>
             <ConversationAiStatus :conversation-id="chat.id" density="card" />
@@ -300,6 +305,13 @@ const selectedModel = computed({
           />
         </div>
       </div>
+      <PickupScheduleDates
+        v-if="closedPickup"
+        :name="currentContactDisplayName"
+        :suffix="currentContact?.custom_attributes?.[PICKUP_SUFFIX_KEY]"
+        :schedule="chat.rotta_pickup"
+        class="mx-2 mt-1"
+      />
       <p v-if="isReviewNext" class="my-0 mx-2 text-xs text-n-brand font-medium">
         {{ $t('CONVERSATION.REVIEW_NEXT', 'Próximo da revisão') }}
       </p>

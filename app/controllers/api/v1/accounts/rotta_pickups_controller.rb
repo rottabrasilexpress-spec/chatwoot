@@ -21,7 +21,7 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
 
   def update
     input = params.permit(:confirm_window, pickup: DATE_FIELDS, expected: DATE_FIELDS)
-    @conversation.with_lock do
+    pickup = @conversation.with_lock do
       original = current_pickup
       if !@conversation.label_list.include?(RottaPickup::CLOSED_LABEL) || !same_snapshot?(original, input[:expected])
         return render json: { error: 'O agendamento mudou. Abra o editor novamente para conferir as datas.' }, status: :conflict
@@ -38,9 +38,11 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
         submitted = date_fields(original).merge(submitted).merge(ends_on: nil)
       end
 
-      pickup = RottaPickup.save_for!(@conversation, submitted)
-      render json: { pickup: date_fields(pickup), contact: @conversation.contact.push_event_data }
+      RottaPickup.save_for!(@conversation, submitted)
     end
+
+    pickup.broadcast_schedule_change
+    render json: { pickup: date_fields(pickup), rotta_pickup: pickup.conversation_dates, contact: @conversation.contact.push_event_data }
   end
 
   def reminders
@@ -109,12 +111,7 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
     scope.includes(:contact, :rotta_pickup).filter_map do |conversation|
       next unless policy(conversation).show?
 
-      pickup = conversation.rotta_pickup
-      if pickup
-        pickup if conversation.contact.name.to_s.end_with?(" #{pickup.date_label}")
-      else
-        RottaPickup.from_name(conversation)
-      end
+      conversation.rotta_pickup || RottaPickup.from_name(conversation)
     end
   end
 
@@ -141,9 +138,8 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
   def card(pickup, today)
     conversation = pickup.conversation
     name = conversation.contact.name
-    suffix = name.to_s.match(RottaPickup::LEGACY_SUFFIX)&.[](:suffix)
     date_fields(pickup).merge(id: conversation.display_id, name: name, phone: conversation.contact.phone_number,
-                             date_label: suffix, days_until: (pickup.starts_on - today).to_i,
+                             date_label: pickup.date_label, days_until: (pickup.starts_on - today).to_i,
                              pickup_overdue: (pickup.ends_on || pickup.starts_on) < today)
   end
 

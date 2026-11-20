@@ -41,7 +41,11 @@ json.can_reply conversation.can_reply?
 json.contact_last_seen_at conversation.contact_last_seen_at.to_i
 json.custom_attributes conversation.custom_attributes
 json.inbox_id conversation.inbox_id
-json.labels conversation.labels_for_display
+labels = conversation.labels_for_display
+json.labels labels
+if labels.include?(RottaPickup::CLOSED_LABEL) && conversation.rotta_pickup
+  json.rotta_pickup conversation.rotta_pickup.conversation_dates
+end
 json.muted conversation.muted?
 json.snoozed_until conversation.snoozed_until
 json.status conversation.status

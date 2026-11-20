@@ -33,6 +33,10 @@ export const editPickupDates = (conversationId, store, confirmWindow = false) =>
         expected,
         confirm_window: confirmWindow,
       });
+      store.commit('SET_ROTTA_PICKUP', {
+        id: conversationId,
+        rotta_pickup: data.rotta_pickup,
+      });
       await store.dispatch('contacts/updateContact', data.contact);
       announcePickupChange();
       return { status: 'success' };

@@ -301,6 +301,13 @@ export const actions = {
             remove,
             ...(pickup ? { pickup } : {}),
           });
+          if (response.data.rotta_pickup) {
+            commit(
+              types.default.SET_ROTTA_PICKUP,
+              { id: conversationId, rotta_pickup: response.data.rotta_pickup },
+              { root: true }
+            );
+          }
           if (response.data.contact) {
             dispatch('contacts/updateContact', response.data.contact, {
               root: true,

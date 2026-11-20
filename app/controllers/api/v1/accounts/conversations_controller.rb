@@ -11,7 +11,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
 
   def index
     result = conversation_finder.perform
-    @conversations = result[:conversations]
+    @conversations = result[:conversations].preload(:rotta_pickup)
     @conversations_count = result[:count]
   end
 
@@ -27,7 +27,10 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     # Contact lookup powers the regular conversation cards, not the global
     # search snippets. Reuse the bounded, full card serializer (labels/status/
     # sender/latest message) instead of serializing the whole message history.
-    render :index if params[:contact_search] == 'true'
+    if params[:contact_search] == 'true'
+      @conversations = @conversations.preload(:rotta_pickup)
+      render :index
+    end
   end
 
   def ai_status
@@ -78,7 +81,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
 
   def filter
     result = ::Conversations::FilterService.new(params.permit!, current_user, current_account).perform
-    @conversations = result[:conversations]
+    @conversations = result[:conversations].preload(:rotta_pickup)
     @conversations_count = result[:count]
   rescue CustomExceptions::CustomFilter::InvalidAttribute,
          CustomExceptions::CustomFilter::InvalidOperator,

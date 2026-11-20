@@ -3,6 +3,7 @@ class RottaPickup < ApplicationRecord
   FINISHED_LABEL = 'finalizados'.freeze
   NAME_SUFFIX_KEY = 'rotta_pickup_name_suffix'.freeze
   LEGACY_SUFFIX = /\s+(?<suffix>(?<start>\d{2}\/\d{2}\/\d{4})(?:\s+até\s+(?<end>\d{2}\/\d{2}(?:\/\d{4})?))?)\z/i
+  SCHEDULE_CHANGED_EVENT = 'conversation.rotta_pickup_changed'.freeze
   TIME_ZONE = 'America/Sao_Paulo'.freeze
 
   belongs_to :conversation
@@ -51,6 +52,21 @@ class RottaPickup < ApplicationRecord
     "#{label} até #{ends_on.strftime(finish_format)}"
   end
 
+  def conversation_dates
+    { starts_on: starts_on, ends_on: ends_on, delivery_on: delivery_on, updated_at: updated_at.iso8601(6) }
+  end
+
+  def broadcast_schedule_change
+    account = conversation.account
+    tokens = account.account_users.includes(:user).filter_map do |membership|
+      user = membership.user
+      context = { user: user, account: account, account_user: membership }
+      user.pubsub_token if ConversationPolicy.new(context, conversation).show?
+    end
+    ActionCableBroadcastJob.perform_later(tokens, SCHEDULE_CHANGED_EVENT,
+                                         { account_id: account.id, id: conversation.display_id, rotta_pickup: conversation_dates })
+  end
+
   def self.save_for!(conversation, submitted)
     start = parse_date(submitted[:starts_on])
     finish = parse_date(submitted[:ends_on])
@@ -67,18 +83,12 @@ class RottaPickup < ApplicationRecord
     end
 
     pickup.update!(starts_on: start, ends_on: finish, delivery_on: delivery, note: submitted[:note].to_s.strip.first(240).presence)
-    contact = conversation.contact
-    contact.with_lock do
-      attrs = contact.custom_attributes || {}
-      name = contact.name.to_s.strip
-      previous = attrs[NAME_SUFFIX_KEY]
-      base = previous.present? ? name.delete_suffix(" #{previous}") : name
-      legacy = name.match(LEGACY_SUFFIX)
-      base = name[0...legacy.begin(0)] if base == name && legacy && from_name(conversation)
-      base = contact.phone_number.presence || "Contato #{contact.id}" if base.blank?
-      contact.update!(name: "#{base} #{pickup.date_label}", custom_attributes: attrs.merge(NAME_SUFFIX_KEY => pickup.date_label))
-    end
+    pickup.sync_contact_name!
     pickup
+  end
+
+  def sync_contact_name!
+    conversation.contact.sync_rotta_pickup_name!(date_label)
   end
 
   private

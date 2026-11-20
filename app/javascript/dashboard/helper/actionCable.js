@@ -1,3 +1,4 @@
+import { announcePickupChange } from 'dashboard/composables/useRottaPickupDialog';
 import AuthAPI from '../api/auth';
 import BaseActionCableConnector from '../../shared/helpers/BaseActionCableConnector';
 import DashboardAudioNotificationHelper from './AudioAlerts/DashboardAudioNotificationHelper';
@@ -58,6 +59,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'notification.updated': this.onNotificationUpdated,
       'conversation.read': this.onConversationRead,
       'conversation.updated': this.onConversationUpdated,
+      'conversation.rotta_pickup_changed': this.onRottaPickupChanged,
       'conversation.following_changed': this.onConversationFollowingChanged,
       'conversation.caio_attention_added': this.onCaioAttentionAdded,
       'conversation.attention_requested': this.onAttentionRequested,
@@ -209,6 +211,13 @@ class ActionCableConnector extends BaseActionCableConnector {
       this.scheduleLabelCatalogRefresh();
       emitter.emit(BUS_EVENTS.ROTTA_FOLLOW_UP_REFRESH, data);
     }
+  };
+
+  onRottaPickupChanged = data => {
+    if (+data.account_id !== +this.app.$store.getters.getCurrentAccountId)
+      return;
+    this.app.$store.commit('SET_ROTTA_PICKUP', data);
+    announcePickupChange();
   };
 
   // eslint-disable-next-line class-methods-use-this

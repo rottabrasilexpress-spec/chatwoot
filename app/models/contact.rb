@@ -67,6 +67,7 @@ class Contact < ApplicationRecord
   after_update_commit :dispatch_update_event
   after_destroy_commit :dispatch_destroy_event
   before_save :sync_contact_attributes
+  before_update :preserve_rotta_pickup_name, if: :rotta_pickup_name_write?
 
   enum contact_type: { visitor: 0, lead: 1, customer: 2 }
 
@@ -145,6 +146,18 @@ class Contact < ApplicationRecord
 
   def get_source_id(inbox_id)
     contact_inboxes.find_by!(inbox_id: inbox_id).source_id
+  end
+
+  def sync_rotta_pickup_name!(suffix)
+    with_lock do
+      @syncing_rotta_pickup_name = true
+      attrs = custom_attributes || {}
+      previous = attrs[RottaPickup::NAME_SUFFIX_KEY]
+      update!(name: rotta_pickup_name_with_suffix(name, previous, suffix),
+              custom_attributes: attrs.merge(RottaPickup::NAME_SUFFIX_KEY => suffix))
+    end
+  ensure
+    @syncing_rotta_pickup_name = false
   end
 
   def push_event_data
@@ -228,6 +241,36 @@ class Contact < ApplicationRecord
   def prepare_jsonb_attributes
     self.additional_attributes = {} if additional_attributes.blank?
     self.custom_attributes = {} if custom_attributes.blank?
+  end
+
+  def rotta_pickup_name_write?
+    return false if @syncing_rotta_pickup_name
+
+    will_save_change_to_name? || (will_save_change_to_custom_attributes? &&
+      (custom_attributes_in_database || {}).key?(RottaPickup::NAME_SUFFIX_KEY))
+  end
+
+  def preserve_rotta_pickup_name
+    stored = Contact.select(:id, :name, :custom_attributes).lock.find(id)
+    suffix = stored.custom_attributes&.[](RottaPickup::NAME_SUFFIX_KEY)
+    if suffix.blank? && will_save_change_to_name? && stored.name.to_s.match?(RottaPickup::LEGACY_SUFFIX)
+      return unless conversations.tagged_with(RottaPickup::CLOSED_LABEL).exists?
+
+      suffix = stored.name.match(RottaPickup::LEGACY_SUFFIX)[:suffix]
+    end
+    return if suffix.blank?
+
+    old_suffix = custom_attributes&.[](RottaPickup::NAME_SUFFIX_KEY)
+    self.name = rotta_pickup_name_with_suffix(name, old_suffix, suffix) if will_save_change_to_name?
+    self.custom_attributes = (custom_attributes || {}).merge(RottaPickup::NAME_SUFFIX_KEY => suffix)
+  end
+
+  def rotta_pickup_name_with_suffix(raw_name, old_suffix, suffix)
+    base = raw_name.to_s.strip
+    base = base.delete_suffix(" #{old_suffix}") if old_suffix.present?
+    base = base.sub(RottaPickup::LEGACY_SUFFIX, '')
+    base = phone_number.presence || "Contato #{id}" if base.blank?
+    "#{base.truncate(MAX_STRING_COLUMN_LENGTH - suffix.length - 1, omission: '')} #{suffix}"
   end
 
   def sync_contact_attributes

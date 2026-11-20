@@ -20,6 +20,7 @@ class Api::V1::Accounts::Conversations::LabelsController < Api::V1::Accounts::Co
         raise ActiveRecord::RecordInvalid, @conversation
       end
     end
+    @pickup&.broadcast_schedule_change
   ensure
     @conversation.rotta_pickup_confirmed = false if @conversation
   end

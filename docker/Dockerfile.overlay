@@ -83,6 +83,7 @@ COPY app/controllers/api/v1/accounts/conversation_followings_controller.rb /app/
 COPY app/controllers/api/v1/accounts/rotta_pickups_controller.rb /app/app/controllers/api/v1/accounts/rotta_pickups_controller.rb
 COPY app/controllers/api/v1/accounts/bulk_actions_controller.rb /app/app/controllers/api/v1/accounts/bulk_actions_controller.rb
 COPY app/views/api/v1/accounts/conversations/labels/create.json.jbuilder /app/app/views/api/v1/accounts/conversations/labels/create.json.jbuilder
+COPY app/models/contact.rb /app/app/models/contact.rb
 COPY app/models/rotta_pickup.rb /app/app/models/rotta_pickup.rb
 COPY db/migrate/20261120130000_create_rotta_pickups.rb /app/db/migrate/20261120130000_create_rotta_pickups.rb
 COPY db/migrate/20261120140000_add_delivery_on_to_rotta_pickups.rb /app/db/migrate/20261120140000_add_delivery_on_to_rotta_pickups.rb

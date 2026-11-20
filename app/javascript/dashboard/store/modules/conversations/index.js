@@ -29,6 +29,12 @@ const getConversationById = _state => conversationId => {
   return _state.allConversations.find(c => c.id === conversationId);
 };
 
+const latestPickup = (existing, incoming) => {
+  if (!incoming) return existing;
+  if (existing?.updated_at > incoming.updated_at) return existing;
+  return incoming;
+};
+
 // mutations
 export const mutations = {
   [types.SET_ALL_CONVERSATION](_state, conversationList) {
@@ -47,7 +53,19 @@ export const mutations = {
         // Added this to fix the issue of the conversation not being updated
         // When reconnecting to the websocket. If the selectedChatId is not the same as
         // the conversation.id in the store, replace the existing conversation with the new one
-        newAllConversations[indexInCurrentList] = conversation;
+        const previousPickup =
+          newAllConversations[indexInCurrentList].rotta_pickup;
+        newAllConversations[indexInCurrentList] = {
+          ...conversation,
+          ...(previousPickup
+            ? {
+                rotta_pickup: latestPickup(
+                  previousPickup,
+                  conversation.rotta_pickup
+                ),
+              }
+            : {}),
+        };
       } else {
         // If the conversation is already in the list and selectedChatId is the same,
         // replace all data except the messages array, attachments, dataFetched, allMessagesLoaded
@@ -66,6 +84,14 @@ export const mutations = {
         });
         newAllConversations[indexInCurrentList] = {
           ...conversation,
+          ...(existingConversation.rotta_pickup
+            ? {
+                rotta_pickup: latestPickup(
+                  existingConversation.rotta_pickup,
+                  conversation.rotta_pickup
+                ),
+              }
+            : {}),
           allMessagesLoaded: existingConversation.allMessagesLoaded,
           messages:
             conversation.id === _state.selectedChatId
@@ -258,6 +284,16 @@ export const mutations = {
     }
   },
 
+  [types.SET_ROTTA_PICKUP](_state, { id, rotta_pickup: pickup }) {
+    const conversation = getConversationById(_state)(id);
+    if (conversation && pickup) {
+      conversation.rotta_pickup = latestPickup(
+        conversation.rotta_pickup,
+        pickup
+      );
+    }
+  },
+
   [types.ADD_CONVERSATION](_state, conversation) {
     const exists = _state.allConversations.some(c => c.id === conversation.id);
     if (!exists) {
@@ -284,7 +320,18 @@ export const mutations = {
       }
 
       const { messages, ...updates } = conversation;
-      allConversations[index] = { ...selectedConversation, ...updates };
+      allConversations[index] = {
+        ...selectedConversation,
+        ...updates,
+        ...(selectedConversation.rotta_pickup
+          ? {
+              rotta_pickup: latestPickup(
+                selectedConversation.rotta_pickup,
+                updates.rotta_pickup
+              ),
+            }
+          : {}),
+      };
       if (_state.selectedChatId === conversation.id) {
         emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE);
       }

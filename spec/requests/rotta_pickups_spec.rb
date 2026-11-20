@@ -56,6 +56,33 @@ RSpec.describe 'Rotta pickup dates' do
     expect(response).to have_http_status(:conflict)
   end
 
+  it 'keeps the pickup suffix when a contact name is changed independently' do
+    stale_contact = Contact.find(contact.id)
+    post label_url, params: { add: ['clientes-fechados'], pickup: { starts_on: '2026-11-23', ends_on: '2026-11-25' } },
+                    headers: headers, as: :json
+    expect(response).to have_http_status(:ok)
+
+    stale_contact.update!(name: 'Nome corrigido')
+    expect(contact.reload.name).to eq('Nome corrigido 23/11/2026 até 25/11')
+    expect(contact.custom_attributes[RottaPickup::NAME_SUFFIX_KEY]).to eq('23/11/2026 até 25/11')
+  end
+
+  it 'lists and alerts from the saved dates even if a legacy writer drops the name suffix' do
+    travel_to(Time.utc(2026, 11, 20, 15)) do
+      post label_url, params: { add: ['clientes-fechados'], pickup: { starts_on: '2026-11-21', delivery_on: '2026-11-22' } },
+                      headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      contact.reload.update_columns(name: 'Nome sem sufixo')
+
+      get "#{base}/conversations/#{conversation.display_id}", headers: headers
+      expect(response.parsed_body['rotta_pickup']).to include('starts_on' => '2026-11-21', 'delivery_on' => '2026-11-22')
+      get "#{base}/rotta_pickups", headers: headers
+      expect(response.parsed_body['items'].first).to include('date_label' => '21/11/2026', 'delivery_on' => '2026-11-22')
+      get "#{base}/rotta_pickups/reminders?include_delivery=true", headers: headers
+      expect(response.parsed_body['items'].pluck('reminder_kind')).to contain_exactly('pickup', 'delivery')
+    end
+  end
+
   it 'acknowledges delivery and pickup separately when both reminders are due' do
     travel_to(Time.utc(2026, 11, 20, 15)) do
       post label_url, params: { add: ['clientes-fechados'],
