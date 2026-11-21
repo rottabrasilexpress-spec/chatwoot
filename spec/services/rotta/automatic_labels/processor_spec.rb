@@ -236,6 +236,36 @@ RSpec.describe Rotta::AutomaticLabels::Processor do
     end
   end
 
+  it 'flags an imperative request for a differently priced option after confirmed delivery' do
+    conversation.update_labels(['orcamento-15-dias'])
+    create_prior_inbound_message
+    create_received_quote
+    message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
+                               message_type: :incoming, content_type: :text,
+                               content: 'Veja o valor também sem ajudantes, por favor, caso a gente decida não levar nada grande.')
+    expect(Rotta::AutomaticLabels::HumanNeedClassifier).not_to receive(:new)
+
+    2.times { Rotta::AutomaticLabelsJob.new.perform(message.id) }
+
+    expect(conversation.reload.label_list).to match_array(%w[orcamento-15-dias caio-atencao])
+    expect(account.rotta_automatic_label_logs.find_by(event_key: "#{message.id}:caio_attention")).to have_attributes(status: 'applied')
+  end
+
+  it 'recognizes this price request without escalating before a final quote was received' do
+    conversation.update_labels(['kelvin'])
+    create_prior_inbound_message
+    create_received_quote(status: :sent)
+    message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact,
+                               message_type: :incoming, content_type: :text, content: 'Veja o valor também sem ajudantes, por favor.')
+    expect(Rotta::AutomaticLabels::HumanNeedClassifier).not_to receive(:new)
+
+    Rotta::AutomaticLabelsJob.new.perform(message.id)
+
+    expect(conversation.reload.label_list).to contain_exactly('kelvin')
+    expect(account.rotta_automatic_label_logs.find_by(event_key: "#{message.id}:caio_attention").metadata['reason'])
+      .to eq('budget_delivery_unconfirmed')
+  end
+
   it 'keeps Caio Atenção off for a sent-only quote and a delivered pre-budget' do
     conversation.update_labels(['kelvin'])
     create_prior_inbound_message

@@ -10,6 +10,31 @@ class Rotta::AutomaticLabels::CommercialIntent
   HUMAN = /\b(?:(?:falar|atendid[oa]|conversar|contato)\s+(?:com|por|do|da)\s+(?:(?:um|uma|o|a)\s+)?(?:pessoa|human[oa]|atendente|caio|responsavel|setor)|(?:chama|chame|passa|passe)\s+(?:(?:o|a|para|pro|pra)\s+)?(?:caio|human[oa]|atendente))\b/
   COMPLAINT = /\b(?:reclam\w*|urgente|urgencia|problema|falha|cobranca divergente)\b/
   NEGOTIATION = /\b(?:ficou car[oa]|achei car[oa]|muito car[oa]|valor (?:alto|pesado)|acima do (?:meu )?orcamento|fora do (?:meu )?orcamento|melhor[ae]r? (?:o|esse) (?:valor|preco)|(?:faz|fecha) por|consegue (?:baixar|melhorar|reduzir)|cabe no meu bolso)\b/
+  PRICE_TOPIC = /
+    (?:valor(?:es)?|precos?|orcamentos?|cotacao|diferenca\ de\ (?:valor|preco)|
+       condic(?:ao|oes)\ de\ pagamento|quanto\ (?:fica|ficaria|sai|sairia|custa|custaria))
+  /x
+  PRICE_COMMAND = /
+    (?<!nao\ )\b(?:veja|vejam|ve|verifica|verifique|confere|confira|calcula|calcule|simula|simule|
+                 cota|cote|passe|informe|refaca|recalcule)\s+(?:[a-z]+\s+){0,5}#{PRICE_TOPIC}\b
+  /x
+  PRICE_REVISION = /
+    (?:reajuste|revisao|recalculo|atualizacao|renegociacao)\s+
+    (?:financeir[oa]|(?:d[oa]|n[oa])\s+(?:valor|preco|orcamento|frete))
+  /x
+  PRICE_REVISION_REQUEST = /
+    \A#{PRICE_REVISION}[.!?\s]*\z|
+    (?<!nao\ )\b(?:precis[oa](?:mos)?|quer[oa](?:mos)?|gostaria|solicito|tem\ como|da\ (?:pra|para))
+    \s+(?:de\s+)?(?:um[a]?\s+)?#{PRICE_REVISION}\b
+  /x
+  NO_PRICE_REVISION = /
+    \A(?:(?:ok|sim|certo|beleza|obrigad[oa])[,\s]+)*nao\s+(?:precis[oa](?:mos)?|quer[oa](?:mos)?|e\ necessario)\s+
+    (?:(?:de\s+)?(?:um[a]?\s+)?#{PRICE_REVISION}|(?:rever|revisar|reajustar|atualizar|recalcular|alterar|mudar)
+      \s+(?:(?:o|esse|este)\s+)?(?:valor|preco|orcamento|frete))(?:[,\s]+(?:obrigad[oa]|por\ favor))?[.!\s]*\z
+  /x
+  PRICE_VARIATION = /(?:com|sem)\s+(?:(?:os|as)\s+)?(?:ajudantes?|montagem|desmontagem|embalagem|parcelamento)/
+  SHORT_PRICE_VARIATION = /\A(?:e\s+#{PRICE_VARIATION}[?!.\s]*|#{PRICE_VARIATION}\s*\?)\z/
+  PRICED_CONTEXT = /\br\$\s*\d/
   COMMERCIAL = /\b(?:valor(?:es)?|precos?|descontos?|pagamento|pix|boleto|cartao|sinal|entrada|parcel\w*|a vista|taxas?|juros|ajudantes?|montagem|desmontagem|embalagem|servicos?|prazo|entrega|coleta|datas?|disponibil\w*|vagas?|reserva|agendamento|orcamentos?|proposta|contrato|contratacao)\b/
   QUESTION = /\?|\b(?:qual|quais|quanto|quando|como|onde|inclui|inclus[oa]s?|tem|da para|da pra|pode|posso|consigo|consegue|poderia|seria|queria|gostaria|preciso|quero|confirma\w*|me (?:explica|informa|passa|diga|manda|envia)|nao (?:vi|achei|encontrei|entendi|consta))\b/
   SHORT_COMMERCIAL = /\A(?:(?:e|o|a|no|na)\s+)*(?:valor(?:es)?|precos?|desconto|prazo|datas?|disponibilidade|em quantas (?:vezes|parcelas)|a vista|pix|pagamento|parcelamento|com (?:os )?ajudantes)[\s?!.]*\z/
@@ -31,6 +56,9 @@ class Rotta::AutomaticLabels::CommercialIntent
 
     return :clear if active.match?(CLOSING) || active.match?(HUMAN) || active.match?(NEGOTIATION) || active.match?(SHORT_COMMERCIAL)
     return :clear if active.match?(CONTRACT) && active.match?(CONTRACT_ACTION)
+    return :none if active.match?(NO_PRICE_REVISION)
+    return :clear if active.match?(PRICE_COMMAND) || active.match?(PRICE_REVISION_REQUEST)
+    return :ambiguous if active.match?(SHORT_PRICE_VARIATION)
     return :clear if active.match?(COMMERCIAL) && active.match?(QUESTION)
     return :clear if active.match?(COMPLAINT) && (active.match?(COMMERCIAL) || active.match?(QUESTION))
     return :ambiguous if active.match?(UNRESOLVED) || active.match?(CONTEXTUAL_ACCEPTANCE)
@@ -46,6 +74,7 @@ class Rotta::AutomaticLabels::CommercialIntent
     return false if last_company.empty?
 
     return true if current.match?(CONTEXTUAL_ACCEPTANCE) && last_company.match?(OFFER_TO_ADVANCE)
+    return true if current.match?(SHORT_PRICE_VARIATION) && last_company.match?(PRICED_CONTEXT)
     if current == 'o cliente enviou um anexo sem legenda.'
       return last_company.match?(CONTRACT) && last_company.match?(CONTRACT_ACTION) &&
              last_company.match?(/\b(?:contrato|contratacao)\b/)
