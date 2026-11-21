@@ -157,6 +157,9 @@ const fillWithAi = async () => {
       props.conversationId !== conversationId
     )
       return;
+    if (payload.profile && !isDirty.value) {
+      Object.assign(form, createEmptyProfile(), payload.profile);
+    }
     if (payload.contact && payload.profile) {
       const latestContact = store.getters['contacts/getContact'](contactId);
       await store.dispatch('contacts/updateContact', {
