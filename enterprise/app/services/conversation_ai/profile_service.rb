@@ -7,6 +7,8 @@ class ConversationAi::ProfileService
     origin destination move_date budget_value items observations
     helpers_origin helpers_destination assembly_items disassembly_items
   ].freeze
+  PROVIDER_TIMEOUT_SECONDS = 12
+  ROUTE_FIELDS = %w[origin destination].freeze
   INTEGER_FIELDS = %w[helpers_origin helpers_destination].freeze
   CORE_PROFILE_FIELDS = %w[
     origin destination move_date budget_value items
@@ -14,9 +16,10 @@ class ConversationAi::ProfileService
   ].freeze
   EMPTY_VALUES = ['não informado', 'nao informado', 'não consta', 'nao consta', 'null', 'n/a'].freeze
 
-  def initialize(conversation:, user:)
+  def initialize(conversation:, user:, route_only: false)
     @conversation = conversation
     @user = user
+    @route_only = route_only
     @contact = conversation.contact
   end
 
@@ -25,41 +28,18 @@ class ConversationAi::ProfileService
 
     context = ConversationAi::ProfileContextBuilder.new(conversation: @conversation).call
     messages = context[:messages]
+    original_profile = existing_profile
+    original_name = @contact.name
     deterministic = merge_deterministic_evidence({ 'profile' => {}, 'evidence' => {} }, messages)
-    extracted = if deterministic_profile_complete?(deterministic, messages)
-                  deterministic
-                else
-                  merge_deterministic_evidence(extract_profile(messages), messages)
-                end
-    profile = existing_profile
-    changed_fields = []
-
-    PROFILE_FIELDS.each do |field|
-      value = normalise_field(field, extracted.dig('profile', field))
-      next if value.nil? || !valid_evidence?(field, extracted.dig('evidence', field), messages)
-      next if profile[field].to_s == value.to_s
-
-      profile[field] = value
-      changed_fields << field
-    end
-
-    contact_name = normalise_name(extracted['contact_name'])
-    name_changed = contact_name.present? && contact_name != @contact.name.to_s.strip &&
-                   valid_evidence?('contact_name', extracted.dig('evidence', 'contact_name'), messages)
-
-    if changed_fields.present? || name_changed
-      @contact.update!(
-        name: name_changed ? contact_name : @contact.name,
-        custom_attributes: (@contact.custom_attributes || {}).merge(PROFILE_KEY => profile)
-      )
-      record_audit!(profile, changed_fields, contact_name, name_changed)
-    end
+    extracted, partial = extract_with_fallback(messages, deterministic, original_profile)
+    profile, changed_fields, name_changed = save_profile(extracted, messages, original_profile, original_name)
 
     {
       ok: true,
       contact: { id: @contact.id, name: @contact.name },
       profile: profile,
       changed_fields: changed_fields,
+      partial: partial,
       contact_name_changed: name_changed,
       evidence: extracted['evidence'].is_a?(Hash) ? extracted['evidence'] : {},
       message_count: messages.length,
@@ -70,6 +50,51 @@ class ConversationAi::ProfileService
   end
 
   private
+
+  def extract_with_fallback(messages, deterministic, original_profile)
+    return [deterministic, false] if deterministic_profile_complete?(deterministic, messages) || messages.empty?
+
+    model_result = extract_profile(messages)
+    [merge_deterministic_evidence(model_result, messages), false]
+  rescue GlobalAiAssistant::OpenRouterClient::TimeoutError, RuntimeError, ArgumentError => e
+    usable = deterministic['profile'].any? do |field, value|
+      normalise_field(field, value) && valid_evidence?(field, deterministic['evidence'][field], messages)
+    end
+    raise unless usable || original_profile.present?
+
+    status = e.message.to_s[/\bHTTP (\d{3})\b/, 1]
+    Rails.logger.warn("[ConversationAi::Profile] fallback account_id=#{@conversation.account_id} " \
+                      "conversation_id=#{@conversation.display_id} error=#{e.class} provider_status=#{status || '-'}")
+    [deterministic, true]
+  end
+
+  def save_profile(extracted, messages, original_profile, original_name)
+    @contact.with_lock do
+      profile = existing_profile
+      fields = @route_only ? ROUTE_FIELDS : PROFILE_FIELDS
+      changed_fields = fields.filter_map do |field|
+        value = normalise_field(field, extracted.dig('profile', field))
+        next if value.nil? || !valid_evidence?(field, extracted.dig('evidence', field), messages)
+        next unless profile[field] == original_profile[field]
+        next if profile[field].to_s == value.to_s
+
+        profile[field] = value
+        field
+      end
+
+      contact_name = normalise_name(extracted['contact_name'])
+      current_base_name = @contact.name.to_s.sub(RottaPickup::LEGACY_SUFFIX, '').strip
+      name_changed = !@route_only && @contact.name == original_name && contact_name.present? && contact_name != current_base_name &&
+                     valid_evidence?('contact_name', extracted.dig('evidence', 'contact_name'), messages)
+
+      if changed_fields.present? || name_changed
+        @contact.update!(name: name_changed ? contact_name : @contact.name,
+                         custom_attributes: (@contact.custom_attributes || {}).merge(PROFILE_KEY => profile))
+        record_audit!(profile, changed_fields, contact_name, name_changed)
+      end
+      [profile, changed_fields, name_changed]
+    end
+  end
 
   def extract_profile(messages)
     attempts = 0
@@ -91,7 +116,7 @@ class ConversationAi::ProfileService
     GlobalAiAssistant::OpenRouterClient.new(
       api_key: api_key,
       api_base: GlobalAiAssistant::ProviderConfig.api_base,
-      timeout: 40
+      timeout: PROVIDER_TIMEOUT_SECONDS
     ).call([
       { role: 'system', content: system_prompt },
       { role: 'user', content: JSON.generate({
@@ -161,6 +186,9 @@ class ConversationAi::ProfileService
     parsed = JSON.parse(raw)
     raise ArgumentError, 'A IA retornou um formato de perfil inválido.' unless parsed.is_a?(Hash)
 
+    %w[profile evidence].each do |key|
+      parsed[key] = {} unless parsed[key].is_a?(Hash)
+    end
     parsed
   rescue JSON::ParserError
     raise ArgumentError, 'A IA não retornou o perfil em JSON válido.'
@@ -183,9 +211,16 @@ class ConversationAi::ProfileService
     end
 
     fill_profile = lambda do |field, value, message, quote|
-      return if value.blank? ||
-                (normalise_field(field, result['profile'][field]).present? &&
-                 valid_evidence?(field, result['evidence'][field], messages))
+      return unless normalise_field(field, value)
+      current_evidence = result['evidence'][field]
+      current_valid = normalise_field(field, result['profile'][field]) &&
+                      valid_evidence?(field, current_evidence, messages)
+      if current_valid
+        return unless ROUTE_FIELDS.include?(field)
+
+        current_index = messages.index { |item| item[:id].to_s == current_evidence['message_id'].to_s }
+        return if current_index > messages.index(message)
+      end
 
       result['profile'][field] = value
       result['evidence'][field] = { 'message_id' => message[:id], 'quote' => quote }
@@ -251,8 +286,8 @@ class ConversationAi::ProfileService
 
   def structured_field_match(field, content)
     patterns = {
-      'origin' => /(?:^|\n)\s*\*{0,3}\s*(?:📍\s*)?\*{0,3}\s*ORIGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
-      'destination' => /(?:^|\n)\s*\*{0,3}\s*(?:📍\s*)?\*{0,3}\s*DESTINO(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
+      'origin' => /(?:^|\n)[ \t]*(?:📍[ \t]*)?\*{0,3}[ \t]*(?:ENDERE[CÇ]O D[EAO][ \t]+)?ORIGEM(?:[ \t]*\([^)\r\n]+\))?[ \t]*\*{0,3}[ \t]*:[ \t]*\*{0,3}[ \t]*([^\r\n]+?)[ \t]*\*{0,3}[ \t]*\r?$/i,
+      'destination' => /(?:^|\n)[ \t]*(?:📍[ \t]*)?\*{0,3}[ \t]*(?:ENDERE[CÇ]O D[EAO][ \t]+)?DESTINO(?:[ \t]*\([^)\r\n]+\))?[ \t]*\*{0,3}[ \t]*:[ \t]*\*{0,3}[ \t]*([^\r\n]+?)[ \t]*\*{0,3}[ \t]*\r?$/i,
       'move_date' => /(?:^|\n)\s*\*{0,3}\s*(?:🗓️\s*)?\*{0,3}\s*(?:COLETA|DATA)(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
       'assembly_items' => /(?:^|\n)\s*\*{0,3}\s*(?:🪛\s*)?\*{0,3}\s*MONTAGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i,
       'disassembly_items' => /(?:^|\n)\s*\*{0,3}\s*(?:🪛\s*)?\*{0,3}\s*DESMONTAGEM(?:\s*\*{0,3}\s*:\s*|\s*:\s*)(.+?)\*{0,3}\s*$/i
@@ -261,12 +296,15 @@ class ConversationAi::ProfileService
     return unless match
 
     value = match[1].strip.sub(/\A\*+\s*/, '').sub(/\s*\*+\z/, '')
+    return if ROUTE_FIELDS.include?(field) && value.match?(/\A(?:a definir|pendente|a confirmar|\[?\d+\]?|[-–—]+)\z/i)
+
     { value: value, quote: match[0].strip }
   end
 
   def deterministic_profile_complete?(extracted, messages)
     profile = extracted['profile'] || {}
-    CORE_PROFILE_FIELDS.all? do |field|
+    fields = @route_only ? ROUTE_FIELDS : CORE_PROFILE_FIELDS
+    fields.all? do |field|
       normalise_field(field, profile[field]).present? && valid_evidence?(field, extracted['evidence'][field], messages)
     end
   end

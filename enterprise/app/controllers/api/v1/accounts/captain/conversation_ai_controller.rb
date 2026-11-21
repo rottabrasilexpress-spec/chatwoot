@@ -58,7 +58,8 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
 
     result = ConversationAi::ProfileService.new(
       conversation: conversation,
-      user: Current.user
+      user: Current.user,
+      route_only: ActiveModel::Type::Boolean.new.cast(params[:route_only])
     ).call
 
     render json: result

@@ -21,6 +21,7 @@ const name = ref('');
 const startsOn = ref('');
 const endsOn = ref('');
 const deliveryOn = ref('');
+const deliveryInput = ref(null);
 const flexible = ref(false);
 const snapshot = ref(null);
 const lookupFailed = ref(false);
@@ -90,7 +91,13 @@ watch(
         error.value = t('ROTTA_PICKUP.LOOKUP_ERROR');
       }
     } finally {
-      if (request === pickupRequest.value) loading.value = false;
+      if (request === pickupRequest.value) {
+        loading.value = false;
+        if (request.mode === 'delivery' && !lookupFailed.value) {
+          await nextTick();
+          deliveryInput.value?.focus();
+        }
+      }
     }
   },
   { immediate: true }
@@ -232,6 +239,7 @@ const save = async () => {
               <span class="font-normal">{{ $t('ROTTA_PICKUP.OPTIONAL') }}</span>
             </span>
             <input
+              ref="deliveryInput"
               v-model="deliveryOn"
               type="date"
               :min="startsOn"

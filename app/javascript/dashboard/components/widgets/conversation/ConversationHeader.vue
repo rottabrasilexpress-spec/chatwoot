@@ -187,16 +187,6 @@ const copyConversationId = async () => {
             :conversation-id="currentChat.id"
             density="header"
           />
-          <button
-            v-if="closedPickup"
-            type="button"
-            :aria-label="$t('ROTTA_PICKUP.EDIT_DATES')"
-            :title="$t('ROTTA_PICKUP.EDIT_DATES')"
-            class="grid size-7 shrink-0 place-items-center rounded-md text-n-amber-11 hover:bg-n-amber-3"
-            @click="editPickupDate"
-          >
-            <span class="i-lucide-calendar-days size-4" aria-hidden="true" />
-          </button>
           <fluent-icon
             v-if="!isHMACVerified"
             v-tooltip="$t('CONVERSATION.UNVERIFIED_SESSION')"
@@ -225,17 +215,30 @@ const copyConversationId = async () => {
             {{ snoozedDisplayText }}
           </span>
         </div>
-        <PickupScheduleDates
-          v-if="closedPickup"
-          :name="currentContact.name"
-          :suffix="currentContact.custom_attributes?.[PICKUP_SUFFIX_KEY]"
-          :schedule="currentChat.rotta_pickup"
-          class="mt-1"
-        />
       </div>
     </div>
     <div
-      class="flex flex-row flex-wrap items-center justify-start xl:justify-end flex-shrink-0 gap-2 w-full xl:w-auto header-actions-wrap"
+      v-if="closedPickup"
+      class="flex w-full min-w-0 flex-wrap items-center gap-2 xl:w-auto xl:justify-center"
+    >
+      <PickupScheduleDates
+        :name="currentContact.name"
+        :suffix="currentContact.custom_attributes?.[PICKUP_SUFFIX_KEY]"
+        :schedule="currentChat.rotta_pickup"
+        class="xl:justify-center"
+      />
+      <button
+        type="button"
+        :aria-label="$t('ROTTA_PICKUP.EDIT_DATES')"
+        :title="$t('ROTTA_PICKUP.EDIT_DATES')"
+        class="grid size-8 shrink-0 place-items-center rounded-lg border border-n-weak text-n-slate-11 hover:bg-n-alpha-2"
+        @click="editPickupDate"
+      >
+        <span class="i-lucide-calendar-pen size-4" aria-hidden="true" />
+      </button>
+    </div>
+    <div
+      class="flex flex-row flex-wrap items-center justify-start xl:justify-end min-w-0 xl:flex-1 gap-2 w-full xl:w-auto header-actions-wrap"
     >
       <SLACardLabel
         v-if="hasSlaPolicyId"

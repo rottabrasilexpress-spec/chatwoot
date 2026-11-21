@@ -11,6 +11,7 @@ import {
   announcePickupChange,
 } from 'dashboard/composables/useRottaPickupDialog';
 import api from 'dashboard/api/rottaPickups';
+import ConversationAiAPI from 'dashboard/api/captain/conversationAi';
 import {
   isFlexiblePickup,
   pickupDateLabel,
@@ -28,6 +29,11 @@ const hasMore = ref(false);
 const loading = ref(true);
 const error = ref(false);
 const completing = ref(null);
+const fillingRoute = ref(null);
+const routeFields = computed(() => [
+  { key: 'origin', title: t('ROTTA_PICKUP.ORIGIN') },
+  { key: 'destination', title: t('ROTTA_PICKUP.DESTINATION') },
+]);
 const layoutOptions = [
   {
     id: 'list',
@@ -114,6 +120,28 @@ const complete = async item => {
     load();
   } finally {
     completing.value = null;
+  }
+};
+
+const fillRoute = async item => {
+  if (fillingRoute.value) return;
+  fillingRoute.value = item.id;
+  try {
+    const { data } = await ConversationAiAPI.profile(item.id, {
+      routeOnly: true,
+    });
+    const { origin, destination } = data.profile || {};
+    const row = items.value.find(move => move.id === item.id);
+    if (row) row.route = { origin, destination };
+    useAlert(
+      origin && destination
+        ? t('ROTTA_PICKUP.ROUTE_SAVED')
+        : t('ROTTA_PICKUP.ROUTE_INCOMPLETE')
+    );
+  } catch (err) {
+    useAlert(err.response?.data?.error || t('ROTTA_PICKUP.ROUTE_ERROR'));
+  } finally {
+    fillingRoute.value = null;
   }
 };
 
@@ -302,13 +330,13 @@ watch(
                 <span class="min-w-0 break-words">{{ timing(item) }}</span>
               </p>
             </div>
-            <div class="grid min-w-0 grid-cols-2 gap-2">
+            <div class="grid min-w-0 grid-cols-2 items-stretch gap-2">
               <div
-                class="min-w-0 rounded-lg bg-n-amber-2"
+                class="min-w-0 rounded-lg bg-n-amber-2 text-center"
                 :class="dense ? 'p-2' : 'px-3 py-2.5'"
               >
                 <p
-                  class="flex items-center gap-1.5 text-xs font-medium text-n-amber-11"
+                  class="flex items-center justify-center gap-1.5 text-xs font-medium text-n-amber-11"
                 >
                   <Icon icon="i-lucide-calendar-days" class="size-4 shrink-0" />
                   {{ $t('ROTTA_PICKUP.COLLECTION_SHORT') }}
@@ -321,33 +349,78 @@ watch(
                 </p>
               </div>
               <div
-                class="min-w-0 rounded-lg bg-n-blue-2"
-                :class="dense ? 'p-2' : 'px-3 py-2.5'"
+                class="min-w-0 rounded-lg text-center"
+                :class="[
+                  dense ? 'p-2' : 'px-3 py-2.5',
+                  item.delivery_on
+                    ? 'bg-n-teal-2 text-n-teal-11'
+                    : 'bg-n-alpha-2 text-n-slate-11',
+                ]"
               >
                 <p
-                  class="flex items-center gap-1.5 text-xs font-medium text-n-blue-11"
+                  class="flex items-center justify-center gap-1.5 text-xs font-medium"
                 >
                   <Icon icon="i-lucide-package-check" class="size-4 shrink-0" />
                   {{ $t('ROTTA_PICKUP.DELIVERY_SHORT') }}
                 </p>
                 <p
                   v-if="item.delivery_on"
-                  class="mt-1 break-words font-semibold leading-snug tabular-nums text-n-slate-12"
+                  class="mt-1 break-words font-semibold leading-snug tabular-nums"
                   :class="layout === 'mini' ? 'text-xs' : 'text-sm'"
                 >
                   {{ pickupDateLabel(item.delivery_on) }}
                 </p>
-                <button
+                <div
                   v-else
-                  type="button"
-                  class="mt-1 text-start text-n-blue-11 underline underline-offset-2"
-                  :class="dense ? 'text-xs' : 'text-sm'"
-                  @click="editPickupDates(item.id, store)"
+                  class="mt-1 flex flex-wrap items-center justify-center gap-1.5 text-xs"
                 >
-                  {{ $t('ROTTA_PICKUP.ADD_DELIVERY') }}
-                </button>
+                  <span>{{ $t('ROTTA_PICKUP.PENDING') }}</span>
+                  <button
+                    type="button"
+                    class="grid size-7 shrink-0 place-items-center rounded-md border border-n-weak hover:bg-n-alpha-2"
+                    :aria-label="$t('ROTTA_PICKUP.ADD_DELIVERY')"
+                    :title="$t('ROTTA_PICKUP.ADD_DELIVERY')"
+                    @click="
+                      editPickupDates(item.id, store, { focusDelivery: true })
+                    "
+                  >
+                    <Icon icon="i-lucide-plus" class="size-4" />
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
+          <div class="min-w-0 rounded-lg border border-n-weak px-2.5 py-2">
+            <dl class="grid min-w-0 grid-cols-2 gap-2">
+              <div
+                v-for="field in routeFields"
+                :key="field.key"
+                class="min-w-0"
+              >
+                <dt class="text-xs font-medium text-n-slate-11">
+                  {{ field.title }}
+                </dt>
+                <dd
+                  class="mt-0.5 break-words text-sm font-medium text-n-slate-12"
+                >
+                  {{ item.route?.[field.key] || $t('ROTTA_PICKUP.PENDING') }}
+                </dd>
+              </div>
+            </dl>
+            <button
+              v-if="!item.route?.origin || !item.route?.destination"
+              type="button"
+              class="mt-1.5 inline-flex min-h-8 items-center gap-1.5 rounded border border-n-weak px-2 text-xs font-medium text-n-brand hover:bg-n-alpha-2 disabled:opacity-50"
+              :disabled="Boolean(fillingRoute)"
+              @click="fillRoute(item)"
+            >
+              <Icon icon="i-lucide-sparkles" class="size-3.5" />
+              {{
+                fillingRoute === item.id
+                  ? $t('ROTTA_PICKUP.READING_ROUTE')
+                  : $t('ROTTA_PICKUP.FILL_ROUTE')
+              }}
+            </button>
           </div>
           <details
             v-if="item.note && layout === 'mini'"
@@ -371,7 +444,7 @@ watch(
               :aria-label="$t('ROTTA_PICKUP.CONFIRM_DATE')"
               class="min-h-9 rounded-lg bg-n-amber-3 font-medium text-n-amber-11 hover:bg-n-amber-4"
               :class="dense ? 'px-2 text-xs' : 'px-3 text-sm'"
-              @click="editPickupDates(item.id, store, true)"
+              @click="editPickupDates(item.id, store, { confirmWindow: true })"
             >
               {{
                 dense

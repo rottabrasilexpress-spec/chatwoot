@@ -24,8 +24,15 @@ export const confirmPickupDate = (conversationId, save, mode = 'schedule') => {
   return promise;
 };
 
-export const editPickupDates = (conversationId, store, confirmWindow = false) =>
-  confirmPickupDate(
+export const editPickupDates = (
+  conversationId,
+  store,
+  { confirmWindow = false, focusDelivery = false } = {}
+) => {
+  let mode = 'edit';
+  if (focusDelivery) mode = 'delivery';
+  if (confirmWindow) mode = 'confirm';
+  return confirmPickupDate(
     conversationId,
     async (pickup, expected) => {
       const { data } = await api.update(conversationId, {
@@ -41,8 +48,9 @@ export const editPickupDates = (conversationId, store, confirmWindow = false) =>
       announcePickupChange();
       return { status: 'success' };
     },
-    confirmWindow ? 'confirm' : 'edit'
+    mode
   );
+};
 
 export const finishPickupDialog = result => {
   const request = pickupRequest.value;

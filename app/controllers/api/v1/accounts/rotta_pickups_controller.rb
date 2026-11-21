@@ -137,8 +137,10 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
 
   def card(pickup, today)
     conversation = pickup.conversation
-    name = conversation.contact.name
-    date_fields(pickup).merge(id: conversation.display_id, name: name, phone: conversation.contact.phone_number,
+    contact = conversation.contact
+    profile = contact.custom_attributes&.[]('rotta_move_profile') || contact.custom_attributes&.[]('rottaMoveProfile')
+    route = profile.is_a?(Hash) ? profile.slice('origin', 'destination').transform_values { |value| value.is_a?(String) ? value.strip.presence : nil } : {}
+    date_fields(pickup).merge(id: conversation.display_id, name: contact.name, phone: contact.phone_number, route: route,
                              date_label: pickup.date_label, days_until: (pickup.starts_on - today).to_i,
                              pickup_overdue: (pickup.ends_on || pickup.starts_on) < today)
   end

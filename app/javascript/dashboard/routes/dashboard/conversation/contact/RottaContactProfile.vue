@@ -146,24 +146,45 @@ const fillWithAi = async () => {
     return;
   }
 
+  const contactId = props.contact.id;
+  const conversationId = props.conversationId;
   isFillingWithAi.value = true;
   try {
-    const response = await ConversationAiAPI.profile(props.conversationId);
+    const response = await ConversationAiAPI.profile(conversationId);
     const payload = response.data || {};
-    Object.assign(form, createEmptyProfile(), payload.profile || {});
-    isDirty.value = false;
-    await store.dispatch('contacts/show', { id: props.contact.id });
-    const changed = payload.changed_fields?.length || 0;
-    useAlert(
-      changed || payload.contact_name_changed
-        ? 'Perfil preenchido e salvo pela IA.'
-        : 'Nenhuma informação nova com evidência foi encontrada.'
-    );
+    if (
+      props.contact?.id !== contactId ||
+      props.conversationId !== conversationId
+    )
+      return;
+    if (payload.contact && payload.profile) {
+      const latestContact = store.getters['contacts/getContact'](contactId);
+      await store.dispatch('contacts/updateContact', {
+        ...props.contact,
+        ...latestContact,
+        ...payload.contact,
+        custom_attributes: {
+          ...(latestContact?.custom_attributes ||
+            props.contact.custom_attributes),
+          [PROFILE_KEY]: payload.profile,
+        },
+      });
+    }
+    if (payload.partial) {
+      useAlert(
+        'Confira os dados recuperados e os campos que ficaram em branco.'
+      );
+    } else {
+      useAlert(
+        payload.changed_fields?.length || payload.contact_name_changed
+          ? 'Perfil preenchido e salvo pela IA.'
+          : 'Nenhuma informação nova com evidência foi encontrada.'
+      );
+    }
   } catch (error) {
     useAlert(
       error.response?.data?.error ||
-        error.message ||
-        'Não foi possível preencher o perfil com IA.'
+        'Não foi possível preencher o perfil com IA. Tente novamente ou preencha os campos manualmente.'
     );
   } finally {
     isFillingWithAi.value = false;

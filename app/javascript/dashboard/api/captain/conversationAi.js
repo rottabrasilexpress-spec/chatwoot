@@ -6,9 +6,10 @@ class ConversationAiAPI extends ApiClient {
     super('captain/conversation_ai', { accountScoped: true });
   }
 
-  profile(conversationId) {
+  profile(conversationId, { routeOnly = false } = {}) {
     return axios.post(`${this.url}/profile`, {
       conversation_id: conversationId,
+      ...(routeOnly ? { route_only: true } : {}),
     });
   }
 }

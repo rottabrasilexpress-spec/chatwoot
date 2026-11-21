@@ -20,6 +20,7 @@ import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue'
 import ConversationAiStatus from 'dashboard/components/widgets/conversation/ConversationAiStatus.vue';
 import PickupContactName from 'dashboard/components-next/Conversation/Pickups/PickupContactName.vue';
 import PickupContactActions from 'dashboard/components-next/Conversation/Pickups/PickupContactActions.vue';
+import PickupScheduleDates from 'dashboard/components-next/Conversation/Pickups/PickupScheduleDates.vue';
 import { getOriginalAvatarUrl } from 'dashboard/helper/avatarUrl';
 
 export default {
@@ -37,6 +38,7 @@ export default {
     ConversationAiStatus,
     PickupContactName,
     PickupContactActions,
+    PickupScheduleDates,
   },
   props: {
     contact: {
@@ -244,6 +246,7 @@ export default {
               <PickupContactName
                 :name="contact.name"
                 :suffix="contact.custom_attributes?.rotta_pickup_name_suffix"
+                :show-date="!currentChat?.labels?.includes('clientes-fechados')"
                 :allow-legacy="
                   currentChat?.labels?.includes('clientes-fechados')
                 "
@@ -290,6 +293,13 @@ export default {
           </div>
         </div>
 
+        <PickupScheduleDates
+          v-if="currentChat?.labels?.includes('clientes-fechados')"
+          :name="contact.name"
+          :suffix="contact.custom_attributes?.rotta_pickup_name_suffix"
+          :schedule="currentChat.rotta_pickup"
+          class="w-full"
+        />
         <PickupContactActions
           v-if="
             currentChat?.id &&
@@ -297,6 +307,7 @@ export default {
           "
           :key="currentChat.id"
           :conversation-id="currentChat.id"
+          :schedule="currentChat.rotta_pickup"
         />
         <p v-if="additionalAttributes.description" class="break-words mb-0.5">
           {{ additionalAttributes.description }}

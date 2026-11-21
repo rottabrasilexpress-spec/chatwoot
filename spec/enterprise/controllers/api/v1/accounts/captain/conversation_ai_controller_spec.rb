@@ -262,6 +262,41 @@ RSpec.describe 'Api::V1::Accounts::Captain::ConversationAiActions', type: :reque
     )
   end
 
+  it 'recovers explicit routes when profile AI is unavailable' do
+    conversation.messages.create!(
+      account: account, inbox: conversation.inbox, sender: conversation.contact, message_type: :incoming,
+      content: "Endereço de Origem: Arraial do Cabo-RJ\nEndereço de Destino: Altos-PI"
+    )
+    allow(GlobalAiAssistant::ProviderConfig).to receive(:api_key).and_return('test-key')
+    client = instance_double(GlobalAiAssistant::OpenRouterClient)
+    allow(GlobalAiAssistant::OpenRouterClient).to receive(:new).and_return(client)
+    allow(client).to receive(:call).and_raise(RuntimeError, 'OpenRouter respondeu HTTP 502')
+
+    post profile_endpoint, params: { conversation_id: conversation.display_id },
+         headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body).to include('partial' => true, 'changed_fields' => contain_exactly('origin', 'destination'))
+    expect(conversation.contact.reload.custom_attributes['rotta_move_profile']).to include(
+      'origin' => 'Arraial do Cabo-RJ', 'destination' => 'Altos-PI'
+    )
+  end
+
+  it 'fills only the route from explicit text when the agenda requests it' do
+    conversation.messages.create!(
+      account: account, inbox: conversation.inbox, sender: conversation.contact, message_type: :incoming,
+      content: "Origem: Arraial do Cabo-RJ\nDestino: Altos-PI\nValor: R$ 1.234,00"
+    )
+    expect(GlobalAiAssistant::OpenRouterClient).not_to receive(:new)
+
+    post profile_endpoint, params: { conversation_id: conversation.display_id, route_only: true },
+         headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body).to include('partial' => false, 'changed_fields' => contain_exactly('origin', 'destination'))
+    expect(conversation.contact.reload.custom_attributes['rotta_move_profile']).not_to have_key('budget_value')
+  end
+
   it 'returns a controlled gateway timeout when the profile provider is slow' do
     allow(ConversationAi::ProfileService).to receive(:new).and_raise(
       GlobalAiAssistant::OpenRouterClient::TimeoutError
