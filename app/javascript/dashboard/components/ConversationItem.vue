@@ -37,11 +37,6 @@ const store = useStore();
 const { t } = useI18n();
 
 const selectConversation = inject('selectConversation');
-const recordConversationReview = inject('recordConversationReview', null);
-const reviewNextId = inject('reviewNextId', ref(null));
-const isReviewNext = computed(
-  () => Number(reviewNextId.value) === Number(props.source.id)
-);
 const deSelectConversation = inject('deSelectConversation');
 const assignLabels = inject('assignLabels');
 const removeLabels = inject('removeLabels');
@@ -191,7 +186,6 @@ const onCardClick = e => {
     return;
   }
 
-  recordConversationReview?.(props.source);
   if (isActiveChat.value) {
     store.dispatch('markMessagesRead', {
       id: props.source.id,
@@ -367,11 +361,9 @@ const onFinalizeConversation = async () => {
     :selected="isSelected"
     :selection-mode-active="isSelectionModeActive"
     :is-active-chat="isActiveChat"
-    :is-review-next="isReviewNext"
     :show-assignee="showAssigneeForExpandedCard"
     :show-inbox-name="showInboxName"
     :class="{
-      '!border-n-brand !bg-n-blue-2': isReviewNext,
       'ring-2 ring-inset ring-violet-500': contractLabelAssigned,
     }"
     :is-inbox-view="isInboxView"
@@ -392,11 +384,9 @@ const onFinalizeConversation = async () => {
     :selected="isSelected"
     :selection-mode-active="isSelectionModeActive"
     :is-active-chat="isActiveChat"
-    :is-review-next="isReviewNext"
     :show-assignee="showAssignee"
     :show-inbox-name="showInboxName"
     :class="{
-      '!border-n-brand !bg-n-blue-2': isReviewNext,
       'ring-2 ring-inset ring-violet-500': contractLabelAssigned,
     }"
     @click="onCardClick"

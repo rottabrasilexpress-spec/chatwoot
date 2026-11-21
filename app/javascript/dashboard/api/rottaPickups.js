@@ -7,8 +7,9 @@ class RottaPickupsAPI extends ApiClient {
     super('rotta_pickups', { accountScoped: true });
   }
 
-  page(page) {
-    return coalescedGet(this.url + '?page=' + page);
+  page(page, sortBy) {
+    const query = new URLSearchParams({ page, sort_by: sortBy });
+    return coalescedGet(this.url + '?' + query.toString());
   }
 
   reminders() {

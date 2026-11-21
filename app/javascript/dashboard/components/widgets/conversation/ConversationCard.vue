@@ -40,7 +40,6 @@ const props = defineProps({
   selected: { type: Boolean, default: false },
   selectionModeActive: { type: Boolean, default: false },
   isActiveChat: { type: Boolean, default: false },
-  isReviewNext: { type: Boolean, default: false },
   showAssignee: { type: Boolean, default: false },
   showInboxName: { type: Boolean, default: false },
   hideThumbnail: { type: Boolean, default: false },
@@ -313,9 +312,6 @@ const selectedModel = computed({
           />
         </div>
       </div>
-      <p v-if="isReviewNext" class="my-0 mx-2 text-xs text-n-brand font-medium">
-        {{ $t('CONVERSATION.REVIEW_NEXT', 'Próximo da revisão') }}
-      </p>
       <div class="rotta-card-preview-row">
         <p
           v-if="isAnyoneTyping"

@@ -72,6 +72,7 @@
     "ROUTE_SAVED": "Origem e destino preenchidos.",
     "ROUTE_INCOMPLETE": "A conversa só confirmou parte da rota. Confira os campos pendentes.",
     "ROUTE_ERROR": "Não foi possível preencher a rota. Você pode informar origem e destino no perfil do contato.",
+    "SORT_TOGGLE": "Inverter ordem da coleta",
     "COLLECTION_SHORT": "Coleta",
     "DELIVERY_SHORT": "Entrega",
     "CONFIRM_SHORT": "Confirmar",

@@ -3,6 +3,8 @@ import { useI18n } from 'vue-i18n';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import PickupSortButton from 'dashboard/components-next/Conversation/Pickups/PickupSortButton.vue';
+import { usePickupSort } from 'dashboard/composables/usePickupSort';
 import { useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import {
@@ -24,6 +26,7 @@ const store = useStore();
 const route = useRoute();
 const items = ref([]);
 const page = ref(1);
+const pickupSort = usePickupSort();
 const total = ref(0);
 const hasMore = ref(false);
 const loading = ref(true);
@@ -89,7 +92,7 @@ const load = async (nextPage = page.value) => {
   loading.value = true;
   error.value = false;
   try {
-    const { data } = await api.page(nextPage);
+    const { data } = await api.page(nextPage, pickupSort.value);
     if (version !== request) return;
     items.value = data.items;
     total.value = data.total;
@@ -185,6 +188,7 @@ onMounted(() => {
 });
 onUnmounted(() => window.removeEventListener('focus', refresh));
 watch(pickupRevision, () => load());
+watch(pickupSort, () => load(1));
 watch(
   () => route.params.accountId,
   () => {
@@ -216,6 +220,7 @@ watch(
           </div>
         </div>
         <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <PickupSortButton v-model="pickupSort" class="bg-n-surface-1" />
           <div
             role="group"
             :aria-label="$t('ROTTA_PICKUP.LAYOUT')"

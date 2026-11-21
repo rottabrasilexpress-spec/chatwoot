@@ -1,5 +1,6 @@
 class RottaPickup < ApplicationRecord
   CLOSED_LABEL = 'clientes-fechados'.freeze
+  SORT_KEYS = %w[pickup_asc pickup_desc].freeze
   FINISHED_LABEL = 'finalizados'.freeze
   NAME_SUFFIX_KEY = 'rotta_pickup_name_suffix'.freeze
   LEGACY_SUFFIX = /\s+(?<suffix>(?<start>\d{2}\/\d{2}\/\d{4})(?:\s+até\s+(?<end>\d{2}\/\d{2}(?:\/\d{4})?))?)\z/i
@@ -24,14 +25,19 @@ class RottaPickup < ApplicationRecord
   end
 
   def self.from_name(conversation)
-    match = conversation.contact.name.to_s.match(LEGACY_SUFFIX)
+    dates = legacy_dates(conversation.contact.name)
+    new(conversation: conversation, starts_on: dates.first, ends_on: dates.last) if dates
+  end
+
+  def self.legacy_dates(name)
+    match = name.to_s.match(LEGACY_SUFFIX)
     return unless match
 
     start = Date.strptime(match[:start], '%d/%m/%Y')
     finish = legacy_end_date(match[:end], start)
     return if finish && finish < start
 
-    new(conversation: conversation, starts_on: start, ends_on: finish)
+    [start, finish]
   rescue Date::Error
     nil
   end
@@ -44,6 +50,23 @@ class RottaPickup < ApplicationRecord
     Date.strptime("#{value}/#{year}", '%d/%m/%Y')
   end
 
+  def self.order_conversations(scope, descending:)
+    scope = scope.left_joins(:rotta_pickup)
+    direction = descending ? 'DESC' : 'ASC'
+    legacy_rows = scope.unscope(:order, :limit, :offset).joins(:contact).where(rotta_pickups: { id: nil })
+                       .where('contacts.name ~ ?', '[0-9]{2}/[0-9]{2}/[0-9]{4}')
+                       .pluck('conversations.id', 'contacts.name')
+    legacy_cases = legacy_rows.filter_map do |id, name|
+      date = legacy_dates(name)&.first
+      "WHEN #{Integer(id)} THEN #{connection.quote(date)}::date" if date
+    end
+    pickup_date = 'rotta_pickups.starts_on'
+    if legacy_cases.any?
+      pickup_date = "COALESCE(#{pickup_date}, CASE conversations.id #{legacy_cases.join(' ')} END)"
+    end
+    scope.reorder(Arel.sql("#{pickup_date} #{direction} NULLS LAST, rotta_pickups.delivery_on #{direction} NULLS LAST, conversations.display_id ASC"))
+  end
+
   def date_label
     label = starts_on.strftime('%d/%m/%Y')
     return label unless ends_on && ends_on != starts_on
@@ -53,7 +76,7 @@ class RottaPickup < ApplicationRecord
   end
 
   def conversation_dates
-    { starts_on: starts_on, ends_on: ends_on, delivery_on: delivery_on, updated_at: updated_at.iso8601(6) }
+    { starts_on: starts_on, ends_on: ends_on, delivery_on: delivery_on, updated_at: updated_at&.iso8601(6) }
   end
 
   def broadcast_schedule_change

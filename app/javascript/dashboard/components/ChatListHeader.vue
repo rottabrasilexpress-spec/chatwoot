@@ -213,11 +213,13 @@ const formattedAllCount = computed(() => formatNumber(allCount.value));
           :aria-label="rottaCopy.focusMode"
           @click="openFocusMode"
         />
-        <ConversationBasicFilter
-          v-if="!hasAppliedFiltersOrActiveFolders"
-          :is-on-expanded-layout="isOnExpandedLayout"
-          @change-filter="onBasicFilterChange"
-        />
+        <slot name="basic-filter">
+          <ConversationBasicFilter
+            v-if="!hasAppliedFiltersOrActiveFolders"
+            :is-on-expanded-layout="isOnExpandedLayout"
+            @change-filter="onBasicFilterChange"
+          />
+        </slot>
       </div>
     </div>
     <div class="flex items-center gap-2">

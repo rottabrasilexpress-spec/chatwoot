@@ -6,9 +6,10 @@ class Api::V1::Accounts::RottaPickupsController < Api::V1::Accounts::BaseControl
 
   def index
     today = RottaPickup.today
+    direction = params[:sort_by] == 'pickup_desc' ? -1 : 1
     rows = schedules.sort_by do |pickup|
-      expired = (pickup.ends_on || pickup.starts_on) < today
-      [expired ? 1 : 0, expired ? -pickup.starts_on.jd : pickup.starts_on.jd, pickup.conversation.display_id]
+      delivery = pickup.delivery_on
+      [direction * pickup.starts_on.jd, delivery ? 0 : 1, direction * (delivery&.jd || 0), pickup.conversation.display_id]
     end
     page = params[:page].to_i.clamp(1, [rows.length.fdiv(PAGE_SIZE).ceil, 1].max)
     items = rows.slice((page - 1) * PAGE_SIZE, PAGE_SIZE) || []

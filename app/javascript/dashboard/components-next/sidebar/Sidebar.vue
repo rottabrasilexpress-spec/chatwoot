@@ -365,11 +365,11 @@ const menuItems = computed(() => {
           activeOn: ['rotta_upcoming_pickups'],
         },
         {
-          name: 'ReviewResume',
-          label: 'Retomar revisão',
-          icon: 'i-lucide-bookmark-check',
-          to: accountScopedRoute('conversation_review_resume'),
-          activeOn: ['conversation_review_resume'],
+          name: 'FollowingClients',
+          label: 'Acompanhar clientes',
+          icon: 'i-lucide-eye',
+          to: accountScopedRoute('conversation_following_clients'),
+          activeOn: ['conversation_following_clients'],
         },
         {
           name: 'All',

@@ -28,7 +28,7 @@ const toggle = async () => {
   if (await setFollowing(props.conversationId, next))
     useAlert(
       next
-        ? 'Cliente adicionado ao acompanhamento da equipe. Veja em Retomar revisão.'
+        ? 'Cliente adicionado ao acompanhamento da equipe. Veja em Acompanhar clientes.'
         : 'Cliente retirado do acompanhamento da equipe.'
     );
   else useAlert(session.value.error);

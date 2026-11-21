@@ -50,3 +50,23 @@ export const splitPickupName = (name, suffix, allowLegacy = false) => {
   if (!date || !fullName.endsWith(' ' + date)) return [fullName, ''];
   return [fullName.slice(0, -(date.length + 1)), date];
 };
+
+const compareDate = (a, b, descending) => {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return (a < b ? -1 : 1) * (descending ? -1 : 1);
+};
+
+export const comparePickupSchedules = (a, b, descending) =>
+  compareDate(
+    a.rotta_pickup?.starts_on,
+    b.rotta_pickup?.starts_on,
+    descending
+  ) ||
+  compareDate(
+    a.rotta_pickup?.delivery_on,
+    b.rotta_pickup?.delivery_on,
+    descending
+  ) ||
+  a.id - b.id;

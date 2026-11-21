@@ -231,10 +231,11 @@ const copyConversationId = async () => {
         type="button"
         :aria-label="$t('ROTTA_PICKUP.EDIT_DATES')"
         :title="$t('ROTTA_PICKUP.EDIT_DATES')"
-        class="grid size-8 shrink-0 place-items-center rounded-lg border border-n-weak text-n-slate-11 hover:bg-n-alpha-2"
+        class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg bg-n-brand/10 px-2.5 text-xs font-semibold text-n-brand hover:bg-n-brand/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
         @click="editPickupDate"
       >
-        <span class="i-lucide-calendar-pen size-4" aria-hidden="true" />
+        <span class="i-lucide-calendar-days size-4" aria-hidden="true" />
+        {{ $t('ROTTA_PICKUP.EDIT_DATES') }}
       </button>
     </div>
     <div

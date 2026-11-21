@@ -31,7 +31,12 @@ const getConversationById = _state => conversationId => {
 
 const latestPickup = (existing, incoming) => {
   if (!incoming) return existing;
-  if (existing?.updated_at > incoming.updated_at) return existing;
+  if (
+    existing?.updated_at &&
+    (!incoming.updated_at || existing.updated_at > incoming.updated_at)
+  ) {
+    return existing;
+  }
   return incoming;
 };
 

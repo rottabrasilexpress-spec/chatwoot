@@ -267,17 +267,7 @@ class ConversationFinder
   end
 
   def conversations
-    @conversations = conversations_base_query
-
-    # Pin priority must be applied before pagination, not only to loaded cards.
-    # Keep the existing permission, status, label and archive filters unchanged.
-    @conversations = @conversations.order(Arel.sql(
-      "CASE WHEN conversations.custom_attributes ->> 'rotta_pinned' IN ('true', '1') THEN 0 ELSE 1 END ASC"
-    ))
-
-    sort_by, sort_order = SORT_OPTIONS[params[:sort_by]] || SORT_OPTIONS['last_activity_at_desc']
-    @conversations = @conversations.send(sort_by, sort_order)
-
+    @conversations = sort_conversations(conversations_base_query)
     if params[:updated_within].present?
       @conversations.where('conversations.updated_at > ?', Time.zone.now - params[:updated_within].to_i.seconds)
     else
@@ -287,6 +277,21 @@ class ConversationFinder
 
       @conversations.page(current_page).per(per_page)
     end
+  end
+
+  def sort_conversations(scope)
+    if Array(params[:labels]) == [RottaPickup::CLOSED_LABEL] && params[:q].blank?
+      return RottaPickup.order_conversations(scope, descending: params[:sort_by] == 'pickup_desc')
+    end
+
+    # Pin priority must be applied before pagination, not only to loaded cards.
+    # Keep the existing permission, status, label and archive filters unchanged.
+    scope = scope.order(Arel.sql(
+      "CASE WHEN conversations.custom_attributes ->> 'rotta_pinned' IN ('true', '1') THEN 0 ELSE 1 END ASC"
+    ))
+
+    sort_by, sort_order = SORT_OPTIONS[params[:sort_by]] || SORT_OPTIONS['last_activity_at_desc']
+    scope.public_send(sort_by, sort_order)
   end
 end
 ConversationFinder.prepend_mod_with('ConversationFinder')

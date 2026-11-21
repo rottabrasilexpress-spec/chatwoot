@@ -82,6 +82,10 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   def filter
     result = ::Conversations::FilterService.new(params.permit!, current_user, current_account).perform
     @conversations = result[:conversations].preload(:rotta_pickup)
+    if RottaPickup::SORT_KEYS.include?(params[:sort_by])
+      closed = @conversations.tagged_with(RottaPickup::CLOSED_LABEL)
+      @conversations = RottaPickup.order_conversations(closed, descending: params[:sort_by] == 'pickup_desc')
+    end
     @conversations_count = result[:count]
   rescue CustomExceptions::CustomFilter::InvalidAttribute,
          CustomExceptions::CustomFilter::InvalidOperator,

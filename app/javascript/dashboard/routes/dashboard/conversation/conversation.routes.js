@@ -51,10 +51,11 @@ export default {
       component: () => import('./UpcomingPickups.vue'),
     },
     {
-      path: frontendURL('accounts/:accountId/review-resume'),
-      name: 'conversation_review_resume',
+      path: frontendURL('accounts/:accountId/acompanhar-clientes'),
+      alias: frontendURL('accounts/:accountId/review-resume'),
+      name: 'conversation_following_clients',
       meta: { permissions: CONVERSATION_PERMISSIONS },
-      component: () => import('./ReviewResumeView.vue'),
+      component: () => import('./FollowingClientsView.vue'),
     },
     {
       path: frontendURL('accounts/:accountId/conversations-focus'),

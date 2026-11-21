@@ -17,13 +17,13 @@ import {
 } from 'dashboard/composables/store.js';
 
 import ChatListHeader from './ChatListHeader.vue';
-import ConversationList from './ConversationList.vue';
-import ReviewResume from 'dashboard/components-next/Conversation/Review/ReviewResume.vue';
-import { useConversationReview } from 'dashboard/composables/useConversationReview';
+import PickupSortButton from 'dashboard/components-next/Conversation/Pickups/PickupSortButton.vue';
+import { usePickupSort } from 'dashboard/composables/usePickupSort';
 import {
-  reviewViewKey,
-  normalizeReviewFilters,
-} from 'dashboard/helper/conversationReview';
+  CLOSED_PICKUP_LABEL,
+  comparePickupSchedules,
+} from 'dashboard/helper/rottaPickup';
+import ConversationList from './ConversationList.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import ConversationFilter from 'next/filter/ConversationFilter.vue';
 import SaveCustomView from 'next/filter/SaveCustomView.vue';
@@ -282,6 +282,11 @@ const activeLabelTitle = computed(() => {
   return matchingLabel?.title || props.label;
 });
 
+const isClosedPickupView = computed(
+  () => labelRouteKey(activeLabelTitle.value) === CLOSED_PICKUP_LABEL
+);
+const pickupSort = usePickupSort();
+
 const activeLabelCount = computed(() => {
   if (!props.label) return null;
 
@@ -322,7 +327,7 @@ const conversationFilters = computed(() => {
       ? wootConstants.ASSIGNEE_TYPE.ALL
       : activeAssigneeTab.value,
     status: props.label ? wootConstants.STATUS_TYPE.ALL : activeStatus.value,
-    sortBy: activeSortBy.value,
+    sortBy: isClosedPickupView.value ? pickupSort.value : activeSortBy.value,
     page: conversationListPagination.value,
     labels: activeLabelTitle.value ? [activeLabelTitle.value] : undefined,
     teamId: props.teamId || undefined,
@@ -456,6 +461,11 @@ const conversationList = computed(() => {
     localConversationList = sortByUnreadStatus(localConversationList);
   }
 
+  if (isClosedPickupView.value) {
+    return localConversationList.sort((a, b) =>
+      comparePickupSchedules(a, b, pickupSort.value === 'pickup_desc')
+    );
+  }
   return sortByRottaOrder(localConversationList);
 });
 
@@ -468,38 +478,6 @@ const filteredConversationList = computed(() => {
     localResults: conversationList.value,
     query,
   });
-});
-
-const review = useConversationReview();
-const reviewContext = computed(() => ({
-  label: activeLabelTitle.value || '',
-  conversationType: props.conversationType || '',
-  inboxId: Number(props.conversationInbox) || 0,
-  teamId: Number(props.teamId) || 0,
-  foldersId: Number(props.foldersId) || 0,
-  status: conversationFilters.value.status,
-  assigneeType: conversationFilters.value.assigneeType,
-  filters: normalizeReviewFilters(
-    activeFolder.value?.query?.payload || appliedFilters.value || []
-  ),
-}));
-const reviewKey = computed(() => reviewViewKey(reviewContext.value));
-const reviewNextId = computed(
-  () => review.session.value.views[reviewKey.value]?.remaining?.[0]?.id
-);
-provide('reviewNextId', reviewNextId);
-provide('recordConversationReview', conversation => {
-  // Search results cross sidebar boundaries; do not overwrite a tab's review.
-  if (conversationSearchQuery.value.trim()) return;
-  let reviewTitle = pageTitle.value;
-  if (!props.label && reviewTitle === t('CHAT_LIST.TAB_HEADING'))
-    reviewTitle = 'Todos';
-  review.record(
-    conversationList.value,
-    conversation,
-    reviewContext.value,
-    reviewTitle
-  );
 });
 
 const showRottaConversationShortcuts = computed(() => {
@@ -570,6 +548,7 @@ function fetchFilteredConversations(payload) {
     .dispatch('fetchFilteredConversations', {
       queryData: filterQueryGenerator(payload),
       page,
+      sortBy: isClosedPickupView.value ? pickupSort.value : undefined,
     })
     .catch(() => useAlert(t('CHAT_LIST.FETCH_ERROR')))
     // emit even on failure so a deep-linked conversation still loads via
@@ -598,37 +577,6 @@ function onApplyFilter(payload) {
   store.dispatch('conversationPage/reset');
   store.dispatch('emptyAllConversations');
   fetchFilteredConversations(payload);
-}
-
-let restoredReviewId;
-async function restoreReviewContext() {
-  const id = route.query.review;
-  if (!id || id === restoredReviewId) return false;
-  const state = review.session.value;
-  await review.load();
-  if (state !== review.session.value || id !== route.query.review) return false;
-  const point = [...Object.values(state.views), ...state.history].find(
-    item => item.id === id
-  );
-  if (!point) return false;
-  restoredReviewId = id;
-  if (route.query.review_open === 'workspace') {
-    activeStatus.value = 'all';
-    activeAssigneeTab.value = 'all';
-    await store.dispatch('setConversationFilters', []);
-    appliedFilter.value = [];
-    return false;
-  }
-  activeStatus.value = point.context.status;
-  activeAssigneeTab.value = point.context.assigneeType;
-  if (props.foldersId) return false;
-  await store.dispatch('setConversationFilters', point.context.filters || []);
-  appliedFilter.value = [...(point.context.filters || [])];
-  if (point.context.filters?.length) {
-    onApplyFilter(point.context.filters);
-    return true;
-  }
-  return false;
 }
 
 function closeAdvanceFiltersModal() {
@@ -780,7 +728,7 @@ function fetchConversations() {
 function resetAndFetchData() {
   if (resetFetchQueued) return;
   resetFetchQueued = true;
-  nextTick(async () => {
+  nextTick(() => {
     resetFetchQueued = false;
     if (isChatListUnmounted) return;
 
@@ -789,8 +737,6 @@ function resetAndFetchData() {
     store.dispatch('conversationPage/reset');
     store.dispatch('emptyAllConversations');
     store.dispatch('clearConversationFilters');
-    if (await restoreReviewContext()) return;
-    if (isChatListUnmounted) return;
     if (hasActiveFolders.value) {
       const payload = activeFolder.value.query;
       fetchSavedFilteredConversations(payload);
@@ -1116,15 +1062,6 @@ useEmitter('fetch_conversation_stats', () => {
   store.dispatch('conversationStats/get', conversationFilters.value);
 });
 
-watch(
-  () => route.query.review,
-  id => {
-    // A normal click consumes the resume query without clearing the restored filters.
-    restoredReviewId = undefined;
-    if (id) resetAndFetchData();
-  }
-);
-
 onMounted(() => {
   loadConversationListWidth();
   store.dispatch('setChatListFilters', conversationFilters.value);
@@ -1177,6 +1114,15 @@ provide('assignPriority', assignPriority);
 provide('togglePinned', togglePinned);
 provide('isConversationSelected', isConversationSelected);
 provide('deleteConversation', handleDelete);
+
+watch(pickupSort, () => {
+  if (!isClosedPickupView.value) return;
+  if (hasAppliedFilters.value) {
+    onApplyFilter(appliedFilters.value);
+    return;
+  }
+  resetAndFetchData();
+});
 
 watch(activeTeam, () => resetAndFetchData());
 
@@ -1265,8 +1211,11 @@ watch(conversationSearchQuery, searchQuery => {
       @label-filter-change="onLabelFilterChange"
       @update-search-query="conversationSearchQuery = $event"
       @mark-all-as-read="markAllVisibleAsRead"
-    />
-    <ReviewResume :view="reviewKey" compact />
+    >
+      <template v-if="isClosedPickupView" #basic-filter>
+        <PickupSortButton v-model="pickupSort" />
+      </template>
+    </ChatListHeader>
 
     <TeleportWithDirection
       v-if="showAddFoldersModal"

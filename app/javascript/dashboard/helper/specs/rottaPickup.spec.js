@@ -4,6 +4,7 @@ import {
   pickupDateLabel,
   splitPickupName,
   isPickupDateInWindow,
+  comparePickupSchedules,
 } from '../rottaPickup';
 
 describe('pickup date display', () => {
@@ -47,5 +48,30 @@ describe('pickup date display', () => {
       'Cliente 20',
       '',
     ]);
+  });
+});
+
+describe('comparePickupSchedules', () => {
+  it('orders by pickup then delivery in both directions with missing dates last', () => {
+    const rows = [
+      { id: 5, rotta_pickup: { starts_on: '2026-11-23' } },
+      {
+        id: 2,
+        custom_attributes: { rotta_pinned: true },
+        rotta_pickup: { starts_on: '2026-11-23', delivery_on: '2026-11-25' },
+      },
+      { id: 4 },
+      {
+        id: 3,
+        rotta_pickup: { starts_on: '2026-11-23', delivery_on: '2026-11-24' },
+      },
+      { id: 1, rotta_pickup: { starts_on: '2026-11-21' } },
+    ];
+    const ids = descending =>
+      [...rows]
+        .sort((a, b) => comparePickupSchedules(a, b, descending))
+        .map(row => row.id);
+    expect(ids(false)).toEqual([1, 3, 2, 5, 4]);
+    expect(ids(true)).toEqual([2, 3, 5, 1, 4]);
   });
 });

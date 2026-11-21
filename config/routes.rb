@@ -51,7 +51,6 @@ Rails.application.routes.draw do
         end
 
         scope module: :accounts do
-          resource :review_points, only: [:show, :update]
           resources :conversation_followings, only: [:index, :show, :update, :destroy]
           resources :rotta_pickups, only: [:index, :show, :update] do
             post :complete, on: :member
