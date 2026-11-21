@@ -276,7 +276,7 @@ const selectedModel = computed({
           </div>
           <div class="flex items-center gap-1 min-w-0 mx-2">
             <h4
-              class="conversation--user text-sm my-0 capitalize pt-0.5 text-ellipsis overflow-hidden whitespace-nowrap min-w-0 flex-1 text-n-slate-12"
+              class="conversation--user my-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 pt-0.5 text-sm text-n-slate-12"
               :class="hasUnread ? 'font-semibold' : 'font-medium'"
             >
               <PickupContactName
@@ -284,6 +284,14 @@ const selectedModel = computed({
                 :suffix="currentContact?.custom_attributes?.[PICKUP_SUFFIX_KEY]"
                 :allow-legacy="closedPickup"
                 :show-date="!closedPickup"
+                class="max-w-full truncate capitalize"
+              />
+              <PickupScheduleDates
+                v-if="closedPickup"
+                :name="currentContactDisplayName"
+                :suffix="currentContact?.custom_attributes?.[PICKUP_SUFFIX_KEY]"
+                :schedule="chat.rotta_pickup"
+                inline
               />
             </h4>
             <ConversationAiStatus :conversation-id="chat.id" density="card" />
@@ -305,13 +313,6 @@ const selectedModel = computed({
           />
         </div>
       </div>
-      <PickupScheduleDates
-        v-if="closedPickup"
-        :name="currentContactDisplayName"
-        :suffix="currentContact?.custom_attributes?.[PICKUP_SUFFIX_KEY]"
-        :schedule="chat.rotta_pickup"
-        class="mx-2 mt-1"
-      />
       <p v-if="isReviewNext" class="my-0 mx-2 text-xs text-n-brand font-medium">
         {{ $t('CONVERSATION.REVIEW_NEXT', 'Próximo da revisão') }}
       </p>

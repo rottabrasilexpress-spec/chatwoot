@@ -48,6 +48,7 @@
     "IN_DAYS": "Em {days} dias",
     "WINDOW_STARTED": "Na janela de coleta",
     "PAST": "Prazo da coleta passou",
+    "COLLECTED": "Coletado",
     "CONFIRM_DATE": "Confirmar data de coleta",
     "CONFIRM_INSTRUCTIONS": "Escolha um dia dentro da janela agendada de {window}.",
     "WINDOW_CHANGED": "Esta coleta já não tem uma janela flexível. Abra Alterar datas para conferir.",

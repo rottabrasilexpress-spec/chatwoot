@@ -7,6 +7,7 @@ const props = defineProps({
   name: { type: String, default: '' },
   suffix: { type: String, default: '' },
   schedule: { type: Object, default: null },
+  inline: { type: Boolean, default: false },
 });
 
 const { t } = useI18n();
@@ -34,12 +35,31 @@ const deliveryText = computed(
 </script>
 
 <template>
-  <div
+  <span
+    v-if="inline"
+    class="inline-flex min-w-0 flex-wrap items-baseline gap-x-1.5 font-semibold normal-case tabular-nums"
+    :class="{ hidden: !pickupLabel && !deliveryLabel }"
+    data-testid="conversation-move-dates"
+  >
+    <span v-if="pickupLabel" class="text-n-ruby-11" :title="pickupText">
+      {{ pickupLabel }}
+    </span>
+    <span
+      v-if="deliveryLabel"
+      class="inline-flex items-baseline gap-1 whitespace-nowrap text-n-teal-11"
+      :title="deliveryText"
+    >
+      <span v-if="pickupLabel" aria-hidden="true">–</span>
+      <span>{{ deliveryLabel }}</span>
+    </span>
+  </span>
+  <span
+    v-else
     class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-snug"
     data-testid="conversation-move-dates"
   >
     <span
-      class="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 rounded-md bg-n-amber-3 px-2 py-1 font-semibold text-n-amber-11"
+      class="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 rounded-md bg-n-ruby-3 px-2 py-1 font-semibold text-n-ruby-11"
     >
       <span
         class="i-lucide-calendar-days size-3.5 shrink-0"
@@ -58,5 +78,5 @@ const deliveryText = computed(
       <span class="i-lucide-truck size-3.5 shrink-0" aria-hidden="true" />
       <span>{{ deliveryText }}</span>
     </span>
-  </div>
+  </span>
 </template>
