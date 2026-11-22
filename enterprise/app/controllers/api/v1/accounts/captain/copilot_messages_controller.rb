@@ -6,6 +6,12 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
   def index
     scope = @copilot_thread.copilot_messages
     after_id = permitted_params[:after_id].to_i
+    before_id = permitted_params[:before_id].to_i
+    if @copilot_thread.private_conversation_id.present? && !after_id.positive?
+      scope = scope.where('id < ?', before_id) if before_id.positive?
+      @copilot_messages = scope.includes(copilot_thread: [:user, :private_conversation]).order(id: :desc).page(1).per(40)
+      return
+    end
     scope = scope.where('id >= ?', after_id) if after_id.positive?
     @copilot_messages = scope
                         .includes(:copilot_thread)
@@ -20,12 +26,12 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
         content: params[:message],
         author_id: Current.user.id,
         author_name: Current.user.name,
-        author_email: Current.user.email
-      },
+        author_email: Current.user.email,
+        conversation_ai_mode: (@copilot_thread.private_conversation_id? ? ConversationAi::Consultation.mode(params[:mode]) : nil)
+      }.compact,
       message_type: :user
     )
-    conversation_id = @copilot_thread.conversation&.display_id || params[:conversation_id]
-    if @copilot_thread.conversation_id.present?
+    if @copilot_thread.private_conversation_id.present?
       ConversationAi::ResponseJob.perform_later(
         copilot_thread_id: @copilot_thread.id,
         user_id: Current.user.id,
@@ -33,33 +39,23 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
         message: @copilot_message.message['content']
       )
     else
-      @copilot_message.enqueue_response_job(conversation_id, Current.user.id)
+      @copilot_message.enqueue_response_job(params[:conversation_id], Current.user.id)
     end
   end
 
   private
 
   def set_copilot_thread
-    @copilot_thread = Current.account.copilot_threads.find(params[:copilot_thread_id])
-    return if @copilot_thread.conversation_id.blank? && @copilot_thread.user_id == Current.user.id
+    @copilot_thread = Current.account.copilot_threads.where(user_id: Current.user.id).find(params[:copilot_thread_id])
+    raise ActiveRecord::RecordNotFound if @copilot_thread.conversation_id.present?
+    return if @copilot_thread.private_conversation_id.blank?
 
-    conversation = @copilot_thread.conversation
-    raise ActiveRecord::RecordNotFound if conversation.blank?
+    raise ActiveRecord::RecordNotFound if @copilot_thread.private_conversation.blank?
 
-    if @copilot_thread.conversation_id.present?
-      authorize conversation, :show?
-      return
-    end
-
-    accessible_conversation = accessible_conversation(
-      account: Current.account,
-      user: Current.user,
-      display_id: conversation.display_id
-    )
-    raise ActiveRecord::RecordNotFound if accessible_conversation.blank?
+    authorize @copilot_thread.private_conversation, :show?
   end
 
   def permitted_params
-    params.permit(:page, :after_id)
+    params.permit(:page, :after_id, :before_id)
   end
 end

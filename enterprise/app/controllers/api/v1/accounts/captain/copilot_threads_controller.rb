@@ -17,11 +17,9 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
       @copilot_thread = if conversation_ai?
                           conversation = conversation_for_ai
                           Current.account.copilot_threads.find_or_create_by!(
-                            conversation_id: conversation.id
+                            private_conversation_id: conversation.id, user_id: Current.user.id
                           ) do |thread|
                             thread.title = copilot_thread_params[:message]
-                            thread.user = Current.user
-                            thread.assistant = assistant unless conversation_ai?
                           end
                         else
                           Current.account.copilot_threads.create!(
@@ -100,10 +98,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     display_id = copilot_thread_params[:conversation_id]
     raise ActiveRecord::RecordNotFound, 'Conversation not found' if display_id.blank?
 
-    conversation_scope = Conversation.where(account_id: Current.account.id)
-    conversation = conversation_scope.find_by(display_id: display_id) ||
-                   conversation_scope.find_by(id: display_id)
-    raise ActiveRecord::RecordNotFound, 'Conversation not found' if conversation.blank?
+    conversation = Current.account.conversations.find_by!(display_id: display_id)
 
     authorize conversation, :show?
     conversation
@@ -122,11 +117,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     if permitted_params[:conversation_id].present?
       conversation = if permitted_params[:request_type] == 'conversation_ai'
                        display_id = permitted_params[:conversation_id]
-                       conversation_scope = Conversation.where(account_id: Current.account.id)
-                       found_conversation = conversation_scope.find_by(display_id: display_id) ||
-                                             conversation_scope.find_by(id: display_id)
-                       raise ActiveRecord::RecordNotFound if found_conversation.blank?
-
+                       found_conversation = Current.account.conversations.find_by!(display_id: display_id)
                        authorize found_conversation, :show?
                        found_conversation
                      else
@@ -138,9 +129,9 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
                      end
       raise ActiveRecord::RecordNotFound if conversation.blank?
 
-      Current.account.copilot_threads.where(conversation_id: conversation.id)
+      Current.account.copilot_threads.where(private_conversation_id: conversation.id, user_id: Current.user.id)
     else
-      Current.account.copilot_threads.where(user_id: Current.user.id)
+      Current.account.copilot_threads.where(user_id: Current.user.id, conversation_id: nil, private_conversation_id: nil)
     end
   end
 
@@ -155,12 +146,13 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
       content: copilot_thread_params[:message],
       author_id: Current.user.id,
       author_name: Current.user.name,
-      author_email: Current.user.email
-    }
+      author_email: Current.user.email,
+      conversation_ai_mode: ConversationAi::Consultation.mode(copilot_thread_params[:mode])
+    }.compact
   end
 
   def copilot_thread_params
-    params.permit(:message, :assistant_id, :conversation_id, :request_type)
+    params.permit(:message, :assistant_id, :conversation_id, :request_type, :mode)
   end
 
   def permitted_params

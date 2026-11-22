@@ -315,7 +315,33 @@
     },
     "COPILOT": {
       "CONVERSATION_AI_TITLE": "Pergunte para IA",
-      "CONVERSATION_AI_DESCRIPTION": "Assistente interno compartilhado para consultar a cronologia da conversa e executar comandos autorizados.",
+      "CONVERSATION_AI_DESCRIPTION": "Histórico privado por agente e cliente.",
+      "RESIZE": "Redimensionar o Pergunte para IA",
+      "HISTORY_ERROR": "Não foi possível carregar seu histórico.",
+      "RETRY_HISTORY": "Tentar novamente",
+      "OLDER_HISTORY": "Ver consultas anteriores",
+      "PERSONAL_EMPTY": "Faça uma pergunta ou use um dos atalhos acima. Suas consultas ficam salvas aqui.",
+      "DEEP": "Análise profunda",
+      "DEEP_HINT": "Cruza as evidências da conversa e revisa a resposta antes de apresentar.",
+      "SUGGESTED_REPLY": "Sugestão de resposta",
+      "USE_DRAFT": "Usar como rascunho",
+      "DICTATE": "Ditar pergunta",
+      "STOP_DICTATION": "Parar e transcrever",
+      "TRANSCRIBING": "Transcrevendo sua pergunta…",
+      "SHORTCUTS": {
+        "PENDING": {
+          "LABEL": "Pendências",
+          "PROMPT": "O que ainda está pendente nesta conversa? Cite as evidências e sugira uma resposta para o cliente, quando fizer sentido."
+        },
+        "PREQUOTE": {
+          "LABEL": "Pré-orçamento atualizado",
+          "PROMPT": "Gere o pré-orçamento atualizado no modelo da Rotta. Leia o histórico e incorpore as mudanças mais recentes."
+        },
+        "PRICING": {
+          "LABEL": "Simular reajuste",
+          "PROMPT": "Compare o orçamento original com o inventário atualizado. Sugira um reajuste interno com base verificável e mostre o que precisa de conferência."
+        }
+      },
       "RESPONSE_DELAYED": "A resposta demorou mais que o esperado. Você pode consultar novamente sem reenviar a pergunta.",
       "CHECK_RESPONSE": "Verificar resposta"
     },
@@ -323,7 +349,7 @@
       "REPLY": "Reply",
       "PRIVATE_NOTE": "Private Note",
       "CONVERSATION_AI": "Pergunte para IA",
-      "CONVERSATION_AI_HELPER": "Consulta o histórico completo desta conversa e a memória compartilhada da equipe.",
+      "CONVERSATION_AI_HELPER": "Consulta esta conversa e seu histórico particular de perguntas.",
       "SEND": "Send",
       "CREATE": "Add Note",
       "INSERT_READ_MORE": "Read more",

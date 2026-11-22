@@ -21,6 +21,21 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
     end
 
     context 'when it is an authenticated user' do
+      it 'lists only the current agent private thread for the requested customer' do
+        create(:inbox_member, user: agent, inbox: inbox)
+        personal = create(:captain_copilot_thread, account: account, user: agent, private_conversation: conversation)
+        create(:captain_copilot_thread, account: account, user: admin, private_conversation: conversation)
+        create(:captain_copilot_thread, account: account, user: agent, conversation: conversation)
+
+        get "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+            params: { conversation_id: conversation.display_id, request_type: 'conversation_ai' },
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(json_response[:payload].pluck(:id)).to eq([personal.id])
+      end
+
       it 'fetches copilot threads for the current user' do
         # Create threads for the current agent
         create_list(:captain_copilot_thread, 3, account: account, user: agent)

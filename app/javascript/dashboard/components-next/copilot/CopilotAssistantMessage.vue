@@ -25,12 +25,13 @@ const props = defineProps({
   },
 });
 const hasEmptyMessageContent = computed(() => !props.message?.content);
+const suggestedReply = computed(() => props.message?.suggested_reply);
 
 const showUseButton = computed(() => {
   return (
     !hasEmptyMessageContent.value &&
-    props.message.reply_suggestion &&
-    props.isLastMessage
+    (suggestedReply.value ||
+      (props.message.reply_suggestion && props.isLastMessage))
   );
 });
 
@@ -46,10 +47,11 @@ const insertIntoRichEditor = computed(() => {
 });
 
 const useCopilotResponse = () => {
+  const draft = suggestedReply.value || props.message.content;
   if (insertIntoRichEditor.value) {
-    emitter.emit(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, props.message?.content);
+    emitter.emit(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, draft);
   } else {
-    emitter.emit(BUS_EVENTS.INSERT_INTO_NORMAL_EDITOR, props.message?.content);
+    emitter.emit(BUS_EVENTS.INSERT_INTO_NORMAL_EDITOR, draft);
   }
   useTrack(COPILOT_EVENTS.USE_CAPTAIN_RESPONSE);
 };
@@ -57,7 +59,7 @@ const useCopilotResponse = () => {
 
 <template>
   <div class="flex flex-col gap-1 text-n-slate-12">
-    <div class="font-medium">{{ $t('CAPTAIN.NAME') }}</div>
+    <div class="font-medium">{{ message.assistant || $t('CAPTAIN.NAME') }}</div>
     <span v-if="hasEmptyMessageContent" class="text-n-ruby-11">
       {{ $t('CAPTAIN.COPILOT.EMPTY_MESSAGE') }}
     </span>
@@ -66,10 +68,23 @@ const useCopilotResponse = () => {
       v-dompurify-html="messageContent"
       class="prose-sm break-words"
     />
+    <div
+      v-if="suggestedReply"
+      class="mt-1 rounded-lg border border-n-weak bg-n-alpha-2 px-3 py-2 text-sm text-n-slate-11"
+    >
+      <div class="mb-1 text-xs font-medium">
+        {{ $t('CONVERSATION.COPILOT.SUGGESTED_REPLY') }}
+      </div>
+      <p class="m-0 whitespace-pre-wrap break-words">{{ suggestedReply }}</p>
+    </div>
     <div class="flex flex-row mt-1">
       <Button
         v-if="showUseButton"
-        :label="$t('CAPTAIN.COPILOT.USE')"
+        :label="
+          suggestedReply
+            ? $t('CONVERSATION.COPILOT.USE_DRAFT')
+            : $t('CAPTAIN.COPILOT.USE')
+        "
         faded
         sm
         slate

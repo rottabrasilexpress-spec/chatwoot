@@ -19,6 +19,7 @@ import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import wootConstants from 'dashboard/constants/globals';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
+import CopilotThreadsAPI from 'dashboard/api/captain/copilotThreads';
 
 defineProps({
   conversationInboxType: {
@@ -41,14 +42,11 @@ const currentChat = useMapGetter('getSelectedChat');
 const lastPublicMessage = useMapGetter('getLastEmailInSelectedChat');
 
 const currentConversationId = computed(() => {
-  const conversation = currentChat.value;
-  if (conversation?.display_id) return conversation.display_id;
-
   const routeMatch = window.location.pathname.match(/\/conversations\/(\d+)/);
-  if (routeMatch?.[1]) return routeMatch[1];
-
-  if (conversation?.id) return conversation.id;
-  return null;
+  const conversation = currentChat.value;
+  return routeMatch
+    ? Number(routeMatch[1])
+    : (conversation?.display_id ?? conversation?.id ?? null);
 });
 
 const isConversationAiMode = computed(
@@ -65,8 +63,13 @@ const isSmallScreen = computed(
 
 const selectedCopilotThreadId = ref(null);
 const conversationAiRefreshPromises = new Map();
-const conversationAiMessageVisibilityFloor = reactive(new Map());
 const conversationAiRequests = reactive(new Map());
+const historyLoading = ref(false);
+const historyError = ref(false);
+const hasOlderHistory = ref(false);
+const panelWidth = ref(360);
+let historyRevision = 0;
+let dragStart;
 const isSending = ref(false);
 let disposed = false;
 const responsePending = computed(
@@ -78,49 +81,8 @@ const responseError = computed(
   () => conversationAiRequests.get(selectedCopilotThreadId.value)?.error || ''
 );
 
-const getMessagesForThread = threadId => {
-  const allMessages =
-    store.getters['copilotMessages/getMessagesByThreadId'](threadId);
-  if (!isConversationAiMode.value) return allMessages;
-
-  const visibilityFloor = conversationAiMessageVisibilityFloor.get(
-    Number(threadId)
-  );
-  if (!visibilityFloor) return allMessages;
-
-  return allMessages.filter(message => message.id >= visibilityFloor);
-};
-
-const ensureConversationAiMessageVisibilityFloor = (threadId, message) => {
-  if (!isConversationAiMode.value) return;
-
-  const normalizedThreadId = Number(threadId);
-  if (conversationAiMessageVisibilityFloor.has(normalizedThreadId)) return;
-
-  const requestMessage = message?.trim();
-  if (!requestMessage) return;
-
-  const matchingUserMessages = store.getters[
-    'copilotMessages/getMessagesByThreadId'
-  ](threadId).filter(record => {
-    if (record.message_type !== 'user') return false;
-    const content =
-      typeof record.message === 'string'
-        ? record.message
-        : record.message?.content;
-    return content === requestMessage;
-  });
-  const latestMatchingUserMessage = matchingUserMessages.sort(
-    (first, second) => second.id - first.id
-  )[0];
-
-  if (latestMatchingUserMessage?.id) {
-    conversationAiMessageVisibilityFloor.set(
-      normalizedThreadId,
-      latestMatchingUserMessage.id
-    );
-  }
-};
+const getMessagesForThread = threadId =>
+  store.getters['copilotMessages/getMessagesByThreadId'](threadId);
 
 const normalizeAssistantMessage = message => {
   if (message?.message_type !== 'assistant') return message;
@@ -222,20 +184,37 @@ const shouldShowCopilotPanel = computed(() => {
 
 const handleReset = () => {
   selectedCopilotThreadId.value = null;
-  conversationAiMessageVisibilityFloor.clear();
 };
 
-watch([currentConversationId, isConversationAiMode], handleReset, {
-  immediate: true,
-});
+const maxPanelWidth = computed(() =>
+  Math.max(320, Math.min(720, windowWidth.value - 430))
+);
+const resize = width => {
+  panelWidth.value = Math.min(maxPanelWidth.value, Math.max(320, width));
+};
+watch(maxPanelWidth, () => resize(panelWidth.value));
+
+const startResize = event => {
+  if (event.button !== 0) return;
+  dragStart = { x: event.clientX, width: panelWidth.value };
+  event.currentTarget.setPointerCapture(event.pointerId);
+};
+
+const resizeOnMove = event => {
+  if (dragStart) resize(dragStart.width + dragStart.x - event.clientX);
+};
+
+const finishResize = () => {
+  dragStart = undefined;
+};
 
 const wait = timeout =>
   new Promise(resolve => {
     setTimeout(resolve, timeout);
   });
 
-const CONVERSATION_AI_POLL_INTERVAL = 2000;
-const CONVERSATION_AI_MAX_POLL_ATTEMPTS = 90;
+const CONVERSATION_AI_POLL_INTERVAL = 4000;
+const CONVERSATION_AI_MAX_POLL_ATTEMPTS = 45;
 
 const refreshConversationAiMessages = async (
   threadId,
@@ -291,8 +270,6 @@ const refreshConversationAiMessages = async (
         } catch (error) {
           // A transient fetch failure must not strand an otherwise running answer.
         }
-      ensureConversationAiMessageVisibilityFloor(threadId, requestMessage);
-
       if (hasAnswer()) {
         if (
           isConversationAiMode.value &&
@@ -334,19 +311,108 @@ const refreshResponse = () => {
   );
 };
 
+const openHistory = async () => {
+  historyRevision += 1;
+  const revision = historyRevision;
+  handleReset();
+  hasOlderHistory.value = false;
+  historyError.value = false;
+  historyLoading.value = false;
+  const conversationId = currentConversationId.value;
+  if (
+    !isConversationAiMode.value ||
+    !shouldShowCopilotPanel.value ||
+    !conversationId
+  )
+    return;
+
+  historyLoading.value = true;
+  try {
+    const { data } = await CopilotThreadsAPI.get({
+      conversation_id: conversationId,
+      request_type: 'conversation_ai',
+    });
+    const threadId = data.payload?.[0]?.id;
+    if (disposed || revision !== historyRevision || !threadId) return;
+    const records = await store.dispatch('copilotMessages/get', threadId);
+    if (disposed || revision !== historyRevision) return;
+    selectedCopilotThreadId.value = threadId;
+    hasOlderHistory.value = records?.length === 40;
+    const current = getMessagesForThread(threadId);
+    const last = current.at(-1);
+    if (
+      last?.message_type === 'user' &&
+      !conversationAiRequests.has(threadId) &&
+      Date.now() - Number(last.created_at) * 1000 < 180000
+    ) {
+      refreshConversationAiMessages(
+        threadId,
+        0,
+        last.message?.content,
+        last.id,
+        conversationId
+      );
+    }
+  } catch {
+    if (revision === historyRevision) historyError.value = true;
+  } finally {
+    if (revision === historyRevision) historyLoading.value = false;
+  }
+};
+
+const loadOlderHistory = async () => {
+  const threadId = selectedCopilotThreadId.value;
+  const beforeId = getMessagesForThread(threadId)[0]?.id;
+  if (!beforeId || historyLoading.value) return;
+  historyLoading.value = true;
+  try {
+    const records = await store.dispatch('copilotMessages/get', {
+      threadId,
+      beforeId,
+    });
+    if (threadId === selectedCopilotThreadId.value)
+      hasOlderHistory.value = records?.length === 40;
+  } catch {
+    useAlert(t('CONVERSATION.COPILOT.HISTORY_ERROR'));
+  } finally {
+    if (threadId === selectedCopilotThreadId.value)
+      historyLoading.value = false;
+  }
+};
+
+watch(
+  [
+    currentAccountId,
+    currentConversationId,
+    isConversationAiMode,
+    shouldShowCopilotPanel,
+  ],
+  openHistory,
+  {
+    immediate: true,
+  }
+);
+
 onBeforeUnmount(() => {
   disposed = true;
 });
 
 const sendMessage = async payload => {
-  if (isConversationAiMode.value && responsePending.value) return;
+  if (
+    isConversationAiMode.value &&
+    (responsePending.value || historyLoading.value || historyError.value)
+  )
+    return;
   isSending.value = true;
   const message = typeof payload === 'string' ? payload : payload.message;
   const requestType =
     typeof payload === 'string' ? undefined : payload.requestType;
+  const mode = typeof payload === 'string' ? undefined : payload.mode;
+  const conversationMode = isConversationAiMode.value;
   const assistantId = activeAssistant.value?.id;
   const conversationId = currentConversationId.value;
   const threadId = selectedCopilotThreadId.value;
+  const revision = historyRevision;
   const assistantCountBeforeRequest = messages.value.filter(
     item => item.message_type === 'assistant'
   ).length;
@@ -358,17 +424,9 @@ const sendMessage = async payload => {
         conversation_id: conversationId,
         threadId,
         message,
+        ...(conversationMode && mode && { mode }),
       });
-      if (isConversationAiMode.value) {
-        if (
-          response?.id &&
-          !conversationAiMessageVisibilityFloor.has(Number(threadId))
-        ) {
-          conversationAiMessageVisibilityFloor.set(
-            Number(threadId),
-            response.id
-          );
-        }
+      if (conversationMode) {
         refreshConversationAiMessages(
           threadId,
           assistantCountBeforeRequest,
@@ -382,26 +440,21 @@ const sendMessage = async payload => {
         ...(assistantId && { assistant_id: assistantId }),
         conversation_id: conversationId,
         message,
-        ...(isConversationAiMode.value && { request_type: 'conversation_ai' }),
-        ...(requestType && { request_type: requestType }),
+        ...(conversationMode
+          ? { request_type: 'conversation_ai', ...(mode && { mode }) }
+          : requestType && { request_type: requestType }),
       });
-      if (currentConversationId.value === conversationId) {
+      if (revision === historyRevision) {
         selectedCopilotThreadId.value = response.id;
-        if (isConversationAiMode.value) {
-          if (response.copilot_message_id) {
-            conversationAiMessageVisibilityFloor.set(
-              Number(response.id),
-              response.copilot_message_id
-            );
-          }
-          refreshConversationAiMessages(
-            response.id,
-            assistantCountBeforeRequest,
-            message,
-            response.copilot_message_id,
-            conversationId
-          );
-        }
+      }
+      if (conversationMode) {
+        refreshConversationAiMessages(
+          response.id,
+          assistantCountBeforeRequest,
+          message,
+          response.copilot_message_id,
+          conversationId
+        );
       }
     }
   } catch (error) {
@@ -425,14 +478,39 @@ onMounted(() => {
       closeCopilotPanel,
       { ignore: ['[data-conversation-ai-toggle]'] },
     ]"
-    class="bg-n-surface-2 h-full overflow-hidden flex-col fixed top-0 ltr:right-0 rtl:left-0 z-40 w-full max-w-sm transition-transform duration-300 ease-in-out md:static md:w-[320px] md:min-w-[320px] ltr:border-l rtl:border-r border-n-weak 2xl:min-w-[360px] 2xl:w-[360px] shadow-lg md:shadow-none"
+    class="bg-n-surface-2 h-full overflow-hidden flex flex-col fixed top-0 ltr:right-0 rtl:left-0 z-40 w-full max-w-sm md:relative ltr:border-l rtl:border-r border-n-weak shadow-lg md:shadow-none"
+    :style="
+      isConversationAiMode
+        ? { '--conversation-ai-width': `${panelWidth}px` }
+        : undefined
+    "
     :class="[
       {
         'md:flex': shouldShowCopilotPanel,
         'md:hidden': !shouldShowCopilotPanel,
+        'md:w-[var(--conversation-ai-width)] md:max-w-none md:shrink-0':
+          isConversationAiMode,
+        'md:w-[320px] md:min-w-[320px] 2xl:min-w-[360px] 2xl:w-[360px]':
+          !isConversationAiMode,
       },
     ]"
   >
+    <div
+      v-if="isConversationAiMode"
+      role="separator"
+      tabindex="0"
+      aria-orientation="vertical"
+      :aria-label="t('CONVERSATION.COPILOT.RESIZE')"
+      :aria-valuemin="320"
+      :aria-valuemax="maxPanelWidth"
+      :aria-valuenow="panelWidth"
+      class="absolute inset-y-0 left-0 z-10 hidden w-2 touch-none cursor-col-resize border-l-2 border-transparent hover:border-n-blue-9 focus-visible:border-n-blue-9 md:block"
+      @pointerdown="startResize"
+      @pointermove="resizeOnMove"
+      @lostpointercapture="finishResize"
+      @keydown.left.prevent="resize(panelWidth + 24)"
+      @keydown.right.prevent="resize(panelWidth - 24)"
+    />
     <Copilot
       :messages="messages"
       :support-agent="currentUser"
@@ -443,10 +521,16 @@ onMounted(() => {
       :conversation-ai-mode="isConversationAiMode"
       :response-pending="responsePending"
       :response-error="responseError"
+      :conversation-id="currentConversationId"
+      :history-loading="historyLoading"
+      :history-error="historyError"
+      :has-older-history="hasOlderHistory"
       @set-assistant="setAssistant"
       @send-message="sendMessage"
       @reset="handleReset"
       @refresh-response="refreshResponse"
+      @retry-history="openHistory"
+      @load-older-history="loadOlderHistory"
     />
   </div>
   <template v-else />

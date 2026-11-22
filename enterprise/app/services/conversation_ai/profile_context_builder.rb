@@ -7,9 +7,13 @@ class ConversationAi::ProfileContextBuilder
     elevador escada acesso distância distancia rota pagamento carga descarga
   ].freeze
 
-  def initialize(conversation:, messages: nil)
+  def initialize(conversation:, messages: nil, character_limit: MAX_CONTEXT_CHARACTERS, focus_terms: [], recent_count: 12, include_transcripts: false)
     @conversation = conversation
     @messages = messages
+    @character_limit = character_limit
+    @focus_terms = focus_terms
+    @recent_count = recent_count
+    @include_transcripts = include_transcripts
   end
 
   def call
@@ -32,8 +36,9 @@ class ConversationAi::ProfileContextBuilder
   private
 
   def text_messages
+    transcripts = @include_transcripts && @messages.nil? ? saved_transcripts : {}
     source_messages.filter_map do |message|
-      content = compact_content(message.content.to_s.strip)
+      content = compact_content((message.content.presence || transcripts[message.id]).to_s.strip)
       next if content.blank?
 
       {
@@ -44,6 +49,14 @@ class ConversationAi::ProfileContextBuilder
         score: relevance_score(content)
       }
     end
+  end
+
+  def saved_transcripts
+    voice_messages = @conversation.messages.where(content: [nil, '']).select(:id)
+    Attachment.where(message_id: voice_messages, file_type: :audio)
+              .where("meta->>'transcribed_text' IS NOT NULL").order(:id)
+              .pluck(:message_id, Arel.sql("meta->>'transcribed_text'")).group_by(&:first)
+              .transform_values { |parts| "[Áudio transcrito] #{parts.map(&:last).join(' ')}" }
   end
 
   def source_messages
@@ -73,9 +86,9 @@ class ConversationAi::ProfileContextBuilder
   end
 
   def select_messages(candidates)
-    return candidates if total_characters(candidates) <= MAX_CONTEXT_CHARACTERS
+    return candidates if total_characters(candidates) <= @character_limit
 
-    protected_ids = candidates.first(4).concat(candidates.last(12)).map { |message| message[:id] }
+    protected_ids = candidates.first(4).concat(candidates.last(@recent_count)).map { |message| message[:id] }.to_set
     ranked = candidates.sort_by do |message|
       [-(message[:score] + (protected_ids.include?(message[:id]) ? 2 : 0)), -message[:created_at].to_time.to_i]
     end
@@ -83,7 +96,7 @@ class ConversationAi::ProfileContextBuilder
     selected = []
     characters = 0
     ranked.each do |message|
-      next if characters + message[:content].length > MAX_CONTEXT_CHARACTERS
+      next if characters + message[:content].length > @character_limit
 
       selected << message
       characters += message[:content].length
@@ -98,6 +111,7 @@ class ConversationAi::ProfileContextBuilder
 
   def relevance_score(content)
     normalized = I18n.transliterate(content.downcase)
-    RELEVANCE_TERMS.count { |term| normalized.include?(I18n.transliterate(term)) }
+    RELEVANCE_TERMS.count { |term| normalized.include?(I18n.transliterate(term)) } +
+      2 * @focus_terms.count { |term| normalized.include?(term) }
   end
 end

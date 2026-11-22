@@ -15,6 +15,7 @@
 #
 #  index_copilot_threads_on_account_id    (account_id)
 #  index_copilot_threads_on_account_id_and_conversation_id (account_id,conversation_id) UNIQUE
+#  idx_copilot_private_conversation_history (account_id,private_conversation_id,user_id) UNIQUE WHERE private_conversation_id IS NOT NULL
 #  index_copilot_threads_on_assistant_id  (assistant_id)
 #  index_copilot_threads_on_user_id       (user_id)
 #
@@ -23,6 +24,7 @@ class CopilotThread < ApplicationRecord
   belongs_to :account
   belongs_to :assistant, class_name: 'Captain::Assistant', optional: true
   belongs_to :conversation, optional: true
+  belongs_to :private_conversation, class_name: 'Conversation', optional: true
   has_many :copilot_messages, dependent: :destroy_async
 
   validates :title, presence: true
@@ -34,7 +36,7 @@ class CopilotThread < ApplicationRecord
       created_at: created_at.to_i,
       user: user.push_event_data,
       account_id: account_id,
-      conversation_id: conversation&.display_id
+      conversation_id: (private_conversation || conversation)&.display_id
     }
   end
 

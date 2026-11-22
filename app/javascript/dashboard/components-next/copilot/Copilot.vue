@@ -41,6 +41,10 @@ const props = defineProps({
   },
   responsePending: { type: Boolean, default: false },
   responseError: { type: String, default: '' },
+  historyLoading: { type: Boolean, default: false },
+  historyError: { type: Boolean, default: false },
+  hasOlderHistory: { type: Boolean, default: false },
+  conversationId: { type: [Number, String], default: null },
 });
 
 const emit = defineEmits([
@@ -48,15 +52,43 @@ const emit = defineEmits([
   'reset',
   'setAssistant',
   'refreshResponse',
+  'loadOlderHistory',
+  'retryHistory',
 ]);
 
 const { t } = useI18n();
+const deepMode = ref(false);
+const shortcuts = [
+  { mode: 'pending', icon: 'i-lucide-list-checks' },
+  { mode: 'prequote', icon: 'i-lucide-clipboard-list' },
+  { mode: 'pricing', icon: 'i-lucide-calculator' },
+];
+const shortcutsDisabled = computed(
+  () => props.responsePending || props.historyLoading || props.historyError
+);
 
 const sendMessage = message => {
-  emit('sendMessage', message);
+  emit(
+    'sendMessage',
+    props.conversationAiMode && deepMode.value
+      ? { message, mode: 'deep' }
+      : message
+  );
   useTrack(COPILOT_EVENTS.SEND_MESSAGE);
 };
 
+const useShortcut = mode => {
+  const key = `CONVERSATION.COPILOT.SHORTCUTS.${mode.toUpperCase()}`;
+  emit('sendMessage', { message: t(`${key}.PROMPT`), mode });
+  useTrack(COPILOT_EVENTS.SEND_MESSAGE);
+};
+
+watch(
+  () => props.conversationId,
+  () => {
+    deepMode.value = false;
+  }
+);
 const chatContainer = ref(null);
 
 const scrollToBottom = async () => {
@@ -125,7 +157,7 @@ const canUseConversationAiInput = computed(
 );
 const hasMessages = computed(() => props.messages.length > 0);
 const copilotButtons = computed(() => {
-  if (hasMessages.value) {
+  if (hasMessages.value && !props.conversationAiMode) {
     return [
       {
         key: 'reset',
@@ -136,13 +168,25 @@ const copilotButtons = computed(() => {
   }
   return [];
 });
-watch(
-  [() => props.messages],
-  () => {
-    scrollToBottom();
-  },
-  { deep: true }
-);
+watch(() => props.messages.at(-1)?.id, scrollToBottom);
+
+const showOlderHistory = async () => {
+  if (!chatContainer.value) return;
+  const height = chatContainer.value.scrollHeight;
+  const top = chatContainer.value.scrollTop;
+  emit('loadOlderHistory');
+  const stop = watch(
+    () => props.historyLoading,
+    async loading => {
+      if (loading) return;
+      stop();
+      await nextTick();
+      if (chatContainer.value)
+        chatContainer.value.scrollTop =
+          top + chatContainer.value.scrollHeight - height;
+    }
+  );
+};
 </script>
 
 <template>
@@ -164,10 +208,56 @@ watch(
       {{ $t('CONVERSATION.COPILOT.CONVERSATION_AI_DESCRIPTION') }}
     </p>
     <div
+      v-if="conversationAiMode && conversationId"
+      class="flex flex-wrap gap-2 px-4 py-3 border-b border-n-weak"
+    >
+      <button
+        v-for="shortcut in shortcuts"
+        :key="shortcut.mode"
+        type="button"
+        :disabled="shortcutsDisabled"
+        class="inline-flex items-center gap-1.5 rounded-md border border-n-weak px-2.5 py-1.5 text-xs font-medium text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50"
+        @click="useShortcut(shortcut.mode)"
+      >
+        <i :class="shortcut.icon" aria-hidden="true" />
+        {{
+          t(
+            `CONVERSATION.COPILOT.SHORTCUTS.${shortcut.mode.toUpperCase()}.LABEL`
+          )
+        }}
+      </button>
+    </div>
+    <div
       ref="chatContainer"
       class="flex-1 flex px-4 py-4 overflow-y-auto items-start"
     >
-      <div v-if="hasMessages" class="space-y-6 flex-1 flex flex-col w-full">
+      <div
+        v-if="historyError"
+        role="alert"
+        class="flex flex-col items-start gap-2 text-n-slate-11"
+      >
+        {{ t('CONVERSATION.COPILOT.HISTORY_ERROR') }}
+        <button
+          type="button"
+          class="text-n-blue-11 underline"
+          @click="emit('retryHistory')"
+        >
+          {{ t('CONVERSATION.COPILOT.RETRY_HISTORY') }}
+        </button>
+      </div>
+      <div
+        v-else-if="hasMessages"
+        class="space-y-6 flex-1 flex flex-col w-full min-w-0"
+      >
+        <button
+          v-if="hasOlderHistory"
+          type="button"
+          class="self-center rounded-md border border-n-weak px-3 py-1.5 text-xs text-n-blue-11"
+          :disabled="historyLoading"
+          @click="showOlderHistory"
+        >
+          {{ t('CONVERSATION.COPILOT.OLDER_HISTORY') }}
+        </button>
         <template v-for="(item, index) in groupedMessages" :key="item.id">
           <CopilotAgentMessage
             v-if="item.message_type === 'user'"
@@ -209,6 +299,12 @@ watch(
           </button>
         </div>
       </div>
+      <CopilotLoader
+        v-else-if="historyLoading || (conversationAiMode && responsePending)"
+      />
+      <p v-else-if="conversationAiMode" class="text-n-slate-11">
+        {{ t('CONVERSATION.COPILOT.PERSONAL_EMPTY') }}
+      </p>
       <CopilotEmptyState
         v-else
         :has-assistants="canUseConversationAiInput"
@@ -226,11 +322,29 @@ watch(
           @set-assistant="$event => emit('setAssistant', $event)"
         />
         <div v-else />
+        <button
+          v-if="conversationAiMode"
+          type="button"
+          :aria-pressed="deepMode"
+          :title="t('CONVERSATION.COPILOT.DEEP_HINT')"
+          class="inline-flex items-center gap-1.5 rounded-md border border-n-weak px-2.5 py-1 text-xs font-medium"
+          :class="
+            deepMode
+              ? 'bg-n-blue-3 text-n-blue-11'
+              : 'text-n-slate-11 hover:bg-n-alpha-2'
+          "
+          @click="deepMode = !deepMode"
+        >
+          <i class="i-lucide-brain" aria-hidden="true" />
+          {{ t('CONVERSATION.COPILOT.DEEP') }}
+        </button>
       </div>
       <CopilotInput
         v-if="canUseConversationAiInput"
+        :key="conversationAiMode ? conversationId : 'copilot'"
         class="mb-1 w-full"
-        :disabled="conversationAiMode && responsePending"
+        :disabled="conversationAiMode && (shortcutsDisabled || !conversationId)"
+        :dictation-conversation-id="conversationAiMode ? conversationId : null"
         @send="sendMessage"
       />
     </div>
