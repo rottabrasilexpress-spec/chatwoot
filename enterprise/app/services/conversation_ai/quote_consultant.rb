@@ -2,6 +2,7 @@ class ConversationAi::QuoteConsultant
   MONEY = /R\$\s*([\d.]+,\d{2})/
   FINAL_QUOTE = /\b(?:orcamento final|proposta (?:comercial|final))\b/
   DIVIDER = '━━━━━━━━━━━━━'.freeze
+  PRICE_SCOPE_CHANGES = %w[rota modalidade servicos acessos].freeze
 
   def initialize(context:, client:)
     @context = context
@@ -34,12 +35,14 @@ class ConversationAi::QuoteConsultant
         "helpers_origin": "", "helpers_destination": "", "disassembly": "", "assembly": "",
         "access_origin": "", "access_destination": "", "payment": "",
         "quote_message_id": null, "transport_value": "", "total_value": "",
-        "scope_changed": false, "changes": [""], "missing": [""]
+        "scope_changes": [], "changes": [""], "missing": [""]
       }
       Itens de inventário devem ser uma string por tipo, com quantidade e medidas se houver. Use [] quando desconhecido.
       total_value é o total da opção já escolhida. transport_value é o valor só do transporte da mesma cotação;
       inclua o prefixo R$ e o valor literal da mensagem. quote_message_id identifica a mensagem da equipe que contém a
-      cotação final e os valores. Marque scope_changed se rota, modalidade, serviços ou acessos mudaram desde a cotação.
+      cotação final e os valores. Em scope_changes, use apenas os códigos rota, modalidade, servicos e acessos
+      quando esses aspectos da cotação mudaram de fato. Alterações de data ou de inventário entram só em changes.
+      Se o mesmo orçamento aparecer duas vezes, escolha o identificador mais recente.
       Em payment use somente outra condição explicitamente acordada, se houver.
       Use strings vazias para o desconhecido. Não use dados de estilo ou de consultas anteriores como fatos do cliente.
     PROMPT
@@ -81,7 +84,7 @@ class ConversationAi::QuoteConsultant
       #{payment}
       #{DIVIDER}
     QUOTE
-    notes.any? ? "#{text}\n**A confirmar:** #{notes.join('; ')}" : text
+    notes.any? ? "#{text}\n**A confirmar**\n#{notes.map { |note| "- #{note}" }.join("\n")}" : text
   end
 
   def price_advice(profile)
@@ -89,7 +92,7 @@ class ConversationAi::QuoteConsultant
     original = inventory(profile['original_items'])
     updated = inventory(profile['updated_items'])
     changes = lines(profile['changes'])
-    output = ["**Alterações:** #{changes.any? ? changes.join('; ') : 'Nenhuma alteração inequívoca identificada.'}"]
+    output = [changes.any? ? "**Alterações**\n#{changes.map { |change| "- #{change}" }.join("\n")}" : 'Nenhuma alteração inequívoca identificada.']
     if quote
       output << "**Valor anterior:** #{brl(quote[:total])} (orçamento de #{quote[:date]})."
     end
@@ -99,11 +102,16 @@ class ConversationAi::QuoteConsultant
     missing << "medidas ou especificação de #{unknown.join(', ')}" if unknown.any?
     missing << 'inventário completo antes e depois' unless original['item_count'].positive? && updated['item_count'].positive?
     missing << 'valor confirmado e discriminado de transporte no orçamento anterior' unless quote
-    missing << 'recalcular as condições operacionais alteradas' unless profile['scope_changed'] == false
+    inventory_only = if profile['scope_changes'].is_a?(Array)
+                       (profile['scope_changes'] & PRICE_SCOPE_CHANGES).empty?
+                     else
+                       profile['scope_changed'] == false
+                     end
+    missing << 'recalcular as condições operacionais alteradas' unless inventory_only
     baseline = original['mounted_m3']
     revised = updated['mounted_m3']
     if quote && baseline.positive? && revised.positive? && unknown_original.empty? && changes.any? &&
-       profile['scope_changed'] == false && quote[:shared] && (0.5..2).cover?(revised / baseline)
+       inventory_only && quote[:shared] && (0.5..2).cover?(revised / baseline)
       delta = (quote[:transport] * (BigDecimal(revised.to_s) / BigDecimal(baseline.to_s) - 1)).round(2)
       scenario = unknown.empty? ? 'Cenário proporcional ao espaço' : 'Cenário parcial, sem os itens a confirmar'
       output << "**#{scenario}:** #{brl(quote[:total] + delta)} (variação #{delta.negative? ? '−' : '+'}#{brl(delta.abs)})."
@@ -111,17 +119,18 @@ class ConversationAi::QuoteConsultant
     else
       output << '**Reajuste a validar.** A cotação atual não dá base suficiente para simular o novo preço com segurança.'
     end
-    output << "**A confirmar:** #{missing.uniq.join('; ')}." if missing.any?
+    output << "**A confirmar**\n#{missing.uniq.map { |detail| "- #{detail}" }.join("\n")}" if missing.any?
     output.join("\n\n")
   end
 
   def confirmed_quote(profile)
-    entry = @context.context[:messages].reverse.find do |message|
+    quotes = @context.context[:messages].select do |message|
       ['agente humano', 'bot'].include?(message[:sender]) &&
         I18n.transliterate(message[:content].downcase).match?(FINAL_QUOTE) &&
         message[:content].tr(' ', ' ').match?(MONEY)
     end
-    return unless entry && entry[:id].to_s == profile['quote_message_id'].to_s
+    entry = quotes.last
+    return unless entry && quotes.any? { |quote| quote[:id].to_s == profile['quote_message_id'].to_s }
 
     content = entry[:content].tr(' ', ' ')
     normalized = I18n.transliterate(content.downcase)
@@ -134,14 +143,21 @@ class ConversationAi::QuoteConsultant
                   company_values.include?(total) && money(transport_option) == transport
 
     {
-      total: total, transport: transport, date: Time.iso8601(entry[:created_at]).strftime('%d/%m/%Y'),
+      total: total, transport: transport, date: Time.iso8601(entry[:created_at]).in_time_zone('America/Sao_Paulo').strftime('%d/%m/%Y'),
       shared: normalized.match?(/aproveitamento logistico|carga compartilhada/)
     }
   end
 
   def inventory(items)
     parsed = RottaCalculator::PreBudgetParser.new(reading_text: '', inventory: { 'text' => lines(items).join("\n") }).call
-    RottaCalculator::InventoryResolver.new.call(parsed.dig('inventory', 'items'))
+    inventory_items = parsed.dig('inventory', 'items').map do |item|
+      item_name = RottaCalculator::InventoryCatalog.normalize(item['name'])
+      box_size = item_name[/\Acaixas? (pequena|media|grande)s?\z/, 1]
+      next item if box_size.blank? || item['measured_m3'].present?
+
+      item.merge('catalog_name' => "Caixa #{box_size}")
+    end
+    RottaCalculator::InventoryResolver.new.call(inventory_items)
   end
 
   def money(text)
