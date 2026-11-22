@@ -228,11 +228,18 @@ const showOlderHistory = async () => {
       </button>
     </div>
     <div
-      ref="chatContainer"
-      class="flex-1 flex px-4 py-4 overflow-y-auto items-start"
-      :class="{ 'flex-col gap-4': $slots['automatic-brief'] }"
+      v-if="$slots['automatic-brief']"
+      role="region"
+      :aria-label="t('CONVERSATION.AUTOMATIC_BRIEF.TITLE')"
+      tabindex="0"
+      class="max-h-[52%] shrink-0 overflow-y-auto border-b border-n-weak px-4 py-3"
     >
       <slot name="automatic-brief" />
+    </div>
+    <div
+      ref="chatContainer"
+      class="flex-1 flex px-4 py-4 overflow-y-auto items-start"
+    >
       <div
         v-if="historyError"
         role="alert"
