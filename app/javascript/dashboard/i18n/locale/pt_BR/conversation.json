@@ -77,6 +77,16 @@
     "DELETED_CONTENT_ERROR": "Não foi possível carregar o conteúdo apagado.",
     "DELETED_MESSAGE": "Mensagem apagada",
     "DELETED_MESSAGE_BY_CUSTOMER": "Mensagem apagada pelo cliente",
+    "AUTOMATIC_BRIEF": {
+      "TITLE": "Análise automática da conversa",
+      "REQUEST": "O que o cliente pediu",
+      "NEXT_STEP": "Resposta ou próximo passo",
+      "ERROR": "A análise automática falhou. Você pode fazer a consulta neste painel.",
+      "FILL_PLACEHOLDERS": "Preencha os dados entre colchetes para aprovar o rascunho.",
+      "APPROVE": "Aprovar rascunho",
+      "INSERTED": "Rascunho inserido. Revise e clique em Enviar.",
+      "EDITOR_UNAVAILABLE": "Abra uma resposta pública em branco para inserir o rascunho."
+    },
     "CAIO_ATTENTION": {
       "TITLE": "Caio Atenção",
       "NEW_CONVERSATION": "Nova conversa #{id}",

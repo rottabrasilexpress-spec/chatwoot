@@ -95,6 +95,16 @@
     "DELETED_CONTENT_ERROR": "Couldn't load deleted content.",
     "DELETED_MESSAGE": "Message deleted",
     "DELETED_MESSAGE_BY_CUSTOMER": "Message deleted by the customer",
+    "AUTOMATIC_BRIEF": {
+      "TITLE": "Automatic conversation review",
+      "REQUEST": "What the customer asked",
+      "NEXT_STEP": "Answer or next step",
+      "ERROR": "The automatic review could not be generated. You can still ask the AI in this panel.",
+      "FILL_PLACEHOLDERS": "Fill in the information in brackets to approve the draft.",
+      "APPROVE": "Approve draft",
+      "INSERTED": "Draft added to the reply. Review it and click Send.",
+      "EDITOR_UNAVAILABLE": "Open a blank public reply to insert this draft."
+    },
     "CAIO_ATTENTION": {
       "TITLE": "Caio Attention",
       "NEW_CONVERSATION": "New conversation #{id}",

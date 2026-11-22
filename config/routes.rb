@@ -109,6 +109,7 @@ Rails.application.routes.draw do
             end
             post 'conversation_ai/actions', to: 'conversation_ai#actions'
             post 'conversation_ai/profile', to: 'conversation_ai#profile'
+            get 'conversation_ai/automatic_brief', to: 'conversation_ai#automatic_brief'
             resources :custom_tools do
               post :test, on: :collection
             end

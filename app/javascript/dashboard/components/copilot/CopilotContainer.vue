@@ -20,6 +20,8 @@ import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import wootConstants from 'dashboard/constants/globals';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 import CopilotThreadsAPI from 'dashboard/api/captain/copilotThreads';
+import useConversationAiBrief from 'dashboard/composables/useConversationAiBrief';
+import ConversationAiBrief from 'dashboard/components-next/copilot/ConversationAiBrief.vue';
 
 defineProps({
   conversationInboxType: {
@@ -118,6 +120,21 @@ const messages = computed(() =>
 );
 
 const currentAccountId = useMapGetter('getCurrentAccountId');
+const { brief } = useConversationAiBrief({
+  accountId: currentAccountId,
+  conversationId: currentConversationId,
+  chat: currentChat,
+  user: currentUser,
+  lastPublicMessage,
+  openPanel: () => {
+    if (uiSettings.value?.is_conversation_ai_open) return;
+    updateUISettings({
+      is_contact_sidebar_open: false,
+      is_copilot_panel_open: true,
+      is_conversation_ai_open: true,
+    });
+  },
+});
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
@@ -531,7 +548,14 @@ onMounted(() => {
       @refresh-response="refreshResponse"
       @retry-history="openHistory"
       @load-older-history="loadOlderHistory"
-    />
+    >
+      <template v-if="isConversationAiMode && brief" #automatic-brief>
+        <ConversationAiBrief
+          :brief="brief"
+          :conversation-id="currentConversationId"
+        />
+      </template>
+    </Copilot>
   </div>
   <template v-else />
 </template>

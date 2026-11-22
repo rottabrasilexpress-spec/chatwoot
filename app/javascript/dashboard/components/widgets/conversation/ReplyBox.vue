@@ -633,6 +633,10 @@ export default {
       this.onNewConversationModalActive
     );
     emitter.on(BUS_EVENTS.INSERT_INTO_NORMAL_EDITOR, this.addIntoEditor);
+    emitter.on(
+      BUS_EVENTS.INSERT_CONVERSATION_AI_BRIEF_DRAFT,
+      this.insertConversationAiBriefDraft
+    );
     emitter.on(CMD_AI_ASSIST, this.executeCopilotAction);
   },
   unmounted() {
@@ -640,6 +644,10 @@ export default {
     document.removeEventListener('keydown', this.handleKeyEvents);
     emitter.off(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.onReplyToMessage);
     emitter.off(BUS_EVENTS.INSERT_INTO_NORMAL_EDITOR, this.addIntoEditor);
+    emitter.off(
+      BUS_EVENTS.INSERT_CONVERSATION_AI_BRIEF_DRAFT,
+      this.insertConversationAiBriefDraft
+    );
     emitter.off(
       BUS_EVENTS.NEW_CONVERSATION_MODAL,
       this.onNewConversationModalActive
@@ -1168,6 +1176,15 @@ export default {
     addIntoEditor(content) {
       this.updateEditorSelectionWith = content;
       this.onFocus();
+    },
+    insertConversationAiBriefDraft({ conversationId, text, onInserted }) {
+      if (Number(this.currentChat.id) !== Number(conversationId)) return;
+      if (this.isPrivate || this.message.trim()) {
+        useAlert(this.$t('CONVERSATION.AUTOMATIC_BRIEF.EDITOR_UNAVAILABLE'));
+        return;
+      }
+      this.addIntoEditor(text);
+      onInserted();
     },
     executeCopilotAction(action, data) {
       this.copilot.execute(action, data);

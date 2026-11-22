@@ -14,5 +14,7 @@ export const BUS_EVENTS = {
   NEW_CONVERSATION_MODAL: 'newConversationModal',
   INSERT_INTO_RICH_EDITOR: 'insertIntoRichEditor',
   INSERT_INTO_NORMAL_EDITOR: 'insertIntoNormalEditor',
+  CONVERSATION_AI_BRIEF_UPDATED: 'conversationAiBriefUpdated',
+  INSERT_CONVERSATION_AI_BRIEF_DRAFT: 'insertConversationAiBriefDraft',
   MFA_STATE_CHANGED: 'MFA_STATE_CHANGED',
 };

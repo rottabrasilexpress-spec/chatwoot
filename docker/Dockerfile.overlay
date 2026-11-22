@@ -26,6 +26,7 @@ COPY db/migrate/20260908000000_create_message_stars.rb /app/db/migrate/202609080
 COPY db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb /app/db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb
 COPY db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb /app/db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb
 COPY db/migrate/20261122021500_scope_conversation_ai_history_to_agent.rb /app/db/migrate/20261122021500_scope_conversation_ai_history_to_agent.rb
+COPY db/migrate/20261122033000_create_conversation_ai_briefs.rb /app/db/migrate/20261122033000_create_conversation_ai_briefs.rb
 COPY db/migrate/20260911000100_create_deleted_message_contents.rb /app/db/migrate/20260911000100_create_deleted_message_contents.rb
 COPY db/migrate/20260913000000_create_global_ai_assistant.rb /app/db/migrate/20260913000000_create_global_ai_assistant.rb
 COPY db/migrate/20260917000000_create_global_ai_action_receipts.rb /app/db/migrate/20260917000000_create_global_ai_action_receipts.rb
@@ -124,6 +125,9 @@ COPY enterprise/app/controllers/api/v1/accounts/captain/copilot_threads_controll
 COPY enterprise/app/controllers/api/v1/accounts/captain/copilot_messages_controller.rb /app/enterprise/app/controllers/api/v1/accounts/captain/copilot_messages_controller.rb
 COPY enterprise/app/controllers/api/v1/accounts/captain/conversation_ai_controller.rb /app/enterprise/app/controllers/api/v1/accounts/captain/conversation_ai_controller.rb
 COPY enterprise/app/jobs/conversation_ai/response_job.rb /app/enterprise/app/jobs/conversation_ai/response_job.rb
+COPY enterprise/app/jobs/conversation_ai/automatic_brief_job.rb /app/enterprise/app/jobs/conversation_ai/automatic_brief_job.rb
+COPY enterprise/app/models/conversation_ai_brief.rb /app/enterprise/app/models/conversation_ai_brief.rb
+COPY enterprise/app/services/conversation_ai/automatic_brief.rb /app/enterprise/app/services/conversation_ai/automatic_brief.rb
 COPY enterprise/app/services/conversation_ai/context_builder.rb /app/enterprise/app/services/conversation_ai/context_builder.rb
 COPY enterprise/app/services/conversation_ai/consultation.rb /app/enterprise/app/services/conversation_ai/consultation.rb
 COPY enterprise/app/services/conversation_ai/quote_consultant.rb /app/enterprise/app/services/conversation_ai/quote_consultant.rb

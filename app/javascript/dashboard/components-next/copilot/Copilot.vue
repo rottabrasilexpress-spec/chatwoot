@@ -230,7 +230,9 @@ const showOlderHistory = async () => {
     <div
       ref="chatContainer"
       class="flex-1 flex px-4 py-4 overflow-y-auto items-start"
+      :class="{ 'flex-col gap-4': $slots['automatic-brief'] }"
     >
+      <slot name="automatic-brief" />
       <div
         v-if="historyError"
         role="alert"

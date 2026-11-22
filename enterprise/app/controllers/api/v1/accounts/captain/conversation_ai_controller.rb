@@ -2,6 +2,20 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
   ALLOWED_ACTIONS = %w[add_label remove_label send_public_message create_private_note set_status update_contact_name].freeze
   ALLOWED_STATUSES = %w[open pending resolved].freeze
 
+  def automatic_brief
+    return head :not_found unless ConversationAiBrief.enabled_for?(Current.account.id)
+    return head :not_found unless Current.user.is_a?(User) && Current.user.id == ConversationAiBrief.recipient_id
+
+    conversation = Current.account.conversations.find_by!(display_id: params[:conversation_id])
+    authorize conversation, :show?
+
+    brief = ConversationAiBrief.find_by(conversation: conversation, user: Current.user)
+    response.headers['Cache-Control'] = 'no-store'
+    return head :no_content unless brief&.available?
+
+    render json: { state: brief.state, result: brief.result, version: brief.triggered_at.iso8601(6) }
+  end
+
   def actions
     conversation = Current.account.conversations.find_by!(display_id: params[:conversation_id])
     authorize conversation, :show?

@@ -62,6 +62,8 @@ class ActionCableConnector extends BaseActionCableConnector {
       'conversation.rotta_pickup_changed': this.onRottaPickupChanged,
       'conversation.following_changed': this.onConversationFollowingChanged,
       'conversation.caio_attention_added': this.onCaioAttentionAdded,
+      'conversation.ai_brief_updated': data =>
+        emitter.emit(BUS_EVENTS.CONVERSATION_AI_BRIEF_UPDATED, data),
       'conversation.attention_requested': this.onAttentionRequested,
       'conversation.unread_count_changed':
         this.onConversationUnreadCountChanged,
