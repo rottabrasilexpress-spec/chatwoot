@@ -16,21 +16,27 @@ COPY config/installation_config.yml /app/config/installation_config.yml
 COPY config/schedule.yml /app/config/schedule.yml
 COPY config/sidekiq-uazapi.yml /app/config/sidekiq-uazapi.yml
 COPY config/routes.rb /app/config/routes.rb
-COPY db/migrate/20261006120000_create_conversation_review_states.rb /app/db/migrate/20261006120000_create_conversation_review_states.rb
-COPY db/migrate/20260921120000_create_rotta_automatic_label_logs.rb /app/db/migrate/20260921120000_create_rotta_automatic_label_logs.rb
-COPY db/migrate/20260820000000_set_rotta_brasil_express_branding.rb /app/db/migrate/20260820000000_set_rotta_brasil_express_branding.rb
-COPY db/migrate/20260821000001_archive_existing_rotta_conversations.rb /app/db/migrate/20260821000001_archive_existing_rotta_conversations.rb
-COPY db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb /app/db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb
-COPY db/migrate/20260822000001_clear_rotta_conversation_teams.rb /app/db/migrate/20260822000001_clear_rotta_conversation_teams.rb
-COPY db/migrate/20260908000000_create_message_stars.rb /app/db/migrate/20260908000000_create_message_stars.rb
-COPY db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb /app/db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb
-COPY db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb /app/db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb
-COPY db/migrate/20261122021500_scope_conversation_ai_history_to_agent.rb /app/db/migrate/20261122021500_scope_conversation_ai_history_to_agent.rb
-COPY db/migrate/20261122033000_create_conversation_ai_briefs.rb /app/db/migrate/20261122033000_create_conversation_ai_briefs.rb
-COPY db/migrate/20260911000100_create_deleted_message_contents.rb /app/db/migrate/20260911000100_create_deleted_message_contents.rb
-COPY db/migrate/20260913000000_create_global_ai_assistant.rb /app/db/migrate/20260913000000_create_global_ai_assistant.rb
-COPY db/migrate/20260917000000_create_global_ai_action_receipts.rb /app/db/migrate/20260917000000_create_global_ai_action_receipts.rb
-COPY db/migrate/20260919163000_brand_rotta_woot.rb /app/db/migrate/20260919163000_brand_rotta_woot.rb
+# Group explicit migrations to stay below the build stage layer limit.
+COPY \
+  db/migrate/20261006120000_create_conversation_review_states.rb \
+  db/migrate/20260921120000_create_rotta_automatic_label_logs.rb \
+  db/migrate/20260820000000_set_rotta_brasil_express_branding.rb \
+  db/migrate/20260821000001_archive_existing_rotta_conversations.rb \
+  db/migrate/20260821000002_clear_rotta_human_conversation_assignments.rb \
+  db/migrate/20260822000001_clear_rotta_conversation_teams.rb \
+  db/migrate/20260908000000_create_message_stars.rb \
+  db/migrate/20260909050000_create_uazapi_webhook_deliveries.rb \
+  db/migrate/20260911000000_add_conversation_id_to_copilot_threads.rb \
+  db/migrate/20261122021500_scope_conversation_ai_history_to_agent.rb \
+  db/migrate/20261122033000_create_conversation_ai_briefs.rb \
+  db/migrate/20260911000100_create_deleted_message_contents.rb \
+  db/migrate/20260913000000_create_global_ai_assistant.rb \
+  db/migrate/20260917000000_create_global_ai_action_receipts.rb \
+  db/migrate/20260919163000_brand_rotta_woot.rb \
+  db/migrate/20261120130000_create_rotta_pickups.rb \
+  db/migrate/20261120140000_add_delivery_on_to_rotta_pickups.rb \
+  db/migrate/20261006150000_create_conversation_followings.rb \
+  /app/db/migrate/
 COPY app/finders/conversation_finder.rb /app/app/finders/conversation_finder.rb
 COPY app/dispatchers/async_dispatcher.rb /app/app/dispatchers/async_dispatcher.rb
 COPY app/listeners/rotta_automatic_label_listener.rb /app/app/listeners/rotta_automatic_label_listener.rb
@@ -85,9 +91,6 @@ COPY app/controllers/api/v1/accounts/bulk_actions_controller.rb /app/app/control
 COPY app/views/api/v1/accounts/conversations/labels/create.json.jbuilder /app/app/views/api/v1/accounts/conversations/labels/create.json.jbuilder
 COPY app/models/contact.rb /app/app/models/contact.rb
 COPY app/models/rotta_pickup.rb /app/app/models/rotta_pickup.rb
-COPY db/migrate/20261120130000_create_rotta_pickups.rb /app/db/migrate/20261120130000_create_rotta_pickups.rb
-COPY db/migrate/20261120140000_add_delivery_on_to_rotta_pickups.rb /app/db/migrate/20261120140000_add_delivery_on_to_rotta_pickups.rb
-COPY db/migrate/20261006150000_create_conversation_followings.rb /app/db/migrate/20261006150000_create_conversation_followings.rb
 COPY app/models/message.rb /app/app/models/message.rb
 COPY app/models/deleted_message_content.rb /app/app/models/deleted_message_content.rb
 COPY enterprise/app/models/copilot_message.rb /app/enterprise/app/models/copilot_message.rb
