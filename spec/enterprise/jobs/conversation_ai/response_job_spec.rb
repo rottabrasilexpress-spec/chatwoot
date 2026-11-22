@@ -52,6 +52,21 @@ RSpec.describe ConversationAi::ResponseJob, type: :job do
     expect(thread.copilot_messages.assistant).to be_empty
   end
 
+  it 'sends specialist prompts through the read-only branch of the authenticated webhook' do
+    with_modified_env ROTTA_CONVERSATION_AI_WEBHOOK_SECRET: 'test-only-secret' do
+      allow(HTTParty).to receive(:post) do |_url, options|
+        payload = JSON.parse(options[:body])
+        expect(payload).to include('kind' => 'read_only_specialist', 'system_prompt' => 'Sistema', 'prompt' => 'Pergunta')
+        expect(options[:timeout]).to eq(38)
+        instance_double(HTTParty::Response, success?: true, parsed_response: {
+                          'answer' => 'Resposta', 'provider_status' => 200, 'request_id' => payload['request_id'],
+                          'copilot_thread_id' => thread.id, 'conversation_id' => conversation.display_id, 'account_id' => account.id
+                        })
+      end
+      expect(job.send(:specialist_client, thread, conversation).call([{ content: 'Sistema' }, { content: 'Pergunta' }])).to eq('Resposta')
+    end
+  end
+
   it 'rejects a response correlated to another conversation' do
     expect do
       job.send(

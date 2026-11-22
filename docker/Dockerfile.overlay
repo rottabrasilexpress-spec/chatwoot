@@ -130,6 +130,7 @@ COPY enterprise/app/services/conversation_ai/quote_consultant.rb /app/enterprise
 COPY enterprise/app/services/conversation_ai/profile_context_builder.rb /app/enterprise/app/services/conversation_ai/profile_context_builder.rb
 COPY enterprise/app/services/conversation_ai/profile_service.rb /app/enterprise/app/services/conversation_ai/profile_service.rb
 COPY enterprise/app/views/api/v1/models/captain/_copilot_thread.json.jbuilder /app/enterprise/app/views/api/v1/models/captain/_copilot_thread.json.jbuilder
+COPY enterprise/app/views/api/v1/models/captain/_copilot_message.json.jbuilder /app/enterprise/app/views/api/v1/models/captain/_copilot_message.json.jbuilder
 COPY enterprise/app/views/api/v1/accounts/captain/copilot_threads/index.json.jbuilder /app/enterprise/app/views/api/v1/accounts/captain/copilot_threads/index.json.jbuilder
 COPY enterprise/app/views/api/v1/accounts/captain/copilot_messages/index.json.jbuilder /app/enterprise/app/views/api/v1/accounts/captain/copilot_messages/index.json.jbuilder
 

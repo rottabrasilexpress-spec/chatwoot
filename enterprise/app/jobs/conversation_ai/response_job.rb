@@ -34,9 +34,10 @@ class ConversationAi::ResponseJob < ApplicationJob
     request_body = mode ? nil : context.payload.to_json
     context_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round
     answer = if mode
-               ConversationAi::Consultation.new(context: context, mode: mode).call
+               client = specialist_client(thread, conversation)
+               ConversationAi::Consultation.new(context: context, mode: mode, client: client).call
              else
-               webhook_answer(request_body, request_id, thread, conversation)
+               ConversationAi::Consultation.envelope(webhook_answer(request_body, request_id, thread, conversation))
              end
     raise 'Pergunte para IA retornou uma resposta vazia' if answer[:content].blank?
 
@@ -49,11 +50,13 @@ class ConversationAi::ResponseJob < ApplicationJob
   rescue StandardError => e
     raise if thread.nil?
 
-    Rails.logger.error("[ConversationAi] error=#{e.class} request_id=#{request_id}")
+    provider_status = e.message[/\bHTTP (\d{3})\b/, 1]
+    Rails.logger.error("[ConversationAi] error=#{e.class} status=#{provider_status || '-'} request_id=#{request_id}")
     return if request_reply.nil?
 
     save_response(thread, request_reply, request_message_id, {
-                    content: I18n.t('captain.conversation_ai.failed'), consultation_status: 'failed'
+                    content: ConversationAi::Consultation.failure_message,
+                    consultation_status: 'failed'
                   })
   end
 
@@ -72,13 +75,32 @@ class ConversationAi::ResponseJob < ApplicationJob
     end
   end
 
-  def webhook_answer(request_body, request_id, thread, conversation)
-    response = HTTParty.post(webhook_url, headers: webhook_headers, body: request_body, timeout: 120)
+  def specialist_client(thread, conversation)
+    lambda do |messages|
+      request_id = SecureRandom.uuid
+      payload = {
+        kind: 'read_only_specialist',
+        request_id: request_id,
+        account_id: thread.account_id,
+        conversation_id: conversation.display_id,
+        copilot_thread_id: thread.id,
+        system_prompt: messages.first.fetch(:content),
+        prompt: messages.last.fetch(:content)
+      }
+      webhook_answer(payload.to_json, request_id, thread, conversation, timeout: 38)
+    end
+  end
+
+  def webhook_answer(request_body, request_id, thread, conversation, timeout: 120)
+    response = HTTParty.post(webhook_url, headers: webhook_headers, body: request_body, timeout: timeout)
     raise "Pergunte para IA recusou a solicitação (HTTP #{response.code})" unless response.success?
 
     body = response.parsed_response
     validate_response_metadata!(body, request_id: request_id, copilot_thread: thread, conversation: conversation)
-    ConversationAi::Consultation.envelope(body['answer'])
+    provider_status = body['provider_status']
+    raise "Modelo recusou a consulta (HTTP #{provider_status.to_i})" if provider_status && !(200..299).cover?(provider_status.to_i)
+
+    body['answer']
   end
 
   def webhook_url
