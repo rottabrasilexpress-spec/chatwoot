@@ -10,7 +10,8 @@ class ConversationAi::AutomaticBriefJob < ApplicationJob
 
     new_assignment = (next_labels - ConversationAiBrief.target_labels(previous_labels)).any?
     brief = reserve(conversation, membership.user, Time.iso8601(timestamp), next_labels, new_assignment)
-    return unless brief && brief.state == 'processing'
+    return unless brief
+    return notify(membership, conversation) if brief.state == 'cancelled'
 
     generate(brief, membership, previous_labels)
   end
@@ -42,7 +43,8 @@ class ConversationAi::AutomaticBriefJob < ApplicationJob
     result = ConversationAi::AutomaticBrief.new(brief: brief, previous_labels: previous_labels).call
     finish(brief, membership, event_time, result ? 'ready' : 'skipped', result || {})
   rescue StandardError => e
-    Rails.logger.warn("[ConversationAi::AutomaticBrief] conversation_id=#{brief.conversation_id} error=#{e.class}")
+    provider_status = e.message[/\bHTTP (\d{3})\b/, 1]
+    Rails.logger.warn("[ConversationAi::AutomaticBrief] conversation_id=#{brief.conversation_id} error=#{e.class} status=#{provider_status || '-'}")
     finish(brief, membership, event_time, 'failed', {})
   end
 
@@ -60,11 +62,15 @@ class ConversationAi::AutomaticBriefJob < ApplicationJob
 
       brief.update!(state: state, result: result)
     end
-    return unless changed && state.in?(%w[ready failed]) && can_read?(membership, brief.conversation)
+    notify(membership, brief.conversation) if changed && state.in?(%w[ready failed])
+  end
+
+  def notify(membership, conversation)
+    return unless can_read?(membership, conversation)
 
     ActionCableBroadcastJob.perform_later(
       [membership.user.pubsub_token], 'conversation.ai_brief_updated',
-      { account_id: brief.conversation.account_id, conversation_id: brief.conversation.display_id }
+      { account_id: conversation.account_id, conversation_id: conversation.display_id }
     )
   end
 end

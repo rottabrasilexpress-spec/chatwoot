@@ -1,4 +1,6 @@
 class ConversationAi::AutomaticBrief
+  include ConversationAi::ModelGateway
+
   QUOTE = /\A[[:space:][:punct:]]*(?:orcamento final|proposta (?:final|comercial))\b/i
   PREQUOTE = /\bpre[-\s]*orcamento\b/i
   INSTRUCTION = <<~TEXT.freeze
@@ -29,13 +31,18 @@ class ConversationAi::AutomaticBrief
     messages = context
     return if messages.none? { |message| message[:role] == 'cliente' }
 
-    config = GlobalAiAssistant::ProviderConfig
-    client = GlobalAiAssistant::OpenRouterClient.new(api_key: config.api_key, api_base: config.api_base, timeout: 25)
+    client = specialist_client(private_thread, @conversation)
     answer = client.call([{ role: 'system', content: INSTRUCTION }, { role: 'user', content: messages.to_json }])
     parse(answer, messages)
   end
 
   private
+
+  def private_thread
+    @conversation.account.copilot_threads.create_or_find_by!(
+      private_conversation_id: @conversation.id, user_id: @brief.user_id
+    ) { |thread| thread.title = 'Análise automática da conversa' }
+  end
 
   def public_messages
     @conversation.messages.where(private: false, message_type: %i[incoming outgoing]).where.not(status: :failed)

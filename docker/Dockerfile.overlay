@@ -131,6 +131,7 @@ COPY enterprise/app/jobs/conversation_ai/response_job.rb /app/enterprise/app/job
 COPY enterprise/app/jobs/conversation_ai/automatic_brief_job.rb /app/enterprise/app/jobs/conversation_ai/automatic_brief_job.rb
 COPY enterprise/app/models/conversation_ai_brief.rb /app/enterprise/app/models/conversation_ai_brief.rb
 COPY enterprise/app/services/conversation_ai/automatic_brief.rb /app/enterprise/app/services/conversation_ai/automatic_brief.rb
+COPY enterprise/app/services/conversation_ai/model_gateway.rb /app/enterprise/app/services/conversation_ai/model_gateway.rb
 COPY enterprise/app/services/conversation_ai/context_builder.rb /app/enterprise/app/services/conversation_ai/context_builder.rb
 COPY enterprise/app/services/conversation_ai/consultation.rb /app/enterprise/app/services/conversation_ai/consultation.rb
 COPY enterprise/app/services/conversation_ai/quote_consultant.rb /app/enterprise/app/services/conversation_ai/quote_consultant.rb
