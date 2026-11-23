@@ -1,7 +1,25 @@
 class ConversationAi::AutomaticBriefJob < ApplicationJob
   queue_as :low
 
-  def perform(conversation_id, timestamp, previous_labels, next_labels)
+  CAIO_LABEL = 'caio-atencao'.freeze
+  RECOVERY_TTL = 120
+
+  def self.recover_caio(conversation, brief)
+    labels = ConversationAiBrief.target_labels(conversation.label_list)
+    return unless labels.include?(CAIO_LABEL)
+
+    message_id = ConversationAiBrief.latest_customer_message_id(conversation)
+    return if message_id.nil? || brief&.covers_snapshot?(labels, message_id)
+
+    key = "rotta:caio-brief-recovery:#{conversation.id}:#{message_id}:#{labels.join(',')}"
+    return unless Redis::Alfred.set(key, '1', nx: true, ex: RECOVERY_TTL)
+
+    perform_later(conversation.id, Time.current.utc.iso8601(6), labels - [CAIO_LABEL], labels, recover_caio: true)
+  rescue StandardError => e
+    Rails.logger.warn("[ConversationAi::AutomaticBrief] Caio recovery conversation_id=#{conversation.id} error=#{e.class}")
+  end
+
+  def perform(conversation_id, timestamp, previous_labels, next_labels, recover_caio: false)
     conversation = Conversation.find_by(id: conversation_id)
     return unless conversation && ConversationAiBrief.enabled_for?(conversation.account_id)
 
@@ -9,7 +27,7 @@ class ConversationAi::AutomaticBriefJob < ApplicationJob
     return unless membership && can_read?(membership, conversation)
 
     new_assignment = (next_labels - ConversationAiBrief.target_labels(previous_labels)).any?
-    brief = reserve(conversation, membership.user, Time.iso8601(timestamp), next_labels, new_assignment)
+    brief = reserve(conversation, membership.user, Time.iso8601(timestamp), next_labels, new_assignment, recover_caio)
     return unless brief
     return notify(membership, conversation) if brief.state == 'cancelled'
 
@@ -22,7 +40,7 @@ class ConversationAi::AutomaticBriefJob < ApplicationJob
     ConversationPolicy.new({ account: conversation.account, account_user: membership, user: membership.user }, conversation).show?
   end
 
-  def reserve(conversation, recipient, timestamp, labels, new_assignment)
+  def reserve(conversation, recipient, timestamp, labels, new_assignment, recover_caio)
     conversation.with_lock do
       next unless labels == ConversationAiBrief.target_labels(conversation.label_list)
 
@@ -30,9 +48,12 @@ class ConversationAi::AutomaticBriefJob < ApplicationJob
       next if !new_assignment && brief.new_record?
       next if brief.persisted? && brief.triggered_at >= timestamp
 
+      message_id = ConversationAiBrief.latest_customer_message_id(conversation)
+      next if recover_caio && (!labels.include?(CAIO_LABEL) || message_id.nil? || brief.covers_snapshot?(labels, message_id))
+
       brief.update!(
         labels: labels, triggered_at: timestamp, state: new_assignment ? 'processing' : 'cancelled',
-        customer_message_id: ConversationAiBrief.latest_customer_message_id(conversation), result: {}
+        customer_message_id: message_id, result: {}
       )
       brief
     end

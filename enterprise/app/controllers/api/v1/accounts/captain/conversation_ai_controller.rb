@@ -11,7 +11,10 @@ class Api::V1::Accounts::Captain::ConversationAiController < Api::V1::Accounts::
 
     brief = ConversationAiBrief.find_by(conversation: conversation, user: Current.user)
     response.headers['Cache-Control'] = 'no-store'
-    return head :no_content unless brief&.available?
+    unless brief&.available?
+      ConversationAi::AutomaticBriefJob.recover_caio(conversation, brief)
+      return head :no_content
+    end
 
     render json: { state: brief.state, result: brief.result, version: brief.triggered_at.iso8601(6) }
   end

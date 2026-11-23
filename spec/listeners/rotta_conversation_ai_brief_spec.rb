@@ -34,6 +34,38 @@ RSpec.describe RottaAutomaticLabelListener, type: :request do
     expect { described_class.instance.conversation_updated(event) }.to have_enqueued_job(job)
   end
 
+  it 'recovers a missing review for an existing Caio label exactly once, only for Kelvin' do
+    incoming
+    conversation.update_labels(['caio-atencao'])
+    params = { conversation_id: conversation.display_id }
+    caio_headers = caio.create_new_auth_token
+    kelvin_headers = kelvin.create_new_auth_token
+    expect { get endpoint, params: params, headers: caio_headers }.not_to have_enqueued_job(job)
+    expect(response).to have_http_status(:not_found)
+
+    gateway = stub_request(:post, webhook_url).to_return do |request|
+      payload = JSON.parse(request.body)
+      answer = {
+        kind: 'review', draft: 'Vou confirmar a previsão.',
+        topics: [{ request: 'Prazo', answer: 'Confirmar com a operação', message_id: incoming.id }]
+      }.to_json
+      envelope = payload.slice('account_id', 'conversation_id', 'copilot_thread_id', 'request_id').merge('answer' => answer)
+      { status: 200, body: envelope.to_json, headers: { 'Content-Type' => 'application/json' } }
+    end
+    expect do
+      2.times { get endpoint, params: params, headers: kelvin_headers }
+    end.to have_enqueued_job(job).exactly(:once)
+    expect(response).to have_http_status(:no_content)
+
+    labels = conversation.reload.label_list.to_a
+    expect { perform_enqueued_jobs(only: job) }.not_to change(Message, :count)
+    expect(conversation.reload.label_list.to_a).to eq(labels)
+    expect(gateway).to have_been_requested.once
+    get endpoint, params: params, headers: kelvin_headers
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.dig('result', 'topics', 0, 'request')).to eq('Prazo')
+  end
+
   it 'uses one model call for a repeated event and returns both topics only to Kelvin' do
     incoming
     conversation.update_labels(%w[orcamento-feito kelvin caio-atencao])
@@ -76,6 +108,10 @@ RSpec.describe RottaAutomaticLabelListener, type: :request do
 
     job.perform_now(conversation.id, Time.current.utc.iso8601(6), ['primeiro-contato'], ['kelvin'])
     expect(ConversationAiBrief.find_by!(conversation: conversation).state).to eq('skipped')
+    expect do
+      get endpoint, params: { conversation_id: conversation.display_id }, headers: kelvin.create_new_auth_token
+    end.not_to have_enqueued_job(job)
+    expect(response).to have_http_status(:no_content)
   end
 
   it 'does not show stale or removed assignments' do

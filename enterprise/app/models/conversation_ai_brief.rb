@@ -27,4 +27,8 @@ class ConversationAiBrief < ApplicationRecord
     state.in?(%w[ready failed]) && labels == self.class.target_labels(conversation.label_list) &&
       customer_message_id == self.class.latest_customer_message_id(conversation)
   end
+
+  def covers_snapshot?(target_labels, message_id)
+    persisted? && state != 'cancelled' && labels == target_labels && customer_message_id == message_id
+  end
 end
