@@ -236,22 +236,38 @@ describe('ActionCableConnector - Copilot Tests', () => {
     });
 
     it('keeps archived conversations visible inside the archived route', () => {
-      actionCable.app.$router = {
-        currentRoute: { value: { name: 'archived_conversations' } },
+      const router = {
+        currentRoute: { value: { name: 'archived_conversation' } },
       };
+      actionCable = ActionCableConnector.init(
+        store.$store,
+        'test-token',
+        router
+      );
       const conversation = {
         id: 42,
+        account_id: 1,
         status: 'resolved',
         labels: ['arquivado'],
       };
 
-      actionCable.onConversationUpdated(conversation);
+      actionCable.onReceived({
+        event: 'conversation.updated',
+        data: conversation,
+      });
 
       expect(mockCommit).not.toHaveBeenCalledWith('DELETE_CONVERSATION', 42);
       expect(mockDispatch).toHaveBeenCalledWith(
         'updateConversation',
         conversation
       );
+
+      router.currentRoute.value.name = 'home';
+      actionCable.onReceived({
+        event: 'conversation.status_changed',
+        data: conversation,
+      });
+      expect(mockCommit).toHaveBeenCalledWith('DELETE_CONVERSATION', 42);
     });
   });
 
