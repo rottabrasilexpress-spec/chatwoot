@@ -610,6 +610,46 @@ describe('ReplyBox', () => {
     });
   });
 
+  it('submits one message per API attachment and uses the caption only once', () => {
+    const files = [
+      new File(['image'], 'foto.png', { type: 'image/png' }),
+      new File(['pdf'], 'documento.pdf', { type: 'application/pdf' }),
+      new File(['video'], 'video.mp4', { type: 'video/mp4' }),
+    ];
+    const context = {
+      isAPIInbox: true,
+      isPrivate: false,
+      currentChat: { id: 42 },
+      attachedFiles: files.map(file => ({ resource: { file } })),
+      message: 'Legenda',
+      globalConfig: { directUploadsEnabled: false },
+      getMessageWithQuotedEmailText: message => message,
+      getCopilotAcceptedMessage: () => '',
+      setReplyToInPayload: ReplyBox.methods.setReplyToInPayload,
+      getMessagePayload: ReplyBox.methods.getMessagePayload,
+      getMultipleMessagesPayload: ReplyBox.methods.getMultipleMessagesPayload,
+      sendMessageAsMultipleMessages:
+        ReplyBox.methods.sendMessageAsMultipleMessages,
+      sendMessage: vi.fn(),
+      clearEmailField: vi.fn(),
+      clearMessage: vi.fn(),
+      hideEmojiPicker: vi.fn(),
+    };
+
+    ReplyBox.methods.confirmOnSendReply.call(context);
+
+    expect(
+      context.sendMessage.mock.calls.map(([payload]) => [
+        payload.files,
+        payload.message,
+      ])
+    ).toEqual([
+      [[files[0]], 'Legenda'],
+      [[files[1]], ''],
+      [[files[2]], ''],
+    ]);
+  });
+
   it('ignores a repeated trigger for the same draft while it is sending', () => {
     let resolveSend;
     const sendMessage = vi.fn(

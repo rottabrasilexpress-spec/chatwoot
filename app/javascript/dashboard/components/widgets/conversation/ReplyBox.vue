@@ -953,8 +953,14 @@ export default {
           // To handle both cases, text and attachments are always sent as separate messages.
           const isOnInstagram = this.isAnInstagramChannel;
           const isOnTiktok = this.isATiktokChannel;
+          // The UAZAPI send service handles one attachment per API message.
+          const hasMultipleApiAttachments =
+            this.isAPIInbox && this.attachedFiles.length > 1;
           if (
-            (isOnWhatsApp || isOnInstagram || isOnTiktok) &&
+            (isOnWhatsApp ||
+              isOnInstagram ||
+              isOnTiktok ||
+              hasMultipleApiAttachments) &&
             !this.isPrivate
           ) {
             sendOperation = this.sendMessageAsMultipleMessages(
