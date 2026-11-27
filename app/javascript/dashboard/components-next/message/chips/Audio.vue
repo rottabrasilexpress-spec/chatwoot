@@ -7,7 +7,6 @@ import {
   getCurrentInstance,
 } from 'vue';
 import Icon from 'next/icon/Icon.vue';
-import { timeStampAppendedURL } from 'dashboard/helper/URLHelper';
 import { useEmitter } from 'dashboard/composables/emitter';
 import { emitter } from 'shared/helpers/mitt';
 import { useMessageContext } from '../provider.js';
@@ -31,14 +30,24 @@ defineOptions({
 const rawAudioURL = computed(
   () => attachment.dataUrl || attachment.data_url || ''
 );
-const timeStampURL = computed(() => {
+const playbackURL = computed(() => {
   if (!rawAudioURL.value) return '';
 
   try {
-    return timeStampAppendedURL(rawAudioURL.value);
+    const { origin } = window.location;
+    const url = new URL(rawAudioURL.value, origin);
+    const hostURL = window.chatwootConfig?.hostURL;
+    if (
+      url.pathname.startsWith('/rails/active_storage/blobs/redirect/') &&
+      hostURL &&
+      url.origin === new URL(hostURL, origin).origin
+    ) {
+      return new URL(url.pathname + url.search, origin).href;
+    }
   } catch {
-    return rawAudioURL.value;
+    // Leave an unrecognized URL for the browser to handle.
   }
+  return rawAudioURL.value;
 });
 
 const TRANSCRIPT_PREVIEW_LENGTH = 200;
@@ -181,8 +190,20 @@ const playOrPause = async () => {
     // Emit event to pause all other audio
     emitter.emit('pause_playing_audio', uid);
     try {
+      if (player.error) {
+        const url = new URL(playbackURL.value, window.location.origin);
+        if (
+          url.origin === window.location.origin &&
+          url.pathname.startsWith('/rails/active_storage/blobs/redirect/')
+        ) {
+          // A fresh redirect also refreshes expired storage URLs.
+          url.searchParams.set('t', Date.now());
+          player.src = url.href;
+        }
+        player.load();
+      }
       await player.play();
-      isPlaying.value = true;
+      isPlaying.value = !player.error;
     } catch {
       isPlaying.value = false;
     }
@@ -202,13 +223,12 @@ const onEnd = () => {
     class="hidden"
     playsinline
     preload="metadata"
-    :src="timeStampURL"
+    :src="playbackURL"
     @loadedmetadata="onLoadedMetadata"
     @timeupdate="onTimeUpdate"
     @ended="onEnd"
     @error="onAudioError"
-  >
-  </audio>
+  />
   <div
     v-bind="$attrs"
     class="rotta-audio"
